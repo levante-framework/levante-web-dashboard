@@ -1,0 +1,1 @@
+{"version":3,"file":"language-config.d.ts","sourceRoot":"","sources":["../ts/language-config.ts"],"names":[],"mappings":"AAAA;;GAEG;AACH,iBAAS,uBAAuB,IAAI,IAAI,CAOvC;AAED;;GAEG;AACH,iBAAS,wBAAwB,IAAI,IAAI,CAOxC;AAiKD,UAAU,cAAc;IACpB,SAAS,EAAE,MAAM,CAAC;IAClB,OAAO,EAAE,YAAY,GAAG,QAAQ,CAAC;IACjC,KAAK,EAAE,MAAM,CAAC;IACd,YAAY,CAAC,EAAE,MAAM,CAAC;CACzB"}

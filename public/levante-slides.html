@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEVANTE Framework Translation Pipeline</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow: hidden;
+        }
+
+        /* Slide Container */
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            display: none;
+            padding: 60px;
+            height: 100vh;
+            overflow-y: auto;
+            background: white;
+            margin: 20px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        /* Typography */
+        h1 {
+            color: #667eea;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            color: #764ba2;
+            font-size: 2em;
+            margin: 30px 0 15px 0;
+        }
+
+        h3 {
+            color: #555;
+            font-size: 1.3em;
+            margin: 20px 0 10px 0;
+        }
+
+        p, li {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        /* Navigation */
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+        }
+
+        .nav-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            margin: 0 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        /* Data Flow Diagram Styles */
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .flow-row {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .flow-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 200px;
+            text-align: center;
+            margin: 0 20px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .flow-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .flow-box h4 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .flow-box ul {
+            list-style: none;
+            text-align: left;
+        }
+
+        .flow-box li {
+            padding: 3px 0;
+            font-size: 0.9em;
+        }
+
+        .flow-arrow {
+            font-size: 2em;
+            color: #667eea;
+            margin: 0 15px;
+            animation: pulse 2s infinite;
+        }
+
+        .flow-arrow-down {
+            font-size: 2em;
+            color: #667eea;
+            margin: 10px 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        /* Repository boxes */
+        .repo-box {
+            background: linear-gradient(135deg, #ff7b7b, #ff9a56);
+            margin: 10px;
+            flex: 1;
+        }
+
+        .crowdin-box {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .gcp-box {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+        }
+
+        /* Process Flow Diagram */
+        .process-flow {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .process-step {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 15px;
+            padding: 15px;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .process-step:hover {
+            border-color: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .process-step .step-number {
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            overflow-x: auto;
+            border-left: 4px solid #667eea;
+        }
+
+        .code-block .command {
+            color: #68d391;
+        }
+
+        .code-block .comment {
+            color: #a0aec0;
+            font-style: italic;
+        }
+
+        /* Language Matrix Table */
+        .language-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .language-matrix th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .language-matrix td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .language-matrix tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .coverage-bar {
+            background: #e2e8f0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+
+        .coverage-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 2s ease-in-out;
+        }
+
+        /* Architecture Diagram */
+        .architecture {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .architecture-layer {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .architecture-layer:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+        }
+
+        .architecture-layer h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        /* Statistics Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        /* Interactive Elements */
+        .interactive-demo {
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .demo-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .demo-button:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #667eea;
+            transform: translateX(-50%);
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-right: 60%;
+        }
+
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-left: 60%;
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 30px;
+                margin: 10px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .flow-row {
+                flex-direction: column;
+            }
+
+            .flow-box {
+                margin: 10px 0;
+            }
+
+            .architecture {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script> <script> mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose', flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }, sequence: { useMaxWidth: true }, themeVariables: { primaryColor: '#eef2ff', primaryTextColor: '#1f2937', primaryBorderColor: '#667eea', lineColor: '#667eea', fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' } }); // augment existing showSlide to re-render Mermaid on visible slide const _showSlide = window.showSlide; window.showSlide = function(index) { _showSlide(index); const active = document.querySelectorAll('.slide')[index]; const mds = active.querySelectorAll('.mermaid'); if (mds.length) { // Render any Mermaid blocks on the active slide mds.forEach((el, i) => { const code = el.textContent; const id = 'mmd-' + index + '-' + i; mermaid.render(id, code).then(({ svg }) => { el.innerHTML = svg; }).catch(() => {}); }); } }; </script>
+</head>
+<body>
+    <div class="slide-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+            <h1>LEVANTE Framework Translation Pipeline</h1>
+            <div style="text-align: center; margin: 50px 0;">
+                <div class="flow-box" style="display: inline-block; margin: 20px;">
+                    <h3>A Comprehensive Data Flow Overview</h3>
+                    <ul style="text-align: left;">
+                        <li>Translation Pipeline Architecture</li>
+                        <li>Audio Generation Process</li>
+                        <li>Dashboard Integration</li>
+                        <li>Production Deployment</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="text-align: center; font-style: italic; color: #666; font-size: 1.2em;">
+                For Developers Working on LEVANTE Translation Systems
+            </p>
+        </div>
+
+        <!-- Slide 2: System Architecture -->
+        <div class="slide">
+            <h1>System Architecture Overview</h1>
+            <div class="flow-diagram">
+                <div class="flow-row">
+                    <div class="flow-box repo-box">
+                        <h4>levante_translations</h4>
+                        <ul>
+                            <li>• Audio Generation</li>
+                            <li>• CSV Export</li>
+                            <li>• Python Tools</li>
+                            <li>• TTS Integration</li>
+                        </ul>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box repo-box">
+                        <h4>levante-dashboard</h4>
+                        <ul>
+                            <li>• Vue.js UI</li>
+                            <li>• Translation Integration</li>
+                            <li>• User Management</li>
+                            <li>• Progress Tracking</li>
+                        </ul>
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-box repo-box">
+                        <h4>levante-surveys</h4>
+                        <ul>
+                            <li>• Survey Management</li>
+                            <li>• Translation Workflow</li>
+                            <li>• Survey Creation</li>
+                            <li>• Validation Testing</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flow-arrow-down">↓</div>
+                <div class="flow-row">
+                    <div class="flow-box crowdin-box">
+                        <h4>Crowdin Project</h4>
+                        <ul>
+                            <li>• levantetranslations</li>
+                            <li>• Professional Translation</li>
+                            <li>• Quality Validation</li>
+                            <li>• Multi-language Support</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flow-arrow-down">↓</div>
+                <div class="flow-row">
+                    <div class="flow-box gcp-box">
+                        <h4>GCP Buckets</h4>
+                        <ul>
+                            <li>• levante-assets-dev</li>
+                            <li>• levante-assets-prod</li>
+                            <li>• Audio Files Storage</li>
+                            <li>• CSV & JSON Assets</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Translation Data Flow -->
+        <div class="slide">
+            <h1>Translation Pipeline Data Flow</h1>
+            <div class="process-flow">
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <h4>Source Data</h4>
+                    <p>GitHub repositories with task data, surveys, and dashboard content</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <h4>CSV Extraction</h4>
+                    <p>Automated extraction of translatable content to CSV format</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <h4>Crowdin Upload</h4>
+                    <p>Professional translation management with quality validation</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <h4>Translation Work</h4>
+                    <p>Professional translators work on content in Crowdin platform</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">5</div>
+                    <h4>Download & Import</h4>
+                    <p>Completed translations imported back to JSON/CSV formats</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">6</div>
+                    <h4>Audio Generation</h4>
+                    <p>TTS services generate audio files with PlayHT & ElevenLabs</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">7</div>
+                    <h4>Deployment</h4>
+                    <p>Automated deployment to GCP buckets (dev → prod)</p>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">8</div>
+                    <h4>End Users</h4>
+                    <p>Dashboard users, task participants, and survey respondents</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Audio Generation Pipeline -->
+        <div class="slide">
+            <h1>Audio Generation Pipeline</h1>
+            <div class="flow-diagram">
+                <div class="flow-box" style="background: linear-gradient(135deg, #ff9a9e, #fecfef);">
+                    <h4>Source CSV Processing</h4>
+                    <p>item_bank_translations.csv → normalize headers → extract new items</p>
+                </div>
+                <div class="flow-arrow-down">↓</div>
+                <div class="flow-row">
+                    <div class="flow-box" style="background: linear-gradient(135deg, #a8edea, #fed6e3);">
+                        <h4>PlayHT Integration</h4>
+                        <ul>
+                            <li>• Voice: Spanish_Violeta Narrative</li>
+                            <li>• SSML Processing</li>
+                            <li>• Error Handling & Retry</li>
+                            <li>• Stream Processing</li>
+                        </ul>
+                    </div>
+                    <div class="flow-box" style="background: linear-gradient(135deg, #ff9a9e, #fad0c4);">
+                        <h4>ElevenLabs Integration</h4>
+                        <ul>
+                            <li>• Voice: Clara - Children's Storyteller</li>
+                            <li>• Multilingual Support</li>
+                            <li>• High Quality Output</li>
+                            <li>• eleven_multilingual_v2</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="flow-arrow-down">↓</div>
+                <div class="flow-box gcp-box">
+                    <h4>Audio Output</h4>
+                    <p>audio_files/{language_code}/{item_id}.mp3 with ID3 tags</p>
+                </div>
+            </div>
+            
+            <h3>Supported Languages & Voices</h3>
+            <table class="language-matrix">
+                <thead>
+                    <tr>
+                        <th>Language</th>
+                        <th>Code</th>
+                        <th>Service</th>
+                        <th>Voice</th>
+                        <th>Coverage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>English</td>
+                        <td>en</td>
+                        <td>ElevenLabs</td>
+                        <td>Clara - Children's Storyteller</td>
+                        <td><div class="coverage-bar"><div class="coverage-fill" style="width: 100%"></div></div>100%</td>
+                    </tr>
+                    <tr>
+                        <td>Spanish</td>
+                        <td>es-CO</td>
+                        <td>PlayHT</td>
+                        <td>Spanish_Violeta Narrative</td>
+                        <td><div class="coverage-bar"><div class="coverage-fill" style="width: 100%"></div></div>100%</td>
+                    </tr>
+                    <tr>
+                        <td>German</td>
+                        <td>de</td>
+                        <td>ElevenLabs</td>
+                        <td>Julia</td>
+                        <td><div class="coverage-bar"><div class="coverage-fill" style="width: 98%"></div></div>98%</td>
+                    </tr>
+                    <tr>
+                        <td>French</td>
+                        <td>fr-CA</td>
+                        <td>ElevenLabs</td>
+                        <td>Caroline - Top France</td>
+                        <td><div class="coverage-bar"><div class="coverage-fill" style="width: 95%"></div></div>95%</td>
+                    </tr>
+                    <tr>
+                        <td>Dutch</td>
+                        <td>nl</td>
+                        <td>ElevenLabs</td>
+                        <td>Emma - Natural conversations</td>
+                        <td><div class="coverage-bar"><div class="coverage-fill" style="width: 95%"></div></div>95%</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 5: Repository Details -->
+        <div class="slide">
+            <h1>Repository Structure & Components</h1>
+            <div class="architecture">
+                <div class="architecture-layer">
+                    <h4>levante_translations</h4>
+                    <div class="code-block">
+├── generate_speech.py
+├── dashboard.py  
+├── web-dashboard/
+├── utilities/
+├── PlayHt/
+├── ELabs/
+├── crowdin.yml
+└── translation_text/
+                    </div>
+                    <p><strong>Functions:</strong> Audio generation, TTS integration, web dashboard, Crowdin tools</p>
+                </div>
+                
+                <div class="architecture-layer">
+                    <h4>levante-dashboard</h4>
+                    <div class="code-block">
+├── src/translations/
+│   ├── consolidated/
+│   ├── crowdin/
+│   ├── tools/
+│   └── [language]/
+├── components/
+└── pages/
+                    </div>
+                    <p><strong>Functions:</strong> Vue.js app, translation management, user interface, progress tracking</p>
+                </div>
+                
+                <div class="architecture-layer">
+                    <h4>levante-surveys</h4>
+                    <div class="code-block">
+├── src/ (Vue.js app)
+├── surveys/
+├── scripts/
+│   ├── extract-translations.js
+│   ├── import-individual-surveys.js
+│   └── deploy-surveys.js
+└── cypress/
+                    </div>
+                    <p><strong>Functions:</strong> Survey management, translation workflow, validation testing</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: NPM Scripts & Automation -->
+        <div class="slide">
+            <h1>Automation & NPM Scripts</h1>
+            <h3>Audio Generation Commands</h3>
+            <div class="code-block">
+<span class="comment"># Generate audio for specific languages</span>
+<span class="command">npm run generate:english</span>          <span class="comment"># Generate English audio</span>
+<span class="command">npm run generate:spanish</span>          <span class="comment"># Generate Spanish audio</span>
+<span class="command">npm run generate:german</span>           <span class="comment"># Generate German audio</span>
+
+<span class="comment"># Force regeneration with new voices</span>
+<span class="command">npm run generate:english -- --force</span> <span class="comment"># Regenerate all English</span>
+            </div>
+
+            <h3>Translation Management</h3>
+            <div class="code-block">
+<span class="comment"># Crowdin integration</span>
+<span class="command">npm run deploy:crowdin-dev</span>        <span class="comment"># Upload to Crowdin</span>
+<span class="command">npm run fetch:translations</span>        <span class="comment"># Get latest CSV from GitHub</span>
+
+<span class="comment"># Dashboard translations</span>
+<span class="command">npm run i18n:csv-to-json</span>          <span class="comment"># Convert CSV to JSON</span>
+<span class="command">npm run i18n:validate</span>             <span class="comment"># Check completeness</span>
+            </div>
+
+            <h3>Deployment Commands</h3>
+            <div class="code-block">
+<span class="comment"># Deploy to GCP buckets</span>
+<span class="command">npm run deploy:translations-dev</span>   <span class="comment"># Deploy all assets to dev</span>
+<span class="command">npm run deploy:translations-prod</span>  <span class="comment"># Deploy to production</span>
+<span class="command">npm run deploy:web</span>                <span class="comment"># Deploy web dashboard</span>
+
+<span class="comment"># Validation & testing</span>
+<span class="command">npm run validate:core-tasks</span>       <span class="comment"># Test against core-tasks</span>
+<span class="command">npm run test:surveys</span>              <span class="comment"># Validate survey functionality</span>
+            </div>
+
+            <div class="interactive-demo">
+                <h3>Interactive Demo</h3>
+                <p>Try these commands in your development environment:</p>
+                <button class="demo-button" onclick="copyCommand('npm run generate:english')">Copy Audio Generation</button>
+                <button class="demo-button" onclick="copyCommand('npm run deploy:translations-dev')">Copy Deployment</button>
+                <button class="demo-button" onclick="copyCommand('npm run validate:core-tasks')">Copy Validation</button>
+            </div>
+        </div>
+
+        <!-- Slide 7: GCP Deployment Strategy -->
+        <div class="slide">
+            <h1>GCP Bucket Deployment Strategy</h1>
+            <div class="flow-diagram">
+                <h3 style="text-align: center; color: #667eea;">Development Environment</h3>
+                <div class="flow-row">
+                    <div class="flow-box" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                        <h4>levante-dashboard-dev</h4>
+                        <ul>
+                            <li>• item-bank-translations.csv</li>
+                            <li>• surveys/ directory</li>
+                            <li>• Main translation CSV</li>
+                        </ul>
+                    </div>
+                    <div class="flow-box" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                        <h4>levante-assets-dev</h4>
+                        <ul>
+                            <li>• translations/ (mirrors)</li>
+                            <li>• audio/ (MP3 files)</li>
+                            <li>• surveys/ (backup)</li>
+                            <li>• ICU & XLIFF files</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="flow-arrow-down">↓ Sync after validation</div>
+                
+                <h3 style="text-align: center; color: #667eea;">Production Environment</h3>
+                <div class="flow-row">
+                    <div class="flow-box" style="background: linear-gradient(135deg, #ff7b7b, #ff9a56);">
+                        <h4>levante-dashboard-prod</h4>
+                        <ul>
+                            <li>• Same structure as DEV</li>
+                            <li>• Production-ready content</li>
+                            <li>• Validated translations</li>
+                        </ul>
+                    </div>
+                    <div class="flow-box" style="background: linear-gradient(135deg, #ffa726, #fb8c00);">
+                        <h4>levante-assets-prod</h4>
+                        <ul>
+                            <li>• Mirror of DEV assets</li>
+                            <li>• High-quality audio files</li>
+                            <li>• Tested survey files</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Deployment Features</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number">500MB</span>
+                    <span class="stat-label">Storage per Language Environment</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">98%</span>
+                    <span class="stat-label">Deployment Success Rate</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">5</span>
+                    <span class="stat-label">Languages Supported</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">10K+</span>
+                    <span class="stat-label">Generated Audio Files</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Performance Metrics -->
+        <div class="slide">
+            <h1>Performance Metrics & Statistics</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number">2,000</span>
+                    <span class="stat-label">Task Translation Items</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">1,400+</span>
+                    <span class="stat-label">Survey Translation Objects</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">500</span>
+                    <span class="stat-label">Dashboard UI Strings</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">50</span>
+                    <span class="stat-label">Audio Items/Minute</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">99%</span>
+                    <span class="stat-label">Validation Pass Rate</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">200ms</span>
+                    <span class="stat-label">Dashboard Response Time</span>
+                </div>
+            </div>
+
+            <h3>Translation Coverage by Component</h3>
+            <table class="language-matrix">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>EN</th>
+                        <th>ES</th>
+                        <th>DE</th>
+                        <th>FR</th>
+                        <th>NL</th>
+                        <th>Audio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Tasks</strong></td>
+                        <td>100%</td>
+                        <td>100%</td>
+                        <td>98%</td>
+                        <td>95%</td>
+                        <td>95%</td>
+                        <td>✅</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dashboard</strong></td>
+                        <td>100%</td>
+                        <td>100%</td>
+                        <td>95%</td>
+                        <td>94%</td>
+                        <td>94%</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Child Survey</strong></td>
+                        <td>100%</td>
+                        <td>100%</td>
+                        <td>97%</td>
+                        <td>97%</td>
+                        <td>97%</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Parent Surveys</strong></td>
+                        <td>100%</td>
+                        <td>100%</td>
+                        <td>99%</td>
+                        <td>94%</td>
+                        <td>94%</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Teacher Surveys</strong></td>
+                        <td>98%</td>
+                        <td>100%</td>
+                        <td>95%</td>
+                        <td>94%</td>
+                        <td>94%</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 9: Troubleshooting & Best Practices -->
+        <div class="slide">
+            <h1>Troubleshooting & Best Practices</h1>
+            
+            <h3>Common Issues & Solutions</h3>
+            <div class="process-flow">
+                <div class="process-step">
+                    <div class="step-number">⚠️</div>
+                    <h4>TTS Service Errors</h4>
+                    <div class="code-block">
+<span class="comment"># Check API keys</span>
+<span class="command">python generate_speech.py English --force</span>
+                    </div>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">📝</div>
+                    <h4>CSV Format Problems</h4>
+                    <div class="code-block">
+<span class="command">python utilities/fix_csv_formatting.py</span>
+                    </div>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">☁️</div>
+                    <h4>GCS Permission Issues</h4>
+                    <div class="code-block">
+<span class="command">npm run setup:service-account-dev</span>
+                    </div>
+                </div>
+                <div class="process-step">
+                    <div class="step-number">🌍</div>
+                    <h4>Crowdin Upload Failures</h4>
+                    <p>Verify language code standardization (hyphens vs underscores)</p>
+                </div>
+            </div>
+
+            <h3>Developer Best Practices</h3>
+            <div class="architecture">
+                <div class="architecture-layer">
+                    <h4>Before Deployment</h4>
+                    <ul style="text-align: left;">
+                        <li>Always use dry-run modes</li>
+                        <li>Validate translation coverage</li>
+                        <li>Test audio generation</li>
+                        <li>Check Crowdin project health</li>
+                    </ul>
+                </div>
+                <div class="architecture-layer">
+                    <h4>During Development</h4>
+                    <ul style="text-align: left;">
+                        <li>Monitor API usage and costs</li>
+                        <li>Use force regeneration sparingly</li>
+                        <li>Validate across all languages</li>
+                        <li>Keep documentation updated</li>
+                    </ul>
+                </div>
+                <div class="architecture-layer">
+                    <h4>Quality Assurance</h4>
+                    <ul style="text-align: left;">
+                        <li>Run Cypress validation tests</li>
+                        <li>Check translation consistency</li>
+                        <li>Verify audio quality</li>
+                        <li>Test production deployments</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Future Roadmap -->
+        <div class="slide">
+            <h1>Future Enhancements & Roadmap</h1>
+            
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Q1-Q2 2025: Enhanced Automation</h4>
+                        <ul>
+                            <li>GitHub Actions integration</li>
+                            <li>Webhook-based Crowdin sync</li>
+                            <li>Automatic quality validation</li>
+                            <li>Portuguese (pt-BR) support</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Q3-Q4 2025: Language Expansion</h4>
+                        <ul>
+                            <li>Arabic (ar) right-to-left support</li>
+                            <li>Mandarin Chinese (zh-CN)</li>
+                            <li>Voice consistency validation</li>
+                            <li>SSML enhancement tools</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>2026: AI-Powered Features</h4>
+                        <ul>
+                            <li>Machine translation pre-processing</li>
+                            <li>Translation quality scoring</li>
+                            <li>Advanced analytics dashboard</li>
+                            <li>Multi-region deployment</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h4>Long-term Vision</h4>
+                        <ul>
+                            <li>VS Code extension for translations</li>
+                            <li>Real-time preview integration</li>
+                            <li>Microservices architecture</li>
+                            <li>CDN optimization for global delivery</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: Contact & Resources -->
+        <div class="slide">
+            <h1>Contact & Resources</h1>
+            
+            <div class="architecture">
+                <div class="architecture-layer">
+                    <h4>Repository Links</h4>
+                    <ul style="text-align: left;">
+                        <li><strong>levante_translations:</strong><br>github.com/levante-framework/levante_translations</li>
+                        <li><strong>levante-dashboard:</strong><br>github.com/levante-framework/levante-dashboard</li>
+                        <li><strong>levante-surveys:</strong><br>github.com/levante-framework/levante-surveys</li>
+                    </ul>
+                </div>
+                
+                <div class="architecture-layer">
+                    <h4>Live Deployments</h4>
+                    <ul style="text-align: left;">
+                        <li><strong>Web Dashboard:</strong><br>audio-dashboard-levante.vercel.app</li>
+                        <li><strong>Production Dashboard:</strong><br>platform.levante-network.org</li>
+                        <li><strong>Crowdin Project:</strong><br>levantetranslations</li>
+                    </ul>
+                </div>
+                
+                <div class="architecture-layer">
+                    <h4>Support Resources</h4>
+                    <ul style="text-align: left;">
+                        <li>README files in each repository</li>
+                        <li>GitHub Issues for bug reports</li>
+                        <li>Team Slack channels</li>
+                        <li>Weekly sync meetings</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 50px 0; padding: 30px; background: #f8f9fa; border-radius: 15px;">
+                <h2 style="color: #667eea;">Thank You!</h2>
+                <p style="font-size: 1.2em; color: #666; margin: 20px 0;">
+                    Questions and discussion welcome
+                </p>
+                <div class="interactive-demo">
+                    <button class="demo-button" onclick="goToSlide(0)">Back to Start</button>
+                    <button class="demo-button" onclick="openGitHub()">View on GitHub</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="slide-counter">
+        <span id="currentSlide">1</span> / <span id="totalSlides">11</span>
+    </div>
+    
+    <div class="navigation">
+        <button class="nav-btn" onclick="previousSlide()">← Previous</button>
+        <button class="nav-btn" onclick="nextSlide()">Next →</button>
+    </div>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        document.getElementById('totalSlides').textContent = totalSlides;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            document.getElementById('currentSlide').textContent = index + 1;
+            
+            // Animate coverage bars when showing performance slide
+            if (index === 7) {
+                setTimeout(() => {
+                    const coverageFills = document.querySelectorAll('.coverage-fill');
+                    coverageFills.forEach(fill => {
+                        fill.style.transition = 'width 2s ease-in-out';
+                    });
+                }, 100);
+            }
+        }
+
+        function nextSlide() {
+            currentSlideIndex = (currentSlideIndex + 1) % totalSlides;
+            showSlide(currentSlideIndex);
+        }
+
+        function previousSlide() {
+            currentSlideIndex = (currentSlideIndex - 1 + totalSlides) % totalSlides;
+            showSlide(currentSlideIndex);
+        }
+
+        function goToSlide(index) {
+            currentSlideIndex = index;
+            showSlide(currentSlideIndex);
+        }
+
+        function copyCommand(command) {
+            navigator.clipboard.writeText(command).then(() => {
+                alert(`Copied: ${command}`);
+            });
+        }
+
+        function openGitHub() {
+            window.open('https://github.com/levante-framework/levante_translations', '_blank');
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                previousSlide();
+            } else if (e.key >= '1' && e.key <= '9') {
+                const slideNum = parseInt(e.key) - 1;
+                if (slideNum < totalSlides) {
+                    goToSlide(slideNum);
+                }
+            }
+        });
+
+        // Initialize
+        showSlide(0);
+
+        // Add smooth transitions and animations
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animate elements on slide change
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.animation = 'fadeIn 0.6s ease-in-out';
+                    }
+                });
+            });
+
+            slides.forEach(slide => {
+                observer.observe(slide);
+            });
+        });
+
+        // Add CSS for fade-in animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

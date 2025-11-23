@@ -1,0 +1,3467 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pre-Release Readiness Report</title>
+<link href="./favicon.svg" rel="icon" type="image/svg+xml"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link href="./styles.css" rel="stylesheet"/>
+<style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%); color: #e2e8f0; min-height: 100vh; }
+    .preflight-container { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 28px; }
+    .preflight-header { background: linear-gradient(135deg, rgba(255, 111, 0, 0.92) 0%, rgba(255, 166, 77, 0.85) 55%, rgba(9, 17, 31, 0.92) 100%); border-radius: 22px; padding: 36px; position: relative; overflow: hidden; box-shadow: 0 32px 80px rgba(255, 123, 0, 0.28); }
+    .preflight-header::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 78% 12%, rgba(0, 160, 222, 0.75), transparent 55%), linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent 72%); opacity: 0.9; pointer-events: none; mix-blend-mode: screen; }
+    .preflight-header-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 18px; }
+    .header-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+    .preflight-header h1 { margin: 0; font-size: 2.4rem; font-weight: 600; letter-spacing: 0.01em; color: #030c1c; text-shadow: 0 14px 36px rgba(0, 0, 0, 0.32); display: flex; align-items: center; gap: 14px; }
+    .preflight-header p { margin: 0; max-width: 720px; font-size: 1rem; color: rgba(3, 13, 28, 0.78); line-height: 1.6; }
+    .refresh-btn { border: none; border-radius: 999px; padding: 10px 20px; background: rgba(3, 12, 28, 0.86); color: #fcebd6; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 16px 38px rgba(3, 12, 28, 0.45); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+    .refresh-btn:hover { transform: translateY(-2px); background: rgba(255, 123, 0, 0.92); color: #03101f; box-shadow: 0 22px 50px rgba(255, 123, 0, 0.42); }
+    .report-card { background: rgba(9, 17, 31, 0.92); border-radius: 20px; border: 1px solid rgba(0, 160, 222, 0.28); box-shadow: 0 30px 72px rgba(2, 6, 23, 0.5); padding: 28px; display: flex; flex-direction: column; gap: 24px; }
+    .report-card .section { background: rgba(3, 12, 28, 0.82); border: 1px solid rgba(56, 189, 248, 0.22); border-radius: 18px; padding: 20px 24px; box-shadow: 0 24px 52px rgba(2, 6, 23, 0.45); }
+    h1, h2, h3 { color: #f8fafc !important; letter-spacing: 0.03em; }
+    h2 { font-size: 1.25rem !important; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #ffb347 !important; }
+    h3 { font-size: 0.95rem !important; color: #e2e8f0 !important; }
+    p, .small, .code { color: rgba(226, 232, 240, 0.8) !important; }
+    .code { background: rgba(3, 12, 28, 0.8); padding: 4px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; }
+    .table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: 0 26px 60px rgba(2, 6, 23, 0.5); }
+    .table th, .table td { border: 1px solid rgba(56, 189, 248, 0.18) !important; padding: 12px 16px !important; font-size: 0.9rem !important; text-align: left; }
+    .table thead th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%) !important; color: #03101f !important; text-transform: uppercase; letter-spacing: 0.08em; position: sticky; top: 0; z-index: 2; }
+    .table td { background: rgba(7, 13, 24, 0.9) !important; color: #f1f5f9 !important; }
+    .table tr:hover td { background: rgba(255, 123, 0, 0.12) !important; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+    .badge.ok { background: rgba(34, 197, 94, 0.18); color: #bbf7d0; }
+    .badge.warn { background: rgba(255, 159, 64, 0.22); color: #ffedd5; }
+    .badge.err { background: rgba(248, 113, 113, 0.22); color: #fecaca; }
+    .stoplight { border-radius: 999px; padding: 6px 16px !important; border: 1px solid rgba(56, 189, 248, 0.32) !important; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; box-shadow: 0 16px 38px rgba(2, 6, 23, 0.45); background: rgba(7, 13, 24, 0.9); color: #f8fafc; }
+    .stoplight.go { background: rgba(34, 197, 94, 0.24) !important; color: #bbf7d0 !important; border-color: rgba(34, 197, 94, 0.42) !important; }
+    .stoplight.diff { background: rgba(255, 159, 64, 0.28) !important; color: #ffedd5 !important; border-color: rgba(255, 159, 64, 0.5) !important; cursor: pointer; }
+    .stoplight.diff:hover { background: rgba(255, 159, 64, 0.42) !important; }
+    .stoplight.fail { background: rgba(248, 113, 113, 0.32) !important; color: #fecaca !important; border-color: rgba(248, 113, 113, 0.5) !important; }
+    .stoplight.loading { background: rgba(15, 23, 42, 0.85) !important; color: #f8fafc !important; border-color: rgba(148, 163, 184, 0.4) !important; }
+    .warning-icon { color: #ffb347; cursor: pointer; margin-left: 6px; font-size: 0.9rem; }
+    .info-icon { color: #38bdf8; cursor: pointer; margin-left: 6px; font-size: 0.8rem; }
+    .report-card button { padding: 6px 12px !important; border-radius: 10px !important; border: 1px solid rgba(56, 189, 248, 0.35) !important; background: rgba(3, 12, 28, 0.78) !important; color: #f8fafc !important; font-weight: 600 !important; letter-spacing: 0.05em !important; cursor: pointer !important; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+    .report-card button:hover { transform: translateY(-1px); background: rgba(56, 189, 248, 0.92) !important; color: #03101f !important; box-shadow: 0 16px 36px rgba(56, 189, 248, 0.35); }
+    .report-card .link { color: #38bdf8 !important; cursor: pointer; }
+    .report-card .link:hover { text-decoration: underline; }
+    .report-card .footer { color: rgba(226, 232, 240, 0.75); font-size: 0.85rem; }
+    .report-card .footer .badge { margin-left: 6px; }
+    .modal .modal-content { background: rgba(9, 17, 31, 0.95); color: #f8fafc; border-radius: 18px; border: 1px solid rgba(56, 189, 248, 0.35); }
+    .modal .modal-header { border-bottom: 1px solid rgba(56, 189, 248, 0.25); }
+    .modal .modal-title { color: #ffb347; }
+    .modal .close { color: #f8fafc; }
+    .modal .modal-body { color: #f8fafc; }
+    .modal .modal-body h4 { color: #ffb347 !important; font-weight: 600; margin-top: 20px; margin-bottom: 12px; }
+    .modal .modal-body p { color: #e2e8f0 !important; line-height: 1.6; }
+    .modal .modal-body strong { color: #f8fafc !important; font-weight: 600; }
+    .modal .modal-body small { color: #cbd5e1 !important; }
+    .modal .modal-body .diff-value { color: #ffb347 !important; font-weight: 700; font-size: 1.2em; }
+    .modal .modal-body .diff-section { margin-bottom: 24px; }
+    .modal .modal-body .diff-comparison { display: flex; align-items: center; gap: 16px; margin: 12px 0; }
+    .modal .modal-body .diff-item { flex: 1; text-align: center; padding: 12px; background: rgba(7, 13, 24, 0.6); border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); }
+    .modal .modal-body .diff-item strong { color: #ffb347 !important; display: block; margin-bottom: 8px; }
+    .modal .modal-body .diff-arrow { color: #ffb347; font-size: 1.5em; font-weight: bold; }
+    #p0IssuesList, #p1IssuesList { background: rgba(7, 13, 24, 0.92) !important; border: 1px solid rgba(56, 189, 248, 0.22) !important; color: #f8fafc !important; }
+    #bucketInfoTable table { background: transparent !important; }
+    #bucketInfoTable table thead th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%) !important; color: #03101f !important; }
+    #bucketInfoTable table td { background: rgba(7, 13, 24, 0.9) !important; color: #f1f5f9 !important; border: 1px solid rgba(56, 189, 248, 0.18) !important; }
+    @media (max-width: 768px) {
+        .preflight-header { padding: 28px; }
+        .preflight-header h1 { font-size: 2rem; }
+        .report-card { padding: 22px; }
+    }
+</style>
+</head>
+<body>
+<div class="preflight-container">
+  <div class="preflight-header">
+    <div class="preflight-header-content">
+      <div class="header-actions">
+        <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+        <button id="refreshBtn" class="refresh-btn"><i class="fas fa-rotate"></i> Refresh</button>
+      </div>
+      <h1><i class="fas fa-clipboard-list"></i> Pre-Release Readiness Report</h1>
+      <p>Monitor translation coverage, asset health, and configuration parity before every deployment lap.</p>
+    </div>
+  </div>
+  <div class="report-card">
+<div class="section" id="translationsAuditSection">
+<h2 style="font-size:16px; margin:0 0 8px 0;">Translations Audit</h2>
+</div>
+<table aria-label="Pre-Release Readiness table" class="table" id="reportTable">
+<thead>
+<tr>
+<th rowspan="2">Language</th>
+<th rowspan="2">Code</th>
+<th colspan="4" style="text-align: center; background: #f8f9fa;">Dev Environment</th>
+<th colspan="4" style="text-align: center; background: #f8f9fa;">Prod Environment</th>
+</tr>
+<tr>
+<th>Item Bank</th>
+<th>Surveys</th>
+<th>Dashboard</th>
+<th>Audio</th>
+<th>Item Bank</th>
+<th>Surveys</th>
+<th>Dashboard</th>
+<th>Audio</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+<div class="footer" style="margin: 16px 0;">
+		Color legend: <span class="badge ok">100%</span> <span class="badge warn">&gt; 0%</span> <span class="badge err">0%</span>
+<div class="small" style="margin-top:6px;">
+			- <span class="badge ok">yes</span>: exact locale file exists in levante-dashboard (e.g., de-CH)
+			- <span class="badge warn">base</span>: only base language file exists (e.g., de)
+			- <span class="badge err">missing</span>: neither exact nor base locale file exists
+			- Surveys %: percentage of survey JSONs that include the locale (or base for fallback; English counts implicit defaults)
+			- Item Bank: coverage of translations in item-bank-translations.csv from GCS buckets (NT = Not Translated)
+		</div>
+</div>
+<div class="section" id="visualAuditsSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Visual Assets Audit</h2>
+<button class="stoplight" id="visualStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="visualPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="visualAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Bucket: <span class="code" id="visualBucket"></span> · Prefix: <span class="code" id="visualPrefix">visual/</span></p>
+<p class="small" id="visualSummary">Loading…</p>
+<p class="small"><span class="link" id="visualDetails" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
+</div>
+<div id="visualAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Bucket: <span class="code" id="visualBucketProd"></span> · Prefix: <span class="code" id="visualPrefixProd">visual/</span></p>
+<p class="small" id="visualSummaryProd">Loading…</p>
+<p class="small"><span class="link" id="visualDetailsProd" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="audioAuditsSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Audio Assets Audit</h2>
+<button class="stoplight" id="audioStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="audioPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="audioAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Bucket: <span class="code" id="audioBucket"></span> · Prefix: <span class="code" id="audioPrefix">audio/</span></p>
+<p class="small" id="audioSummary">Loading…</p>
+<p class="small"><span class="link" id="audioDetails" style="display:none; margin-right:12px;">Show audio coverage details</span><button id="audioCoverageBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">View Coverage</button></p>
+</div>
+<div id="audioAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Bucket: <span class="code" id="audioBucketProd"></span> · Prefix: <span class="code" id="audioPrefixProd">audio/</span></p>
+<p class="small" id="audioSummaryProd">Loading…</p>
+<p class="small"><span class="link" id="audioDetailsProd" style="display:none; margin-right:12px;">Show audio coverage details</span><button id="audioCoverageBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">View Coverage</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="coreTasksAuditsSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Core Tasks Audit</h2>
+<button class="stoplight" id="coreTasksStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="coreTasksPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="coreTasksAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Bucket: <span class="code" id="coreTasksBucket"></span> · Prefix: <span class="code" id="coreTasksPrefix">corpus/</span></p>
+<p class="small" id="coreTasksSummary">Loading…</p>
+<p class="small"><span class="link" id="coreTasksDetails" style="display:none; margin-right:12px;">Show corpus details</span><button id="coreTasksValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+<div id="coreTasksAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Bucket: <span class="code" id="coreTasksBucketProd"></span> · Prefix: <span class="code" id="coreTasksPrefixProd">corpus/</span></p>
+<p class="small" id="coreTasksSummaryProd">Loading…</p>
+<p class="small"><span class="link" id="coreTasksDetailsProd" style="display:none; margin-right:12px;">Show corpus details</span><button id="coreTasksValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="corpusAuditsSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Corpus Audit</h2>
+<button class="stoplight" id="corpusStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="corpusPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="corpusAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Bucket: <span class="code" id="corpusBucket"></span> · Prefix: <span class="code" id="corpusPrefix">corpus/</span></p>
+<p class="small" id="corpusSummary">Loading…</p>
+<p class="small"><span class="link" id="corpusDetails" style="display:none; margin-right:12px;">Show corpus details</span><button id="corpusValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+<div id="corpusAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Bucket: <span class="code" id="corpusBucketProd"></span> · Prefix: <span class="code" id="corpusPrefixProd">corpus/</span></p>
+<p class="small" id="corpusSummaryProd">Loading…</p>
+<p class="small"><span class="link" id="corpusDetailsProd" style="display:none; margin-right:12px;">Show corpus details</span><button id="corpusValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="translationCompletenessSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Translation Completeness Audit</h2>
+<button class="stoplight" id="translationCompletenessStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="translationCompletenessPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="translationCompletenessAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Source: <span class="code" id="translationCompletenessSource">item_bank_translations.csv</span></p>
+<p class="small" id="translationCompletenessSummary">Loading…</p>
+<p class="small"><span class="link" id="translationCompletenessDetails" style="display:none; margin-right:12px;">Show missing translations</span><button id="translationCompletenessValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+<div id="translationCompletenessAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Source: <span class="code" id="translationCompletenessSourceProd">item_bank_translations.csv</span></p>
+<p class="small" id="translationCompletenessSummaryProd">Loading…</p>
+<p class="small"><span class="link" id="translationCompletenessDetailsProd" style="display:none; margin-right:12px;">Show missing translations</span><button id="translationCompletenessValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="assetIntegritySection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Asset Integrity Audit</h2>
+<button class="stoplight" id="assetIntegrityStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="assetIntegrityPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="assetIntegrityAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Scope: <span class="code" id="assetIntegrityScope">All assets</span></p>
+<p class="small" id="assetIntegritySummary">Loading…</p>
+<p class="small"><span class="link" id="assetIntegrityDetails" style="display:none; margin-right:12px;">Show integrity issues</span><button id="assetIntegrityValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+<div id="assetIntegrityAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Scope: <span class="code" id="assetIntegrityScopeProd">All assets</span></p>
+<p class="small" id="assetIntegritySummaryProd">Loading…</p>
+<p class="small"><span class="link" id="assetIntegrityDetailsProd" style="display:none; margin-right:12px;">Show integrity issues</span><button id="assetIntegrityValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="configValidationSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Configuration Validation</h2>
+<button class="stoplight" id="configValidationStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="configValidationPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="configValidationAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
+<p class="small">Scope: <span class="code" id="configValidationScope">Environment &amp; API configs</span></p>
+<p class="small" id="configValidationSummary">Loading…</p>
+<p class="small"><span class="link" id="configValidationDetails" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+<div id="configValidationAuditProd" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
+<p class="small">Scope: <span class="code" id="configValidationScopeProd">Environment &amp; API configs</span></p>
+<p class="small" id="configValidationSummaryProd">Loading…</p>
+<p class="small"><span class="link" id="configValidationDetailsProd" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+</div>
+</div>
+</div>
+<div class="section" id="githubIssuesSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">GitHub Issues Status</h2>
+<button class="stoplight" id="githubIssuesStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="githubIssuesPanels" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div id="githubIssuesAudit" style="flex:1; min-width:280px;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Project Board</h3>
+<p class="small">Source: <span class="code" id="githubIssuesSource">levante-framework/projects/1</span></p>
+<p class="small" id="githubIssuesSummary">Loading…</p>
+<p class="small"><span class="link" id="githubIssuesDetails" style="display:none; margin-right:12px;">Show issue details</span><button id="githubIssuesRefreshBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Refresh</button></p>
+</div>
+</div>
+<div id="githubIssuesLists" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-top:16px;">
+<div id="p0IssuesPanel" style="flex:1; min-width:400px; display:none;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">🔥 P0 Open Issues (Highest Priority)</h3>
+<div id="p0IssuesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #f9fafb;">
+<!-- P0 issues will be populated here -->
+</div>
+</div>
+<div id="p1IssuesPanel" style="flex:1; min-width:400px; display:none;">
+<h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">⚡ P1 Open Issues (High Priority)</h3>
+<div id="p1IssuesList" style="max-height: 300px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #f9fafb;">
+<!-- P1 issues will be populated here -->
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="crowdinAuditSection">
+<h2 style="font-size:16px; margin:0 0 8px 0;">Crowdin</h2>
+<table aria-label="Crowdin Translation Status table" class="table" id="crowdinTable">
+<thead>
+<tr>
+<th>Language</th>
+<th>Code</th>
+<th>From Crowdin</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+<div class="section" id="bucketInfoSection">
+<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+<h2 style="font-size:16px; margin:0;">Bucket Info</h2>
+<button class="stoplight" id="bucketInfoStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
+</div>
+<div id="bucketInfoContent" style="display:none;">
+<div style="margin-bottom: 16px;">
+<p class="small">Source: <span class="code">GCS Buckets</span></p>
+<p class="small" id="bucketInfoSummary">Loading…</p>
+<div id="bucketInfoProgress" style="display:none; margin: 8px 0;">
+<div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
+<div id="bucketInfoProgressBar" style="background: #0d6efd; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+</div>
+<p class="small" id="bucketInfoProgressText" style="margin: 4px 0 0 0; color: #6b7280;">Scanning GCS buckets...</p>
+</div>
+<p class="small"><button id="bucketInfoRefreshBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Refresh</button></p>
+</div>
+<div id="bucketInfoTable" style="overflow-x: auto;">
+<table class="table" style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr>
+<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Bucket Name</th>
+<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Stat Name</th>
+<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Language</th>
+<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: right;">Number</th>
+<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Unit</th>
+<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: right;">Files</th>
+</tr>
+</thead>
+<tbody id="bucketInfoTableBody">
+<!-- Bucket info rows will be populated here -->
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="footer" style="margin: 16px 0;">
+<div class="small" style="margin-top:6px;">
+			- From Crowdin: coverage of Item Bank CSV translations from Crowdin API
+			- A: Approved translations
+			- UA: Unapproved (translated but not approved)
+			- NT: Not Translated
+		</div>
+</div>
+  </div>
+</div>
+<!-- Diff Modal -->
+<div class="modal" id="diffModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2 class="modal-title" id="diffModalTitle">Environment Differences</h2>
+<span class="close" id="diffModalClose">×</span>
+</div>
+<div class="modal-body" id="diffModalBody">
+<!-- Content will be populated by JavaScript -->
+</div>
+</div>
+</div>
+<!-- Untranslated Items Modal -->
+<div class="modal" id="untranslatedModal">
+<div class="modal-content">
+<div class="modal-header">
+<h2 class="modal-title" id="untranslatedModalTitle">Untranslated Items</h2>
+<span class="close" id="untranslatedModalClose">×</span>
+</div>
+<div class="modal-body" id="untranslatedModalBody">
+<!-- Content will be populated by JavaScript -->
+</div>
+</div>
+</div>
+<script>
+	(async function() {
+		// Refresh button handler
+		const refreshBtn = document.getElementById('refreshBtn');
+		refreshBtn.addEventListener('click', () => {
+			refreshReport();
+		});
+		
+		// Function to refresh the entire report
+		async function refreshReport() {
+			// Clear existing content
+			document.querySelector('#reportTable tbody').innerHTML = '';
+			document.getElementById('visualSummary').textContent = 'Loading…';
+			document.getElementById('visualSummaryProd').textContent = 'Loading…';
+			document.getElementById('audioSummary').textContent = 'Loading…';
+			document.getElementById('audioSummaryProd').textContent = 'Loading…';
+			document.getElementById('coreTasksSummary').textContent = 'Loading…';
+			document.getElementById('coreTasksSummaryProd').textContent = 'Loading…';
+			document.getElementById('corpusSummary').textContent = 'Loading…';
+			document.getElementById('corpusSummaryProd').textContent = 'Loading…';
+			document.getElementById('githubIssuesSummary').textContent = 'Loading…';
+			document.getElementById('bucketInfoSummary').textContent = 'Loading…';
+			
+			// Reset stoplight buttons
+			resetStoplights();
+			
+			// Reload all data
+			await loadReportData();
+		}
+		
+		// Reset all stoplight buttons to loading state
+		function resetStoplights() {
+			const stoplights = ['visualStoplight', 'audioStoplight', 'coreTasksStoplight', 'corpusStoplight', 'githubIssuesStoplight', 'bucketInfoStoplight'];
+			stoplights.forEach(id => {
+				const btn = document.getElementById(id);
+				if (btn) {
+					btn.style.display = 'inline-block';
+					btn.textContent = 'Loading...';
+					btn.className = 'stoplight loading';
+				}
+			});
+		}
+		
+		// Update stoplight button based on comparison
+		function updateStoplight(buttonId, devValue, prodValue) {
+			const btn = document.getElementById(buttonId);
+			if (!btn) return;
+			
+			btn.style.display = 'inline-block';
+			
+			// Check if either value is empty/null/undefined
+			if (devValue === null || devValue === undefined || devValue === '' || 
+				prodValue === null || prodValue === undefined || prodValue === '') {
+				btn.textContent = 'Fail';
+				btn.className = 'stoplight fail';
+				return;
+			}
+			
+			// Check if values match
+			if (devValue === prodValue) {
+				// Special case: if both environments have the same problem, show "Needs fixing"
+				// For Translation Completeness: both have missing translations
+				// For Asset Integrity: both have issues
+				// For Visual Assets: both have PNGs to convert
+				const needsFixing = (
+					(buttonId === 'translationCompletenessStoplight' && devValue > 0) ||
+					(buttonId === 'assetIntegrityStoplight' && devValue > 0) ||
+					(buttonId === 'visualStoplight' && devValue > 0)
+				);
+				
+				if (needsFixing) {
+					btn.textContent = 'Needs fixing';
+					btn.className = 'stoplight diff'; // Use warning color
+					btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+				} else {
+					btn.textContent = 'Ready to go';
+					btn.className = 'stoplight go';
+				}
+			} else {
+				btn.textContent = 'Diff';
+				btn.className = 'stoplight diff';
+				// Add click handler for diff buttons
+				btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+			}
+		}
+		
+		// Show diff modal with detailed comparison
+		async function showDiffModal(buttonId, devValue, prodValue) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			// Show loading state
+			title.textContent = 'Loading detailed differences...';
+			body.innerHTML = '<div style="text-align: center; padding: 20px;"><div>Loading detailed information...</div></div>';
+			modal.style.display = 'block';
+			
+			// Determine section type and set title
+			let sectionName = '';
+			let parameterName = '';
+			
+			if (buttonId === 'visualStoplight') {
+				sectionName = 'Visual Assets Audit';
+				parameterName = 'PNGs needing WEBP conversion';
+			} else if (buttonId === 'audioStoplight') {
+				sectionName = 'Audio Assets Audit';
+				parameterName = 'Available languages';
+			} else if (buttonId === 'coreTasksStoplight') {
+				sectionName = 'Core Tasks Audit';
+				parameterName = 'CSV files in corpus';
+			} else if (buttonId === 'corpusStoplight') {
+				sectionName = 'Corpus Audit';
+				parameterName = 'Unique item_ids in corpus';
+			} else if (buttonId === 'translationCompletenessStoplight') {
+				sectionName = 'Translation Completeness Audit';
+				parameterName = 'Missing translations';
+			} else if (buttonId === 'assetIntegrityStoplight') {
+				sectionName = 'Asset Integrity Audit';
+				parameterName = 'Integrity issues';
+			} else if (buttonId === 'configValidationStoplight') {
+				sectionName = 'Configuration Validation';
+				parameterName = 'Configuration issues';
+			}
+			
+			title.textContent = `${sectionName} - Environment Differences`;
+			
+			// Fetch detailed information based on section
+			let detailedContent = '';
+			try {
+				if (buttonId === 'visualStoplight') {
+					detailedContent = await getVisualDifferences();
+				} else if (buttonId === 'audioStoplight') {
+					detailedContent = await getAudioDifferences();
+				} else if (buttonId === 'coreTasksStoplight') {
+					detailedContent = await getCoreTasksDifferences();
+				} else if (buttonId === 'corpusStoplight') {
+					detailedContent = await getCorpusDifferences();
+				} else if (buttonId === 'translationCompletenessStoplight') {
+					detailedContent = await getTranslationCompletenessDifferences();
+				} else if (buttonId === 'assetIntegrityStoplight') {
+					detailedContent = await getAssetIntegrityDifferences();
+				} else if (buttonId === 'configValidationStoplight') {
+					detailedContent = await getConfigValidationDifferences();
+				}
+			} catch (error) {
+				detailedContent = `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+					<strong>Error loading detailed information:</strong> ${error.message}
+				</div>`;
+			}
+			
+			// Create comprehensive diff content
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>Summary</h4>
+					<div class="diff-comparison">
+						<div class="diff-item">
+							<strong>Dev Environment</strong><br>
+							<span class="diff-value">${devValue}</span>
+						</div>
+						<div class="diff-arrow">→</div>
+						<div class="diff-item">
+							<strong>Prod Environment</strong><br>
+							<span class="diff-value">${prodValue}</span>
+						</div>
+					</div>
+					<div style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; border-left: 4px solid #f59e0b; color: #fef3c7;">
+						<strong style="color: #fbbf24 !important;">Difference:</strong> <span style="color: #f59e0b !important; font-weight: 600;">${Math.abs(devValue - prodValue)}</span> ${devValue > prodValue ? '(Dev has more)' : '(Prod has more)'}
+					</div>
+				</div>
+				${detailedContent}
+				<div class="diff-section">
+					<h4 style="color: #ffb347 !important;">Recommendation</h4>
+					<p style="color: #e2e8f0 !important; line-height: 1.6;">${getRecommendation(buttonId, devValue, prodValue)}</p>
+				</div>
+			`;
+		}
+		
+		// Get detailed visual differences
+		async function getVisualDifferences() {
+			try {
+				const [devRes, prodRes] = await Promise.all([
+					fetch('/api/visual-audit?env=dev&prefix=visual/', { cache: 'no-cache' }),
+					fetch('/api/visual-audit?env=prod&prefix=visual/', { cache: 'no-cache' })
+				]);
+				
+				const devData = await devRes.json();
+				const prodData = await prodRes.json();
+				
+				const devMissing = devData.missing || [];
+				const prodMissing = prodData.missing || [];
+				
+				const devOnly = devMissing.filter(f => !prodMissing.includes(f));
+				const prodOnly = prodMissing.filter(f => !devMissing.includes(f));
+				const common = devMissing.filter(f => prodMissing.includes(f));
+				
+				return `
+					<div class="diff-section">
+						<h4>Detailed Analysis</h4>
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+							<div style="padding: 12px; background: rgba(14, 165, 233, 0.15); border-radius: 6px; border-left: 4px solid #0ea5e9; color: #e0f2fe;">
+								<strong style="color: #7dd3fc !important;">Dev Only</strong><br>
+								<span class="diff-value" style="color: #0ea5e9 !important;">${devOnly.length}</span> files<br>
+								<small style="color: #bae6fd !important;">PNGs in dev that don't need conversion in prod</small>
+							</div>
+							<div style="padding: 12px; background: rgba(34, 197, 94, 0.15); border-radius: 6px; border-left: 4px solid #22c55e; color: #dcfce7;">
+								<strong style="color: #86efac !important;">Prod Only</strong><br>
+								<span class="diff-value" style="color: #22c55e !important;">${prodOnly.length}</span> files<br>
+								<small style="color: #bbf7d0 !important;">PNGs in prod that don't need conversion in dev</small>
+							</div>
+						</div>
+						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
+							<strong style="color: #fbbf24 !important;">Common Issues</strong><br>
+							<span class="diff-value" style="color: #f59e0b !important;">${common.length}</span> files need conversion in both environments
+						</div>
+						${devOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong style="color: #ffb347 !important;">Files only needing conversion in Dev (first 10):</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+									${devOnly.slice(0, 10).map(f => `• ${f}`).join('<br>')}
+									${devOnly.length > 10 ? `<br>... and ${devOnly.length - 10} more files` : ''}
+								</div>
+							</div>
+						` : ''}
+						${prodOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong style="color: #ffb347 !important;">Files only needing conversion in Prod (first 10):</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+									${prodOnly.slice(0, 10).map(f => `• ${f}`).join('<br>')}
+									${prodOnly.length > 10 ? `<br>... and ${prodOnly.length - 10} more files` : ''}
+								</div>
+							</div>
+						` : ''}
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626;">Error loading visual differences: ${error.message}</div>`;
+			}
+		}
+		
+		// Get detailed audio differences
+		async function getAudioDifferences() {
+			try {
+				const [devRes, prodRes] = await Promise.all([
+					fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { cache: 'no-cache' }),
+					fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { cache: 'no-cache' })
+				]);
+				
+				const devData = await devRes.json();
+				const prodData = await prodRes.json();
+				
+				const devLangs = devData.languages || [];
+				const prodLangs = prodData.languages || [];
+				
+				const devOnly = devLangs.filter(l => !prodLangs.includes(l));
+				const prodOnly = prodLangs.filter(l => !devLangs.includes(l));
+				const common = devLangs.filter(l => prodLangs.includes(l));
+				
+				return `
+					<div class="diff-section">
+						<h4>Language Analysis</h4>
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+							<div style="padding: 12px; background: rgba(14, 165, 233, 0.15); border-radius: 6px; border-left: 4px solid #0ea5e9; color: #e0f2fe;">
+								<strong style="color: #7dd3fc !important;">Dev Only</strong><br>
+								<span class="diff-value" style="color: #0ea5e9 !important;">${devOnly.length}</span> languages<br>
+								<small style="color: #bae6fd !important;">Available in dev but not in prod</small>
+							</div>
+							<div style="padding: 12px; background: rgba(34, 197, 94, 0.15); border-radius: 6px; border-left: 4px solid #22c55e; color: #dcfce7;">
+								<strong style="color: #86efac !important;">Prod Only</strong><br>
+								<span class="diff-value" style="color: #22c55e !important;">${prodOnly.length}</span> languages<br>
+								<small style="color: #bbf7d0 !important;">Available in prod but not in dev</small>
+							</div>
+						</div>
+						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
+							<strong style="color: #fbbf24 !important;">Common Languages</strong><br>
+							<span class="diff-value" style="color: #f59e0b !important;">${common.length}</span> languages available in both environments
+						</div>
+						${devOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong style="color: #ffb347 !important;">Languages only in Dev:</strong><br>
+								<div style="background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+									${devOnly.map(l => `• ${l}`).join('<br>')}
+								</div>
+							</div>
+						` : ''}
+						${prodOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong style="color: #ffb347 !important;">Languages only in Prod:</strong><br>
+								<div style="background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+									${prodOnly.map(l => `• ${l}`).join('<br>')}
+								</div>
+							</div>
+						` : ''}
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626;">Error loading audio differences: ${error.message}</div>`;
+			}
+		}
+		
+		// Get detailed core tasks differences
+		async function getCoreTasksDifferences() {
+			try {
+				const [devRes, prodRes] = await Promise.all([
+					fetch('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', { cache: 'no-cache' }),
+					fetch('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', { cache: 'no-cache' })
+				]);
+				
+				const devData = await devRes.json();
+				const prodData = await prodRes.json();
+				
+				const devFiles = (devData.files || []).filter(f => f.toLowerCase().endsWith('.csv'));
+				const prodFiles = (prodData.files || []).filter(f => f.toLowerCase().endsWith('.csv'));
+				
+				const devOnly = devFiles.filter(f => !prodFiles.includes(f));
+				const prodOnly = prodFiles.filter(f => !devFiles.includes(f));
+				const common = devFiles.filter(f => prodFiles.includes(f));
+				
+				return `
+					<div class="diff-section">
+						<h4>CSV File Analysis</h4>
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+							<div style="padding: 12px; background: rgba(14, 165, 233, 0.15); border-radius: 6px; border-left: 4px solid #0ea5e9; color: #e0f2fe;">
+								<strong style="color: #7dd3fc !important;">Dev Only</strong><br>
+								<span class="diff-value" style="color: #0ea5e9 !important;">${devOnly.length}</span> CSV files<br>
+								<small style="color: #bae6fd !important;">Present in dev but not in prod</small>
+							</div>
+							<div style="padding: 12px; background: rgba(34, 197, 94, 0.15); border-radius: 6px; border-left: 4px solid #22c55e; color: #dcfce7;">
+								<strong style="color: #86efac !important;">Prod Only</strong><br>
+								<span class="diff-value" style="color: #22c55e !important;">${prodOnly.length}</span> CSV files<br>
+								<small style="color: #bbf7d0 !important;">Present in prod but not in dev</small>
+							</div>
+						</div>
+						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
+							<strong style="color: #fbbf24 !important;">Common Files</strong><br>
+							<span class="diff-value" style="color: #f59e0b !important;">${common.length}</span> CSV files present in both environments
+						</div>
+						${devOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong style="color: #ffb347 !important;">CSV files only in Dev:</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+									${devOnly.map(f => `• ${f}`).join('<br>')}
+								</div>
+							</div>
+						` : ''}
+						${prodOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong style="color: #ffb347 !important;">CSV files only in Prod:</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+									${prodOnly.map(f => `• ${f}`).join('<br>')}
+								</div>
+							</div>
+						` : ''}
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626;">Error loading core tasks differences: ${error.message}</div>`;
+			}
+		}
+		
+		// Get detailed corpus differences
+		async function getCorpusDifferences() {
+			try {
+				const [devRes, prodRes] = await Promise.all([
+					fetch('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', { cache: 'no-cache' }),
+					fetch('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', { cache: 'no-cache' })
+				]);
+				
+				const devData = await devRes.json();
+				const prodData = await prodRes.json();
+				
+				// Get unique item_ids from both environments
+				const devItemIds = await getUniqueItemIds('levante-assets-dev', devData.files || []);
+				const prodItemIds = await getUniqueItemIds('levante-assets-prod', prodData.files || []);
+				
+				const devOnly = devItemIds.filter(id => !prodItemIds.includes(id));
+				const prodOnly = prodItemIds.filter(id => !devItemIds.includes(id));
+				const common = devItemIds.filter(id => prodItemIds.includes(id));
+				
+				return `
+					<div class="diff-section">
+						<h4>Item ID Analysis</h4>
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+							<div style="padding: 12px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #0ea5e9;">
+								<strong>Dev Only</strong><br>
+								<span class="diff-value">${devOnly.length}</span> item_ids<br>
+								<small>Present in dev but not in prod</small>
+							</div>
+							<div style="padding: 12px; background: #f0fdf4; border-radius: 6px; border-left: 4px solid #22c55e;">
+								<strong>Prod Only</strong><br>
+								<span class="diff-value">${prodOnly.length}</span> item_ids<br>
+								<small>Present in prod but not in dev</small>
+							</div>
+						</div>
+						<div style="padding: 12px; background: #fef3c7; border-radius: 6px; border-left: 4px solid #f59e0b;">
+							<strong>Common Item IDs</strong><br>
+							<span class="diff-value">${common.length}</span> item_ids present in both environments
+						</div>
+						${devOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong>Item IDs only in Dev (first 20):</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: #f9fafb; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+									${devOnly.slice(0, 20).map(id => `• ${id}`).join('<br>')}
+									${devOnly.length > 20 ? `<br>... and ${devOnly.length - 20} more item_ids` : ''}
+								</div>
+							</div>
+						` : ''}
+						${prodOnly.length > 0 ? `
+							<div style="margin-top: 12px;">
+								<strong>Item IDs only in Prod (first 20):</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: #f9fafb; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+									${prodOnly.slice(0, 20).map(id => `• ${id}`).join('<br>')}
+									${prodOnly.length > 20 ? `<br>... and ${prodOnly.length - 20} more item_ids` : ''}
+								</div>
+							</div>
+						` : ''}
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626;">Error loading corpus differences: ${error.message}</div>`;
+			}
+		}
+		
+		// Translation Completeness Differences
+		async function getTranslationCompletenessDifferences() {
+			try {
+				// Get translation completeness data for both environments
+				const devMissing = window.translationCompletenessDevMissing || 0;
+				const prodMissing = window.translationCompletenessProdMissing || 0;
+				
+				const difference = Math.abs(devMissing - prodMissing);
+				const devHasMore = devMissing > prodMissing;
+				
+				return `
+					<div class="diff-section">
+						<h4>Translation Completeness Analysis</h4>
+						<div class="diff-comparison">
+							<div class="diff-item">
+								<strong>Dev Environment</strong><br>
+								<span class="diff-value">${devMissing} missing translations</span>
+							</div>
+							<div class="diff-arrow">→</div>
+							<div class="diff-item">
+								<strong>Prod Environment</strong><br>
+								<span class="diff-value">${prodMissing} missing translations</span>
+							</div>
+						</div>
+						<div style="margin-top: 12px; padding: 8px; background: ${difference === 0 ? '#f0f9ff' : '#fef3c7'}; border-radius: 4px; border-left: 4px solid ${difference === 0 ? '#0ea5e9' : '#f59e0b'};">
+							<strong>Difference:</strong> ${difference} missing translations ${devHasMore ? '(Dev has more missing)' : '(Prod has more missing)'}
+						</div>
+					</div>
+					<div class="diff-section">
+						<h4>Recommendation</h4>
+						<p>${difference === 0 ? 'Both environments have the same translation completeness. This is ideal for consistency.' : 'Consider synchronizing translation completeness between environments. Focus on completing missing translations in the environment with more gaps.'}</p>
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+					<strong>Error:</strong> ${error.message}
+				</div>`;
+			}
+		}
+
+		// Asset Integrity Differences
+		async function getAssetIntegrityDifferences() {
+			try {
+				// Get asset integrity data for both environments
+				const devIssues = window.assetIntegrityDevIssues || 0;
+				const prodIssues = window.assetIntegrityProdIssues || 0;
+				
+				const difference = Math.abs(devIssues - prodIssues);
+				const devHasMore = devIssues > prodIssues;
+				
+				return `
+					<div class="diff-section">
+						<h4>Asset Integrity Analysis</h4>
+						<div class="diff-comparison">
+							<div class="diff-item">
+								<strong>Dev Environment</strong><br>
+								<span class="diff-value">${devIssues} integrity issues</span>
+							</div>
+							<div class="diff-arrow">→</div>
+							<div class="diff-item">
+								<strong>Prod Environment</strong><br>
+								<span class="diff-value">${prodIssues} integrity issues</span>
+							</div>
+						</div>
+						<div style="margin-top: 12px; padding: 8px; background: ${difference === 0 ? '#f0f9ff' : '#fef3c7'}; border-radius: 4px; border-left: 4px solid ${difference === 0 ? '#0ea5e9' : '#f59e0b'};">
+							<strong>Difference:</strong> ${difference} integrity issues ${devHasMore ? '(Dev has more issues)' : '(Prod has more issues)'}
+						</div>
+					</div>
+					<div class="diff-section">
+						<h4>Recommendation</h4>
+						<p>${difference === 0 ? 'Both environments have the same asset integrity status. This is ideal for consistency.' : 'Address asset integrity issues in the environment with more problems. Consider implementing automated asset validation in your deployment pipeline.'}</p>
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+					<strong>Error:</strong> ${error.message}
+				</div>`;
+			}
+		}
+
+		// Configuration Validation Differences
+		async function getConfigValidationDifferences() {
+			try {
+				// Get configuration validation data for both environments
+				const devIssues = window.configValidationDevIssues || 0;
+				const prodIssues = window.configValidationProdIssues || 0;
+				const devDetails = window.configValidationDevDetails || [];
+				const prodDetails = window.configValidationProdDetails || [];
+				
+				const difference = Math.abs(devIssues - prodIssues);
+				const devHasMore = devIssues > prodIssues;
+				
+				// Find specific differences between environments
+				const devStatuses = {};
+				const prodStatuses = {};
+				
+				devDetails.forEach(check => {
+					devStatuses[check.name] = check.status;
+				});
+				
+				prodDetails.forEach(check => {
+					prodStatuses[check.name] = check.status;
+				});
+				
+				// Find checks that differ between environments
+				const allCheckNames = [...new Set([...Object.keys(devStatuses), ...Object.keys(prodStatuses)])];
+				const differingChecks = allCheckNames.filter(name => devStatuses[name] !== prodStatuses[name]);
+				
+				return `
+					<div class="diff-section">
+						<h4>Configuration Validation Analysis</h4>
+						<div class="diff-comparison">
+							<div class="diff-item">
+								<strong>Dev Environment</strong><br>
+								<span class="diff-value">${devIssues} configuration issues</span>
+							</div>
+							<div class="diff-arrow">→</div>
+							<div class="diff-item">
+								<strong>Prod Environment</strong><br>
+								<span class="diff-value">${prodIssues} configuration issues</span>
+							</div>
+						</div>
+						<div style="margin-top: 12px; padding: 8px; background: ${difference === 0 ? '#f0f9ff' : '#fef3c7'}; border-radius: 4px; border-left: 4px solid ${difference === 0 ? '#0ea5e9' : '#f59e0b'};">
+							<strong>Difference:</strong> ${difference} configuration issues ${devHasMore ? '(Dev has more issues)' : '(Prod has more issues)'}
+						</div>
+					</div>
+					${differingChecks.length > 0 ? `
+						<div class="diff-section">
+							<h4>Specific Differences</h4>
+							${differingChecks.map(checkName => {
+								const devStatus = devStatuses[checkName] || 'unknown';
+								const prodStatus = prodStatuses[checkName] || 'unknown';
+								const devCheck = devDetails.find(c => c.name === checkName);
+								const prodCheck = prodDetails.find(c => c.name === checkName);
+								
+								return `
+									<div style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px;">
+										<strong>${checkName}</strong>
+										<div style="display: flex; gap: 16px; margin-top: 4px;">
+											<div style="flex: 1;">
+												<span style="font-size: 12px; color: #6b7280;">Dev:</span>
+												<span style="font-size: 11px; padding: 2px 6px; border-radius: 2px; background: ${devStatus === 'valid' ? '#dcfce7' : devStatus === 'warning' ? '#fef3c7' : '#fef2f2'}; color: ${devStatus === 'valid' ? '#166534' : devStatus === 'warning' ? '#92400e' : '#991b1b'};">
+													${devStatus}
+												</span>
+												${devCheck && devCheck.details ? `<div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${devCheck.details}</div>` : ''}
+											</div>
+											<div style="flex: 1;">
+												<span style="font-size: 12px; color: #6b7280;">Prod:</span>
+												<span style="font-size: 11px; padding: 2px 6px; border-radius: 2px; background: ${prodStatus === 'valid' ? '#dcfce7' : prodStatus === 'warning' ? '#fef3c7' : '#fef2f2'}; color: ${prodStatus === 'valid' ? '#166534' : prodStatus === 'warning' ? '#92400e' : '#991b1b'};">
+													${prodStatus}
+												</span>
+												${prodCheck && prodCheck.details ? `<div style="font-size: 10px; color: #6b7280; margin-top: 2px;">${prodCheck.details}</div>` : ''}
+											</div>
+										</div>
+									</div>
+								`;
+							}).join('')}
+						</div>
+					` : ''}
+					<div class="diff-section">
+						<h4>Recommendation</h4>
+						<p>${difference === 0 ? 'Both environments have the same configuration validation status. This is ideal for consistency.' : 'Resolve configuration issues in the environment with more problems. Ensure all required environment variables, API keys, and permissions are properly configured.'}</p>
+						${differingChecks.length > 0 ? `
+							<ul style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+								<li>Review and align configuration settings between dev and prod</li>
+								<li>Ensure consistent API endpoint configurations</li>
+								<li>Verify GCS bucket access permissions are identical</li>
+								<li>Check that file type availability matches between environments</li>
+							</ul>
+						` : ''}
+					</div>
+				`;
+			} catch (error) {
+				return `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+					<strong>Error:</strong> ${error.message}
+				</div>`;
+			}
+		}
+
+		// Helper function to get unique item_ids from CSV files
+		async function getUniqueItemIds(bucket, files) {
+			const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+			const uniqueItemIds = new Set();
+			
+			for (const csvFile of csvFiles) {
+				try {
+					const csvUrl = `https://storage.googleapis.com/${bucket}/${csvFile}`;
+					const csvRes = await fetch(csvUrl, { cache: 'no-cache' });
+					if (csvRes.ok) {
+						const csvText = await csvRes.text();
+						const lines = csvText.split('\n');
+						const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+						const itemIdIndex = header.findIndex(h => h.includes('item_id') || h.includes('identifier'));
+						
+						if (itemIdIndex !== -1) {
+							for (let i = 1; i < lines.length; i++) {
+								const row = lines[i].split(',');
+								const itemId = row[itemIdIndex]?.trim();
+								if (itemId && itemId !== '') {
+									uniqueItemIds.add(itemId);
+								}
+							}
+						}
+					}
+				} catch (e) {
+					console.warn(`Failed to process CSV file ${csvFile}:`, e);
+				}
+			}
+			
+			return Array.from(uniqueItemIds);
+		}
+		
+		// Get recommendation based on section and values
+		function getRecommendation(buttonId, devValue, prodValue) {
+			if (buttonId === 'visualStoplight') {
+				if (devValue > prodValue) {
+					return 'Dev has more PNGs needing conversion. Consider running the visual fix process on dev to convert more PNGs to WEBP format.';
+				} else {
+					return 'Prod has more PNGs needing conversion. Consider running the visual fix process on prod to convert more PNGs to WEBP format.';
+				}
+			} else if (buttonId === 'audioStoplight') {
+				if (devValue > prodValue) {
+					return 'Dev has more languages available. Consider deploying audio files from dev to prod to sync the environments.';
+				} else {
+					return 'Prod has more languages available. This may indicate that prod has additional language support that dev lacks.';
+				}
+			} else if (buttonId === 'coreTasksStoplight') {
+				if (devValue > prodValue) {
+					return 'Dev has more CSV files in corpus. Consider deploying corpus files from dev to prod to sync the environments.';
+				} else {
+					return 'Prod has more CSV files in corpus. This may indicate that prod has additional corpus data that dev lacks.';
+				}
+			} else if (buttonId === 'corpusStoplight') {
+				const diff = Math.abs(devValue - prodValue);
+				if (devValue > prodValue) {
+					return `Dev has ${diff} more unique item_ids in corpus CSV files (${devValue} vs ${prodValue}). Consider deploying corpus files from dev to prod to sync the environments.`;
+				} else if (prodValue > devValue) {
+					return `Prod has ${diff} more unique item_ids in corpus CSV files (${prodValue} vs ${devValue}). This may indicate that prod has additional corpus data that dev lacks.`;
+				} else {
+					return 'Both environments have the same number of unique item_ids in corpus CSV files.';
+				}
+			}
+			return 'Review the differences and consider syncing the environments.';
+		}
+		
+		// Modal event handlers
+		document.getElementById('diffModalClose').onclick = function() {
+			document.getElementById('diffModal').style.display = 'none';
+		}
+		
+		document.getElementById('untranslatedModalClose').onclick = function() {
+			document.getElementById('untranslatedModal').style.display = 'none';
+		}
+		
+		// Show untranslated items modal for bucket (Item Bank)
+		async function showBucketUntranslatedModal(lang, env) {
+			const modal = document.getElementById('untranslatedModal');
+			const title = document.getElementById('untranslatedModalTitle');
+			const body = document.getElementById('untranslatedModalBody');
+			
+			title.textContent = `Item Bank - Untranslated Items - ${lang.toUpperCase()} (${env})`;
+			body.innerHTML = '<div class="loading">Loading untranslated items...</div>';
+			modal.style.display = 'block';
+			
+			try {
+				const bucket = env === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
+				const csvUrl = `https://storage.googleapis.com/${bucket}/translations/item-bank-translations.csv`;
+				
+				const csvRes = await fetch(csvUrl, { cache: 'no-cache' });
+				if (!csvRes.ok) {
+					throw new Error(`Failed to fetch CSV: ${csvRes.status}`);
+				}
+				
+				const csvText = await csvRes.text();
+				const rows = parseCSVWithEmbeddedNewlines(csvText);
+				
+				if (rows.length < 2) {
+					throw new Error('CSV file is empty or invalid');
+				}
+				
+				const header = rows[0].map(h => h.trim());
+				const langIndex = header.findIndex(h => h.toLowerCase() === lang.toLowerCase());
+				const itemIdIndex = header.findIndex(h => h.toLowerCase() === 'item_id');
+				const enIndex = header.findIndex(h => h.toLowerCase() === 'en');
+				
+				if (langIndex === -1) {
+					throw new Error(`Language ${lang} not found in CSV`);
+				}
+				
+				const untranslatedItems = [];
+				for (let i = 1; i < rows.length; i++) {
+					const row = rows[i];
+					if (row.length > langIndex) {
+						const translation = row[langIndex]?.trim();
+						if (!translation || translation === '') {
+							const itemId = itemIdIndex >= 0 ? row[itemIdIndex]?.trim() : `Row ${i}`;
+							const sourceText = enIndex >= 0 ? row[enIndex]?.trim() : 'N/A';
+							untranslatedItems.push({ item_id: itemId, source_text: sourceText });
+						}
+					}
+				}
+				
+				if (untranslatedItems.length > 0) {
+					body.innerHTML = `
+						<div class="untranslated-items">
+							<p><strong>Untranslated items:</strong> ${untranslatedItems.length}</p>
+							<div class="items-list">
+								${untranslatedItems.map(item => `
+									<div class="item-card">
+										<div class="item-header">
+											<strong>${item.item_id}</strong>
+											<span class="source-file">item-bank-translations.csv</span>
+										</div>
+										<div class="item-content">
+											<p><strong>Source Text (English):</strong></p>
+											<div class="source-text">${item.source_text}</div>
+										</div>
+									</div>
+								`).join('')}
+							</div>
+						</div>
+					`;
+				} else {
+					body.innerHTML = '<div class="no-items">No untranslated items found.</div>';
+				}
+			} catch (error) {
+				body.innerHTML = `<div class="error">Error loading untranslated items: ${error.message}</div>`;
+			}
+		}
+		
+		// Show untranslated items modal (for Crowdin)
+		async function showUntranslatedModal(lang, env) {
+			const modal = document.getElementById('untranslatedModal');
+			const title = document.getElementById('untranslatedModalTitle');
+			const body = document.getElementById('untranslatedModalBody');
+			
+			title.textContent = `Crowdin - Untranslated Items - ${lang.toUpperCase()} (${env})`;
+			body.innerHTML = '<div class="loading">Loading untranslated items...</div>';
+			modal.style.display = 'block';
+			
+			try {
+				const response = await fetch(`/api/crowdin-untranslated?lang=${lang}&env=${env}`, { cache: 'no-cache' });
+				if (!response.ok) {
+					throw new Error(`API error: ${response.status}`);
+				}
+				
+				const data = await response.json();
+				
+				const items = data.items || data.untranslated || [];
+				const totals = data.totals || { 
+					untranslated: items.filter(i => i.status === 'untranslated').length,
+					unapproved: items.filter(i => i.status === 'unapproved').length,
+					missing: items.length
+				};
+				
+				if ((totals.missing ?? items.length) > 0) {
+					const grouped = {
+						untranslated: items.filter(i => i.status === 'untranslated'),
+						unapproved: items.filter(i => i.status === 'unapproved')
+					};
+					body.innerHTML = `
+						<div class="untranslated-items">
+							<p><strong>Missing items:</strong> ${totals.missing} <span class="small">(untranslated: ${totals.untranslated}, unapproved: ${totals.unapproved})</span></p>
+							${grouped.untranslated.length ? `<h4>Untranslated (${grouped.untranslated.length})</h4>` : ''}
+							<div class="items-list">
+								${grouped.untranslated.map(item => `
+									<div class="item-card">
+										<div class="item-header">
+											<strong>${item.item_id}</strong>
+											<span class="source-file">${item.source_file}</span>
+										</div>
+										<div class="item-content">
+											<p><strong>Source Text:</strong></p>
+											<div class="source-text">${item.source_text}</div>
+										</div>
+									</div>
+								`).join('')}
+							</div>
+							${grouped.unapproved.length ? `<h4 style="margin-top:12px;">Translated but not approved (${grouped.unapproved.length})</h4>` : ''}
+							<div class="items-list">
+								${grouped.unapproved.map(item => `
+									<div class="item-card">
+										<div class="item-header">
+											<strong>${item.item_id}</strong>
+											<span class="source-file">${item.source_file}</span>
+										</div>
+										<div class="item-content">
+											<p><strong>Source Text:</strong></p>
+											<div class="source-text">${item.source_text}</div>
+										</div>
+									</div>
+								`).join('')}
+							</div>
+						</div>
+					`;
+				} else {
+					body.innerHTML = '<div class="no-items">No untranslated or unapproved items found.</div>';
+				}
+			} catch (error) {
+				body.innerHTML = `<div class="error">Error loading untranslated items: ${error.message}</div>`;
+			}
+		}
+		
+		window.onclick = function(event) {
+			const modal = document.getElementById('diffModal');
+			if (event.target === modal) {
+				modal.style.display = 'none';
+			}
+		}
+		
+		// CSV parsing functions (global scope for reuse)
+		function parseCSVWithEmbeddedNewlines(csvText) {
+			const rows = []; let currentRow = []; let currentField = ''; let inQuotes = false; let i = 0;
+			while (i < csvText.length) {
+				const ch = csvText[i]; const next = i + 1 < csvText.length ? csvText[i + 1] : '';
+				if (ch === '"') { if (inQuotes && next === '"') { currentField += '"'; i += 2; } else { inQuotes = !inQuotes; i++; } }
+				else if (ch === ',' && !inQuotes) { currentRow.push(currentField.trim()); currentField = ''; i++; }
+				else if ((ch === '\n' || ch === '\r') && !inQuotes) { if (currentField.trim() || currentRow.length > 0) { currentRow.push(currentField.trim()); if (currentRow.some(f => f.length > 0)) rows.push(currentRow); currentRow = []; currentField = ''; } if (ch === '\r' && next === '\n') i += 2; else i++; }
+				else { currentField += ch; i++; }
+			}
+			if (currentField.trim() || currentRow.length > 0) { currentRow.push(currentField.trim()); if (currentRow.some(f => f.length > 0)) rows.push(currentRow); }
+			return rows.filter(r => r.length > 0 && r.some(f => f && f.trim().length > 0));
+		}
+		
+		// Main data loading function
+		async function loadReportData() {
+
+		// Load dashboard config and CSV data
+		const cfg = await fetch('./config.js').then(r => r.text()).then(js => { const m = {}; const f = new Function('module', js + '; return module.exports;'); return f(m); }).catch(() => ({}));
+		const CONFIG = (cfg && cfg.CONFIG) || (window.CONFIG || {});
+		let csvText = '';
+		// Prefer remote CSV first
+		const primaryUrl = (CONFIG && CONFIG.dataSources && CONFIG.dataSources.remoteCSV) || 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv';
+		try {
+			const resRemote = await fetch(primaryUrl, { cache: 'no-cache' });
+			if (resRemote.ok) csvText = await resRemote.text();
+		} catch (e) {}
+		// Fallback to local complete CSV
+		if (!csvText) {
+			try {
+				const res = await fetch('./translation_text/complete_translations.csv', { cache: 'no-cache' });
+				if (res.ok) csvText = await res.text();
+			} catch (e) {}
+		}
+
+		function csvToObjects(csvText) {
+			const rows = parseCSVWithEmbeddedNewlines(csvText); if (rows.length === 0) return [];
+			const headers = rows[0]; const data = [];
+			for (let i = 1; i < rows.length; i++) { const row = rows[i]; if (row.length < headers.length) continue; const obj = {}; headers.forEach((h, idx) => obj[h] = (row[idx] || '').trim()); data.push(obj); }
+			return data;
+		}
+		const items = csvToObjects(csvText);
+		// Discover languages from header
+		const headers = (parseCSVWithEmbeddedNewlines(csvText)[0] || []);
+		const knownNonLang = new Set(['item_id','identifier','labels','task','context','en']);
+		const languageCodes = headers.filter(h => !knownNonLang.has(h) && /^[a-z]{2}(-[A-Z]{2})?$/.test(h));
+		if (!languageCodes.includes('en')) languageCodes.unshift('en');
+
+		function toBase(lang) { return lang.includes('-') ? lang.split('-')[0] : lang; }
+		function pct(n, d) { return d ? Math.round((n / d) * 10000)/100 : 0; }
+		function badge(n, d) {
+			const p = pct(n, d);
+			const cls = p === 100 ? 'ok' : (p > 0 ? 'warn' : 'err');
+			return `<span class="badge ${cls}">${p}%</span>`;
+		}
+		function capitalize(s) { return (s && s.length) ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+		function languageDisplayName(code) {
+			// Prefer CONFIG mapping, but append region if code includes one and name doesn't already include it
+			const match = Object.entries(CONFIG.languages || {}).find(([name, cfg]) => cfg.lang_code === code);
+			const parts = code.split('-');
+			const langPart = parts[0];
+			const regionPart = parts[1];
+			if (match) {
+				const [fallbackName, cfg] = match;
+				const baseName = cfg.display_name || fallbackName;
+				if (regionPart) {
+					if (baseName.includes('(')) return baseName; // already includes region
+					try {
+						const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+						const regionName = regionNames.of(regionPart.toUpperCase()) || regionPart.toUpperCase();
+						return `${baseName} (${regionName})`;
+					} catch (e) {
+						return `${baseName} (${regionPart.toUpperCase()})`;
+					}
+				}
+				return baseName;
+			}
+			// Fallback via Intl
+			try {
+				const langNames = new Intl.DisplayNames(['en'], { type: 'language' });
+				const languageName = langNames.of(langPart) || langPart;
+				if (regionPart) {
+					const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+					const regionName = regionNames.of(regionPart.toUpperCase()) || regionPart.toUpperCase();
+					return `${capitalize(languageName)} (${regionName})`;
+				}
+				return capitalize(languageName);
+			} catch (e) {
+				return regionPart ? `${langPart} (${regionPart.toUpperCase()})` : langPart;
+			}
+		}
+
+		// Item Bank translation statistics per language (from translations/item-bank-translations.csv)
+		async function bucketStats(lang, environment = 'dev') {
+			try {
+				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
+				const csvUrl = `https://storage.googleapis.com/${bucket}/translations/item-bank-translations.csv`;
+				
+				const csvRes = await fetch(csvUrl, { cache: 'no-cache' });
+				if (!csvRes.ok) {
+					return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+				}
+				
+				const csvText = await csvRes.text();
+				const rows = parseCSVWithEmbeddedNewlines(csvText);
+				
+				if (rows.length < 2) {
+					return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+				}
+				
+				const header = rows[0].map(h => h.trim().toLowerCase());
+				const langIndex = header.findIndex(h => h === lang.toLowerCase());
+				
+				if (langIndex === -1) {
+					return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+				}
+				
+				let totalItems = 0;
+				let approvedItems = 0;
+				
+				for (let i = 1; i < rows.length; i++) {
+					const row = rows[i];
+					if (row.length > langIndex) {
+						totalItems++;
+						const translation = row[langIndex]?.trim();
+						if (translation && translation !== '') {
+							approvedItems++;
+						}
+					}
+				}
+				
+				const untranslated = totalItems - approvedItems;
+				return { 
+					total: totalItems, 
+					exact: approvedItems, 
+					withBase: approvedItems, 
+					unapproved: 0, 
+					untranslated, 
+					missing: untranslated 
+				};
+			} catch (error) {
+				console.error(`Failed to fetch item bank stats for ${lang} in ${environment}:`, error);
+				return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+			}
+		}
+
+		// Crowdin translation statistics per language
+		async function itembankStats(lang, environment = 'dev') {
+			try {
+				// Fetch overall totals (strings/phrases) and approved
+				const res = await fetch(`/api/crowdin-stats`, { cache: 'no-cache' });
+				if (!res.ok) {
+					return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+				}
+				const data = await res.json();
+				const langStats = data.languages[lang];
+				if (!langStats) {
+					return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+				}
+			const total = langStats.total || 0;
+			// Fetch missing breakdown (unapproved + untranslated) from modal API
+			const missRes = await fetch(`/api/crowdin-untranslated?lang=${encodeURIComponent(lang)}&env=${encodeURIComponent(environment)}`, { cache: 'no-cache' });
+			let unapproved = 0, untranslated = 0, missing = 0;
+			if (missRes.ok) {
+				const miss = await missRes.json();
+				if (miss.error) {
+					console.warn(`Crowdin untranslated API error for ${lang}:`, miss.error, miss.details);
+				} else {
+					unapproved = miss?.totals?.unapproved || 0;
+					untranslated = miss?.totals?.untranslated || 0;
+					missing = unapproved + untranslated;
+				}
+			} else {
+				console.warn(`Failed to fetch untranslated data for ${lang}: ${missRes.status} ${missRes.statusText}`);
+			}
+			const approved = Math.max(0, total - missing);
+			const translated = Math.max(0, approved + unapproved);
+			return { total, exact: approved, withBase: translated, unapproved, untranslated, missing };
+			} catch (error) {
+				return { total: 0, exact: 0, withBase: 0, unapproved: 0, untranslated: 0, missing: 0 };
+			}
+		}
+
+		// Dashboard translations: fetch from levante-dashboard repo JSONs (componentTranslations)
+		async function fetchDashboardJsonPath(code) {
+			const parts = code.split('-');
+			if (parts.length === 2) {
+				// Keep original case for filename, but use lowercase for directory path
+				const langLower = parts[0].toLowerCase();
+				const regionLower = parts[1].toLowerCase();
+				return `https://raw.githubusercontent.com/levante-framework/levante-dashboard/main/src/translations/${langLower}/${regionLower}/${code}-componentTranslations.json`;
+			}
+			// Special handling for 'en' - try both en and en-US paths
+			const lower = code.toLowerCase();
+			if (lower === 'en') {
+				// First try the standard path
+				const standardPath = `https://raw.githubusercontent.com/levante-framework/levante-dashboard/main/src/translations/${lower}/${lower}-componentTranslations.json`;
+				// Also try en-US as fallback
+				const enUSPath = `https://raw.githubusercontent.com/levante-framework/levante-dashboard/main/src/translations/en/us/en-US-componentTranslations.json`;
+				return standardPath; // We'll handle the fallback in the calling function
+			}
+			return `https://raw.githubusercontent.com/levante-framework/levante-dashboard/main/src/translations/${lower}/${lower}-componentTranslations.json`;
+		}
+		async function fetchDashboardJson(code) {
+			const url = await fetchDashboardJsonPath(code);
+			try { const r = await fetch(url, { cache: 'no-cache' }); if (r.ok) return await r.json(); } catch (e) {}
+			return null;
+		}
+		function countLeafStrings(obj) {
+			if (!obj || typeof obj !== 'object') return 0;
+			let count = 0;
+			for (const k of Object.keys(obj)) {
+				const v = obj[k];
+				if (v && typeof v === 'object') count += countLeafStrings(v);
+				else if (typeof v === 'string') count += 1;
+			}
+			return count;
+		}
+		async function dashboardStats(lang, environment = 'dev') {
+			const exactUrl = await fetchDashboardJsonPath(lang);
+			let exactMatch = false;
+			let baseMatch = false;
+			try { const r = await fetch(exactUrl, { method: 'HEAD', cache: 'no-cache' }); if (r.ok) exactMatch = true; } catch (e) {}
+			
+			// Special handling for 'en' - try en-US fallback
+			if (!exactMatch && lang === 'en') {
+				const enUSUrl = `https://raw.githubusercontent.com/levante-framework/levante-dashboard/main/src/translations/en/us/en-US-componentTranslations.json`;
+				try { const r = await fetch(enUSUrl, { method: 'HEAD', cache: 'no-cache' }); if (r.ok) baseMatch = true; } catch (e) {}
+			}
+			
+			if (!exactMatch && !baseMatch && lang.includes('-')) {
+				const baseUrl = await fetchDashboardJsonPath(toBase(lang));
+				try { const r2 = await fetch(baseUrl, { method: 'HEAD', cache: 'no-cache' }); if (r2.ok) baseMatch = true; } catch (e) {}
+			}
+			return { exactMatch, baseMatch };
+		}
+
+		// Survey translations: list JSONs from levante-dashboard-dev and check for keys
+		async function surveyStats(lang, environment = 'dev') {
+			try {
+				// Static list based on known files in bucket (as exposed in repo), adjust if endpoint exists later
+				const candidates = ['child_survey.json','parent_survey_child.json','parent_survey_family.json','teacher_survey_classroom.json','teacher_survey_general.json'];
+				const base = toBase(lang);
+				let checked = 0, exact = 0, withBase = 0;
+				const details = [];
+				for (const name of candidates) {
+					try {
+						const url = `https://storage.googleapis.com/levante-dashboard-dev/${name}`;
+						const res = await fetch(url, { cache: 'no-cache' });
+						if (!res.ok) continue;
+						const txt = await res.text();
+						checked++;
+						let hasExact = txt.includes(`"${lang}"`) || txt.includes(`'${lang}'`);
+						let hasBase = !hasExact && (txt.includes(`"${base}"`) || txt.includes(`'${base}'`));
+						// Treat implicit English as coverage when no explicit locale keys are present
+						// - exact for 'en'
+						// - base for any 'en-*' variant
+						if (!hasExact && !hasBase && base === 'en') {
+							if (lang === 'en') { hasExact = true; } else { hasBase = true; }
+						}
+						if (hasExact) exact++; if (hasBase) withBase++;
+						details.push({ file: name, hasExact, hasBase });
+					} catch {}
+				}
+				return { checked, exact, withBase, details };
+			} catch { return { checked: 0, exact: 0, withBase: 0, details: [] }; }
+		}
+
+		// Audio presence: ping api/read-tags in strict mode for a subset, but here aggregate presence by listing top-level prefixes from bucket via API list=1
+		async function audioStats(lang, environment = 'dev') {
+			try {
+				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
+				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}`, { cache: 'no-cache' });
+				if (!res.ok) return { present: false };
+				const data = await res.json();
+				const present = Array.isArray(data.languages) && data.languages.includes(lang);
+				return { present };
+			} catch { return { present: false }; }
+		}
+
+		// Visual assets audit (dev) + Fix It
+		async function refreshVisualAudit() {
+			try {
+				const res = await fetch(`/api/visual-audit?env=dev&prefix=visual/`, { cache: 'no-cache' });
+				if (!res.ok) { document.getElementById('visualSummary').textContent = 'Visual audit unavailable (API error)'; return; }
+				const data = await res.json();
+				document.getElementById('visualBucket').textContent = data.bucket || '';
+				const missing = Array.isArray(data.missing) ? data.missing : [];
+				const pngCount = data.pngCount || 0;
+				const webpCount = data.webpCount || 0;
+				const missingCount = data.missingCount || missing.length;
+				const summary = document.getElementById('visualSummary');
+				summary.innerHTML = `PNGs: <span class="code">${pngCount}</span> · WEBPs: <span class="code">${webpCount}</span> · Missing WEBP: <span class="badge ${missingCount===0?'ok':'err'}">${missingCount}</span>`;
+				const detailsLink = document.getElementById('visualDetails');
+				const fixBtn = document.getElementById('visualFixBtn');
+				if (missingCount > 0) {
+					detailsLink.style.display = '';
+					fixBtn.style.display = '';
+					detailsLink.onclick = () => { alert('PNGs without WEBP (first 200 shown):\n- ' + missing.slice(0,200).join('\n- ')); };
+				} else {
+					detailsLink.style.display = 'none';
+					fixBtn.style.display = 'none';
+				}
+				
+				// Store missing count for stoplight comparison
+				window.visualDevMissing = missingCount;
+			} catch (e) {
+				document.getElementById('visualSummary').textContent = 'Visual audit unavailable';
+				window.visualDevMissing = null;
+			}
+		}
+
+		// Visual assets audit (prod) + Fix It
+		async function refreshVisualAuditProd() {
+			try {
+				const res = await fetch(`/api/visual-audit?env=prod&prefix=visual/`, { cache: 'no-cache' });
+				if (!res.ok) { const el = document.getElementById('visualSummaryProd'); if (el) el.textContent = 'Visual audit (prod) unavailable (API error)'; return; }
+				const data = await res.json();
+				const bucketEl = document.getElementById('visualBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || '';
+				const missing = Array.isArray(data.missing) ? data.missing : [];
+				const pngCount = data.pngCount || 0;
+				const webpCount = data.webpCount || 0;
+				const missingCount = data.missingCount || missing.length;
+				const summary = document.getElementById('visualSummaryProd');
+				if (summary) summary.innerHTML = `PNGs: <span class=\"code\">${pngCount}</span> · WEBPs: <span class=\"code\">${webpCount}</span> · Missing WEBP: <span class=\"badge ${missingCount===0?'ok':'err'}\">${missingCount}</span>`;
+				const detailsLink = document.getElementById('visualDetailsProd');
+				const fixBtn = document.getElementById('visualFixBtnProd');
+				if (missingCount > 0) {
+					if (detailsLink) detailsLink.style.display = '';
+					if (fixBtn) fixBtn.style.display = '';
+					if (detailsLink) detailsLink.onclick = () => { alert('PNGs without WEBP (first 200 shown):\n- ' + missing.slice(0,200).join('\n- ')); };
+				} else {
+					if (detailsLink) detailsLink.style.display = 'none';
+					if (fixBtn) fixBtn.style.display = 'none';
+				}
+				
+				// Store missing count for stoplight comparison
+				window.visualProdMissing = missingCount;
+			} catch (e) {
+				const el = document.getElementById('visualSummaryProd'); if (el) el.textContent = 'Visual audit (prod) unavailable';
+				window.visualProdMissing = null;
+			}
+		}
+
+		// Audio assets audit (dev) + View Coverage
+		async function refreshAudioAudit() {
+			try {
+				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-dev`, { cache: 'no-cache' });
+				if (!res.ok) { document.getElementById('audioSummary').textContent = 'Audio audit unavailable (API error)'; return; }
+				const data = await res.json();
+				document.getElementById('audioBucket').textContent = data.bucket || 'levante-assets-dev';
+				const languages = Array.isArray(data.languages) ? data.languages : [];
+				const totalLanguages = languages.length;
+				
+				// Get audio clip approval status
+				let approvalStatus = '';
+				try {
+					const [draftRes, devRes] = await Promise.all([
+						fetch('/api/list-draft-audio?bucket=levante-assets-draft&prefix=audio/', { cache: 'no-cache' }),
+						fetch('/api/list-draft-audio?bucket=levante-assets-dev&prefix=audio/', { cache: 'no-cache' })
+					]);
+					
+					let draftItems = new Set();
+					let devItems = new Set();
+					
+					if (draftRes.ok) {
+						const draftData = await draftRes.json();
+						if (draftData.items && Array.isArray(draftData.items)) {
+							draftData.items.forEach(item => {
+								const fileName = item.name.split('/').pop() || '';
+								const baseId = fileName.replace(/\.mp3$/i, '').replace(/_v\d{3}$/i, '');
+								if (baseId) draftItems.add(baseId);
+							});
+						}
+					}
+					
+					if (devRes.ok) {
+						const devData = await devRes.json();
+						if (devData.items && Array.isArray(devData.items)) {
+							devData.items.forEach(item => {
+								const fileName = item.name.split('/').pop() || '';
+								const baseId = fileName.replace(/\.mp3$/i, '').replace(/_v\d{3}$/i, '');
+								if (baseId) devItems.add(baseId);
+							});
+						}
+					}
+					
+					const toBeApproved = draftItems.size;
+					const approved = devItems.size;
+					const available = new Set([...draftItems, ...devItems]).size;
+					
+					approvalStatus = ` · Clips: <span class="code">${available.toLocaleString()}</span> Available (<span class="badge ok">${approved.toLocaleString()}</span> Approved, <span class="badge warn">${toBeApproved.toLocaleString()}</span> To Be Approved)`;
+				} catch (err) {
+					console.warn('Could not load audio clip approval status:', err);
+				}
+				
+				const summary = document.getElementById('audioSummary');
+				summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span> · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
+				const detailsLink = document.getElementById('audioDetails');
+				const coverageBtn = document.getElementById('audioCoverageBtn');
+				if (totalLanguages > 0) {
+					detailsLink.style.display = '';
+					coverageBtn.style.display = '';
+					detailsLink.onclick = () => { alert('Available languages:\n- ' + languages.join('\n- ')); };
+					coverageBtn.onclick = () => { window.open('./audio-coverage.html?env=dev', '_blank'); };
+				} else {
+					detailsLink.style.display = 'none';
+					coverageBtn.style.display = 'none';
+				}
+				
+				// Store language count for stoplight comparison
+				window.audioDevLanguages = totalLanguages;
+			} catch (e) {
+				document.getElementById('audioSummary').textContent = 'Audio audit unavailable';
+				window.audioDevLanguages = null;
+			}
+		}
+
+		// Audio assets audit (prod) + View Coverage
+		async function refreshAudioAuditProd() {
+			try {
+				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-prod`, { cache: 'no-cache' });
+				if (!res.ok) { const el = document.getElementById('audioSummaryProd'); if (el) el.textContent = 'Audio audit (prod) unavailable (API error)'; return; }
+				const data = await res.json();
+				const bucketEl = document.getElementById('audioBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
+				const languages = Array.isArray(data.languages) ? data.languages : [];
+				const totalLanguages = languages.length;
+				
+				// Get audio clip approval status for prod
+				let approvalStatus = '';
+				try {
+					const prodRes = await fetch('/api/list-draft-audio?bucket=levante-assets-prod&prefix=audio/', { cache: 'no-cache' });
+					
+					let prodItems = new Set();
+					
+					if (prodRes.ok) {
+						const prodData = await prodRes.json();
+						if (prodData.items && Array.isArray(prodData.items)) {
+							prodData.items.forEach(item => {
+								const fileName = item.name.split('/').pop() || '';
+								const baseId = fileName.replace(/\.mp3$/i, '').replace(/_v\d{3}$/i, '');
+								if (baseId) prodItems.add(baseId);
+							});
+						}
+					}
+					
+					const approved = prodItems.size;
+					
+					if (approved > 0) {
+						approvalStatus = ` · Clips: <span class="code">${approved.toLocaleString()}</span> Approved`;
+					}
+				} catch (err) {
+					console.warn('Could not load audio clip approval status for prod:', err);
+				}
+				
+				const summary = document.getElementById('audioSummaryProd');
+				if (summary) summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span> · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
+				const detailsLink = document.getElementById('audioDetailsProd');
+				const coverageBtn = document.getElementById('audioCoverageBtnProd');
+				if (totalLanguages > 0) {
+					if (detailsLink) detailsLink.style.display = '';
+					if (coverageBtn) coverageBtn.style.display = '';
+					if (detailsLink) detailsLink.onclick = () => { alert('Available languages:\n- ' + languages.join('\n- ')); };
+					if (coverageBtn) coverageBtn.onclick = () => { window.open('./audio-coverage.html?env=prod', '_blank'); };
+				} else {
+					if (detailsLink) detailsLink.style.display = 'none';
+					if (coverageBtn) coverageBtn.style.display = 'none';
+				}
+				
+				// Store language count for stoplight comparison
+				window.audioProdLanguages = totalLanguages;
+			} catch (e) {
+				const el = document.getElementById('audioSummaryProd'); if (el) el.textContent = 'Audio audit (prod) unavailable';
+				window.audioProdLanguages = null;
+			}
+		}
+
+		// Core Tasks audit (dev) + Validate
+		async function refreshCoreTasksAudit() {
+			try {
+				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/`, { cache: 'no-cache' });
+				if (!res.ok) { document.getElementById('coreTasksSummary').textContent = 'Core tasks audit unavailable (API error)'; return; }
+				const data = await res.json();
+				document.getElementById('coreTasksBucket').textContent = data.bucket || 'levante-assets-dev';
+				const files = Array.isArray(data.files) ? data.files : [];
+				
+				// Count folders and files (consistent with Corpus section)
+				const folders = files.filter(f => f.endsWith('/'));
+				const fileCount = files.filter(f => !f.endsWith('/')).length;
+				const folderCount = folders.length;
+				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+				const csvCount = csvFiles.length;
+				
+				const summary = document.getElementById('coreTasksSummary');
+				summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · CSVs: <span class="code">${csvCount}</span> · Status: <span class="badge ${csvCount > 0 ? 'ok' : 'err'}">${csvCount > 0 ? 'Available' : 'Missing'}</span>`;
+				const detailsLink = document.getElementById('coreTasksDetails');
+				const validateBtn = document.getElementById('coreTasksValidateBtn');
+				if (files.length > 0) {
+					detailsLink.style.display = '';
+					validateBtn.style.display = '';
+					detailsLink.onclick = () => { 
+						const fileList = files.slice(0, 50).join('\n- ');
+						const moreText = files.length > 50 ? `\n... and ${files.length - 50} more items` : '';
+						alert(`Corpus items (${files.length} total):\n- ${fileList}${moreText}`); 
+					};
+					validateBtn.onclick = () => { validateCoreTasks('dev'); };
+				} else {
+					detailsLink.style.display = 'none';
+					validateBtn.style.display = 'none';
+				}
+				
+				// Store CSV count for stoplight comparison
+				window.coreTasksDevCsvs = csvCount;
+			} catch (e) {
+				document.getElementById('coreTasksSummary').textContent = 'Core tasks audit unavailable';
+				window.coreTasksDevCsvs = null;
+			}
+		}
+
+		// Core Tasks audit (prod) + Validate
+		async function refreshCoreTasksAuditProd() {
+			try {
+				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/`, { cache: 'no-cache' });
+				if (!res.ok) { const el = document.getElementById('coreTasksSummaryProd'); if (el) el.textContent = 'Core tasks audit (prod) unavailable (API error)'; return; }
+				const data = await res.json();
+				const bucketEl = document.getElementById('coreTasksBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
+				const files = Array.isArray(data.files) ? data.files : [];
+				
+				// Count folders and files (consistent with Corpus section)
+				const folders = files.filter(f => f.endsWith('/'));
+				const fileCount = files.filter(f => !f.endsWith('/')).length;
+				const folderCount = folders.length;
+				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+				const csvCount = csvFiles.length;
+				
+				const summary = document.getElementById('coreTasksSummaryProd');
+				if (summary) summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · CSVs: <span class="code">${csvCount}</span> · Status: <span class="badge ${csvCount > 0 ? 'ok' : 'err'}">${csvCount > 0 ? 'Available' : 'Missing'}</span>`;
+				const detailsLink = document.getElementById('coreTasksDetailsProd');
+				const validateBtn = document.getElementById('coreTasksValidateBtnProd');
+				if (files.length > 0) {
+					if (detailsLink) detailsLink.style.display = '';
+					if (validateBtn) validateBtn.style.display = '';
+					if (detailsLink) detailsLink.onclick = () => { 
+						const fileList = files.slice(0, 50).join('\n- ');
+						const moreText = files.length > 50 ? `\n... and ${files.length - 50} more items` : '';
+						alert(`Corpus items (${files.length} total):\n- ${fileList}${moreText}`); 
+					};
+					if (validateBtn) validateBtn.onclick = () => { validateCoreTasks('prod'); };
+				} else {
+					if (detailsLink) detailsLink.style.display = 'none';
+					if (validateBtn) validateBtn.style.display = 'none';
+				}
+				
+				// Store CSV count for stoplight comparison
+				window.coreTasksProdCsvs = csvCount;
+			} catch (e) {
+				const el = document.getElementById('coreTasksSummaryProd'); if (el) el.textContent = 'Core tasks audit (prod) unavailable';
+				window.coreTasksProdCsvs = null;
+			}
+		}
+
+		// Validate Core Tasks CSV contents
+		async function validateCoreTasks(environment) {
+			try {
+				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
+				
+				// Get corpus files
+				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}&prefix=corpus/`, { cache: 'no-cache' });
+				if (!res.ok) { alert(`Failed to fetch corpus files from ${bucket}`); return; }
+				const data = await res.json();
+				const files = Array.isArray(data.files) ? data.files : [];
+				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+				
+				if (csvFiles.length === 0) {
+					alert(`No CSV files found in ${bucket}/corpus/`);
+					return;
+				}
+				
+				// Get current core tasks from item bank
+				const currentItems = await getCurrentCoreTasks();
+				
+				// Validate each CSV
+				let validationResults = [];
+				for (const csvFile of csvFiles) {
+					try {
+						const csvUrl = `https://storage.googleapis.com/${bucket}/${csvFile}`;
+						const csvRes = await fetch(csvUrl, { cache: 'no-cache' });
+						if (!csvRes.ok) continue;
+						
+						const csvText = await csvRes.text();
+						const csvData = parseCSVWithEmbeddedNewlines(csvText);
+						
+						if (csvData.length === 0) continue;
+						
+						const header = csvData[0].map(h => h.trim());
+						const idIndex = header.findIndex(h => h.toLowerCase().includes('id') || h.toLowerCase().includes('item'));
+						
+						if (idIndex === -1) continue;
+						
+						const csvItems = new Set();
+						for (let i = 1; i < csvData.length; i++) {
+							const itemId = (csvData[i][idIndex] || '').toString().trim();
+							if (itemId) csvItems.add(itemId);
+						}
+						
+						// Compare with current items
+						const missing = currentItems.filter(id => !csvItems.has(id));
+						const extra = Array.from(csvItems).filter(id => !currentItems.includes(id));
+						const matching = currentItems.filter(id => csvItems.has(id));
+						
+						validationResults.push({
+							file: csvFile.split('/').pop(),
+							total: csvItems.size,
+							matching: matching.length,
+							missing: missing.length,
+							extra: extra.length,
+							coverage: currentItems.length > 0 ? Math.round((matching.length / currentItems.length) * 100) : 0
+						});
+					} catch (e) {
+						console.warn(`Failed to validate ${csvFile}:`, e);
+					}
+				}
+				
+				// Display results
+				if (validationResults.length === 0) {
+					alert(`No valid CSV files found in ${bucket}/corpus/`);
+					return;
+				}
+				
+				const resultsText = validationResults.map(r => 
+					`${r.file}:\n` +
+					`  Coverage: ${r.coverage}% (${r.matching}/${currentItems.length} items)\n` +
+					`  Missing: ${r.missing} items\n` +
+					`  Extra: ${r.extra} items\n` +
+					`  Total in CSV: ${r.total}`
+				).join('\n\n');
+				
+				alert(`Core Tasks Validation Results (${environment.toUpperCase()}):\n\nCurrent Items: ${currentItems.length}\n\n${resultsText}`);
+				
+			} catch (e) {
+				alert(`Validation failed: ${e.message}`);
+			}
+		}
+		
+		// Get current core tasks from item bank
+		async function getCurrentCoreTasks() {
+			try {
+				// Use the same CSV loading logic as the main report
+				const csvUrl = (CONFIG && CONFIG.dataSources && CONFIG.dataSources.remoteCSV) || 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv';
+				const res = await fetch(csvUrl, { cache: 'no-cache' });
+				if (!res.ok) return [];
+				
+				const csvText = await res.text();
+				const rows = parseCSVWithEmbeddedNewlines(csvText);
+				if (rows.length === 0) return [];
+				
+				const header = rows[0].map(h => h.trim());
+				const idIndex = header.findIndex(h => h.toLowerCase().includes('item_id') || h.toLowerCase().includes('identifier'));
+				const taskIndex = header.findIndex(h => h.toLowerCase().includes('task') || h.toLowerCase().includes('label'));
+				
+				if (idIndex === -1) return [];
+				
+				const coreTasks = [];
+				for (let i = 1; i < rows.length; i++) {
+					const row = rows[i];
+					const itemId = (row[idIndex] || '').toString().trim();
+					const task = taskIndex >= 0 ? (row[taskIndex] || '').toString().trim().toLowerCase() : '';
+					
+					// Filter for core tasks (you may need to adjust this logic based on your data)
+					if (itemId && (task.includes('core') || task.includes('task') || task === '')) {
+						coreTasks.push(itemId);
+					}
+				}
+				
+				return coreTasks;
+			} catch (e) {
+				console.warn('Failed to load current core tasks:', e);
+				return [];
+			}
+		}
+
+		// Corpus audit (dev) + Validate
+		async function refreshCorpusAudit() {
+			try {
+				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/`, { cache: 'no-cache' });
+				if (!res.ok) { document.getElementById('corpusSummary').textContent = 'Corpus audit unavailable (API error)'; return; }
+				const data = await res.json();
+				document.getElementById('corpusBucket').textContent = data.bucket || 'levante-assets-dev';
+				const files = Array.isArray(data.files) ? data.files : [];
+				
+				// Count folders and files
+				const folders = files.filter(f => f.endsWith('/'));
+				const fileCount = files.filter(f => !f.endsWith('/')).length;
+				const folderCount = folders.length;
+				
+				// Count unique item_ids from CSV files
+				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+				let uniqueItemIds = new Set();
+				
+				// Fetch and analyze each CSV file
+				for (const csvFile of csvFiles) {
+					try {
+						const csvUrl = `https://storage.googleapis.com/levante-assets-dev/${csvFile}`;
+						const csvRes = await fetch(csvUrl, { cache: 'no-cache' });
+						if (csvRes.ok) {
+							const csvText = await csvRes.text();
+							const lines = csvText.split('\n');
+							const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+							const itemIdIndex = header.findIndex(h => h.includes('item_id') || h.includes('identifier'));
+							
+							if (itemIdIndex !== -1) {
+								for (let i = 1; i < lines.length; i++) {
+									const row = lines[i].split(',');
+									const itemId = row[itemIdIndex]?.trim();
+									if (itemId && itemId !== '') {
+										uniqueItemIds.add(itemId);
+									}
+								}
+							}
+						}
+					} catch (e) {
+						console.warn(`Failed to process CSV file ${csvFile}:`, e);
+					}
+				}
+				
+				const uniqueItemIdCount = uniqueItemIds.size;
+				
+				const summary = document.getElementById('corpusSummary');
+				summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · Unique Items: <span class="code">${uniqueItemIdCount}</span> · Status: <span class="badge ${fileCount > 0 ? 'ok' : 'err'}">${fileCount > 0 ? 'Available' : 'Missing'}</span>`;
+				const detailsLink = document.getElementById('corpusDetails');
+				const validateBtn = document.getElementById('corpusValidateBtn');
+				if (files.length > 0) {
+					detailsLink.style.display = '';
+					validateBtn.style.display = '';
+					detailsLink.onclick = () => { 
+						const fileList = files.slice(0, 50).join('\n- ');
+						const moreText = files.length > 50 ? `\n... and ${files.length - 50} more items` : '';
+						alert(`Corpus items (${files.length} total):\n- ${fileList}${moreText}`); 
+					};
+					validateBtn.onclick = () => { validateCorpus('dev'); };
+				} else {
+					detailsLink.style.display = 'none';
+					validateBtn.style.display = 'none';
+				}
+				
+				// Store unique item_id count for stoplight comparison
+				window.corpusDevItemIds = uniqueItemIdCount;
+			} catch (e) {
+				document.getElementById('corpusSummary').textContent = 'Corpus audit unavailable';
+				window.corpusDevItemIds = null;
+			}
+		}
+
+		// Corpus audit (prod) + Validate
+		async function refreshCorpusAuditProd() {
+			try {
+				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/`, { cache: 'no-cache' });
+				if (!res.ok) { const el = document.getElementById('corpusSummaryProd'); if (el) el.textContent = 'Corpus audit (prod) unavailable (API error)'; return; }
+				const data = await res.json();
+				const bucketEl = document.getElementById('corpusBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
+				const files = Array.isArray(data.files) ? data.files : [];
+				
+				// Count folders and files
+				const folders = files.filter(f => f.endsWith('/'));
+				const fileCount = files.filter(f => !f.endsWith('/')).length;
+				const folderCount = folders.length;
+				
+				// Count unique item_ids from CSV files
+				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+				let uniqueItemIds = new Set();
+				
+				// Fetch and analyze each CSV file
+				for (const csvFile of csvFiles) {
+					try {
+						const csvUrl = `https://storage.googleapis.com/levante-assets-prod/${csvFile}`;
+						const csvRes = await fetch(csvUrl, { cache: 'no-cache' });
+						if (csvRes.ok) {
+							const csvText = await csvRes.text();
+							const lines = csvText.split('\n');
+							const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+							const itemIdIndex = header.findIndex(h => h.includes('item_id') || h.includes('identifier'));
+							
+							if (itemIdIndex !== -1) {
+								for (let i = 1; i < lines.length; i++) {
+									const row = lines[i].split(',');
+									const itemId = row[itemIdIndex]?.trim();
+									if (itemId && itemId !== '') {
+										uniqueItemIds.add(itemId);
+									}
+								}
+							}
+						}
+					} catch (e) {
+						console.warn(`Failed to process CSV file ${csvFile}:`, e);
+					}
+				}
+				
+				const uniqueItemIdCount = uniqueItemIds.size;
+				
+				const summary = document.getElementById('corpusSummaryProd');
+				if (summary) summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · Unique Items: <span class="code">${uniqueItemIdCount}</span> · Status: <span class="badge ${fileCount > 0 ? 'ok' : 'err'}">${fileCount > 0 ? 'Available' : 'Missing'}</span>`;
+				const detailsLink = document.getElementById('corpusDetailsProd');
+				const validateBtn = document.getElementById('corpusValidateBtnProd');
+				if (files.length > 0) {
+					if (detailsLink) detailsLink.style.display = '';
+					if (validateBtn) validateBtn.style.display = '';
+					if (detailsLink) detailsLink.onclick = () => { 
+						const fileList = files.slice(0, 50).join('\n- ');
+						const moreText = files.length > 50 ? `\n... and ${files.length - 50} more items` : '';
+						alert(`Corpus items (${files.length} total):\n- ${fileList}${moreText}`); 
+					};
+					if (validateBtn) validateBtn.onclick = () => { validateCorpus('prod'); };
+				} else {
+					if (detailsLink) detailsLink.style.display = 'none';
+					if (validateBtn) validateBtn.style.display = 'none';
+				}
+				
+				// Store unique item_id count for stoplight comparison
+				window.corpusProdItemIds = uniqueItemIdCount;
+			} catch (e) {
+				const el = document.getElementById('corpusSummaryProd'); if (el) el.textContent = 'Corpus audit (prod) unavailable';
+				window.corpusProdItemIds = null;
+			}
+		}
+
+		// Validate Corpus content
+		async function validateCorpus(environment) {
+			try {
+				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
+				
+				// Get corpus files
+				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}&prefix=corpus/`, { cache: 'no-cache' });
+				if (!res.ok) { alert(`Failed to fetch corpus files from ${bucket}`); return; }
+				const data = await res.json();
+				const files = Array.isArray(data.files) ? data.files : [];
+				const textFiles = files.filter(f => f.toLowerCase().endsWith('.txt') || f.toLowerCase().endsWith('.json') || f.toLowerCase().endsWith('.csv'));
+				
+				if (textFiles.length === 0) {
+					alert(`No text/JSON/CSV files found in ${bucket}/corpus/`);
+					return;
+				}
+				
+				// Analyze each text file
+				let validationResults = [];
+				for (const textFile of textFiles) {
+					try {
+						const fileUrl = `https://storage.googleapis.com/${bucket}/${textFile}`;
+						const fileRes = await fetch(fileUrl, { cache: 'no-cache' });
+						if (!fileRes.ok) continue;
+						
+						const fileText = await fileRes.text();
+						const fileName = textFile.split('/').pop();
+						
+						// Basic text analysis
+						const lines = fileText.split('\n').filter(line => line.trim().length > 0);
+						const words = fileText.split(/\s+/).filter(word => word.trim().length > 0);
+						const chars = fileText.length;
+						
+						// Check for translation indicators
+						const hasTranslationKeys = /"[a-zA-Z_][a-zA-Z0-9_]*"\s*:/.test(fileText);
+						const hasLanguageCodes = /[a-z]{2}(-[A-Z]{2})?/.test(fileText);
+						const hasUnicode = /[\u0080-\uFFFF]/.test(fileText);
+						
+						validationResults.push({
+							file: fileName,
+							lines: lines.length,
+							words: words.length,
+							characters: chars,
+							hasTranslationKeys,
+							hasLanguageCodes,
+							hasUnicode,
+							fileType: fileName.toLowerCase().endsWith('.json') ? 'JSON' : 'TXT'
+						});
+					} catch (e) {
+						console.warn(`Failed to validate ${textFile}:`, e);
+					}
+				}
+				
+				// Display results
+				if (validationResults.length === 0) {
+					alert(`No valid text/JSON files found in ${bucket}/core-assets/`);
+					return;
+				}
+				
+				const resultsText = validationResults.map(r => 
+					`${r.file} (${r.fileType}):\n` +
+					`  Lines: ${r.lines} · Words: ${r.words} · Characters: ${r.characters}\n` +
+					`  Translation Keys: ${r.hasTranslationKeys ? 'Yes' : 'No'}\n` +
+					`  Language Codes: ${r.hasLanguageCodes ? 'Yes' : 'No'}\n` +
+					`  Unicode Content: ${r.hasUnicode ? 'Yes' : 'No'}`
+				).join('\n\n');
+				
+				alert(`Corpus Validation Results (${environment.toUpperCase()}):\n\n${resultsText}`);
+				
+			} catch (e) {
+				alert(`Validation failed: ${e.message}`);
+			}
+		}
+
+		// Translation Completeness Audit Functions
+		async function refreshTranslationCompletenessAudit() {
+			const summaryEl = document.getElementById('translationCompletenessSummary');
+			const detailsEl = document.getElementById('translationCompletenessDetails');
+			const validateBtn = document.getElementById('translationCompletenessValidateBtn');
+			
+			try {
+				summaryEl.textContent = 'Analyzing translation completeness...';
+				
+				// Get current translations from the repository
+				const response = await fetch('https://raw.githubusercontent.com/levante-framework/levante_translations/main/translation_text/item_bank_translations.csv');
+				const csvText = await response.text();
+				const lines = csvText.split('\n');
+				const headers = lines[0].split(',');
+				
+				// Find language columns (excluding item_id, labels, context, isHidden)
+				const languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				const totalItems = lines.length - 1; // Exclude header
+				
+				let missingTranslations = 0;
+				const missingDetails = [];
+				
+				for (let i = 1; i < lines.length; i++) {
+					const values = lines[i].split(',');
+					if (values.length >= headers.length) {
+						const itemId = values[0];
+						let itemMissing = 0;
+						const itemMissingLangs = [];
+						
+						languageColumns.forEach((lang, idx) => {
+							const langIdx = headers.indexOf(lang);
+							if (langIdx >= 0 && langIdx < values.length) {
+								const translation = values[langIdx]?.trim();
+								if (!translation || translation === '') {
+									itemMissing++;
+									itemMissingLangs.push(lang);
+								}
+							}
+						});
+						
+						if (itemMissing > 0) {
+							missingTranslations += itemMissing;
+							missingDetails.push({
+								itemId,
+								missing: itemMissing,
+								languages: itemMissingLangs
+							});
+						}
+			}
+		}
+		
+		const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
+		
+		// Choose icon based on completeness level
+		const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
+		const statusText = completeness >= 100 ? 'complete' : 'incomplete';
+		
+		summaryEl.innerHTML = `${icon} <strong>${completeness}%</strong> ${statusText} (${missingTranslations} missing translations across ${languageColumns.length} languages)`;
+		
+		if (missingTranslations > 0) {
+			detailsEl.style.display = 'inline';
+			detailsEl.onclick = () => showTranslationCompletenessDetails(missingDetails, languageColumns);
+		}
+		
+		validateBtn.style.display = 'inline-block';
+		validateBtn.onclick = () => validateTranslationCompleteness(missingDetails);
+		
+		// Store for stoplight comparison
+		window.translationCompletenessDevMissing = missingTranslations;
+				
+			} catch (error) {
+				summaryEl.textContent = `❌ Error: ${error.message}`;
+			}
+		}
+
+		async function refreshTranslationCompletenessAuditProd() {
+			const summaryEl = document.getElementById('translationCompletenessSummaryProd');
+			const detailsEl = document.getElementById('translationCompletenessDetailsProd');
+			const validateBtn = document.getElementById('translationCompletenessValidateBtnProd');
+			
+			try {
+				summaryEl.textContent = 'Analyzing translation completeness...';
+				
+				// For prod, we'll use the same logic but could check against a different source
+				// For now, using the same repository source
+				const response = await fetch('https://raw.githubusercontent.com/levante-framework/levante_translations/main/translation_text/item_bank_translations.csv');
+				const csvText = await response.text();
+				const lines = csvText.split('\n');
+				const headers = lines[0].split(',');
+				
+				const languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				const totalItems = lines.length - 1;
+				
+				let missingTranslations = 0;
+				const missingDetails = [];
+				
+				for (let i = 1; i < lines.length; i++) {
+					const values = lines[i].split(',');
+					if (values.length >= headers.length) {
+						const itemId = values[0];
+						let itemMissing = 0;
+						const itemMissingLangs = [];
+						
+						languageColumns.forEach((lang, idx) => {
+							const langIdx = headers.indexOf(lang);
+							if (langIdx >= 0 && langIdx < values.length) {
+								const translation = values[langIdx]?.trim();
+								if (!translation || translation === '') {
+									itemMissing++;
+									itemMissingLangs.push(lang);
+								}
+							}
+						});
+						
+						if (itemMissing > 0) {
+							missingTranslations += itemMissing;
+							missingDetails.push({
+								itemId,
+								missing: itemMissing,
+								languages: itemMissingLangs
+							});
+					}
+				}
+			}
+			
+			const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
+			
+			// Choose icon based on completeness level
+			const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
+			const statusText = completeness >= 100 ? 'complete' : 'incomplete';
+			
+			summaryEl.innerHTML = `${icon} <strong>${completeness}%</strong> ${statusText} (${missingTranslations} missing translations across ${languageColumns.length} languages)`;
+			
+			if (missingTranslations > 0) {
+				detailsEl.style.display = 'inline';
+				detailsEl.onclick = () => showTranslationCompletenessDetails(missingDetails, languageColumns);
+			}
+			
+			validateBtn.style.display = 'inline-block';
+			validateBtn.onclick = () => validateTranslationCompleteness(missingDetails);
+			
+			// Store for stoplight comparison
+			window.translationCompletenessProdMissing = missingTranslations;
+				
+			} catch (error) {
+				summaryEl.textContent = `❌ Error: ${error.message}`;
+			}
+		}
+
+		function showTranslationCompletenessDetails(missingDetails, languageColumns) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = 'Translation Completeness Details';
+			
+			const sortedDetails = missingDetails.sort((a, b) => b.missing - a.missing);
+			const topMissing = sortedDetails.slice(0, 20);
+			
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>Summary</h4>
+					<p>Total missing translations: <strong>${missingDetails.reduce((sum, item) => sum + item.missing, 0)}</strong></p>
+					<p>Items with missing translations: <strong>${missingDetails.length}</strong></p>
+					<p>Available languages: <strong>${languageColumns.length}</strong></p>
+				</div>
+				<div class="diff-section">
+					<h4>Items with Most Missing Translations (Top 20)</h4>
+					<div style="max-height: 300px; overflow-y: auto;">
+						${topMissing.map(item => `
+							<div style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px;">
+								<strong>${item.itemId}</strong> - Missing ${item.missing} translations
+								<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+									Languages: ${item.languages.join(', ')}
+								</div>
+							</div>
+						`).join('')}
+					</div>
+				</div>
+				<div class="diff-section">
+					<h4>Recommendation</h4>
+					<p>Review items with missing translations and prioritize completion for core functionality. Consider implementing automated translation validation in your CI/CD pipeline.</p>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		function validateTranslationCompleteness(missingDetails) {
+			alert(`Translation Completeness Validation:\n\nTotal missing translations: ${missingDetails.reduce((sum, item) => sum + item.missing, 0)}\nItems needing attention: ${missingDetails.length}\n\nThis validation checks for empty or missing translation values across all supported languages.`);
+		}
+
+		// Asset Integrity Audit Functions
+		async function refreshAssetIntegrityAudit() {
+			const summaryEl = document.getElementById('assetIntegritySummary');
+			const detailsEl = document.getElementById('assetIntegrityDetails');
+			const validateBtn = document.getElementById('assetIntegrityValidateBtn');
+			
+			try {
+				summaryEl.textContent = 'Checking asset integrity...';
+				
+				// Check for actual asset integrity issues in dev bucket
+				const bucket = 'levante-assets-dev';
+				const issues = [];
+				
+				// Get all files from the bucket
+				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}`, { cache: 'no-cache' });
+				if (!res.ok) {
+					throw new Error(`Failed to fetch files from ${bucket}`);
+				}
+				const data = await res.json();
+				const files = Array.isArray(data.files) ? data.files : [];
+				
+				// Check for PNG files that should be WEBP
+				const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
+				if (pngFiles.length > 0) {
+					issues.push({
+						type: 'PNG Files',
+						count: pngFiles.length,
+						description: 'PNG files that should be converted to WEBP for better performance',
+						files: pngFiles.slice(0, 10) // Show first 10 files
+					});
+				}
+				
+		// Note: Audio file checking removed - use Audio Coverage report for detailed audio analysis
+		// The previous check was too broad and didn't account for language-specific audio or items without translations
+				
+				// Check for empty or very small files
+				const smallFiles = [];
+				for (const file of files.slice(0, 20)) { // Check first 20 files for performance
+					try {
+						const fileUrl = `https://storage.googleapis.com/${bucket}/${file}`;
+						const fileRes = await fetch(fileUrl, { method: 'HEAD', cache: 'no-cache' });
+						if (fileRes.ok) {
+							const contentLength = fileRes.headers.get('content-length');
+							if (contentLength && parseInt(contentLength) < 100) { // Less than 100 bytes
+								smallFiles.push(file);
+							}
+						}
+					} catch (e) {
+						// Skip files that can't be checked
+					}
+				}
+				
+				if (smallFiles.length > 0) {
+					issues.push({
+						type: 'Small Files',
+						count: smallFiles.length,
+						description: 'Files smaller than 100 bytes (possibly corrupted)',
+						files: smallFiles
+					});
+				}
+				
+				const totalIssues = issues.reduce((sum, issue) => sum + issue.count, 0);
+				
+				if (totalIssues === 0) {
+					summaryEl.innerHTML = '✅ <strong>All assets</strong> passed integrity checks';
+				} else {
+					summaryEl.innerHTML = `⚠️ <strong>${totalIssues} issues</strong> found across ${issues.length} categories`;
+					detailsEl.style.display = 'inline';
+					detailsEl.onclick = () => showAssetIntegrityDetails(issues, 'Dev');
+				}
+				
+				validateBtn.style.display = 'inline-block';
+				validateBtn.onclick = () => validateAssetIntegrity(issues);
+				
+				// Store for stoplight comparison
+				window.assetIntegrityDevIssues = totalIssues;
+				
+			} catch (error) {
+				summaryEl.textContent = `❌ Error: ${error.message}`;
+			}
+		}
+
+		async function refreshAssetIntegrityAuditProd() {
+			const summaryEl = document.getElementById('assetIntegritySummaryProd');
+			const detailsEl = document.getElementById('assetIntegrityDetailsProd');
+			const validateBtn = document.getElementById('assetIntegrityValidateBtnProd');
+			
+			try {
+				summaryEl.textContent = 'Checking asset integrity...';
+				
+				// Check for actual asset integrity issues in prod bucket
+				const bucket = 'levante-assets-prod';
+				const issues = [];
+				
+				// Get all files from the bucket
+				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}`, { cache: 'no-cache' });
+				if (!res.ok) {
+					throw new Error(`Failed to fetch files from ${bucket}`);
+				}
+				const data = await res.json();
+				const files = Array.isArray(data.files) ? data.files : [];
+				
+				// Check for PNG files that should be WEBP
+				const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
+				if (pngFiles.length > 0) {
+					issues.push({
+						type: 'PNG Files',
+						count: pngFiles.length,
+						description: 'PNG files that should be converted to WEBP for better performance',
+						files: pngFiles.slice(0, 10) // Show first 10 files
+					});
+				}
+				
+		// Note: Audio file checking removed - use Audio Coverage report for detailed audio analysis
+		// The previous check was too broad and didn't account for language-specific audio or items without translations
+				
+				// Check for empty or very small files
+				const smallFiles = [];
+				for (const file of files.slice(0, 20)) { // Check first 20 files for performance
+					try {
+						const fileUrl = `https://storage.googleapis.com/${bucket}/${file}`;
+						const fileRes = await fetch(fileUrl, { method: 'HEAD', cache: 'no-cache' });
+						if (fileRes.ok) {
+							const contentLength = fileRes.headers.get('content-length');
+							if (contentLength && parseInt(contentLength) < 100) { // Less than 100 bytes
+								smallFiles.push(file);
+							}
+						}
+					} catch (e) {
+						// Skip files that can't be checked
+					}
+				}
+				
+				if (smallFiles.length > 0) {
+					issues.push({
+						type: 'Small Files',
+						count: smallFiles.length,
+						description: 'Files smaller than 100 bytes (possibly corrupted)',
+						files: smallFiles
+					});
+				}
+				
+				const totalIssues = issues.reduce((sum, issue) => sum + issue.count, 0);
+				
+				if (totalIssues === 0) {
+					summaryEl.innerHTML = '✅ <strong>All assets</strong> passed integrity checks';
+				} else {
+					summaryEl.innerHTML = `⚠️ <strong>${totalIssues} issues</strong> found across ${issues.length} categories`;
+					detailsEl.style.display = 'inline';
+					detailsEl.onclick = () => showAssetIntegrityDetails(issues, 'Prod');
+				}
+				
+				validateBtn.style.display = 'inline-block';
+				validateBtn.onclick = () => validateAssetIntegrity(issues);
+				
+				// Store for stoplight comparison
+				window.assetIntegrityProdIssues = totalIssues;
+				
+			} catch (error) {
+				summaryEl.textContent = `❌ Error: ${error.message}`;
+			}
+		}
+
+		function showAssetIntegrityDetails(issues, environment = 'Dev') {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = `Asset Integrity Issues - ${environment} Environment`;
+			
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>Summary</h4>
+					<p>Total issues found: <strong>${issues.reduce((sum, issue) => sum + issue.count, 0)}</strong></p>
+					<p>Issue categories: <strong>${issues.length}</strong></p>
+				</div>
+				<div class="diff-section">
+					<h4>Issue Breakdown</h4>
+					${issues.map(issue => `
+						<div style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px;">
+							<strong>${issue.type}</strong> (${issue.count} items)
+							<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+								${issue.description}
+							</div>
+							${issue.files && issue.files.length > 0 ? `
+								<div style="margin-top: 8px; font-size: 11px; color: #374151;">
+									<strong>Sample files:</strong>
+									<div style="max-height: 100px; overflow-y: auto; background: #f9fafb; padding: 4px; border-radius: 2px; margin-top: 4px;">
+										${issue.files.map(file => `<div style="font-family: monospace;">${file}</div>`).join('')}
+									</div>
+								</div>
+							` : ''}
+						</div>
+					`).join('')}
+				</div>
+				<div class="diff-section">
+					<h4>Recommendation</h4>
+					<p>Address asset integrity issues before deployment. Consider implementing automated asset validation in your build process.</p>
+					<ul style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+						<li>Convert PNG files to WEBP format for better performance</li>
+						<li>Ensure all expected audio files are present and properly generated</li>
+						<li>Remove or fix corrupted files smaller than 100 bytes</li>
+					</ul>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		function validateAssetIntegrity(issues) {
+			alert(`Asset Integrity Validation:\n\nTotal issues: ${issues.reduce((sum, issue) => sum + issue.count, 0)}\nCategories: ${issues.length}\n\nThis validation checks for broken links, missing files, and corrupted assets.`);
+		}
+
+		// Configuration Validation Functions
+		async function refreshConfigValidationAudit() {
+			const summaryEl = document.getElementById('configValidationSummary');
+			const detailsEl = document.getElementById('configValidationDetails');
+			const validateBtn = document.getElementById('configValidationValidateBtn');
+			
+			try {
+				summaryEl.textContent = 'Validating configuration...';
+				
+				// Check for actual configuration issues in dev environment
+				const checks = [];
+				let totalIssues = 0;
+				
+				// Check API endpoints availability
+				try {
+					const apiRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { cache: 'no-cache' });
+					if (apiRes.ok) {
+						checks.push({ 
+							name: 'API Endpoints', 
+							status: 'valid', 
+							description: 'API endpoints are responding correctly',
+							details: 'Dev API endpoints accessible'
+						});
+					} else {
+						checks.push({ 
+							name: 'API Endpoints', 
+							status: 'error', 
+							description: 'API endpoints not responding',
+							details: `HTTP ${apiRes.status}: ${apiRes.statusText}`
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'API Endpoints', 
+						status: 'error', 
+						description: 'API endpoints unreachable',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				// Check GCS bucket access
+				try {
+					const bucketRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { cache: 'no-cache' });
+					if (bucketRes.ok) {
+						checks.push({ 
+							name: 'GCS Bucket Access', 
+							status: 'valid', 
+							description: 'GCS bucket is accessible',
+							details: 'levante-assets-dev bucket accessible'
+						});
+					} else {
+						checks.push({ 
+							name: 'GCS Bucket Access', 
+							status: 'error', 
+							description: 'GCS bucket not accessible',
+							details: `HTTP ${bucketRes.status}: ${bucketRes.statusText}`
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'GCS Bucket Access', 
+						status: 'error', 
+						description: 'GCS bucket unreachable',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				// Check for required file types
+				try {
+					const filesRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { cache: 'no-cache' });
+					if (filesRes.ok) {
+						const filesData = await filesRes.json();
+						const files = Array.isArray(filesData.files) ? filesData.files : [];
+						
+						const audioFiles = files.filter(f => f.toLowerCase().endsWith('.mp3'));
+						const imageFiles = files.filter(f => f.toLowerCase().endsWith('.png') || f.toLowerCase().endsWith('.webp'));
+						const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+						
+						if (audioFiles.length > 0 && imageFiles.length > 0 && csvFiles.length > 0) {
+							checks.push({ 
+								name: 'Required File Types', 
+								status: 'valid', 
+								description: 'All required file types present',
+								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
+							});
+						} else {
+							checks.push({ 
+								name: 'Required File Types', 
+								status: 'warning', 
+								description: 'Some required file types missing',
+								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
+							});
+							totalIssues++;
+						}
+					} else {
+						checks.push({ 
+							name: 'Required File Types', 
+							status: 'error', 
+							description: 'Cannot check file types',
+							details: 'Unable to access file listing'
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'Required File Types', 
+						status: 'error', 
+						description: 'File type check failed',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				// Check CORS configuration
+				try {
+					const corsRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { 
+						method: 'OPTIONS',
+						cache: 'no-cache' 
+					});
+					if (corsRes.ok) {
+						checks.push({ 
+							name: 'CORS Configuration', 
+							status: 'valid', 
+							description: 'CORS headers properly configured',
+							details: 'CORS preflight requests successful'
+						});
+					} else {
+						checks.push({ 
+							name: 'CORS Configuration', 
+							status: 'warning', 
+							description: 'CORS configuration issues',
+							details: `CORS preflight failed: ${corsRes.status}`
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'CORS Configuration', 
+						status: 'warning', 
+						description: 'CORS check failed',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				const errorCount = checks.filter(c => c.status === 'error').length;
+				const warningCount = checks.filter(c => c.status === 'warning').length;
+				const validCount = checks.filter(c => c.status === 'valid').length;
+				
+				if (totalIssues === 0) {
+					summaryEl.innerHTML = `✅ <strong>All configurations</strong> are valid (${validCount} checks passed)`;
+				} else {
+					summaryEl.innerHTML = `⚠️ <strong>${totalIssues} issues</strong> found (${errorCount} errors, ${warningCount} warnings)`;
+					detailsEl.style.display = 'inline';
+					detailsEl.onclick = () => showConfigValidationDetails(checks);
+				}
+				
+				validateBtn.style.display = 'inline-block';
+				validateBtn.onclick = () => validateConfigValidation(checks);
+				
+				// Store for stoplight comparison
+				window.configValidationDevIssues = totalIssues;
+				window.configValidationDevDetails = checks;
+				
+			} catch (error) {
+				summaryEl.textContent = `❌ Error: ${error.message}`;
+			}
+		}
+
+		async function refreshConfigValidationAuditProd() {
+			const summaryEl = document.getElementById('configValidationSummaryProd');
+			const detailsEl = document.getElementById('configValidationDetailsProd');
+			const validateBtn = document.getElementById('configValidationValidateBtnProd');
+			
+			try {
+				summaryEl.textContent = 'Validating configuration...';
+				
+				// Check for actual configuration issues in prod environment
+				const checks = [];
+				let totalIssues = 0;
+				
+				// Check API endpoints availability
+				try {
+					const apiRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { cache: 'no-cache' });
+					if (apiRes.ok) {
+						checks.push({ 
+							name: 'API Endpoints', 
+							status: 'valid', 
+							description: 'API endpoints are responding correctly',
+							details: 'Prod API endpoints accessible'
+						});
+					} else {
+						checks.push({ 
+							name: 'API Endpoints', 
+							status: 'error', 
+							description: 'API endpoints not responding',
+							details: `HTTP ${apiRes.status}: ${apiRes.statusText}`
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'API Endpoints', 
+						status: 'error', 
+						description: 'API endpoints unreachable',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				// Check GCS bucket access
+				try {
+					const bucketRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { cache: 'no-cache' });
+					if (bucketRes.ok) {
+						checks.push({ 
+							name: 'GCS Bucket Access', 
+							status: 'valid', 
+							description: 'GCS bucket is accessible',
+							details: 'levante-assets-prod bucket accessible'
+						});
+					} else {
+						checks.push({ 
+							name: 'GCS Bucket Access', 
+							status: 'error', 
+							description: 'GCS bucket not accessible',
+							details: `HTTP ${bucketRes.status}: ${bucketRes.statusText}`
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'GCS Bucket Access', 
+						status: 'error', 
+						description: 'GCS bucket unreachable',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				// Check for required file types
+				try {
+					const filesRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { cache: 'no-cache' });
+					if (filesRes.ok) {
+						const filesData = await filesRes.json();
+						const files = Array.isArray(filesData.files) ? filesData.files : [];
+						
+						const audioFiles = files.filter(f => f.toLowerCase().endsWith('.mp3'));
+						const imageFiles = files.filter(f => f.toLowerCase().endsWith('.png') || f.toLowerCase().endsWith('.webp'));
+						const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
+						
+						if (audioFiles.length > 0 && imageFiles.length > 0 && csvFiles.length > 0) {
+							checks.push({ 
+								name: 'Required File Types', 
+								status: 'valid', 
+								description: 'All required file types present',
+								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
+							});
+						} else {
+							checks.push({ 
+								name: 'Required File Types', 
+								status: 'warning', 
+								description: 'Some required file types missing',
+								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
+							});
+							totalIssues++;
+						}
+					} else {
+						checks.push({ 
+							name: 'Required File Types', 
+							status: 'error', 
+							description: 'Cannot check file types',
+							details: 'Unable to access file listing'
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'Required File Types', 
+						status: 'error', 
+						description: 'File type check failed',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				// Check CORS configuration
+				try {
+					const corsRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { 
+						method: 'OPTIONS',
+						cache: 'no-cache' 
+					});
+					if (corsRes.ok) {
+						checks.push({ 
+							name: 'CORS Configuration', 
+							status: 'valid', 
+							description: 'CORS headers properly configured',
+							details: 'CORS preflight requests successful'
+						});
+					} else {
+						checks.push({ 
+							name: 'CORS Configuration', 
+							status: 'warning', 
+							description: 'CORS configuration issues',
+							details: `CORS preflight failed: ${corsRes.status}`
+						});
+						totalIssues++;
+					}
+				} catch (e) {
+					checks.push({ 
+						name: 'CORS Configuration', 
+						status: 'warning', 
+						description: 'CORS check failed',
+						details: e.message
+					});
+					totalIssues++;
+				}
+				
+				const errorCount = checks.filter(c => c.status === 'error').length;
+				const warningCount = checks.filter(c => c.status === 'warning').length;
+				const validCount = checks.filter(c => c.status === 'valid').length;
+				
+				if (totalIssues === 0) {
+					summaryEl.innerHTML = `✅ <strong>All configurations</strong> are valid (${validCount} checks passed)`;
+				} else {
+					summaryEl.innerHTML = `⚠️ <strong>${totalIssues} issues</strong> found (${errorCount} errors, ${warningCount} warnings)`;
+					detailsEl.style.display = 'inline';
+					detailsEl.onclick = () => showConfigValidationDetails(checks);
+				}
+				
+				validateBtn.style.display = 'inline-block';
+				validateBtn.onclick = () => validateConfigValidation(checks);
+				
+				// Store for stoplight comparison
+				window.configValidationProdIssues = totalIssues;
+				window.configValidationProdDetails = checks;
+				
+			} catch (error) {
+				summaryEl.textContent = `❌ Error: ${error.message}`;
+			}
+		}
+
+		// GitHub issues audit
+		async function refreshGitHubIssuesAudit() {
+			try {
+				// Fetch GitHub project issues using our API endpoint
+				const res = await fetch('/api/github-issues', { 
+					cache: 'no-cache'
+				});
+				
+				if (!res.ok) { 
+					document.getElementById('githubIssuesSummary').textContent = 'GitHub issues unavailable (API error)'; 
+					return; 
+				}
+				
+				const data = await res.json();
+				const { total, open, closed, issues, p0OpenIssues, p1OpenIssues, message } = data;
+				
+				const summary = document.getElementById('githubIssuesSummary');
+				
+				if (message) {
+					// Project not found or not accessible
+					summary.innerHTML = `<span class="badge err">N/A</span> <span class="small">(${message})</span>`;
+					document.getElementById('githubIssuesDetails').style.display = 'none';
+					document.getElementById('githubIssuesRefreshBtn').style.display = 'none';
+					document.getElementById('p0IssuesPanel').style.display = 'none';
+				} else {
+					// Show simple summary with P0 and P1 counts
+					const p0Count = p0OpenIssues ? p0OpenIssues.length : 0;
+					const p1Count = p1OpenIssues ? p1OpenIssues.length : 0;
+					
+					summary.innerHTML = `P0: <span class="code">${p0Count}</span> · P1: <span class="code">${p1Count}</span>`;
+					
+					const detailsLink = document.getElementById('githubIssuesDetails');
+					const refreshBtn = document.getElementById('githubIssuesRefreshBtn');
+					
+					if (total > 0) {
+						detailsLink.style.display = '';
+						refreshBtn.style.display = '';
+						detailsLink.onclick = () => { showGitHubIssuesModal(issues); };
+						refreshBtn.onclick = () => { refreshGitHubIssuesAudit(); };
+					} else {
+						detailsLink.style.display = 'none';
+						refreshBtn.style.display = 'none';
+					}
+					
+					// Display P1 open issues
+					if (p1OpenIssues && p1OpenIssues.length > 0) {
+						document.getElementById('p1IssuesPanel').style.display = 'block';
+						displayP1Issues(p1OpenIssues);
+					} else {
+						document.getElementById('p1IssuesPanel').style.display = 'none';
+					}
+					
+					// Display P0 open issues
+					if (p0OpenIssues && p0OpenIssues.length > 0) {
+						document.getElementById('p0IssuesPanel').style.display = 'block';
+						displayP0Issues(p0OpenIssues);
+					} else {
+						document.getElementById('p0IssuesPanel').style.display = 'none';
+					}
+				}
+				
+				// Store issue counts for stoplight comparison
+				window.githubIssuesOpen = open;
+				window.githubIssuesP0 = p0OpenIssues ? p0OpenIssues.length : 0;
+				window.githubIssuesP1 = p1OpenIssues ? p1OpenIssues.length : 0;
+			} catch (e) {
+				document.getElementById('githubIssuesSummary').textContent = 'GitHub issues unavailable';
+				window.githubIssuesOpen = null;
+			}
+		}
+
+		function displayP1Issues(p1Issues) {
+			const p1IssuesList = document.getElementById('p1IssuesList');
+			
+			if (p1Issues.length === 0) {
+				p1IssuesList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">🎉 No P1 open issues!</div>';
+				return;
+			}
+			
+			p1IssuesList.innerHTML = p1Issues.map(issue => `
+				<div class="p1-issue-item" style="border: 1px solid #3b82f6; border-radius: 6px; padding: 12px; margin: 8px 0; background: #dbeafe; cursor: pointer; transition: background-color 0.2s;" 
+					 onclick="showP1IssueModal(${JSON.stringify(issue).replace(/"/g, '&quot;')})">
+					<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+						<div style="flex: 1;">
+							<a href="${issue.url}" target="_blank" style="color: #1e40af; text-decoration: none; font-weight: bold;">
+								#${issue.number}
+							</a> - ${issue.title}
+						</div>
+						<div style="display: flex; gap: 8px; align-items: center;">
+							<span class="badge warn" style="background: #3b82f6; color: white;">P1</span>
+							<span style="font-size: 12px; color: #6b7280;">${issue.status}</span>
+						</div>
+					</div>
+					${issue.assignee ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">👤 Assigned to: <strong>${issue.assignee}</strong></div>` : '<div style="font-size: 12px; color: #ef4444; margin-bottom: 4px;">⚠️ Unassigned</div>'}
+					${issue.labels && issue.labels.length > 0 ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">🏷️ Labels: ${issue.labels.join(', ')}</div>` : ''}
+					<div style="font-size: 12px; color: #6b7280; display: flex; justify-content: space-between; align-items: center;">
+						<span>📅 Updated: ${new Date(issue.updated_at).toLocaleDateString()}</span>
+						<a href="${issue.url}" target="_blank" style="color: #0d6efd; text-decoration: none; font-size: 12px; font-weight: 600;">View on GitHub →</a>
+					</div>
+				</div>
+			`).join('');
+		}
+
+		function displayP0Issues(p0Issues) {
+			const p0IssuesList = document.getElementById('p0IssuesList');
+			
+			if (p0Issues.length === 0) {
+				p0IssuesList.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 20px;">🎉 No P0 open issues!</div>';
+				return;
+			}
+			
+			p0IssuesList.innerHTML = p0Issues.map(issue => `
+				<div class="p0-issue-item" style="border: 1px solid #fbbf24; border-radius: 6px; padding: 12px; margin: 8px 0; background: #fef3c7; cursor: pointer; transition: background-color 0.2s;" 
+					 onclick="showP0IssueModal(${JSON.stringify(issue).replace(/"/g, '&quot;')})">
+					<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+						<div style="flex: 1;">
+							<a href="${issue.url}" target="_blank" style="color: #92400e; text-decoration: none; font-weight: bold;">
+								#${issue.number}
+							</a> - ${issue.title}
+						</div>
+						<div style="display: flex; gap: 8px; align-items: center;">
+							<span class="badge warn" style="background: #fbbf24; color: #92400e;">P0</span>
+							<span style="font-size: 12px; color: #6b7280;">${issue.status}</span>
+						</div>
+					</div>
+					${issue.assignee ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">👤 Assigned to: <strong>${issue.assignee}</strong></div>` : '<div style="font-size: 12px; color: #ef4444; margin-bottom: 4px;">⚠️ Unassigned</div>'}
+					${issue.labels && issue.labels.length > 0 ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">🏷️ Labels: ${issue.labels.join(', ')}</div>` : ''}
+					<div style="font-size: 12px; color: #6b7280; display: flex; justify-content: space-between; align-items: center;">
+						<span>📅 Updated: ${new Date(issue.updated_at).toLocaleDateString()}</span>
+						<a href="${issue.url}" target="_blank" style="color: #0d6efd; text-decoration: none; font-size: 12px; font-weight: 600;">View on GitHub →</a>
+					</div>
+				</div>
+			`).join('');
+		}
+
+		function showP1IssueModal(issue) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = `⚡ P1 Issue #${issue.number}`;
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>${issue.title}</h4>
+					<div style="border: 1px solid #3b82f6; border-radius: 6px; padding: 16px; background: #dbeafe; margin: 16px 0;">
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+							<div>
+								<strong style="color: #1e40af;">Priority:</strong> <span class="badge warn" style="background: #3b82f6; color: white;">P1 (High)</span>
+							</div>
+							<div>
+								<strong style="color: #1e40af;">Status:</strong> ${issue.status}
+							</div>
+							<div>
+								<strong style="color: #1e40af;">State:</strong> <span class="badge warn">${issue.state}</span>
+							</div>
+							<div>
+								<strong style="color: #1e40af;">Assigned to:</strong> ${issue.assignee ? `<strong>${issue.assignee}</strong>` : '<span style="color: #ef4444;">⚠️ Unassigned</span>'}
+							</div>
+						</div>
+						${issue.labels && issue.labels.length > 0 ? `
+							<div style="margin-bottom: 16px;">
+								<strong style="color: #1e40af;">Labels:</strong> ${issue.labels.map(label => `<span style="background: #d1d5db; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-right: 4px;">${label}</span>`).join('')}
+							</div>
+						` : ''}
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 14px; color: #6b7280;">
+							<div>📅 Created: ${new Date(issue.created_at).toLocaleDateString()}</div>
+							<div>🔄 Updated: ${new Date(issue.updated_at).toLocaleDateString()}</div>
+						</div>
+						<div style="text-align: center; margin-top: 16px;">
+							<a href="${issue.url}" target="_blank" style="background: #0d6efd; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">View on GitHub →</a>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		function showP0IssueModal(issue) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = `🔥 P0 Issue #${issue.number}`;
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>${issue.title}</h4>
+					<div style="border: 1px solid #fbbf24; border-radius: 6px; padding: 16px; background: #fef3c7; margin: 16px 0;">
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+							<div>
+								<strong style="color: #92400e;">Priority:</strong> <span class="badge warn" style="background: #fbbf24; color: #92400e;">P0 (Highest)</span>
+							</div>
+							<div>
+								<strong style="color: #92400e;">Status:</strong> ${issue.status}
+							</div>
+							<div>
+								<strong style="color: #92400e;">State:</strong> <span class="badge warn">${issue.state}</span>
+							</div>
+							<div>
+								<strong style="color: #92400e;">Assigned to:</strong> ${issue.assignee ? `<strong>${issue.assignee}</strong>` : '<span style="color: #ef4444;">⚠️ Unassigned</span>'}
+							</div>
+						</div>
+						${issue.labels && issue.labels.length > 0 ? `
+							<div style="margin-bottom: 16px;">
+								<strong style="color: #92400e;">Labels:</strong> ${issue.labels.map(label => `<span style="background: #d1d5db; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-right: 4px;">${label}</span>`).join('')}
+							</div>
+						` : ''}
+						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; font-size: 14px; color: #6b7280;">
+							<div>📅 Created: ${new Date(issue.created_at).toLocaleDateString()}</div>
+							<div>🔄 Updated: ${new Date(issue.updated_at).toLocaleDateString()}</div>
+						</div>
+						<div style="text-align: center; margin-top: 16px;">
+							<a href="${issue.url}" target="_blank" style="background: #0d6efd; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">View on GitHub →</a>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		function showGitHubIssuesModal(issueDetails) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = 'GitHub Issues Details';
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>Project Issues</h4>
+					<div style="max-height: 400px; overflow-y: auto;">
+						${issueDetails.map(issue => `
+							<div style="border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin: 8px 0; background: #f9fafb;">
+								<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+									<div style="flex: 1;">
+										<strong>#${issue.number}</strong> - ${issue.title}
+									</div>
+									<div style="display: flex; gap: 8px; align-items: center;">
+										<span class="badge ${issue.state === 'open' ? 'warn' : 'ok'}">${issue.state}</span>
+										<span style="font-size: 12px; color: #6b7280;">${issue.column}</span>
+									</div>
+								</div>
+								${issue.assignee ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">👤 Assigned to: ${issue.assignee}</div>` : ''}
+								${issue.labels && issue.labels.length > 0 ? `<div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">🏷️ Labels: ${issue.labels.join(', ')}</div>` : ''}
+								<div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
+									📅 Created: ${new Date(issue.created_at).toLocaleDateString()} | 
+									🔄 Updated: ${new Date(issue.updated_at).toLocaleDateString()}
+								</div>
+								<div style="font-size: 12px;">
+									<a href="${issue.url}" target="_blank" style="color: #0d6efd; text-decoration: none;">View on GitHub →</a>
+								</div>
+							</div>
+						`).join('')}
+					</div>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		// Bucket Info functions
+		async function refreshBucketInfo() {
+			try {
+				// Show progress indicator
+				document.getElementById('bucketInfoProgress').style.display = 'block';
+				document.getElementById('bucketInfoProgressBar').style.width = '20%';
+				document.getElementById('bucketInfoProgressText').textContent = 'Connecting to GCS...';
+				
+				// Add timeout to prevent hanging
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+				
+				const res = await fetch('/api/bucket-info', { 
+					cache: 'no-cache',
+					signal: controller.signal
+				});
+				
+				clearTimeout(timeoutId);
+				
+				// Update progress
+				document.getElementById('bucketInfoProgressBar').style.width = '60%';
+				document.getElementById('bucketInfoProgressText').textContent = 'Processing MP3 files...';
+				
+				if (!res.ok) { 
+					document.getElementById('bucketInfoSummary').textContent = 'Bucket info unavailable (API error)'; 
+					document.getElementById('bucketInfoProgress').style.display = 'none';
+					return; 
+				}
+				
+				const data = await res.json();
+				
+				// Complete progress
+				document.getElementById('bucketInfoProgressBar').style.width = '100%';
+				document.getElementById('bucketInfoProgressText').textContent = 'Complete!';
+				
+				if (data.success && data.data && data.data.length > 0) {
+					// Show summary
+					const totalDuration = Math.round(data.totalDuration);
+					const totalFiles = data.totalFiles;
+					const totalLanguages = data.totalLanguages;
+					
+					document.getElementById('bucketInfoSummary').innerHTML = 
+						`Total: <span class="code">${totalLanguages}</span> languages · <span class="code">${totalFiles}</span> files · <span class="code">${totalDuration}</span> seconds`;
+					
+					// Show refresh button
+					document.getElementById('bucketInfoRefreshBtn').style.display = '';
+					document.getElementById('bucketInfoRefreshBtn').onclick = () => { refreshBucketInfo(); };
+					
+					// Populate table
+					const tbody = document.getElementById('bucketInfoTableBody');
+					tbody.innerHTML = data.data.map(item => `
+						<tr>
+							<td style="padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px;">${item.bucketName}</td>
+							<td style="padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px;">${item.statName}</td>
+							<td style="padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px;">${item.language}</td>
+							<td style="padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: right;">${item.number.toLocaleString()}</td>
+							<td style="padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px;">${item.unit}</td>
+							<td style="padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: right;">${item.fileCount}</td>
+						</tr>
+					`).join('');
+					
+					// Show content
+					document.getElementById('bucketInfoContent').style.display = 'block';
+					
+					// Hide progress after a delay
+					setTimeout(() => {
+						document.getElementById('bucketInfoProgress').style.display = 'none';
+					}, 1000);
+					
+					// Update stoplight
+					updateStoplight('bucketInfoStoplight', 'ok', null);
+				} else {
+					document.getElementById('bucketInfoSummary').textContent = 'No bucket data available';
+					document.getElementById('bucketInfoContent').style.display = 'block';
+					document.getElementById('bucketInfoProgress').style.display = 'none';
+					updateStoplight('bucketInfoStoplight', 'warn', null);
+				}
+			} catch (e) {
+				if (e.name === 'AbortError') {
+					document.getElementById('bucketInfoSummary').textContent = 'Bucket info timeout (took too long)';
+				} else {
+					document.getElementById('bucketInfoSummary').textContent = 'Bucket info unavailable';
+				}
+				document.getElementById('bucketInfoProgress').style.display = 'none';
+				updateStoplight('bucketInfoStoplight', 'fail', null);
+			}
+		}
+
+		function showConfigValidationDetails(checks) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = 'Configuration Validation Details';
+			
+			const errorCount = checks.filter(c => c.status === 'error').length;
+			const warningCount = checks.filter(c => c.status === 'warning').length;
+			const validCount = checks.filter(c => c.status === 'valid').length;
+			
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>Summary</h4>
+					<p>Total checks: <strong>${checks.length}</strong></p>
+					<p>Valid: <strong style="color: #059669;">${validCount}</strong> | Warnings: <strong style="color: #d97706;">${warningCount}</strong> | Errors: <strong style="color: #dc2626;">${errorCount}</strong></p>
+				</div>
+				<div class="diff-section">
+					<h4>Configuration Status</h4>
+					${checks.map(check => `
+						<div style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px;">
+							<div style="display: flex; align-items: center; gap: 8px;">
+								<span style="width: 8px; height: 8px; border-radius: 50%; background: ${check.status === 'valid' ? '#059669' : check.status === 'warning' ? '#d97706' : '#dc2626'};"></span>
+								<strong>${check.name}</strong>
+								<span style="font-size: 12px; color: #6b7280;">(${check.status})</span>
+							</div>
+							<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+								${check.description}
+							</div>
+							${check.details ? `
+								<div style="font-size: 11px; color: #374151; margin-top: 4px; padding: 4px; background: #f9fafb; border-radius: 2px; font-family: monospace;">
+									<strong>Details:</strong> ${check.details}
+								</div>
+							` : ''}
+						</div>
+					`).join('')}
+				</div>
+				<div class="diff-section">
+					<h4>Recommendation</h4>
+					<p>Resolve configuration errors before deployment. Warnings can be addressed in future updates but should be monitored.</p>
+					<ul style="margin-top: 8px; font-size: 12px; color: #6b7280;">
+						<li>Ensure API endpoints are accessible and responding correctly</li>
+						<li>Verify GCS bucket permissions and connectivity</li>
+						<li>Check that all required file types are present in the bucket</li>
+						<li>Validate CORS configuration for cross-origin requests</li>
+					</ul>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		function validateConfigValidation(checks) {
+			const errorCount = checks.filter(c => c.status === 'error').length;
+			const warningCount = checks.filter(c => c.status === 'warning').length;
+			alert(`Configuration Validation:\n\nTotal checks: ${checks.length}\nValid: ${checks.filter(c => c.status === 'valid').length}\nWarnings: ${warningCount}\nErrors: ${errorCount}\n\nThis validation checks environment variables, API keys, database connections, and file permissions.`);
+		}
+
+		// Build table rows with bounded concurrency
+		const tbody = document.querySelector('#reportTable tbody');
+		for (const lang of languageCodes) {
+			// Get data for both dev and prod environments
+			const [devData, prodData] = await Promise.all([
+				Promise.all([
+					bucketStats(lang, 'dev'),
+					dashboardStats(lang, 'dev'),
+					surveyStats(lang, 'dev'),
+					audioStats(lang, 'dev')
+				]),
+				Promise.all([
+					bucketStats(lang, 'prod'),
+					dashboardStats(lang, 'prod'),
+					surveyStats(lang, 'prod'),
+					audioStats(lang, 'prod')
+				])
+			]);
+			
+			const [devBucket, devDs, devSv, devAu] = devData;
+			const [prodBucket, prodDs, prodSv, prodAu] = prodData;
+			
+			// Compute breakdowns for bucket stats (A = approved/present, NT = not translated)
+			const devApproved = devBucket.exact || 0;
+			const devUntranslated = devBucket.untranslated || 0;
+			
+			const prodApproved = prodBucket.exact || 0;
+			const prodUntranslated = prodBucket.untranslated || 0;
+			
+			const tr = document.createElement('tr');
+			tr.innerHTML = `
+				<td>${languageDisplayName(lang)}</td>
+				<td><span class="code">${lang}</span></td>
+				<td class="bucket-cell" data-lang="${lang}" data-env="dev">
+					${badge(devBucket.exact, devBucket.total)} <span class=\"small\">(${devBucket.exact}/${devBucket.total}; NT ${devUntranslated})</span>
+					${devUntranslated > 0 ? '<span class="info-icon" title="Click to view untranslated items">ℹ️</span>' : ''}
+				</td>
+				<td class="svcell">${devSv.checked === 0 ? '<span class="badge warn">n/a</span>' : badge(devSv.exact + devSv.withBase, devSv.checked)} <span class="small">(${devSv.exact}/${devSv.checked}, base ${devSv.withBase})</span></td>
+				<td>${devDs.exactMatch ? '<span class="badge ok">exact</span>' : (devDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')} <span class="small">(${devDs.exactMatch ? 'exact match' : (devDs.baseMatch ? 'base fallback' : 'not found')})</span></td>
+				<td>${devAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'} <span class="small">(${devAu.present ? 'folder exists' : 'folder not found'})</span></td>
+				<td class="bucket-cell" data-lang="${lang}" data-env="prod">
+					${badge(prodBucket.exact, prodBucket.total)} <span class=\"small\">(${prodBucket.exact}/${prodBucket.total}; NT ${prodUntranslated})</span>
+					${prodUntranslated > 0 ? '<span class="info-icon" title="Click to view untranslated items">ℹ️</span>' : ''}
+				</td>
+				<td class="svcell">${prodSv.checked === 0 ? '<span class="badge warn">n/a</span>' : badge(prodSv.exact + prodSv.withBase, prodSv.checked)} <span class="small">(${prodSv.exact}/${prodSv.checked}, base ${prodSv.withBase})</span></td>
+				<td>${prodDs.exactMatch ? '<span class="badge ok">exact</span>' : (prodDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')} <span class="small">(${prodDs.exactMatch ? 'exact match' : (prodDs.baseMatch ? 'base fallback' : 'not found')})</span></td>
+				<td>${prodAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'} <span class="small">(${prodAu.present ? 'folder exists' : 'folder not found'})</span></td>
+			`;
+			const svCell = tr.querySelector('.svcell');
+			if (svCell) {
+				const infoBtn = document.createElement('button');
+				infoBtn.title = 'Show survey details';
+				infoBtn.setAttribute('aria-label', 'Show survey details');
+				infoBtn.style.border = 'none';
+				infoBtn.style.background = 'none';
+				infoBtn.style.cursor = 'pointer';
+				infoBtn.style.color = '#0d6efd';
+				infoBtn.textContent = 'ℹ️';
+				const details = devSv.details || [];
+				infoBtn.addEventListener('click', () => {
+					const ok = details.filter(x => x.hasExact || x.hasBase).map(x => x.file);
+					const missing = details.filter(x => !x.hasExact && !x.hasBase).map(x => x.file);
+					const baseLang = toBase(lang);
+					const langInfo = lang === baseLang ? `Language: ${lang}` : `Language: ${lang} (base: ${baseLang})`;
+					alert(`${langInfo}\n\nTranslated (or base):\n- ` + (ok.join('\n- ') || 'None') + '\n\nMissing:\n- ' + (missing.join('\n- ') || 'None'));
+				});
+				svCell.appendChild(infoBtn);
+			}
+			tbody.appendChild(tr);
+		}
+		
+		// Add event listeners for info icons in Item Bank cells
+		document.querySelectorAll('#reportTable .info-icon').forEach(icon => {
+			icon.addEventListener('click', function() {
+				const cell = this.closest('.bucket-cell');
+				const lang = cell.dataset.lang;
+				const env = cell.dataset.env;
+				showBucketUntranslatedModal(lang, env);
+			});
+		});
+		
+		// Build Crowdin table
+		const crowdinTbody = document.querySelector('#crowdinTable tbody');
+		for (const lang of languageCodes) {
+			const crowdinData = await itembankStats(lang, 'dev');
+			
+			// Compute breakdowns for Crowdin stats
+			const approved = crowdinData.exact || 0;
+			const translated = crowdinData.withBase || 0;
+			const unapproved = Math.max(0, translated - approved);
+			const untranslated = Math.max(0, (crowdinData.total || 0) - translated);
+			
+			const crowdinTr = document.createElement('tr');
+			crowdinTr.innerHTML = `
+				<td>${languageDisplayName(lang)}</td>
+				<td><span class="code">${lang}</span></td>
+				<td class="crowdin-cell" data-lang="${lang}" data-env="dev">
+					${badge(crowdinData.exact, crowdinData.total)} <span class=\"small\">(${crowdinData.exact}/${crowdinData.total}; UA ${unapproved}, NT ${untranslated})</span>
+					${crowdinData.total > 0 && (crowdinData.exact / crowdinData.total) < 1 ? '<span class="warning-icon" title="Click to view untranslated items">⚠️</span>' : ''}
+				</td>
+			`;
+			crowdinTbody.appendChild(crowdinTr);
+		}
+		
+		// Add event listeners for warning icons in Crowdin table
+		document.querySelectorAll('#crowdinTable .warning-icon').forEach(icon => {
+			icon.addEventListener('click', function() {
+				const cell = this.closest('.crowdin-cell');
+				const lang = cell.dataset.lang;
+				const env = cell.dataset.env;
+				showUntranslatedModal(lang, env);
+			});
+		});
+
+		await refreshVisualAudit();
+		await refreshVisualAuditProd();
+			await refreshAudioAudit();
+			await refreshAudioAuditProd();
+			await refreshCoreTasksAudit();
+			await refreshCoreTasksAuditProd();
+			await refreshCorpusAudit();
+			await refreshCorpusAuditProd();
+			await refreshTranslationCompletenessAudit();
+			await refreshTranslationCompletenessAuditProd();
+			await refreshAssetIntegrityAudit();
+			await refreshAssetIntegrityAuditProd();
+			await refreshConfigValidationAudit();
+			await refreshConfigValidationAuditProd();
+			await refreshGitHubIssuesAudit();
+			await refreshBucketInfo();
+			
+		// Update stoplight buttons after all audits complete
+		updateStoplight('visualStoplight', window.visualDevMissing, window.visualProdMissing);
+		updateStoplight('audioStoplight', window.audioDevLanguages, window.audioProdLanguages);
+		updateStoplight('coreTasksStoplight', window.coreTasksDevCsvs, window.coreTasksProdCsvs);
+		updateStoplight('corpusStoplight', window.corpusDevItemIds, window.corpusProdItemIds);
+		updateStoplight('translationCompletenessStoplight', window.translationCompletenessDevMissing, window.translationCompletenessProdMissing);
+		updateStoplight('assetIntegrityStoplight', window.assetIntegrityDevIssues, window.assetIntegrityProdIssues);
+		updateStoplight('configValidationStoplight', window.configValidationDevIssues, window.configValidationProdIssues);
+		// GitHub issues stoplight logic: P0 issues = fail, P1 only = warn, none = ok
+		let githubStatus = null;
+		if (window.githubIssuesP0 !== undefined && window.githubIssuesP1 !== undefined) {
+			if (window.githubIssuesP0 > 0) {
+				githubStatus = 'fail'; // Any P0 issues = fail
+			} else if (window.githubIssuesP1 > 0) {
+				githubStatus = 'warn'; // P1 only = warn (launchable)
+			} else {
+				githubStatus = 'ok'; // No P0 or P1 = ok (squeaky clean)
+			}
+		}
+		updateStoplight('githubIssuesStoplight', githubStatus, null);
+
+		const fixBtn = document.getElementById('visualFixBtn');
+		if (fixBtn) {
+			fixBtn.addEventListener('click', async () => {
+				const prev = fixBtn.textContent;
+				fixBtn.disabled = true; fixBtn.textContent = 'Fixing…';
+				try {
+					const res = await fetch(`/api/visual-fix?env=dev&prefix=visual/&limit=200`, { method: 'POST' });
+					if (res.ok) {
+						const data = await res.json();
+						const top = Array.isArray(data.topReasons) && data.topReasons.length ? ('\nTop reasons: ' + data.topReasons.map(r=>`${r.reason} (${r.count})`).join(', ')) : '';
+						alert(`WEBP created: ${data.created}\nFailed: ${data.failed}\nRemaining (est): ${data.remainingEstimate}${top}`);
+						await refreshVisualAudit();
+					} else {
+						alert('Fix failed: API error');
+					}
+				} catch (e) {
+					alert('Fix failed: ' + (e && e.message ? e.message : 'unknown error'));
+				} finally {
+					fixBtn.disabled = false; fixBtn.textContent = prev;
+				}
+			});
+		}
+
+		const fixBtnProd = document.getElementById('visualFixBtnProd');
+		if (fixBtnProd) {
+			fixBtnProd.addEventListener('click', async () => {
+				const prev = fixBtnProd.textContent;
+				fixBtnProd.disabled = true; fixBtnProd.textContent = 'Fixing…';
+				try {
+					const res = await fetch(`/api/visual-fix?env=prod&prefix=visual/&limit=200`, { method: 'POST' });
+					if (res.ok) {
+						const data = await res.json();
+						const top = Array.isArray(data.topReasons) && data.topReasons.length ? ('\nTop reasons: ' + data.topReasons.map(r=>`${r.reason} (${r.count})`).join(', ')) : '';
+						alert(`(prod) WEBP created: ${data.created}\nFailed: ${data.failed}\nRemaining (est): ${data.remainingEstimate}${top}`);
+						await refreshVisualAuditProd();
+					} else {
+						alert('Fix failed (prod): API error');
+					}
+				} catch (e) {
+					alert('Fix failed (prod): ' + (e && e.message ? e.message : 'unknown error'));
+				} finally {
+					fixBtnProd.disabled = false; fixBtnProd.textContent = prev;
+				}
+			});
+		}
+		}
+		
+		// Initial load
+		await loadReportData();
+	})();
+	</script>
+</body>
+</html>

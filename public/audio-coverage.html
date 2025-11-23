@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Audio Coverage Report</title>
+<link href="./styles.css" rel="stylesheet"/>
+<link href="./audio-favicon.svg" rel="icon" type="image/svg+xml"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="./config.js"></script>
+<style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%); color: #e2e8f0; min-height: 100vh; }
+    .coverage-container { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 24px; }
+    .coverage-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .coverage-topbar h2 { margin: 0; }
+    h2 { font-size: 2rem; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #ffb347; letter-spacing: 0.02em; }
+    p { margin: 0; color: rgba(226, 232, 240, 0.75); font-size: 0.95rem; }
+    .source-row { display: flex; flex-wrap: wrap; gap: 16px; }
+    .source-card { flex: 1; min-width: 280px; background: rgba(9, 17, 31, 0.92); border: 1px solid rgba(0, 160, 222, 0.24); border-radius: 16px; padding: 20px 24px; box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45); }
+    .source-title { font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #f8fafc; margin-bottom: 12px; }
+    .source-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .pill { border-radius: 999px; border: 1px solid rgba(148, 198, 255, 0.3); padding: 6px 14px; background: rgba(3, 12, 28, 0.85); color: #dbeafe; cursor: pointer; font-weight: 600; letter-spacing: 0.05em; transition: all 0.2s ease; }
+    .pill:hover { background: rgba(255, 123, 0, 0.85); color: #0b1220; box-shadow: 0 10px 24px rgba(255, 123, 0, 0.28); border-color: rgba(255, 123, 0, 0.55); }
+    .pill.active { background: #ff6f00; color: #0b1220; border-color: rgba(255, 123, 0, 0.65); box-shadow: 0 12px 28px rgba(255, 123, 0, 0.35); }
+    .rescan-btn { background: #00a0de !important; color: #031422 !important; border-color: rgba(0, 160, 222, 0.45) !important; box-shadow: 0 12px 28px rgba(0, 160, 222, 0.35); }
+    .rescan-btn:hover { background: #00bafc !important; }
+    .source-detail { display: flex; align-items: center; gap: 10px; color: rgba(203, 213, 225, 0.75); font-size: 0.9rem; }
+    .source-detail label { font-weight: 600; color: #f8fafc; }
+    #bucketInput { width: 280px; padding: 8px 12px; border: 1px solid rgba(0, 160, 222, 0.3); border-radius: 10px; background: rgba(3, 12, 28, 0.85); color: #e2e8f0; }
+    #bucketInput:disabled { background: rgba(9, 17, 31, 0.6); color: rgba(148, 163, 184, 0.6); cursor: not-allowed; }
+    .hint { color: rgba(148, 198, 255, 0.7); font-size: 0.75rem; }
+    .grid-table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: 0 30px 70px rgba(2, 6, 23, 0.55); margin-top: 12px; }
+    .grid-table th, .grid-table td { padding: 14px 16px; font-size: 0.95rem; text-align: left; }
+    .grid-table th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%); color: #0b1220; text-transform: uppercase; letter-spacing: 0.08em; }
+    .grid-table td { background: rgba(9, 17, 31, 0.92); border-bottom: 1px solid rgba(0, 160, 222, 0.2); }
+    .grid-table tr:hover td { background: rgba(255, 123, 0, 0.12); }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .chip.ok { background: rgba(14, 169, 96, 0.15); color: #0ea960; }
+    .chip.missing { background: rgba(220, 38, 38, 0.15); color: #ffb347; }
+    #summary { font-size: 0.95rem; color: rgba(226, 232, 240, 0.75); }
+    #coverageTable tbody tr td:nth-child(4) { font-weight: 600; color: #ffb347; }
+    code { background: rgba(2, 10, 22, 0.74); padding: 4px 8px; border-radius: 6px; color: #93c5fd; }
+    @media (max-width: 720px) {
+      .coverage-container { padding: 32px 16px 60px; }
+      .grid-table th, .grid-table td { padding: 12px; font-size: 0.85rem; }
+      .source-detail { flex-direction: column; align-items: flex-start; }
+      #bucketInput { width: 100%; }
+    }
+
+    /* Modal styling */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 1200; display: flex; align-items: center; justify-content: center;
+      background: rgba(2, 6, 23, 0.82); backdrop-filter: blur(6px);
+    }
+    .modal-card {
+      width: min(560px, 92%); max-height: 86vh; display: flex; flex-direction: column;
+      background: linear-gradient(165deg, rgba(15, 23, 42, 0.98) 0%, rgba(2, 6, 23, 0.94) 100%);
+      border: 1px solid rgba(148, 197, 255, 0.35); border-radius: 18px; color: #f8fafc;
+      box-shadow: 0 40px 85px rgba(2, 6, 23, 0.65); overflow: hidden;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+      padding: 24px 28px 18px; border-bottom: 1px solid rgba(148, 197, 255, 0.25);
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.28) 0%, rgba(15, 23, 42, 0.2) 45%, rgba(15, 23, 42, 0) 100%);
+    }
+    .modal-title { margin: 0; font-size: 1.55rem; font-weight: 600; color: #f8fafc; letter-spacing: 0.03em; }
+    .modal-subtitle { margin: 6px 0 0; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(148, 163, 184, 0.78); }
+    .modal-subtitle span { color: #38bdf8; font-weight: 700; }
+    .modal-close {
+      background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 197, 255, 0.4); color: #e2e8f0;
+      width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; transition: all 0.2s ease;
+    }
+    .modal-close:hover { background: rgba(59, 130, 246, 0.35); color: #0f172a; border-color: rgba(125, 211, 252, 0.65); }
+    .modal-body { padding: 20px 28px 24px; display: flex; flex-direction: column; gap: 18px; color: #f1f5f9; }
+    .modal-stat { margin: 0; font-size: 0.95rem; font-weight: 600; color: #fee2b6; }
+    .modal-stat span { color: rgba(191, 219, 254, 0.82); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
+    .modal-section h4 { margin: 0 0 10px; font-size: 1rem; font-weight: 600; color: #f8fafc; letter-spacing: 0.04em; }
+    .modal-scroll { max-height: 320px; overflow-y: auto; border: 1px solid rgba(148, 197, 255, 0.28); border-radius: 14px; padding: 12px; background: rgba(10, 21, 36, 0.92); }
+    .modal-placeholder, .modal-error, .modal-success { margin: 0; font-size: 0.95rem; }
+    .modal-placeholder { color: rgba(199, 210, 254, 0.78); }
+    .modal-error { color: #f87171; font-weight: 600; }
+    .modal-success { color: #34d399; font-weight: 600; }
+    .missing-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .missing-list li {
+      padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.45); background: rgba(14, 33, 53, 0.9);
+      font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace; font-size: 0.9rem; color: #f1f5f9; letter-spacing: 0.02em;
+    }
+    .missing-list li .missing-created { display: block; margin-top: 4px; font-size: 0.72rem; color: rgba(191, 219, 254, 0.75); letter-spacing: 0.04em; }
+    .modal-note { margin: 4px 0 0; font-size: 0.78rem; color: rgba(191, 219, 254, 0.78); }
+    .modal-note strong { color: #fde68a; }
+
+</style>
+</head>
+<body>
+<div class="coverage-container">
+<div class="coverage-topbar">
+  <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+  <h2><i class="fas fa-table"></i> Audio Coverage by Language and Voice</h2>
+</div>
+<p>This report counts generated audio files per language and per embedded voice (ID3 tag).</p>
+<div class="source-row">
+<div class="source-card">
+<div class="source-title">Source</div>
+<div class="source-controls">
+<button class="pill" id="useRepo">Repo</button>
+<button class="pill" id="useDev">Dev</button>
+<button class="pill" id="useProd">Prod</button>
+<button class="pill rescan-btn" id="rescanBtn">🔄 Rescan</button>
+</div>
+<div class="source-detail">
+<label for="bucketInput">Bucket</label>
+<input id="bucketInput" placeholder="levante-assets-dev" type="text" value="levante-assets-dev"/>
+<span class="hint">audio URLs: <code>gs://&lt;bucket&gt;/audio/&lt;lang&gt;/&lt;id&gt;.mp3</code></span>
+</div>
+<!-- COMMENTED OUT: child-survey files are duplicates of main audio files
+        <div class="source-detail" style="margin-top: 8px;">
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="includeChildSurvey" checked style="cursor: pointer;" />
+            <span style="font-size: 13px; color: #374151;">Include child-survey files (slower)</span>
+          </label>
+        </div>
+        -->
+</div>
+</div>
+<div id="summary"></div>
+<table class="grid-table" id="coverageTable">
+<thead>
+<tr>
+<th>Language</th>
+<th>Voice</th>
+<th>Count</th>
+<th>Missing</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+<script>
+    // Bucket selection helpers
+    let currentSource = 'bucket'; // 'bucket' or 'repo'
+
+    function getSelectedBucket(){
+      const el = document.getElementById('bucketInput');
+      const val = (el && el.value || '').trim();
+      return val || 'levante-assets-dev';
+    }
+
+    // Check URL parameters for environment selection
+    function initializeFromUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const env = urlParams.get('env');
+      if (env === 'prod') {
+        document.getElementById('useProd').click();
+      } else if (env === 'dev') {
+        document.getElementById('useDev').click();
+      } else if (env === 'repo') {
+        document.getElementById('useRepo').click();
+      }
+    }
+    function rememberBucket(val){ try{ localStorage.setItem('levante_audio_bucket', val); }catch(_){} }
+    function rememberSource(val){ try{ localStorage.setItem('levante_audio_source', val); }catch(_){} }
+    function updateSourceUI(){
+      const repoBtn = document.getElementById('useRepo');
+      const devBtn = document.getElementById('useDev');
+      const prodBtn = document.getElementById('useProd');
+      [repoBtn, devBtn, prodBtn].forEach(btn => { if(btn){ btn.classList.remove('active'); }});
+      const activeBtn = currentSource === 'repo' ? repoBtn : (document.getElementById('bucketInput').value.includes('-prod') ? prodBtn : devBtn);
+      if(activeBtn) activeBtn.classList.add('active');
+      const labelEl = document.querySelector('.source-detail label');
+      const inputEl = document.getElementById('bucketInput');
+      const hintEl = document.querySelector('.source-detail .hint');
+      if(currentSource === 'repo'){
+        if(labelEl) labelEl.textContent = 'Repository';
+        if(inputEl){ inputEl.disabled = true; inputEl.placeholder = 'levante-framework/levante_translations (audio_files/*)'; }
+        if(hintEl) hintEl.innerHTML = 'audio URLs: <code>https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/&lt;lang&gt;/&lt;id&gt;.mp3</code>';
+      } else {
+        if(labelEl) labelEl.textContent = 'Bucket';
+        if(inputEl){ inputEl.disabled = false; if(!inputEl.value) inputEl.value = 'levante-assets-dev'; }
+        if(hintEl) hintEl.innerHTML = 'audio URLs: <code>gs://&lt;bucket&gt;/audio/&lt;lang&gt;/&lt;id&gt;.mp3</code>';
+      }
+    }
+    function restoreSelectors(){
+      try{
+        const saved = localStorage.getItem('levante_audio_bucket');
+        if(saved){ document.getElementById('bucketInput').value = saved; }
+        const s = localStorage.getItem('levante_audio_source');
+        if(s){ currentSource = s; }
+      }catch(_){}
+    }
+    (function initBucketUI(){
+      restoreSelectors();
+      const repoBtn = document.getElementById('useRepo');
+      const devBtn = document.getElementById('useDev');
+      const prodBtn = document.getElementById('useProd');
+      const rescanBtn = document.getElementById('rescanBtn');
+      if(repoBtn){ repoBtn.addEventListener('click', ()=>{ currentSource='repo'; rememberSource('repo'); updateSourceUI(); }); }
+      if(devBtn){ devBtn.addEventListener('click', ()=>{ currentSource='bucket'; document.getElementById('bucketInput').value='levante-assets-dev'; rememberBucket('levante-assets-dev'); rememberSource('bucket'); updateSourceUI(); }); }
+      if(prodBtn){ prodBtn.addEventListener('click', ()=>{ currentSource='bucket'; document.getElementById('bucketInput').value='levante-assets-prod'; rememberBucket('levante-assets-prod'); rememberSource('bucket'); updateSourceUI(); }); }
+      if(rescanBtn){ rescanBtn.addEventListener('click', ()=>{ 
+        // Clear caches and restart
+        cachedCsvLangCodes = null; 
+        cachedIds = null; 
+        document.getElementById('summary').innerHTML = '<span class="chip">Rescanning...</span>';
+        document.querySelector('#coverageTable tbody').innerHTML = '';
+        build().catch(e=>{ console.error(e); alert('Rescan failed: '+e.message); });
+      }); }
+      const input = document.getElementById('bucketInput');
+      if(input){ input.addEventListener('change', ()=> { rememberBucket(getSelectedBucket()); rememberSource('bucket'); currentSource='bucket'; updateSourceUI(); }); }
+      updateSourceUI();
+    })();
+
+    // Global abort controller to cancel in-flight requests when navigating away
+    const globalAbortController = new AbortController();
+    window.addEventListener('beforeunload', () => {
+      try { globalAbortController.abort(); } catch (e) {}
+    });
+
+    async function fetchJson(url, init){
+      try{
+        const options = init ? { ...init } : {};
+        if (!options.signal) options.signal = globalAbortController.signal;
+        const r = await fetch(url, options);
+        if(!r.ok) throw new Error(await r.text());
+        return r.json();
+      }catch(err){
+        // Normalize aborted fetch errors
+        if (err && (err.name === 'AbortError' || String(err).toLowerCase().includes('aborted'))) {
+          throw new Error('aborted');
+        }
+        throw err;
+      }
+    }
+
+    function robustParseCSV(text){
+      const rows = [];
+      let current = [];
+      let field = '';
+      let inQuotes = false;
+      for(let i=0;i<text.length;i++){
+        const ch = text[i];
+        const next = i+1<text.length ? text[i+1] : '';
+        if(ch === '"'){
+          if(inQuotes && next === '"'){ field+='"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if(ch === ',' && !inQuotes){ current.push(field); field=''; }
+        else if((ch==='\n' || ch==='\r') && !inQuotes){
+          if(ch==='\r' && next==='\n'){ i++; }
+          current.push(field); field='';
+          if(current.some(v=>v && v.trim().length>0)) rows.push(current);
+          current = [];
+        } else { field += ch; }
+      }
+      if(field.length>0 || current.length>0){ current.push(field); if(current.some(v=>v && v.trim().length>0)) rows.push(current); }
+      return rows;
+    }
+
+    // Extract language codes from the CSV header
+    let cachedCsvLangCodes = null;
+    async function getCsvLanguageCodes(){
+      if(cachedCsvLangCodes) return cachedCsvLangCodes;
+      const csvUrl = (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) 
+        ? window.CONFIG.dataSources.remoteCSV 
+        : 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv';
+      const txt = await (await fetch(csvUrl)).text();
+      const rows = robustParseCSV(txt);
+      if(rows.length===0) return [];
+      const header = rows[0].map(h=> (h||'').toString().trim());
+      const exclude = new Set(['item_id','identifier','labels','context','source','source_phrase','translation','task','task_name','notes']);
+      const langRegex = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
+      const codes = [];
+      for(const h of header){
+        const lower = h.toLowerCase();
+        if(exclude.has(lower)) continue;
+        if(h === 'en' || langRegex.test(h)) codes.push(h);
+      }
+      cachedCsvLangCodes = Array.from(new Set(codes));
+      return cachedCsvLangCodes;
+    }
+
+    let cachedIds = null;
+    async function getAllItemIds(){
+      if(cachedIds) return cachedIds;
+      const csvUrl = (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) 
+        ? window.CONFIG.dataSources.remoteCSV 
+        : 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv';
+      const txt = await (await fetch(csvUrl)).text();
+      const rows = robustParseCSV(txt);
+      if(rows.length===0) return [];
+      const header = rows[0].map(h=>h.trim());
+      const idKeyIdx = (()=>{ const i1=header.indexOf('item_id'); const i2=header.indexOf('identifier'); return i1>=0?i1:i2; })();
+      const ids = new Set();
+      for(let i=1;i<rows.length;i++){
+        const r = rows[i];
+        const val = (r[idKeyIdx]||'').toString().replace(/\r/g,'').trim();
+        if(val) ids.add(val);
+      }
+      cachedIds = Array.from(ids);
+      return cachedIds;
+    }
+
+    async function listAudio(language){
+      const ids = await getAllItemIds();
+      if(currentSource === 'repo'){
+        return ids.map(id => ({ lang: language, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(language)}/${encodeURIComponent(id)}.mp3` }));
+      }
+      const bucket = getSelectedBucket();
+      return ids.map(id => ({ lang: language, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(language)}/${encodeURIComponent(id)}.mp3` }));
+    }
+
+    async function readTag(item){
+      try{
+        const params = new URLSearchParams();
+        params.set('itemId', item.id);
+        params.set('langCode', item.lang);
+        params.set('strict', '1');
+        if(currentSource === 'repo'){
+          params.set('source', 'repo');
+        } else {
+          params.set('bucket', getSelectedBucket());
+        }
+        
+        // Add child-survey prefix if this is a child-survey file
+        if (item.isChildSurvey) {
+          params.set('prefix', 'child-survey');
+        }
+        
+        const res = await fetchJson(`/api/read-tags?${params.toString()}`);
+        const voice = (res.id3Tags && res.id3Tags.voice) || 'Not available';
+        const voiceLabel = item.isChildSurvey ? `Child-Survey: ${voice}` : voice;
+        const created = res.metadata?.created || res.id3Tags?.created || null;
+        const shortname = `${item.lang}/${item.id}.mp3`;
+        return { 
+          ok: true, 
+          lang: item.lang, 
+          id: item.id, 
+          voice: voiceLabel, 
+          isChildSurvey: item.isChildSurvey,
+          shortname,
+          created
+        };
+      }catch(e){
+        return { ok: false, lang: item.lang, id: item.id, err: e.message, isChildSurvey: item.isChildSurvey };
+      }
+    }
+
+    function groupCounts(records){
+      const map = new Map();
+      const filesMap = new Map(); // Store file details for "Not available" entries
+      for(const r of records){
+        if(!r.ok) continue;
+        const key = `${r.lang}||${r.voice}`;
+        map.set(key, (map.get(key)||0)+1);
+        
+        // Store file details for "Not available" entries
+        if (r.voice && r.voice.includes('Not available')) {
+          if (!filesMap.has(key)) {
+            filesMap.set(key, []);
+          }
+          filesMap.get(key).push({
+            shortname: r.shortname,
+            created: r.created,
+            id: r.id
+          });
+        }
+      }
+      return Array.from(map.entries()).map(([k,v])=>{ 
+        const [lang,voice]=k.split('||'); 
+        return {
+          lang,
+          voice,
+          count:v,
+          files: filesMap.get(k) || []
+        }; 
+      });
+    }
+
+    async function build(){
+      // Base languages from config
+      const languages = (window.CONFIG && window.CONFIG.languages) ? window.CONFIG.languages : {};
+      const configCodes = Array.from(new Set(Object.values(languages).map(l=>l.lang_code))).filter(Boolean);
+
+      // Also query the audio bucket to include any languages that exist there
+      let bucketCodes = [];
+      try {
+        const params = new URLSearchParams();
+        params.set('list','1');
+        if(currentSource === 'repo'){
+          params.set('source','repo');
+        } else {
+          params.set('bucket', getSelectedBucket());
+        }
+        const listed = await fetchJson(`/api/read-tags?${params.toString()}`);
+        bucketCodes = Array.isArray(listed.languages) ? listed.languages : [];
+      } catch (e) {
+        console.warn('Failed to list audio languages from bucket:', e.message);
+      }
+
+      // Include languages found in the CSV header (e.g., en-GH, es-AR)
+      let csvCodes = [];
+      try {
+        csvCodes = await getCsvLanguageCodes();
+      } catch (e) {
+        console.warn('Failed to parse languages from CSV:', e.message);
+      }
+
+      const langCodes = Array.from(new Set([...(configCodes||[]), ...(bucketCodes||[]), ...(csvCodes||[])]));
+      if (langCodes.length === 0) {
+        langCodes.push('en','es-CO','de','fr-CA','nl');
+      }
+
+      const ids = await getAllItemIds();
+      const includeChildSurvey = false; // document.getElementById('includeChildSurvey')?.checked ?? true;
+      const allItems = [];
+      if(currentSource === 'repo'){
+        for(const code of langCodes){
+          for(const id of ids){
+            // Standard audio files
+            allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
+            // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
+            // if (includeChildSurvey) {
+            //   allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
+            // }
+          }
+        }
+      } else {
+        const bucket = getSelectedBucket();
+        for(const code of langCodes){
+          for(const id of ids){
+            // Standard audio files
+            allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
+            // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
+            // if (includeChildSurvey) {
+            //   allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
+            // }
+          }
+        }
+      }
+
+      const total = allItems.length;
+      let processed = 0;
+      const updateSummary = (okCount, errCount, noTagCount = 0) => {
+        document.getElementById('summary').innerHTML =
+          `<span class="chip ok">Languages: ${langCodes.length}</span>`+
+          `<span class="chip ok">Progress: ${processed}/${total}</span>`+
+          `<span class="chip ok">Files scanned: ${okCount}</span>`+
+          `<span class="chip missing">Missing/Errors: ${errCount}</span>`+
+          `<span class="chip missing">No-tag files: ${noTagCount}</span>`;
+      };
+
+      // Bounded concurrency to avoid overwhelming serverless/API
+      async function processWithConcurrency(items, limit = 8){
+        const results = new Array(items.length);
+        let next = 0, okCount = 0, errCount = 0;
+        async function worker(){
+          while(true){
+            const i = next++;
+            if(i >= items.length) break;
+            try{
+              const r = await readTag(items[i]);
+              results[i] = r;
+              if(r && r.ok) okCount++; else errCount++;
+            }catch(e){
+              // Swallow aborted errors quietly
+              const msg = String(e || '');
+              if (msg.toLowerCase().includes('aborted')) {
+                results[i] = { ok:false, err: 'aborted' };
+              } else {
+                results[i] = { ok:false, err: msg };
+              }
+              errCount++;
+            }finally{
+              processed++;
+              if(processed % 50 === 0 || processed === total){ updateSummary(okCount, errCount); }
+            }
+          }
+        }
+        const workers = Array.from({length: Math.min(limit, items.length)}, ()=>worker());
+        await Promise.all(workers);
+        updateSummary(okCount, errCount);
+        return results;
+      }
+
+      updateSummary(0, 0);
+      // Increased concurrency for faster scanning (30 for GCS, 12 for GitHub)
+      const concurrencyLimit = currentSource === 'repo' ? 12 : 30;
+      const results = await processWithConcurrency(allItems, concurrencyLimit);
+      const grouped = groupCounts(results);
+
+      // Count files that exist but have no ID3 voice tag
+      const noTagCount = results.reduce((acc, r) => acc + (r && r.ok && (!r.voice || r.voice === 'Not available') ? 1 : 0), 0);
+      updateSummary(results.filter(r=>r && r.ok).length, results.filter(r=>!r || !r.ok).length, noTagCount);
+
+      // Ensure every language listed in summary appears in the detail table.
+      // If a language has 0 found files, add a placeholder row with any info we have (missing/errors count).
+      const presentLangs = new Set(grouped.map(r => r.lang));
+      if (langCodes && Array.isArray(langCodes)) {
+        for (const code of langCodes) {
+          if (!presentLangs.has(code)) {
+            const errsForLang = results.reduce((acc, r) => acc + ((r && r.lang === code && !r.ok) ? 1 : 0), 0);
+            grouped.push({ lang: code, voice: `No files (missing/errors: ${errsForLang})`, count: 0 });
+          }
+        }
+      }
+
+      // Compute per-language missing counts relative to the set of IDs that have audio in any language
+      const idsWithAnyAudio = new Set(results.filter(r => r && r.ok).map(r => r.id));
+      const totalAny = idsWithAnyAudio.size;
+      const okPerLang = new Map();
+      const foundIdsPerLang = new Map(); // Track which IDs were found per language
+      for (const r of results) {
+        if (r && r.ok) {
+          okPerLang.set(r.lang, (okPerLang.get(r.lang) || 0) + 1);
+          if (!foundIdsPerLang.has(r.lang)) {
+            foundIdsPerLang.set(r.lang, new Set());
+          }
+          foundIdsPerLang.get(r.lang).add(r.id);
+        }
+      }
+      const missingPerLang = new Map();
+      const missingIdsPerLang = new Map(); // Track which specific IDs are missing per language
+      for (const code of langCodes) {
+        const okCount = okPerLang.get(code) || 0;
+        missingPerLang.set(code, Math.max(0, totalAny - okCount));
+        
+        // Calculate which specific IDs are missing for this language
+        const foundIds = foundIdsPerLang.get(code) || new Set();
+        const missingIds = Array.from(idsWithAnyAudio).filter(id => !foundIds.has(id));
+        missingIdsPerLang.set(code, missingIds);
+      }
+      
+      // Store globally for modal access
+      window.missingAudioData = { missingIdsPerLang, results };
+
+      // Get child-survey counts
+      let childSurveyCounts = {};
+      try {
+        const childSurveyData = await countChildSurveyFiles(getSelectedBucket());
+        childSurveyCounts = childSurveyData.byLanguage || {};
+      } catch (e) {
+        console.warn('Failed to get child-survey counts:', e.message);
+      }
+
+      const tbody = document.querySelector('#coverageTable tbody');
+      tbody.innerHTML = '';
+      // Split rows into those with files (count>0) and those without (placeholders)
+      const withFiles = grouped.filter(r => r.count > 0);
+      const noFiles = grouped.filter(r => r.count === 0);
+
+      withFiles.sort((a,b)=>{
+        const byLang = a.lang.localeCompare(b.lang);
+        if (byLang !== 0) return byLang;
+        const aIsNA = a.voice === 'Not available';
+        const bIsNA = b.voice === 'Not available';
+        if (aIsNA !== bIsNA) return aIsNA ? 1 : -1; // push "Not available" to bottom within language
+        const byCount = b.count - a.count;
+        if (byCount !== 0) return byCount;
+        return a.voice.localeCompare(b.voice);
+      }).forEach((row, idx)=>{
+        const tr = document.createElement('tr');
+        const missingCount = missingPerLang.get(row.lang) ?? 0;
+        const missingCell = missingCount > 0 ? 
+          `<td style="cursor: pointer; color: #2563eb; text-decoration: underline;" 
+               onclick="showMissingAudioDetails('${row.lang}', '${row.voice}', ${missingCount})"
+               title="Click to see missing audio details">
+               ${missingCount}
+             </td>` :
+          `<td>${missingCount}</td>`;
+        
+        // Add info icon for "Not available" entries
+        const hasNoTag = row.voice && row.voice.includes('Not available');
+        const voiceCell = hasNoTag && row.files && row.files.length > 0
+          ? `<td>${row.voice} <span class="info-icon" onclick="showNoTagDetails(${idx})" title="Click to see file details" style="color: #0d6efd; cursor: pointer; margin-left: 5px; font-size: 12px;">ℹ️</span></td>`
+          : `<td>${row.voice}</td>`;
+        
+        tr.innerHTML = `<td>${row.lang}</td>${voiceCell}<td>${row.count}</td>${missingCell}`;
+        tr.dataset.rowIndex = idx;
+        tbody.appendChild(tr);
+      });
+      
+      // Store grouped data globally for modal access
+      window.groupedData = withFiles;
+
+      if (noFiles.length) {
+        // Separator row
+        const sep = document.createElement('tr');
+        sep.innerHTML = `<td colspan="4" style="background:#f7f7f7; color:#666; font-weight:bold; text-align:center;">Languages with no files</td>`;
+        tbody.appendChild(sep);
+
+        // Sort no-files languages alphabetically
+        noFiles.sort((a,b) => a.lang.localeCompare(b.lang)).forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${row.lang}</td><td>${row.voice}</td><td>${row.count}</td><td>${missingPerLang.get(row.lang) ?? ''}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      const okCountFinal = results.filter(r => r && r.ok).length;
+      const errCountFinal = results.filter(r => !r || !r.ok).length;
+
+      if (currentSource !== 'repo') {
+        const summaryPayload = {
+          bucket: getSelectedBucket(),
+          expectedCount: total,
+          availableCount: okCountFinal,
+          missingCount: errCountFinal,
+          noTagCount,
+          coveragePercent: total > 0 ? Math.round((okCountFinal / total) * 1000) / 10 : 0,
+          languages: langCodes,
+          generatedAt: new Date().toISOString(),
+          source: currentSource
+        };
+
+        await postCoverageSummary(summaryPayload);
+      }
+
+      // Add child-survey section (only if checkbox is checked) - COMMENTED OUT: survey items are duplicates
+      // if (includeChildSurvey) {
+      //   const childSurveyLangs = Object.keys(childSurveyCounts).sort();
+      //   if (childSurveyLangs.length > 0) {
+      //     // Separator row
+      //     const sep = document.createElement('tr');
+      //     sep.innerHTML = `<td colspan="4" style="background:#e3f2fd; color:#1976d2; font-weight:bold; text-align:center;">Child-Survey Audio Files</td>`;
+      //     tbody.appendChild(sep);
+      //
+      //     childSurveyLangs.forEach(lang => {
+      //       const count = childSurveyCounts[lang];
+      //       const tr = document.createElement('tr');
+      //       tr.innerHTML = `<td>${lang}</td><td>Child-Survey</td><td>${count}</td><td>-</td>`;
+      //       tbody.appendChild(tr);
+      //     });
+      //   }
+      // }
+    }
+
+    // Add debug logging for the first few items to see what IDs we're checking
+    window.debugCoverage = async function() {
+      const ids = await getAllItemIds();
+      console.log('Sample item IDs from CSV:', ids.slice(0, 10));
+      console.log('Total item IDs:', ids.length);
+      const bucket = getSelectedBucket();
+      console.log('Current bucket:', bucket);
+      console.log('Current source:', currentSource);
+      // Test a few specific files
+      const testLang = 'de';
+      const testIds = ids.slice(0, 3);
+      for(const id of testIds) {
+        const url = currentSource === 'repo' 
+          ? `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${testLang}/${id}.mp3`
+          : `https://storage.googleapis.com/${bucket}/audio/${testLang}/${id}.mp3`;
+        console.log(`Testing: ${url}`);
+        try {
+          const result = await readTag({lang: testLang, id});
+          console.log(`Result for ${id}:`, result);
+        } catch (e) {
+          console.log(`Error for ${id}:`, e.message);
+        }
+      }
+    };
+    // Enhanced function to count child-survey files across all language subdirectories
+    async function countChildSurveyFiles(bucketName) {
+      try {
+        // Use the existing API endpoint to list files
+        const params = new URLSearchParams();
+        params.set('list', '1');
+        params.set('bucket', bucketName);
+        params.set('prefix', 'audio/child-survey/');
+        
+        const response = await fetchJson(`/api/read-tags?${params.toString()}`);
+        
+        if (response && response.files) {
+          const byLanguage = {};
+          let total = 0;
+          
+          response.files.forEach(filePath => {
+            const pathParts = filePath.split('/');
+            if (pathParts.length >= 4 && pathParts[0] === 'audio' && pathParts[1] === 'child-survey') {
+              const lang = pathParts[2];
+              if (!byLanguage[lang]) byLanguage[lang] = 0;
+              byLanguage[lang]++;
+              total++;
+            }
+          });
+          
+          return { total, byLanguage };
+        }
+        
+        return { total: 0, byLanguage: {} };
+      } catch (error) {
+        console.error('Error counting child-survey files:', error);
+        return { total: 0, byLanguage: {} };
+      }
+    }
+    async function postCoverageSummary(payload) {
+      try {
+        const response = await fetch('/api/audio-coverage-summary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          const text = await response.text();
+          console.warn('Failed to cache audio coverage summary:', response.status, text);
+        }
+      } catch (error) {
+        console.warn('Failed to cache audio coverage summary:', error.message);
+      }
+    }
+
+
+    // Function to show details of files with no voice tag
+    function showNoTagDetails(rowIndex) {
+      const row = window.groupedData[rowIndex];
+      if (!row || !row.files || row.files.length === 0) {
+        alert('No file details available');
+        return;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+
+      const card = document.createElement('div');
+      card.className = 'modal-card';
+      const fileLabel = row.voice && row.voice !== 'Not available' ? row.voice : 'Unspecified';
+      const formatDate = (dateStr) => {
+        if (!dateStr) return null;
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleString();
+        } catch (e) {
+          return dateStr;
+        }
+      };
+      const itemsMarkup = row.files.map(file => {
+        const label = file.shortname || file.id || 'Unknown file';
+        const created = formatDate(file.created);
+        return `<li>${label}${created ? `<span class="missing-created">Created: ${created}</span>` : ''}</li>`;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title">Files Without Voice Tag</h2>
+            <p class="modal-subtitle"><span>Language:</span> ${row.lang} • <span>Voice:</span> ${fileLabel}</p>
+          </div>
+          <button class="modal-close" aria-label="Close files without voice tag">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-stat"><span>Total Files:</span> ${row.files.length}</p>
+          <div class="modal-section">
+            <h4>File List</h4>
+            <div class="modal-scroll">
+              ${row.files.length ? `<ul class="missing-list">${itemsMarkup}</ul>` : '<p class="modal-placeholder">No file metadata available.</p>'}
+            </div>
+          </div>
+        </div>
+      `;
+
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+
+      const closeButton = card.querySelector('.modal-close');
+      if (closeButton) closeButton.addEventListener('click', () => overlay.remove());
+      overlay.addEventListener('click', (event) => { if (event.target === overlay) overlay.remove(); });
+    }
+
+
+
+    // Enhanced missing audio details function
+    function showMissingAudioDetails(lang, voice, missingCount) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+
+      const card = document.createElement('div');
+      card.className = 'modal-card';
+      card.innerHTML = `
+        <div class="modal-header">
+          <div>
+            <h3 class="modal-title">Missing Audio Details</h3>
+            <p class="modal-subtitle"><span>Language:</span> ${lang} • <span>Voice:</span> ${voice}</p>
+          </div>
+          <button class="modal-close" aria-label="Close missing audio details">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-stat"><span>Missing Count:</span> ${missingCount}</p>
+          <div class="modal-section">
+            <h4>Missing Audio Files</h4>
+            <div class="modal-scroll" id="missing-details-content">
+              <p class="modal-placeholder">Loading missing audio details...</p>
+            </div>
+          </div>
+          <p class="modal-note">Note: These items exist in other languages but are missing audio files for <strong>${lang}</strong>.</p>
+        </div>
+      `;
+
+      overlay.appendChild(card);
+      document.body.appendChild(overlay);
+
+      const closeButton = card.querySelector('.modal-close');
+      if (closeButton) {
+        closeButton.addEventListener('click', () => overlay.remove());
+      }
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) overlay.remove();
+      });
+
+      const container = card.querySelector('#missing-details-content');
+      loadMissingAudioDetails(lang, voice, container);
+    }
+
+    // Function to load and display missing audio details
+    async function loadMissingAudioDetails(lang, voice, container) {
+      if (!container) return;
+      try {
+        if (!window.missingAudioData || !window.missingAudioData.missingIdsPerLang) {
+          container.innerHTML = '<p class="modal-error">⚠️ Please run a scan first to see missing audio details.</p>';
+          return;
+        }
+
+        const { missingIdsPerLang } = window.missingAudioData;
+        const missingIds = missingIdsPerLang.get(lang) || [];
+
+        if (missingIds.length === 0) {
+          container.innerHTML = '<p class="modal-success">✅ No missing audio files found for this language!</p>';
+          return;
+        }
+
+        const displayIds = missingIds.slice(0, 100);
+        const items = displayIds.map(id => `<li>${id}</li>`).join('');
+        const extraCount = missingIds.length - displayIds.length;
+
+        container.innerHTML = `
+          <ul class="missing-list">${items}</ul>
+          ${extraCount > 0 ? '<p class="modal-placeholder">... and ' + extraCount + ' more</p>' : ''}
+        `;
+      } catch (error) {
+        container.innerHTML = `<p class="modal-error">❌ Error loading missing audio details: ${error.message}</p>`;
+      }
+    }
+
+    console.log('Debug function available: window.debugCoverage()');
+    console.log('Child-survey counting function available: window.countChildSurveyFiles()');
+    
+    // Initialize from URL parameters
+    initializeFromUrlParams();
+    
+    build().catch(e=>{ console.error(e); alert('Failed to build coverage: '+e.message); });
+  </script>
+</body>
+</html>

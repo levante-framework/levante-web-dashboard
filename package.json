@@ -1,0 +1,40 @@
+{
+  "name": "levante-audio-dashboard",
+  "version": "1.0.0",
+  "description": "Web-based audio dashboard for Levante translations",
+  "main": "index.html",
+  "homepage": "https://audio-dashboard-levante.vercel.app",
+  "scripts": {
+    "start": "serve .",
+    "build": "echo 'No build step needed'",
+    "build:ts": "tsc",
+    "build:ts-watch": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test:ts": "node test-typescript.js",
+    "test": "npm run test:ts",
+    "predeploy": "node scripts/fix-existing-tasks.js",
+    "deploy": "node scripts/deploy-and-alias.js",
+    "deploy-dev": "vercel --yes",
+    "deploy-bat": "deploy.bat",
+    "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts"
+  },
+  "keywords": [
+    "audio",
+    "dashboard",
+    "tts",
+    "translations"
+  ],
+  "author": "Levante Team",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/storage": "^7.16.0",
+    "node-id3": "^0.2.9",
+    "sharp": "^0.33.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "serve": "^14.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0"
+  }
+}

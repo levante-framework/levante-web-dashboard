@@ -1,0 +1,778 @@
+{
+  "tasks": [
+    {
+      "taskName": "adult-reasoning",
+      "registryKey": "adultReasoning",
+      "description": "Advanced mathematical reasoning for adult populations",
+      "trialType": "visual",
+      "assessmentStage": "test",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": false,
+      "visualAssetCount": 0,
+      "visualAssetTypes": [],
+      "hasAudioAssets": false,
+      "audioAssetCount": 0,
+      "requiredAudioIds": [],
+      "translationKeys": [
+        "adultReasoningIntro",
+        "adultReasoningInstructions",
+        "adultReasoningPrompt"
+      ],
+      "languages": [
+        "en",
+        "es",
+        "de"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-math-dev",
+      "bucketNameProd": "levante-math-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "response_alternatives",
+        "assessment_stage",
+        "time_limit"
+      ],
+      "notes": "Text-only math reasoning task designed for adult populations, no audio assets"
+    },
+    {
+      "taskName": "egma-math",
+      "registryKey": "egmaMath",
+      "description": "Early Grade Mathematics Assessment (EGMA) covering number identification, comparison, addition, subtraction, multiplication, and number line estimation",
+      "trialType": "audio-visual",
+      "assessmentStage": "both",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 24,
+      "visualAssetTypes": [
+        "number-images",
+        "operation-images",
+        "number-line"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 145,
+      "requiredAudioIds": [
+        "math-instructions1",
+        "math-intro1",
+        "math-intro2",
+        "math-intro-fractions",
+        "number-comparison-prompt1",
+        "number-comparison-prompt2",
+        "number-identification-prompt1",
+        "missing-number-prompt1",
+        "missing-number-prompt2",
+        "missing-number-prompt3",
+        "addition-prompt1",
+        "addition-prompt2",
+        "subtraction-prompt1",
+        "subtraction-prompt2",
+        "multiplication-prompt1",
+        "multiplication-prompt2",
+        "number-line-instruct1",
+        "number-line-prompt1",
+        "number-line-slider-prompt1",
+        "number-identification-1",
+        "number-identification-2",
+        "math-instructions1-heavy",
+        "math-intro1-heavy",
+        "counting-intro"
+      ],
+      "translationKeys": [
+        "mathInstructions1",
+        "mathIntro1",
+        "mathIntro2",
+        "numberComparisonPrompt1",
+        "numberIdentificationPrompt1",
+        "missingNumberPrompt1",
+        "additionPrompt1",
+        "subtractionPrompt1",
+        "multiplicationPrompt1",
+        "numberLineInstruct1"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": true,
+      "variants": [
+        "standard",
+        "heavy-instructions"
+      ],
+      "bucketNameDev": "levante-math-dev",
+      "bucketNameProd": "levante-math-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "response_alternatives",
+        "assessment_stage",
+        "time_limit",
+        "audio_file",
+        "item_id",
+        "item_uid",
+        "difficulty"
+      ],
+      "notes": "Includes 45 number identification items (1-45) plus subtask-specific prompts and heavy instruction variants"
+    },
+    {
+      "taskName": "hearts-and-flowers",
+      "registryKey": "heartsAndFlowers",
+      "description": "Executive function task measuring cognitive flexibility and inhibitory control",
+      "trialType": "visual",
+      "assessmentStage": "both",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 41,
+      "visualAssetTypes": [
+        "heart-images",
+        "flower-images",
+        "game-elements"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 17,
+      "requiredAudioIds": [
+        "heart-instruct1",
+        "heart-instruct2",
+        "hearts-and-flowers-try-again",
+        "heart-practice-feedback1",
+        "hearts-and-flowers-practice-time",
+        "heart-practice-feedback2",
+        "hearts-and-flowers-instruct1",
+        "hearts-and-flowers-instruct2",
+        "hearts-and-flowers-play-time",
+        "flower-instruct1",
+        "flower-instruct2",
+        "flower-practice-feedback1",
+        "flower-practice-feedback2",
+        "hearts-and-flowers-instruct3",
+        "hearts-and-flowers-encourage1",
+        "hearts-and-flowers-encourage2",
+        "hearts-and-flowers-end"
+      ],
+      "translationKeys": [
+        "heartInstruct1",
+        "heartInstruct2",
+        "heartsAndFlowersTryAgain",
+        "heartPracticeFeedback1",
+        "heartsAndFlowersPracticeTime",
+        "flowerInstruct1",
+        "heartsAndFlowersEnd"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-hearts-and-flowers-dev",
+      "bucketNameProd": "levante-hearts-and-flowers-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "assessment_stage",
+        "block_index"
+      ],
+      "notes": "Classic hearts-and-flowers task with congruent and incongruent blocks"
+    },
+    {
+      "taskName": "hostile-attribution",
+      "registryKey": "hostileAttribution",
+      "description": "Social cognition assessment measuring interpretation of ambiguous social situations",
+      "trialType": "audio-visual",
+      "assessmentStage": "test",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 22,
+      "visualAssetTypes": [
+        "scenario-images",
+        "social-situations"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 30,
+      "requiredAudioIds": [
+        "ToM-intro",
+        "ToM-transition",
+        "hostile-attribution-scene1-instruct1",
+        "hostile-attribution-scene1-instruct2",
+        "hostile-attribution-scene1-q1",
+        "hostile-attribution-scene1-q2",
+        "hostile-attribution-scene1-q2-ans1",
+        "hostile-attribution-scene1-q2-ans2",
+        "hostile-attribution-scene1-q2-ans3",
+        "hostile-attribution-scene2-instruct1",
+        "hostile-attribution-scene2-q1",
+        "hostile-attribution-scene3-instruct1",
+        "hostile-attribution-scene1-by-accident",
+        "hostile-attribution-scene1-on-purpose"
+      ],
+      "translationKeys": [
+        "tomintro",
+        "tomtransition",
+        "hostileAttributionScene1Instruct1",
+        "hostileAttributionScene1Instruct2",
+        "hostileAttributionScene1Q1",
+        "hostileAttributionScene1Q2",
+        "hostileAttributionScene1ByAccident",
+        "hostileAttributionScene1OnPurpose"
+      ],
+      "languages": [
+        "en",
+        "es",
+        "de"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "",
+      "bucketNameProd": "",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "item_uid",
+        "audio_file",
+        "assessment_stage"
+      ],
+      "notes": "3 scenario-based scenes measuring hostile attribution bias. Often administered with theory-of-mind task."
+    },
+    {
+      "taskName": "intro",
+      "registryKey": "intro",
+      "description": "General introduction to the Levante assessment platform with keyboard/device instructions",
+      "trialType": "instructional",
+      "assessmentStage": "practice",
+      "corpusFile": "",
+      "hasVisualAssets": true,
+      "visualAssetCount": 1,
+      "visualAssetTypes": [
+        "icons",
+        "device-images",
+        "ui-elements"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 7,
+      "requiredAudioIds": [
+        "general-intro1",
+        "general-intro2",
+        "general-intro3",
+        "general-intro4",
+        "general-intro5",
+        "general-keyboard-instructions",
+        "intro-finished"
+      ],
+      "translationKeys": [
+        "generalIntro1",
+        "generalIntro2",
+        "generalIntro3",
+        "generalIntro4",
+        "generalIntro5",
+        "generalKeyboardInstructions",
+        "introFinished"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-intro-dev",
+      "bucketNameProd": "levante-intro-prod",
+      "csvHeaders": [],
+      "notes": "Initial orientation task for all participants"
+    },
+    {
+      "taskName": "matrix-reasoning",
+      "registryKey": "matrixReasoning",
+      "description": "Non-verbal fluid reasoning assessment using pattern matching matrices",
+      "trialType": "visual",
+      "assessmentStage": "both",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 720,
+      "visualAssetTypes": [
+        "matrix-patterns",
+        "response-options"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 3,
+      "requiredAudioIds": [
+        "matrix-reasoning-instruct1",
+        "matrix-reasoning-instruct2",
+        "matrix-reasoning-prompt1"
+      ],
+      "translationKeys": [
+        "matrixReasoningInstruct1",
+        "matrixReasoningInstruct2",
+        "matrixReasoningPrompt1"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-pattern-matching-dev",
+      "bucketNameProd": "levante-pattern-matching-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "item_uid",
+        "assessment_stage",
+        "difficulty",
+        "response_alternatives"
+      ],
+      "notes": "720 webp pattern images for progressive matrices (additional JPEG variants exist for compatibility)"
+    },
+    {
+      "taskName": "memory-game",
+      "registryKey": "memoryGame",
+      "description": "Working memory assessment using a card-matching paradigm",
+      "trialType": "visual",
+      "assessmentStage": "test",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 4,
+      "visualAssetTypes": [
+        "card-images",
+        "game-elements"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 20,
+      "requiredAudioIds": [
+        "memory-game-display",
+        "memory-game-input",
+        "memory-game-instruct1",
+        "memory-game-instruct2",
+        "memory-game-instruct3",
+        "memory-game-instruct4",
+        "memory-game-forward-prompt",
+        "memory-game-forward-try-again",
+        "memory-game-instruct5",
+        "memory-game-instruct6",
+        "memory-game-instruct7",
+        "memory-game-backward-prompt",
+        "memory-game-backward-try-again",
+        "memory-game-instruct1-heavy",
+        "memory-game-instruct2-heavy",
+        "memory-game-instruct3-heavy",
+        "memory-game-instruct4-heavy",
+        "memory-game-instruct5-heavy",
+        "memory-game-instruct6-heavy"
+      ],
+      "translationKeys": [
+        "memoryGameDisplay",
+        "memoryGameInput",
+        "memoryGameInstruct1",
+        "memoryGameInstruct2",
+        "memoryGameForwardPrompt",
+        "memoryGameBackwardPrompt"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": true,
+      "variants": [
+        "standard",
+        "heavy-instructions"
+      ],
+      "bucketNameDev": "levante-memory-dev",
+      "bucketNameProd": "levante-memory-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "assessment_stage"
+      ],
+      "notes": "Includes both forward and backward span variants with heavy instruction option"
+    },
+    {
+      "taskName": "mental-rotation",
+      "registryKey": "mentalRotation",
+      "description": "Spatial reasoning task requiring mental rotation of 3D shapes",
+      "trialType": "visual",
+      "assessmentStage": "both",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 248,
+      "visualAssetTypes": [
+        "3d-shape-images",
+        "rotated-variants"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 7,
+      "requiredAudioIds": [
+        "mental-rotation-instruct1",
+        "mental-rotation-training-instruct2",
+        "mental-rotation-training-instruct3",
+        "mental-rotation-test-instruct4",
+        "mental-rotation-instruct-3D",
+        "mental-rotation-prompt2",
+        "mental-rotation-prompt1"
+      ],
+      "translationKeys": [
+        "mentalRotationInstruct1",
+        "mentalRotationTrainingInstruct2",
+        "mentalRotationTestInstruct4",
+        "mentalRotationInstruct3D",
+        "mentalRotationPrompt1"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-shape-rotation-dev",
+      "bucketNameProd": "levante-shape-rotation-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "assessment_stage",
+        "time_limit"
+      ],
+      "notes": "3D shape rotation with training and test phases"
+    },
+    {
+      "taskName": "same-different-selection",
+      "registryKey": "sameDifferentSelection",
+      "description": "Visual discrimination task assessing same/different judgment",
+      "trialType": "visual",
+      "assessmentStage": "test",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 771,
+      "visualAssetTypes": [
+        "shape-images",
+        "color-variations"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 93,
+      "requiredAudioIds": [
+        "same-different-selection-instruct1",
+        "same-different-selection-touch-circle",
+        "same-different-selection-touch-square",
+        "same-different-selection-touch-triangle",
+        "same-different-selection-touch-star",
+        "same-different-selection-touch-green",
+        "same-different-selection-touch-red",
+        "same-different-selection-touch-blue",
+        "same-different-selection-touch-yellow",
+        "same-different-selection-both-circles",
+        "same-different-selection-both-squares",
+        "sds-prompt3",
+        "sds-your-turn",
+        "same-different-selection-instruct1-heavy",
+        "same-different-selection-instruct2-heavy"
+      ],
+      "translationKeys": [
+        "sameDifferentSelectionInstruct1",
+        "sameDifferentSelectionTouchCircle",
+        "sameDifferentSelectionTouchSquare",
+        "sameDifferentSelectionBothCircles",
+        "sdsPrompt3",
+        "sdsYourTurn"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": true,
+      "variants": [
+        "standard",
+        "heavy-instructions"
+      ],
+      "bucketNameDev": "levante-same-different-dev",
+      "bucketNameProd": "levante-same-different-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "assessment_stage"
+      ],
+      "notes": "Extensive audio instructions covering shapes, colors, sizes with heavy instruction variants"
+    },
+    {
+      "taskName": "theory-of-mind",
+      "registryKey": "theoryOfMind",
+      "description": "Social cognition assessment measuring understanding of others' mental states through story scenarios",
+      "trialType": "audio-visual",
+      "assessmentStage": "test",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 187,
+      "visualAssetTypes": [
+        "story-scenes",
+        "character-emotions",
+        "scenario-images"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 273,
+      "requiredAudioIds": [
+        "yes",
+        "no",
+        "happy",
+        "sad",
+        "angry",
+        "scared",
+        "calm",
+        "proud",
+        "disgusted",
+        "surprised",
+        "ToM-intro",
+        "ToM-transition",
+        "ToM-scene1-instruct1",
+        "ToM-scene1-instruct2",
+        "ToM-scene1-q1-false_belief",
+        "ToM-scene2-instruct1",
+        "ToM-scene2-q1-false_belief",
+        "hostile-attribution-scene1-instruct1",
+        "hostile-attribution-scene1-q1"
+      ],
+      "translationKeys": [
+        "yes",
+        "no",
+        "happy",
+        "sad",
+        "angry",
+        "scared",
+        "tom-intro",
+        "tom-transition",
+        "tom-scene1-instruct1",
+        "tom-scene1-q1-false-belief",
+        "hostileAttributionScene1Instruct1"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-stories-dev",
+      "bucketNameProd": "levante-stories-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "item_uid",
+        "audio_file",
+        "assessment_stage"
+      ],
+      "notes": "18 story scenes with extensive audio covering false belief, emotion reasoning, and reality check questions. Includes hostile attribution scenarios."
+    },
+    {
+      "taskName": "trog",
+      "registryKey": "trog",
+      "description": "Test for Reception of Grammar (TROG) - assessing grammatical understanding",
+      "trialType": "audio-visual",
+      "assessmentStage": "both",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 446,
+      "visualAssetTypes": [
+        "scene-images",
+        "grammar-illustrations"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 107,
+      "requiredAudioIds": [
+        "trog-instruct1",
+        "trog-prompt1",
+        "trog-prompt2",
+        "trog-prompt3",
+        "trog-item-1",
+        "trog-item-2",
+        "trog-item-3",
+        "shared-intro-devices",
+        "shared-choose-picture-press-arrow",
+        "shared-intro-replay",
+        "trog-instr1-matching"
+      ],
+      "translationKeys": [
+        "trogInstruct1",
+        "trogPrompt1",
+        "trogPrompt2",
+        "trogPrompt3",
+        "trogItem1",
+        "trogItem2",
+        "sharedIntroDevices",
+        "sharedChoosePicturePressArrow"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": false,
+      "variants": [],
+      "bucketNameDev": "levante-sentence-understanding-dev",
+      "bucketNameProd": "levante-sentence-understanding-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "item_uid",
+        "audio_file",
+        "assessment_stage"
+      ],
+      "notes": "103 trog items (trog-item-1 through trog-item-103) plus instruction audio"
+    },
+    {
+      "taskName": "vocab",
+      "registryKey": "vocab",
+      "description": "Vocabulary assessment measuring receptive vocabulary knowledge",
+      "trialType": "visual-audio",
+      "assessmentStage": "both",
+      "corpusFile": "corpus.csv",
+      "hasVisualAssets": true,
+      "visualAssetCount": 681,
+      "visualAssetTypes": [
+        "item-images"
+      ],
+      "hasAudioAssets": true,
+      "audioAssetCount": 174,
+      "requiredAudioIds": [
+        "vocab-item-001",
+        "vocab-item-002",
+        "vocab-item-003",
+        "vocab-item-004",
+        "vocab-item-005",
+        "vocab-item-006",
+        "vocab-item-007",
+        "vocab-item-008",
+        "vocab-item-009",
+        "vocab-item-010",
+        "vocab-instruct-1",
+        "vocab-practice-1",
+        "vocab-instruct-2",
+        "vocab-instruct-3"
+      ],
+      "translationKeys": [
+        "vocab-instruct-1",
+        "vocab-practice-1",
+        "vocab-instruct-2",
+        "vocab-instruct-3",
+        "vocab-item-001",
+        "vocab-item-002"
+      ],
+      "languages": [
+        "en",
+        "es-AR",
+        "es-CO",
+        "de",
+        "de-CH"
+      ],
+      "hasVariants": true,
+      "variants": [
+        "short",
+        "standard",
+        "extended"
+      ],
+      "bucketNameDev": "levante-vocabulary-dev",
+      "bucketNameProd": "levante-vocabulary-prod",
+      "csvHeaders": [
+        "task",
+        "trial_type",
+        "item",
+        "item_id",
+        "item_uid",
+        "audio_file",
+        "assessment_stage",
+        "difficulty"
+      ],
+      "notes": "171 vocab items (vocab-item-001 through vocab-item-171) plus 3 instruction audio files"
+    }
+  ],
+  "shared": {
+    "audioAssetCount": 23,
+    "requiredAudioIds": [
+      "general-rotate-device",
+      "general-device-type",
+      "pick-buddy",
+      "task-finished",
+      "continue-button-text",
+      "close-button-text",
+      "general-footer",
+      "instructions",
+      "general-encourage",
+      "feedbackCorrect",
+      "feedback-not-quite-right",
+      "feedback-try-again",
+      "feedback-good-job",
+      "feedback-nice-work",
+      "replay-button",
+      "general-fullscreen",
+      "general-repeat-instructions",
+      "general-exit",
+      "task-completion",
+      "general-your-turn",
+      "data-questionnaire-button-text1",
+      "data-questionnaire-button-text2",
+      "data-questionnaire-button-text3"
+    ],
+    "translationKeys": [
+      "generalRotateDevice",
+      "generalDeviceType",
+      "pickBuddy",
+      "taskFinished",
+      "continueButtonText",
+      "closeButtonText",
+      "generalFooter",
+      "instructions",
+      "generalEncourage",
+      "feedbackCorrect",
+      "feedbackNotQuiteRight",
+      "feedbackTryAgain",
+      "replayButton",
+      "generalFullscreen",
+      "generalExit"
+    ],
+    "notes": "Shared assets used across multiple tasks for common functionality like feedback, navigation, and device orientation"
+  },
+  "metadata": {
+    "version": "2.1",
+    "lastUpdated": "2025-01-10",
+    "source": "Compiled from assets-per-task.json, GCS bucket listings, and translation files",
+    "assetCounts": "Visual asset counts reflect .webp files only (production format). Audio asset counts from assets-per-task.json.",
+    "note": "This is a comprehensive reference file for existing Levante tasks. Many tasks also have JPEG versions for compatibility, but webp is the primary format."
+  }
+}

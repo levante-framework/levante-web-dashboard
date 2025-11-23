@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>
+   Levante Pitwall Home
+  </title>
+<link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
+<link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" referrerpolicy="no-referrer" rel="stylesheet"/>
+<link href="./styles.css" rel="stylesheet"/>
+<style>
+    body { background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.92)), linear-gradient(180deg, #0f172a 0%, #020617 100%); color: #e2e8f0; font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+        .pitwall-container { max-width: 1280px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 32px; }
+        .pitwall-header { background: linear-gradient(130deg, #ff6b00 0%, #ffb347 45%, #09111f 100%); border-radius: 20px; padding: 40px; color: #0b1220; box-shadow: 0 30px 70px rgba(255, 138, 18, 0.28); position: relative; overflow: hidden; isolation: isolate; }
+        .pitwall-header::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 78% 18%, rgba(0, 160, 222, 0.72), transparent 55%), linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent 70%); opacity: 0.9; pointer-events: none; mix-blend-mode: screen; }
+        .pitwall-header-main { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+        .pitwall-header-left { display: flex; align-items: center; gap: 28px; flex: 1 1 auto; min-width: 0; }
+        .pitwall-hero-image { width: 220px; max-width: 32%; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35); object-fit: cover; }
+        .pitwall-title-block { display: flex; flex-direction: column; gap: 8px; }
+        .pitwall-flag-image { width: 180px; max-width: 22%; min-width: 120px; filter: drop-shadow(0 18px 40px rgba(3, 12, 28, 0.55)); }
+        .pitwall-header h1 { font-size: 2.75rem; margin: 0 0 12px; font-weight: 600; letter-spacing: -0.02em; color: #030c1c; text-shadow: 0 12px 30px rgba(0, 0, 0, 0.28); }
+        .pitwall-header p { font-size: 1.05rem; margin: 0; max-width: 640px; line-height: 1.6; color: rgba(3, 13, 28, 0.78); }
+        @media (max-width: 960px) {
+            .pitwall-header-main { flex-direction: column; align-items: flex-start; gap: 20px; }
+            .pitwall-header-left { flex-direction: column; align-items: flex-start; gap: 18px; width: 100%; }
+            .pitwall-hero-image { width: 100%; max-width: none; border-radius: 16px; }
+            .pitwall-flag-image { align-self: flex-end; width: 140px; max-width: 40%; }
+        }
+        .pitwall-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; position: relative; z-index: 1; }
+        .pitwall-actions a { background: rgba(3, 12, 28, 0.78); border: 1px solid rgba(255, 123, 0, 0.65); color: #fefcf7; padding: 12px 22px; border-radius: 999px; font-weight: 600; letter-spacing: 0.01em; text-decoration: none; display: inline-flex; gap: 10px; align-items: center; transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease; box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45); }
+        .pitwall-actions a:hover { background: rgba(255, 123, 0, 0.92); color: #06141f; transform: translateY(-2px); box-shadow: 0 18px 36px rgba(255, 123, 0, 0.35); }
+        .section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+        .section-title h2 { margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.08em; }
+        .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+        .card { background: rgba(9, 17, 31, 0.92); border-radius: 18px; padding: 24px; box-shadow: 0 22px 48px rgba(2, 6, 23, 0.45); display: flex; flex-direction: column; gap: 18px; transition: transform 0.22s ease, box-shadow 0.22s ease, border 0.22s ease; border: 1px solid rgba(0, 160, 222, 0.22); backdrop-filter: blur(4px); }
+        .card:hover { transform: translateY(-6px); box-shadow: 0 30px 60px rgba(255, 120, 0, 0.32); border-color: rgba(255, 123, 0, 0.58); }
+        .card i { font-size: 1.7rem; color: #00a0de; text-shadow: 0 10px 22px rgba(0, 160, 222, 0.35); }
+        .card h3 { margin: 0; font-size: 1.2rem; font-weight: 600; color: #f8fafc; letter-spacing: 0.01em; }
+        .card p { margin: 0; font-size: 0.95rem; color: rgba(203, 213, 225, 0.86); line-height: 1.6; }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #ff8b1f; font-weight: 600; }
+        .card-footer i { font-size: 1rem; color: rgba(255, 255, 255, 0.65); }
+        .card a { text-decoration: none; color: inherit; }
+        .status-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+        .status-pill { background: rgba(7, 13, 24, 0.9); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(0, 160, 222, 0.28); box-shadow: 0 20px 44px rgba(2, 6, 23, 0.55); }
+        .status-pill span.label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; color: #00c8ff; font-weight: 700; }
+        .status-pill strong { font-size: 1.4rem; color: #ffb347; text-shadow: 0 10px 20px rgba(255, 123, 0, 0.35); }
+        .status-pill em { font-size: 0.84rem; color: rgba(203, 213, 225, 0.72); font-style: normal; }
+        @media (max-width: 720px) {
+            .pitwall-header { padding: 28px; }
+            .pitwall-header h1 { font-size: 2.2rem; }
+            .pitwall-actions { flex-direction: column; align-items: stretch; }
+            .pitwall-actions a { justify-content: center; }
+        }
+   </style>
+</head>
+<body>
+<div class="pitwall-container">
+<header class="pitwall-header"><div class="pitwall-header-main"><div class="pitwall-header-left"><img alt="McLaren Pitwall" class="pitwall-hero-image" src="./images/f1-pitwall.webp"/><div class="pitwall-title-block"><h1>
+<i class="fas fa-flag-checkered">
+</i>
+     Levante Pitwall
+    </h1><p>Our starting point for translation QA, audio patching, and supporting tools. Jump to a dashboard or a Stats card to get started.</p></div></div><img src="./images/checkered-flags.svg" alt="Checkered flags" class="pitwall-flag-image"/></div>
+<div class="pitwall-actions">
+<a href="./dashboard-app.html"><i class="fas fa-gauge"></i> Audio Dashboard</a>
+<a href="./audio-coverage.html"><i class="fas fa-music"></i> Audio Coverage</a>
+<a href="./task-template.html"><i class="fas fa-clipboard-check"></i> Validate Task</a>
+<a href="./preflight-report.html"><i class="fas fa-clipboard-check"></i> Pre-Release Readiness Report</a>
+<a href="./draft-share.html"><i class="fas fa-share-nodes"></i> Ready to Deploy</a>
+</div>
+</header>
+<section>
+<div class="section-title">
+<h2>
+<i class="fas fa-heartbeat">
+</i>
+      System Snapshot
+     </h2>
+<span style="font-size: 0.9rem; color: rgba(148, 198, 255, 0.75);">
+      Live metrics pulled from draft buckets, coverage scans, and GitHub
+     </span>
+</div>
+<div class="status-strip">
+<a class="status-link" href="./draft-share.html?bucket=levante-assets-draft&folder=deploy"><div class="status-pill">
+<span class="label"><span>Audio Patches</span><span class="label-sub">Awaiting Deployment</span></span>
+<strong id="stat-drafts">--</strong>
+<em id="stat-drafts-detail">Loading latest draft counts…</em>
+</div></a>
+<a class="status-link" href="./audio-coverage.html"><div class="status-pill">
+<span class="label">
+       Audio coverage
+      </span>
+<strong id="stat-coverage">--</strong>
+<div class="status-detail-row">
+  <em id="stat-coverage-detail">Waiting for audio coverage summary...</em>
+  <button id="stat-coverage-refresh" class="status-pill-refresh" type="button">Refresh</button>
+</div>
+</div></a>
+<a class="status-link" href="./audio-approval.html"><div class="status-pill">
+<span class="label"><span>Audio Clips</span><span class="label-sub">Approval Status</span></span>
+<strong id="stat-audio-clips">--</strong>
+<em id="stat-audio-clips-detail">Loading audio clip status…</em>
+</div></a>
+<a class="status-link" href="./preflight-report.html#visualAuditsSection"><div class="status-pill">
+<span class="label">
+       Visual assets
+      </span>
+<strong id="stat-visual">--</strong>
+<em id="stat-visual-detail">Checking WEBP conversions…</em>
+</div></a>
+<a class="status-link" href="./preflight-report.html#githubIssuesSection"><div class="status-pill">
+<span class="label">
+       Open issues
+      </span>
+<strong id="stat-issues">--</strong>
+<em id="stat-issues-detail">Fetching P0 / P1 counts…</em>
+</div></a>
+</div>
+</section><section>
+<div class="section-title">
+<h2><i class="fas fa-gauge-high"></i> Operations Hub</h2>
+<span style="font-size: 0.9rem; color: rgba(148, 198, 255, 0.82);">Spin up dashboards and tooling for day-to-day work</span>
+</div>
+<div class="grid">
+<article class="card">
+<a href="./dashboard-app.html">
+<i class="fas fa-headset"></i>
+<h3>Audio Generation &amp; Draft Review</h3>
+<p>Generate TTS patches, audition takes, approve drafts, and deploy curated audio directly from the dashboard.</p>
+<div class="card-footer">
+<span>Launch dashboard</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="./audio-coverage.html">
+<i class="fas fa-chart-line"></i>
+<h3>Audio Coverage Report</h3>
+<p>Scan repo or buckets for missing, mismatched, or untagged audio assets. Filter by language to drill into issues.</p>
+<div class="card-footer">
+<span>Run coverage scan</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="./preflight-report.html">
+<i class="fas fa-clipboard-list"></i>
+<h3>Pre-Release Readiness Report</h3>
+<p>Audit translations, audio, and visual assets across dev &amp; prod buckets with stoplight summaries.</p>
+<div class="card-footer">
+<span>Open report</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="./task-template.html">
+<i class="fas fa-clipboard-check"></i>
+<h3>Task Dashboard &amp; Validation</h3>
+<p>Review implementation checklists, validate assets, and spin up new task templates with one toolkit.</p>
+<div class="card-footer">
+<span>Open dashboard</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card" style="background: rgba(10, 19, 33, 0.95); color:#f1f5f9; border: 1px solid rgba(0, 160, 222, 0.3);">
+<a href="./partner-audio-dashboard.html" style="color: inherit;">
+<i class="fas fa-users" style="color:#00b5ff;"></i>
+<h3>Partner Audio Approval</h3>
+<p>Public-facing dashboard for research partners to review source and translated text, generate audio, and approve translations for their language.</p>
+<div class="card-footer" style="color:#3dd5ff;">
+<span>Open dashboard</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="./asset-history.html">
+<i class="fas fa-history"></i>
+<h3>Asset History &amp; Commits</h3>
+<p>Track Git activity, compare deploy snapshots, and spot gaps between localization branches.</p>
+<div class="card-footer">
+<span>Review history</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="https://image-gallery-digitalpros-projects.vercel.app/" rel="noopener" target="_blank">
+<i class="fas fa-images"></i>
+<h3>Image Gallery</h3>
+<p>Browse released artwork and UI assets by task or locale, then share external preview links with partners.</p>
+<div class="card-footer">
+<span>Open gallery</span>
+<i class="fas fa-arrow-up-right-from-square"></i>
+</div>
+</a>
+</article>
+</div>
+</section>
+<section>
+<div class="section-title">
+<h2>
+<i class="fas fa-book">
+</i>
+      Documentation &amp; References
+     </h2>
+</div>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+<article class="card" style="background: rgba(8, 13, 24, 0.95); color: #f8fafc; border: 1px solid rgba(0, 160, 222, 0.28);">
+<a href="./docs/README_WebDashboard.md" style="color: inherit;">
+<i class="fas fa-file-lines" style="color:#00a0de;">
+</i>
+<h3>
+        Web Dashboard Guide
+       </h3>
+<p>
+        A quick walkthrough of authentication, voice selection, and the workflow for generating patches.
+       </p>
+<div class="card-footer" style="color:#3dd5ff;">
+<span>
+         Open doc
+        </span>
+<i class="fas fa-arrow-right">
+</i>
+</div>
+</a>
+</article>
+<article class="card" style="background: linear-gradient(135deg, rgba(26, 36, 52, 0.96) 0%, rgba(8, 13, 24, 0.96) 100%); color: #f8fafc; border: 1px solid rgba(255, 111, 0, 0.38);">
+<a href="./docs/patching.html" style="color: inherit;">
+<i class="fas fa-screwdriver-wrench" style="color:#ff6f00;">
+</i>
+<h3>
+        Patch &amp; Deploy Workflow
+       </h3>
+<p>
+        Step-by-step playbook for turning dashboard saves into deploy-ready assets, including approvals.
+       </p>
+<div class="card-footer" style="color:#ff9d2d;">
+<span>
+         Review workflow
+        </span>
+<i class="fas fa-arrow-right">
+</i>
+</div>
+</a>
+</article>
+<article class="card" style="background: rgba(10, 19, 33, 0.95); color:#f1f5f9; border: 1px solid rgba(0, 160, 222, 0.3);">
+<a href="./docs/README_VALIDATION.md" style="color: inherit;">
+<i class="fas fa-headphones" style="color:#00b5ff;">
+</i>
+<h3>
+        Audio Validation Guide
+       </h3>
+<p>
+        Reference for scoring, triaging, and resolving validation findings before deploying audio.
+       </p>
+<div class="card-footer" style="color:#3dd5ff;">
+<span>
+         View guide
+        </span>
+<i class="fas fa-arrow-right">
+</i>
+</div>
+</a>
+</article>
+</div>
+</section>
+</div>
+<script>
+  (async () => {
+    const draftsEl = document.getElementById('stat-drafts');
+    const draftsDetailEl = document.getElementById('stat-drafts-detail');
+    const coverageEl = document.getElementById('stat-coverage');
+    const coverageDetailEl = document.getElementById('stat-coverage-detail');
+    const coverageRefreshBtn = document.getElementById('stat-coverage-refresh');
+    if (coverageRefreshBtn && !coverageRefreshBtn.dataset.bound) {
+      coverageRefreshBtn.dataset.bound = '1';
+      coverageRefreshBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const original = coverageRefreshBtn.textContent;
+        coverageRefreshBtn.disabled = true;
+        coverageRefreshBtn.textContent = 'Opening...';
+        window.open('./audio-coverage.html', '_blank');
+        setTimeout(() => {
+          coverageRefreshBtn.disabled = false;
+          coverageRefreshBtn.textContent = original;
+        }, 2000);
+      });
+    }
+    const visualEl = document.getElementById('stat-visual');
+    const visualDetailEl = document.getElementById('stat-visual-detail');
+    const issuesEl = document.getElementById('stat-issues');
+    const issuesDetailEl = document.getElementById('stat-issues-detail');
+    const audioClipsEl = document.getElementById('stat-audio-clips');
+    const audioClipsDetailEl = document.getElementById('stat-audio-clips-detail');
+
+    const setError = (el, detailEl, message) => {
+      if (el) el.textContent = '—';
+      if (detailEl) detailEl.textContent = message || 'Data unavailable';
+    };
+
+    try {
+      const response = await fetch('/api/pitwall-stats', { cache: 'no-cache' });
+      if (!response.ok) throw new Error(`status ${response.status}`);
+      const data = await response.json();
+
+      const drafts = data?.draftsAwaitingApproval || {};
+      if (drafts.message) {
+        if (draftsEl) draftsEl.textContent = '--';
+        if (draftsDetailEl) draftsDetailEl.textContent = drafts.message;
+      } else {
+        if (draftsEl) draftsEl.textContent = typeof drafts.uniqueItems === 'number' ? drafts.uniqueItems : '0';
+        if (draftsDetailEl) {
+          const files = typeof drafts.totalFiles === 'number' ? drafts.totalFiles : 0;
+          draftsDetailEl.textContent = `${files} version${files === 1 ? '' : 's'} saved in levante-assets-draft/audio`;
+        }
+      }
+
+      const coverage = data?.audioCoverage || {};
+      const hasCoverageStats = Boolean(coverage.cached) && typeof coverage.noTagCount === 'number';
+      const missingTagsValue = hasCoverageStats ? coverage.noTagCount : '--';
+      if (coverageEl) coverageEl.innerHTML = `<span class="warning-text">Missing Tags: ${missingTagsValue}</span>`;
+
+      if (hasCoverageStats) {
+        if (coverageDetailEl) {
+          const missingAudio = typeof coverage.missingCount === 'number' && coverage.missingCount > 0 ? 'Missing audio: Yes' : 'Missing audio: No';
+          coverageDetailEl.textContent = missingAudio;
+        }
+      } else if (coverageDetailEl) {
+        coverageDetailEl.textContent = coverage.message || 'Waiting for audio coverage summary...';
+      }
+      if (coverageRefreshBtn) {
+        coverageRefreshBtn.disabled = false;
+        coverageRefreshBtn.textContent = 'Refresh';
+      }
+
+      // Load audio clip status
+      async function loadAudioClipStatus() {
+        try {
+          const [draftRes, devRes] = await Promise.all([
+            fetch('/api/list-draft-audio?bucket=levante-assets-draft&prefix=audio/', { cache: 'no-cache' }),
+            fetch('/api/list-draft-audio?bucket=levante-assets-dev&prefix=audio/', { cache: 'no-cache' })
+          ]);
+          
+          let draftItems = new Set();
+          let devItems = new Set();
+          
+          if (draftRes.ok) {
+            const draftData = await draftRes.json();
+            if (draftData.items && Array.isArray(draftData.items)) {
+              draftData.items.forEach(item => {
+                const fileName = item.name.split('/').pop() || '';
+                const baseId = fileName.replace(/\.mp3$/i, '').replace(/_v\d{3}$/i, '');
+                if (baseId) draftItems.add(baseId);
+              });
+            }
+          }
+          
+          if (devRes.ok) {
+            const devData = await devRes.json();
+            if (devData.items && Array.isArray(devData.items)) {
+              devData.items.forEach(item => {
+                const fileName = item.name.split('/').pop() || '';
+                const baseId = fileName.replace(/\.mp3$/i, '').replace(/_v\d{3}$/i, '');
+                if (baseId) devItems.add(baseId);
+              });
+            }
+          }
+          
+          const toBeApproved = draftItems.size;
+          const approved = devItems.size;
+          const available = new Set([...draftItems, ...devItems]).size;
+          
+          if (audioClipsEl) {
+            audioClipsEl.textContent = available.toLocaleString();
+          }
+          if (audioClipsDetailEl) {
+            audioClipsDetailEl.textContent = `${approved.toLocaleString()} Approved • ${toBeApproved.toLocaleString()} To Be Approved`;
+          }
+        } catch (error) {
+          console.error('Error loading audio clip status:', error);
+          if (audioClipsEl) audioClipsEl.textContent = '--';
+          if (audioClipsDetailEl) audioClipsDetailEl.textContent = 'Unable to load audio clip status';
+        }
+      }
+      
+      await loadAudioClipStatus();
+
+      const visual = data?.visualAssets || {};
+      if (visual.message) {
+        if (visualEl) visualEl.textContent = '--';
+        if (visualDetailEl) visualDetailEl.textContent = visual.message;
+      } else {
+        if (visualEl) visualEl.textContent = typeof visual.pending === 'number' ? visual.pending : '0';
+        if (visualDetailEl) {
+          visualDetailEl.textContent = 'PNG assets missing WEBP conversions in dev bucket';
+        }
+      }
+
+      const issues = data?.githubIssues || {};
+      const p0 = issues.p0 ?? 0;
+      const p1 = issues.p1 ?? 0;
+      if (issues.message) {
+        if (issuesEl) issuesEl.textContent = 'P0 -- • P1 --';
+        if (issuesDetailEl) issuesDetailEl.textContent = issues.message;
+      } else {
+        if (issuesEl) issuesEl.textContent = `P0 ${p0} • P1 ${p1}`;
+        if (issuesDetailEl) issuesDetailEl.textContent = 'Priority issues pulled from levante-framework/project #1';
+      }
+    } catch (error) {
+      console.warn('Failed to load pitwall stats:', error);
+      setError(draftsEl, draftsDetailEl, 'Draft summary unavailable');
+      if (coverageEl) coverageEl.innerHTML = `<span class="warning-text">Missing Tags: --</span>`;
+      if (coverageDetailEl) coverageDetailEl.textContent = 'Audio coverage summary unavailable';
+      if (coverageRefreshBtn) {
+        coverageRefreshBtn.disabled = false;
+        coverageRefreshBtn.textContent = 'Refresh';
+      }
+      setError(visualEl, visualDetailEl, 'Visual audit unavailable');
+      setError(issuesEl, issuesDetailEl, 'GitHub summary unavailable');
+    }
+  })();
+</script>
+</body>
+</html>

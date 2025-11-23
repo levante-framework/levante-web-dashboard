@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Dashboard</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="./favicon-192x192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <!-- Authentication Modal -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-modal">
+            <div class="auth-header">
+                <h2><i class="fas fa-shield-alt"></i> Superadmin Access Required</h2>
+                <p>Please sign in with your Levante superadmin account</p>
+            </div>
+            <form class="auth-form" id="authForm">
+                <input type="email" id="emailInput" class="auth-input" placeholder="Email" required>
+                <input type="password" id="passwordInput" class="auth-input" placeholder="Password" required>
+                <button type="submit" class="auth-button" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                
+                <div class="auth-divider">
+                    <span>OR</span>
+                </div>
+                
+                <div class="sso-buttons">
+                    <button type="button" class="auth-button sso-button google" id="googleLoginBtn">
+                        <i class="fab fa-google"></i> Sign in with Google
+                    </button>
+                    <button type="button" class="auth-button sso-button microsoft" id="microsoftLoginBtn">
+                        <i class="fab fa-microsoft"></i> Sign in with Microsoft
+                    </button>
+                </div>
+                
+                <div id="authError" class="auth-error" style="display: none;"></div>
+                <div id="authSuccess" class="auth-success" style="display: none;"></div>
+                <div id="authLoading" class="loading">Authenticating...</div>
+            </form>
+        </div>
+    </div>
+
+    <div class="dashboard-container" style="display: none;">
+        <div class="header">
+            <h1><i class="fas fa-language"></i> <i class="fas fa-microphone"></i> Audio Dashboard</h1>
+            <!-- Cache bust: v2.1 -->
+            <div class="header-actions-left">
+                <a class="back-to-pitwall" href="./index.html" title="Back to Pitwall">
+                    <i class="fas fa-arrow-left"></i> Back to Pitwall
+                </a>
+                <div class="dropdown tools-dropdown" tabindex="0">
+                    <button class="btn btn-secondary dropdown-toggle" title="Tools and reports">
+                        <i class="fas fa-tools"></i> Tools
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="#" onclick="openAudioCoverage(); return false;">
+                            <i class="fas fa-table"></i> Audio Coverage Report
+                        </a>
+                        <a href="#" onclick="openPreflightReport(); return false;">
+                            <i class="fas fa-clipboard-list"></i> Pre-Release Readiness Report
+                        </a>
+                        <a href="#" onclick="openImageGallery(); return false;">
+                            <i class="fas fa-images"></i> Image Gallery
+                        </a>
+                        <a href="#" onclick="openTaskTemplate(); return false;">
+                            <i class="fas fa-plus-circle"></i> Add Task Template
+                        </a>
+                        <a href="#" onclick="openAssetHistory(); return false;">
+                            <i class="fas fa-history"></i> Asset History
+                        </a>
+                        <!-- Bucket Info temporarily hidden until authorization is sorted out
+                        <a href="#" onclick="openBucketInfo(); return false;">
+                            <i class="fas fa-database"></i> Bucket Info
+                        </a>
+                        -->
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="dropdown account-dropdown" id="userInfo" style="display: none;" tabindex="0">
+                    <button class="btn btn-secondary dropdown-toggle account-toggle" title="Account menu">
+                        <div class="account-labels">
+                            <span class="account-label" id="userName"></span>
+                            <span class="account-meta">Account</span>
+                        </div>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu account-menu">
+                        <div class="account-details">
+                            <span class="account-meta">Signed in as</span>
+                            <span class="account-email" id="accountEmailDisplay"></span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item logout-btn" id="logoutBtn">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="controls-section">
+                <div class="control-group">
+                    <label><i class="fas fa-volume-up"></i> Voice Tools:</label>
+                    <div class="voice-controls single-row" id="voiceControls">
+                        <div class="voice-select-row">
+                            <div class="voice-input compact">
+                                <select id="playhtVoice" class="voice-select split">
+                                    <option value="">Select PlayHT...</option>
+                                </select>
+                                <button id="copyPlayhtVoice" class="btn btn-secondary btn-copy" title="Copy selected voice name to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="voice-input compact">
+                                <select id="elevenlabsVoice" class="voice-select split">
+                                    <option value="">Select ElevenLabs...</option>
+                                </select>
+                                <button id="copyElevenlabsVoice" class="btn btn-secondary btn-copy" title="Copy selected voice name to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="voice-actions inline">
+                            <button id="refreshVoices" class="btn btn-info">
+                                <i class="fas fa-sync-alt"></i> Refresh Voices
+                            </button>
+                            <button id="manageCredentials" class="btn btn-secondary" onclick="openCredentialsModal()" title="Manage API credentials for TTS services">
+                                <i class="fas fa-key"></i> Credentials
+                            </button>
+                            <button id="editLanguageConfig" class="btn btn-warning btn-compact" onclick="openLanguageConfigModal()" title="Edit shared language configuration" data-version="v2.1">
+                                <i class="fas fa-language"></i> Languages
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Text Generation Section -->
+                <div class="control-group tts-control-group">
+                    <label class="tts-label"><i class="fas fa-edit"></i> Text to Speech:</label>
+                    <div class="tts-layout">
+                        <textarea id="textInput" class="tts-textarea" placeholder="Enter text to convert to speech, or select an item from the table below..."></textarea>
+                        <div class="tts-button-grid">
+                            <button id="generateAudio" class="btn btn-success">
+                                <i class="fas fa-play"></i> Generate Audio
+                            </button>
+                            <button id="populateSelected" class="btn btn-primary">
+                                <i class="fas fa-arrow-down"></i> Use Selected Item
+                            </button>
+                            <button id="viewDraftAudio" class="btn btn-secondary">
+                                <i class="fas fa-folder-open"></i> Draft Audio
+                            </button>
+                            <button id="viewDeployFolder" class="btn btn-secondary">
+                                <i class="fas fa-folder"></i> To be Deployed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Translation Validation Panel -->
+            <div class="validation-panel">
+                <div class="validation-header" onclick="toggleValidationPanel()">
+                    <span><i class="fas fa-check-circle"></i> Translation Validation</span>
+                    <span class="collapse-icon">▲</span>
+                </div>
+                <div class="validation-content expanded" id="validationContent">
+                    <!-- Validation Controls -->
+                    <div class="validation-controls" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <button id="validateSelected" class="btn validation-button btn-compact" onclick="validateSelected()">
+                            <i class="fas fa-check-double"></i> Validate Selected
+                        </button>
+                        <button id="validateAll" class="btn validation-button btn-compact" onclick="validateAll()">
+                            <i class="fas fa-check-circle"></i> Validate All
+                        </button>
+                        <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button id="loadValidations" class="btn btn-info btn-compact" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
+                            <i class="fas fa-cloud-download-alt"></i> Load
+                        </button>
+                        <button id="exportValidations" class="btn btn-secondary btn-compact" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button id="viewValidations" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="View summary of all validation results">
+                            <i class="fas fa-chart-bar"></i> View
+                        </button>
+                        <button class="btn btn-warning btn-compact" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
+                            <i class="fas fa-trash"></i> Clear Cache
+                        </button>
+
+                    </div>
+                    
+                    <!-- Validation Summary -->
+                    <div id="validationSummary" style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                            <h4 style="margin: 0; color: #333; font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
+                            <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #28a745;" id="goodCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Good</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #ffc107;" id="warningCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Warning</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #dc3545;" id="errorCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Review</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #6c757d;" id="pendingCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Pending</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab-buttons" id="tabButtons"></div>
+            </div>
+            <div id="tabContent"></div>
+        </div>
+        <div class="status-bar" id="statusBar">
+            <i class="fas fa-circle status-icon loading"></i>
+            <span>Loading dashboard...</span>
+        </div>
+    </div>
+    
+    <!-- Load Modals -->
+    <div id="modals-container"></div>
+    
+    <!-- Scripts -->
+    <script src="./config.js"></script>
+    <script>
+        async function openHelp(docPath) {
+            const helpModal = document.getElementById('helpModal');
+            const helpLoading = document.getElementById('helpLoading');
+            const helpContent = document.getElementById('helpContent');
+            helpContent.innerHTML = '';
+            helpLoading.style.display = 'block';
+            helpModal.style.display = 'block';
+
+            try {
+                const resp = await fetch(docPath);
+                const md = await resp.text();
+                helpContent.innerHTML = window.marked ? window.marked.parse(md) : md;
+            } catch (e) {
+                helpContent.innerHTML = '<p style="color:#dc3545;">Failed to load documentation.</p>';
+            } finally {
+                helpLoading.style.display = 'none';
+            }
+        }
+        function closeHelpModal() { document.getElementById('helpModal').style.display = 'none'; }
+        
+        function showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass) {
+            const modal = document.getElementById('validationResultsModal');
+            
+            // Update title and score
+            document.getElementById('validationModalTitle').innerHTML = `<i class="fas fa-clipboard-check"></i> Validation Results - ${itemId}`;
+            document.getElementById('validationScoreEmoji').textContent = scoreEmoji;
+            document.getElementById('validationScoreText').textContent = `${score}% Similarity`;
+            
+            // Update status badge
+            const statusBadge = document.getElementById('validationStatusBadge');
+            statusBadge.className = `validation-status-badge ${statusClass === 'status-good' ? 'excellent' : statusClass === 'status-warning' ? 'warning' : 'poor'}`;
+            statusBadge.textContent = statusClass === 'status-good' ? 'Excellent' : statusClass === 'status-warning' ? 'Good (Review)' : 'Poor Quality';
+            
+            // Update language info
+            const languageNames = {
+                'en': 'English',
+                'es-CO': 'Spanish (Colombia)', 
+                'es': 'Spanish',
+                'de': 'German',
+                'fr-CA': 'French (Canada)',
+                'fr': 'French',
+                'nl': 'Dutch'
+            };
+            document.getElementById('validationTargetLang').textContent = languageNames[langCode] || langCode;
+            
+            // Update text content
+            document.getElementById('validationOriginalText').textContent = result.originalText;
+            document.getElementById('validationTranslatedText').textContent = result.translatedText;
+            document.getElementById('validationBackTranslation').textContent = result.backTranslation;
+            document.getElementById('validationNotes').textContent = result.notes;
+            
+            // Update metadata
+            document.getElementById('validationItemId').textContent = itemId;
+            document.getElementById('validationLangCode').textContent = langCode;
+            document.getElementById('validationTimestamp').textContent = new Date(result.timestamp).toLocaleString();
+            
+            modal.style.display = 'block';
+        }
+        
+        function closeValidationResultsModal() { 
+            document.getElementById('validationResultsModal').style.display = 'none'; 
+        }
+        
+        function closeValidationSummaryModal() {
+            document.getElementById('validationSummaryModal').style.display = 'none';
+        }
+        function openAudioCoverage() {
+            window.open('./audio-coverage.html', '_blank');
+        }
+        function openPreflightReport() {
+            window.open('./preflight-report.html', '_blank');
+        }
+        function openImageGallery() {
+            window.open('https://image-gallery-digitalpros-projects.vercel.app/', '_blank');
+        }
+        function openAssetHistory() {
+            window.open('./asset-history.html', '_blank');
+        }
+        function openTaskTemplate() {
+            window.open('./task-template.html', '_blank');
+        }
+        function openBucketInfo() {
+            window.open('./bucket-info.html', '_blank');
+        }
+        function openSlides() {
+            window.open('./levante-slides.html', '_blank');
+        }
+        function openMermaidSlides() {
+            window.open('./levante-slides-with-mermaid.html', '_blank');
+        }
+        
+        function showValidationSummaryReport() {
+            const modal = document.getElementById('validationSummaryModal');
+            const header = document.getElementById('validationSummaryHeader');
+            const body = document.getElementById('validationSummaryBody');
+            const results = window.dashboard?.validation_results || {};
+            const languages = window.dashboard?.languages || {};
+            
+            // Build header chips per language
+            header.innerHTML = '';
+            const langCodes = Object.values(languages).map(cfg => cfg.lang_code);
+            const uniqueLangs = Array.from(new Set(langCodes));
+            uniqueLangs.forEach(code => {
+                // Count statuses for this language across items
+                let good = 0, warning = 0, error = 0, pending = 0;
+                Object.keys(results).forEach(itemId => {
+                    const r = results[itemId][code];
+                    if (!r) { pending++; return; }
+                    const score = Math.round((r.score || 0) * 100);
+                    if (score >= 85) good++; else if (score >= 70) warning++; else error++;
+                });
+                const chip = document.createElement('div');
+                chip.className = 'summary-chip';
+                const total = good + warning + error + pending || 1;
+                const goodPct = Math.round((good / total) * 100);
+                const warnPct = Math.round((warning / total) * 100);
+                const errPct = Math.round((error / total) * 100);
+                const pendPct = 100 - goodPct - warnPct - errPct;
+                chip.innerHTML = `
+                    <div class="summary-line">
+                        <span class="label">${code.toUpperCase()}</span>
+                        <span class="value">✅ ${good}  ⚠️ ${warning}  ❌ ${error}  ⏳ ${pending}</span>
+                    </div>
+                    <div class="bar" aria-hidden="true">
+                        <div class="bar-seg bar-good" style="width:${goodPct}%"></div>
+                        <div class="bar-seg bar-warning" style="width:${warnPct}%"></div>
+                        <div class="bar-seg bar-error" style="width:${errPct}%"></div>
+                        <div class="bar-seg bar-pending" style="width:${pendPct}%"></div>
+                    </div>`;
+                header.appendChild(chip);
+            });
+            
+            // Build table of items with per-language dots
+            const allItemIds = Object.keys(results);
+            const langList = uniqueLangs;
+            const table = document.createElement('table');
+            table.className = 'summary-table';
+            const thead = document.createElement('thead');
+            thead.innerHTML = `<tr><th>Item</th>${langList.map(c => `<th>${c.toUpperCase()}</th>`).join('')}</tr>`;
+            table.appendChild(thead);
+            const tbody = document.createElement('tbody');
+            
+            allItemIds.forEach(itemId => {
+                const tr = document.createElement('tr');
+                const tdItem = document.createElement('td');
+                tdItem.textContent = itemId;
+                tr.appendChild(tdItem);
+                
+                langList.forEach(code => {
+                    const td = document.createElement('td');
+                    const r = results[itemId][code];
+                    let cls = 'dot-pending';
+                    if (r) {
+                        const score = Math.round((r.score || 0) * 100);
+                        if (score >= 85) cls = 'dot-good'; else if (score >= 70) cls = 'dot-warning'; else cls = 'dot-error';
+                        td.title = `${score}% - ${r.notes || ''}`;
+                        td.style.cursor = 'pointer';
+                        td.onclick = () => showValidationResults(itemId, code, r, score >= 85 ? '✅' : score >= 70 ? '⚠️' : '❌', score, score >= 85 ? 'status-good' : score >= 70 ? 'status-warning' : 'status-error');
+                    } else {
+                        td.title = 'Pending - Not validated';
+                    }
+                    td.innerHTML = `<span class="status-dot ${cls}"></span>`;
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+            
+            body.innerHTML = '';
+            body.appendChild(table);
+            
+            modal.style.display = 'block';
+        }
+    </script>
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="./js-compiled/utils.js"></script>
+    <script src="./js-compiled/credentials.js"></script>
+    <script src="./js/audio-validation.js"></script>
+    <script src="./js/audio-validation.js"></script>
+    <script src="./js/validation-toolbar.js"></script>
+    <script src="./js/validation.js"></script>
+    <script src="./js-compiled/audio.js"></script>
+    <script src="./js-compiled/language-config.js"></script>
+    <script src="./dashboard.js"></script>
+    <script src="./js-compiled/bootstrap.js"></script>
+    
+    <script>
+        // Load modals dynamically
+        fetch('./modals.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('modals-container').innerHTML = html;
+            })
+            .catch(error => console.warn('Could not load modals:', error));
+    </script>
+    
+    <!-- Firebase Configuration and Authentication -->
+    <script src="./firebase-config.js"></script>
+    <script src="./auth.js"></script>
+</body>
+</html>

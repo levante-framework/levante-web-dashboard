@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>es-CO Audio Issues Report</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: #f7f8fa; color: #222; }
+        .container { max-width: 1100px; margin: 32px auto; padding: 0 16px; }
+        .card { background: #fff; border: 1px solid #e6e8eb; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .header { padding: 18px 20px; border-bottom: 1px solid #eef0f2; display: flex; justify-content: space-between; align-items: baseline; }
+        .header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.2px; }
+        .subtle { color: #6b7280; font-size: 13px; }
+        .controls { display: flex; gap: 8px; align-items: center; }
+        .pill { background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        thead th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e6e8eb; padding: 12px 14px; position: sticky; top: 0; }
+        tbody td { padding: 14px; border-bottom: 1px solid #f1f5f9; font-size: 14px; vertical-align: top; }
+        tr:hover td { background: #fafcff; }
+        .score { font-weight: 600; }
+        .score.good { color: #16a34a; }
+        .score.warn { color: #f59e0b; }
+        .score.bad { color: #dc2626; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color: #475569; }
+        .muted { color: #94a3b8; }
+        .tag { display: inline-block; padding: 2px 6px; border-radius: 6px; font-size: 11px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; }
+        .loading { padding: 12px 14px; color: #64748b; font-size: 14px; }
+        .error { color: #dc2626; }
+        .note { padding: 12px 14px; background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; border-radius: 8px; margin: 12px 16px; font-size: 13px; }
+        .right { text-align: right; }
+        .flex { display: flex; gap: 8px; align-items: center; }
+        .thead-sort { cursor: pointer; user-select: none; }
+        .section-divider { border: 0; height: 1px; background: linear-gradient(90deg, rgba(0,0,0,0), #e5e7eb, rgba(0,0,0,0)); margin: 18px 16px; }
+        .section-header { display:flex; align-items:center; justify-content:space-between; padding: 0 16px 8px 16px; color:#374151; }
+        .section-header h2 { margin:0; font-size: 15px; font-weight:600; }
+        .chart-wrap { padding: 0 16px 16px 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>es-CO Audio Issue Terms</h1>
+                <div class="controls">
+                    <span class="pill" id="dateTag">Loading…</span>
+                    <span class="pill">Source: <span class="mono">data/validation-es-*.json</span></span>
+                </div>
+            </div>
+            <div class="note">Columns: Term, Text Back-translation, Text Validity, Audio Back-translation, Audio Validity</div>
+            <div class="table-wrap">
+                <table id="issuesTable">
+                    <thead>
+                        <tr>
+                            <th class="thead-sort" data-sort="term">Term</th>
+                            <th>Back-translation (text)</th>
+                            <th class="thead-sort" data-sort="textScore">Text validity</th>
+                            <th>Back-translation (audio)</th>
+                            <th class="thead-sort right" data-sort="audioScore">Audio validity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody">
+                        <tr><td colspan="5" class="loading">Loading validation data…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <hr class="section-divider">
+            <div class="section-header">
+                <h2>Numbers — Validation Table</h2>
+                <span class="subtle">Lookup by English source; same columns as above</span>
+            </div>
+            <div class="table-wrap">
+                <table id="issuesTableNumbers">
+                    <thead>
+                        <tr>
+                            <th class="thead-sort" data-sort="term2">Term</th>
+                            <th>Back-translation (text)</th>
+                            <th class="thead-sort" data-sort="textScore2">Text validity</th>
+                            <th>Back-translation (audio)</th>
+                            <th class="thead-sort right" data-sort="audioScore2">Audio validity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyNumbers">
+                        <tr><td colspan="5" class="loading">Loading numbers…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    const TERMS = [
+        "Gesticular","Estático","Boina","Espiando","Gourmet","Goteando","Peludo","Mamalogía","Entregando"
+    ];
+    const LANG_SOURCE = "es"; // text backtranslation source
+    const TRANSLATE_PROXY = "/api/translate-proxy"; // deployed with dashboard
+    // Numbers chart input (starting from English)
+    const NUMBERS_CHART = [
+        { eng: '245', audioId: 'Audio01' },
+        { eng: '587', audioId: 'Audio02' },
+        { eng: '731', audioId: 'Audio03' },
+        { eng: '989', audioId: 'Audio04' },
+        { eng: '31',  audioId: 'Audio07' }
+    ];
+
+    function classifyScore(v){
+        if (v == null || isNaN(v)) return {cls: "bad", label: "—"};
+        if (v >= 0.90 || v >= 90) return {cls: "good", label: fmtScore(v)};
+        if (v >= 0.75 || v >= 75) return {cls: "warn", label: fmtScore(v)};
+        return {cls: "bad", label: fmtScore(v)};
+    }
+    function fmtScore(v){
+        if (v == null || isNaN(v)) return "—";
+        return (v <= 1 ? (v*100).toFixed(0) : v.toFixed(0)) + "%";
+    }
+    function escapeHtml(s){ return (s||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+    async function fetchLatestValidation(){
+        // For now, use the shipped snapshot to avoid 404 noise
+        const url = 'data/validation-es-Sep-11-2025.json';
+        const res = await fetch(url, {cache: 'no-store'});
+        if (!res.ok) throw new Error('No validation JSON found for es.');
+        const data = await res.json();
+        return { data: Array.isArray(data) ? data : [data], url, dateStr: 'Sep-11-2025' };
+    }
+
+    function bestExpected(r){
+        return r.expected_text || r.basic_metrics?.original_cleaned || r.elevenlabs_validation?.original_cleaned || "";
+    }
+    function audioScore(r){
+        // Prefer our advanced similarity score
+        const s = r.elevenlabs_validation?.similarity_score ?? r.basic_metrics?.similarity_ratio ?? null;
+        return s;
+    }
+    async function backtranslateText(esText, originalEnglish){
+        try{
+            const res = await fetch(TRANSLATE_PROXY, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-KEY': localStorage.getItem('GOOGLE_TRANSLATE_APIKEY') || ''
+                },
+                body: JSON.stringify({ original_english: originalEnglish || '', source_text: esText, source_lang: LANG_SOURCE, target_lang: 'en' })
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return { text: data.back_translated, scorePct: data.similarity_score };
+        }catch(_e){ return null; }
+    }
+
+    function inferItemFromPath(p){
+        const m = (p||"").match(/\/([^\/]+)\.mp3$/); return m? m[1] : p;
+    }
+
+    function renderRows(rows){
+        const tbody = document.getElementById('tbody');
+        tbody.innerHTML = '';
+        for (const row of rows){
+            const textClass = classifyScore(row.textScore).cls;
+            const audioClass = classifyScore(row.audioScore).cls;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="tag">${escapeHtml(row.term)}</span></td>
+                <td>${escapeHtml(row.textBack || '')}</td>
+                <td><span class="score ${textClass}">${classifyScore(row.textScore).label}</span></td>
+                <td>${escapeHtml(row.audioBack || row.transcribed || '')}</td>
+                <td class="right"><span class="score ${audioClass}">${classifyScore(row.audioScore).label}</span></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function findRecordForNumber(validationRows, numStr){
+        // Prefer filename match (some builds include the number in filename index)
+        const rx = new RegExp(`number[-_]?identification[-_]*${numStr}\\.mp3$`);
+        let rec = validationRows.find(r => rx.test((r.audio_path||'').toLowerCase()));
+        if (rec) return rec;
+        // Then match by expected text containing the number (e.g., "Escoge el 245.")
+        const hasNum = (s) => typeof s === 'string' && s.indexOf(String(numStr)) !== -1;
+        rec = validationRows.find(r => hasNum(r.expected_text) || hasNum(r.basic_metrics?.original_cleaned) || hasNum(r.elevenlabs_validation?.original_cleaned));
+        if (rec) return rec;
+        // Finally, any audio_path with the number sequence
+        const rxLoose = new RegExp(`(^|[^0-9])${numStr}([^0-9]|$)`);
+        rec = validationRows.find(r => rxLoose.test((r.audio_path||'')));
+        return rec || null;
+    }
+
+    function renderNumbersRows(rows){
+        const tbody = document.getElementById('tbodyNumbers');
+        tbody.innerHTML = '';
+        for (const row of rows){
+            const textClass = classifyScore(row.textScore).cls;
+            const audioClass = classifyScore(row.audioScore).cls;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="tag">${escapeHtml(row.term)}</span> <span class="muted mono">${escapeHtml(row.audioId||'')}</span></td>
+                <td>${escapeHtml(row.textBack || '')}</td>
+                <td><span class="score ${textClass}">${classifyScore(row.textScore).label}</span></td>
+                <td>${escapeHtml(row.audioBack || row.transcribed || '')}</td>
+                <td class="right"><span class="score ${audioClass}">${classifyScore(row.audioScore).label}</span></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function sortBy(key, asc){
+        CURRENT.sort((a,b)=>{
+            const va = a[key] ?? '';
+            const vb = b[key] ?? '';
+            if (typeof va === 'number' && typeof vb === 'number') return asc? va - vb : vb - va;
+            return asc? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+        });
+        renderRows(CURRENT);
+    }
+
+    function parseCSV(text){
+        const rows = [];
+        let i=0, field='', row=[], inQuotes=false;
+        while(i < text.length){
+            const c = text[i];
+            if(inQuotes){
+                if(c==='"'){
+                    if(text[i+1]==='"'){ field+='"'; i+=2; continue; }
+                    inQuotes=false; i++; continue;
+                } else { field+=c; i++; continue; }
+            } else {
+                if(c==='"'){ inQuotes=true; i++; continue; }
+                if(c===','){ row.push(field); field=''; i++; continue; }
+                if(c==='\n' || c==='\r'){ if(c==='\r' && text[i+1]==='\n') i++; row.push(field); rows.push(row); field=''; row=[]; i++; continue; }
+                field+=c; i++; continue;
+            }
+        }
+        if(field.length>0 || row.length>0) { row.push(field); rows.push(row); }
+        return rows;
+    }
+    async function loadEnglishLookup(){
+        const url = (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) || 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv';
+        try{
+            const res = await fetch(url, {cache:'no-store'});
+            if(!res.ok) return new Map();
+            const txt = await res.text();
+            const rows = parseCSV(txt);
+            if(!rows.length) return new Map();
+            const header = rows[0].map(h=>h.trim());
+            // Find columns
+            const idxEn = header.findIndex(h => /^en(\b|[-_]|$)/i.test(h));
+            let idxEs = header.findIndex(h => /^es[-_]?CO$/i.test(h));
+            if(idxEs<0) idxEs = header.findIndex(h => /^es(\b|[-_]|$)/i.test(h));
+            if(idxEn<0 || idxEs<0) return new Map();
+            const map = new Map();
+            const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim();
+            for(let r=1;r<rows.length;r++){
+                const es = rows[r][idxEs] || '';
+                const en = rows[r][idxEn] || '';
+                if(es) map.set(norm(es), en);
+            }
+            return map;
+        }catch(_e){ return new Map(); }
+    }
+
+    let CURRENT = [];
+    (async function init(){
+        try{
+            const {data, url, dateStr} = await fetchLatestValidation();
+            document.getElementById('dateTag').textContent = dateStr ? `Report: ${dateStr}` : 'Report loaded';
+            const enLookup = await loadEnglishLookup();
+            // Build lookup by normalized expected text or filename stem
+            const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+            const byExpected = new Map();
+            for (const r of data){
+                const exp = bestExpected(r);
+                if (exp) byExpected.set(norm(exp), r);
+                const stem = inferItemFromPath(r.audio_path || '');
+                if (stem) byExpected.set(norm(stem), r);
+            }
+            const rows = [];
+            for (const term of TERMS){
+                const key = norm(term);
+                // Prefer exact expected match; else try any record containing the term in expected
+                let rec = byExpected.get(key);
+                if (!rec){
+                    rec = data.find(r => norm(bestExpected(r)).includes(key));
+                }
+                if (!rec){
+                    const enOrig = enLookup.get(key) || '';
+                    rows.push({ term, textBack: '', textScore: null, audioBack: '', audioScore: null, transcribed: '', enOrig });
+                    continue;
+                }
+                const exp = bestExpected(rec);
+                const transcribed = rec.elevenlabs_validation?.transcribed_text || rec.transcribed_text || '';
+                const enOrig = (enLookup && enLookup.get) ? (enLookup.get(key) || '') : '';
+                // Prefer CSV mapping for text backtranslation; fall back to API
+                let textBackStr = '';
+                let textScoreVal = null;
+                if (enOrig) {
+                    textBackStr = enOrig;
+                    textScoreVal = 100;
+                }
+                // For audio, try CSV lookup on ASR transcript first; fall back to API
+                let audioBackStr = '';
+                const transKey = norm(transcribed);
+                if (enLookup && enLookup.get && enLookup.get(transKey)) {
+                    audioBackStr = enLookup.get(transKey);
+                }
+                rows.push({
+                    term,
+                    textBack: textBackStr,
+                    textScore: textScoreVal,
+                    audioBack: audioBackStr,
+                    audioScore: audioScore(rec),
+                    transcribed,
+                    enOrig
+                });
+            }
+            CURRENT = rows;
+            renderRows(rows);
+            // Build numbers table: look up by English source term
+            const numbersRows = [];
+            for (const it of NUMBERS_CHART){
+                const enTerm = it.eng;
+                const enTermFull = `Choose the ${enTerm}`;
+                // Find validation record primarily by Spanish expected text containing the number
+                const rec = findRecordForNumber(data, enTerm);
+                const transcribed = rec?.elevenlabs_validation?.transcribed_text || rec?.transcribed_text || '';
+                // Text backtranslation: from JSON/English source only (no API)
+                let textBackStr = enTermFull;
+                let textScoreVal = rec && typeof rec.meaning_similarity === 'number' ? Math.round(rec.meaning_similarity * 100) : 100;
+                // Audio backtranslation: use cleaned transcript from validation JSON
+                let audioBackStr = rec?.elevenlabs_validation?.transcribed_cleaned
+                    || rec?.basic_metrics?.transcribed_cleaned
+                    || transcribed
+                    || '';
+                // Audio validity score from validation; include WER if available for future use
+                const audioScoreVal = rec ? audioScore(rec) : null;
+                const wer = rec?.basic_metrics?.word_error_rate ?? rec?.elevenlabs_validation?.word_error_rate ?? rec?.basic_metrics?.word_error_rate ?? null;
+                numbersRows.push({
+                    term: enTermFull,
+                    audioId: it.audioId,
+                    textBack: textBackStr,
+                    textScore: textScoreVal,
+                    audioBack: audioBackStr,
+                    audioScore: audioScoreVal,
+                    transcribed
+                });
+            }
+            renderNumbersRows(numbersRows);
+
+            // Enable sorting
+            const heads = document.querySelectorAll('.thead-sort');
+            heads.forEach(h => {
+                let asc = false;
+                h.addEventListener('click', ()=>{ asc = !asc; sortBy(h.dataset.sort, asc); });
+            });
+        } catch(e){
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = `<tr><td colspan="5" class="loading error">${escapeHtml(e.message || 'Failed to load data')}</td></tr>`;
+        }
+    })();
+    </script>
+</body>
+</html>
+
+

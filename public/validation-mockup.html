@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation Dashboard with Validation - Mockup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        select, input, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .validation-button {
+            background: #9b59b6;
+        }
+        
+        .validation-button:hover {
+            background: #8e44ad;
+        }
+        
+        /* NEW: Validation Panel */
+        .validation-panel {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin: 15px 20px;
+            overflow: hidden;
+        }
+        
+        .validation-header {
+            background: #6c757d;
+            color: white;
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .validation-content {
+            padding: 15px;
+            display: none;
+        }
+        
+        .validation-content.expanded {
+            display: block;
+        }
+        
+        .table-container {
+            margin: 20px;
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+        }
+        
+        /* NEW: Validation Status Indicators */
+        .validation-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-left: 8px;
+        }
+        
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .status-good { background: #28a745; }
+        .status-warning { background: #ffc107; }
+        .status-error { background: #dc3545; }
+        .status-pending { background: #6c757d; }
+        
+        .validate-btn {
+            background: #6f42c1;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        /* NEW: Back-translation comparison */
+        .back-translation {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+        
+        .similarity-score {
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        .score-high { color: #28a745; }
+        .score-medium { color: #ffc107; }
+        .score-low { color: #dc3545; }
+        
+        .text-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .comparison-section {
+            background: white;
+            padding: 8px;
+            border-radius: 3px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .comparison-label {
+            font-weight: bold;
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        
+        /* Highlight differences */
+        .diff-highlight {
+            background: #ffeaa7;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+        
+        .audio-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .play-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .generate-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .collapse-icon {
+            transition: transform 0.3s;
+        }
+        
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: modalFadeIn 0.3s;
+        }
+        
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            position: relative;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        
+        .close {
+            color: white;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        
+        .close:hover {
+            opacity: 0.7;
+        }
+        
+        .credentials-form {
+            padding: 25px;
+        }
+        
+        .credential-group {
+            margin-bottom: 20px;
+        }
+        
+        .credential-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .credential-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .credential-group input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .credentials-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e5e9;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>LEVANTE Translation Dashboard with Validation</h1>
+            <p>Generate audio files and validate translations with back-translation</p>
+        </div>
+        
+        <!-- Existing Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <label>Task Filter:</label>
+                <select>
+                    <option>All Tasks</option>
+                    <option>general</option>
+                    <option>vocab</option>
+                    <option>theory-of-mind</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Language:</label>
+                <select>
+                    <option>Spanish (es-CO)</option>
+                    <option>French (fr-CA)</option>
+                    <option>German (de)</option>
+                    <option>Dutch (nl)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <input type="text" placeholder="Search translations..." style="width: 200px;">
+            </div>
+            
+            <button>Generate Selected Audio</button>
+            
+            <!-- NEW: Validation Controls -->
+            
+            <button class="validation-button" onclick="validateSelected()">Validate Selected</button>
+            <button class="validation-button" onclick="validateAll()">Validate All</button>
+            
+            <div class="control-group" style="border-left: 2px solid #6c757d; padding-left: 15px;">
+                <button onclick="openCredentialsModal()">
+                    <i class="fas fa-key"></i> Manage Credentials
+                </button>
+            </div>
+        </div>
+        
+        <!-- NEW: Validation Summary Panel -->
+        <div class="validation-panel">
+            <div class="validation-header collapsed" onclick="toggleValidationPanel()">
+                <span>📊 Validation Summary</span>
+                <span class="collapse-icon">▼</span>
+            </div>
+            <div class="validation-content" id="validationSummary">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center;">
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #28a745;">156</div>
+                        <div style="color: #6c757d;">Good (>85%)</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #ffc107;">23</div>
+                        <div style="color: #6c757d;">Warning (70-85%)</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #dc3545;">8</div>
+                        <div style="color: #6c757d;">Needs Review (<70%)</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 24px; font-weight: bold; color: #6c757d;">45</div>
+                        <div style="color: #6c757d;">Not Validated</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Translation Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox"></th>
+                        <th style="width: 120px;">Item ID</th>
+                        <th style="width: 80px;">Task</th>
+                        <th style="width: 300px;">English (Original)</th>
+                        <th style="width: 300px;">Spanish (es-CO) 
+                            <!-- NEW: Validation Status in Header -->
+                            <span style="float: right; font-size: 12px; color: #6c757d;">Validation</span>
+                        </th>
+                        <th style="width: 120px;">Audio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Example Row 1: Good validation -->
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>general-intro1</td>
+                        <td>general</td>
+                        <td>Hi! We are excited to have you play some games with us today!</td>
+                        <td>
+                            ¡Hola! ¡Estamos encantados de que juegues hoy con nosotros!
+                            <!-- NEW: Validation Status -->
+                            <div class="validation-status">
+                                <div class="status-indicator status-good" title="Validation: 92% similarity"></div>
+                                <button class="validate-btn" onclick="showValidation(this)">View</button>
+                            </div>
+                            
+                            <!-- NEW: Back-translation panel (initially hidden) -->
+                            <div class="back-translation" style="display: none;">
+                                <div class="similarity-score score-high">Similarity: 92%</div>
+                                <div class="text-comparison">
+                                    <div class="comparison-section">
+                                        <div class="comparison-label">Original English</div>
+                                        <div>Hi! We are excited to have you play some games with us today!</div>
+                                    </div>
+                                    <div class="comparison-section">
+                                        <div class="comparison-label">Back-translated</div>
+                                        <div>Hello! We are <span class="diff-highlight">delighted</span> to have you play games with us today!</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="audio-controls">
+                                <button class="play-btn">▶ Play</button>
+                                <button class="generate-btn">Generate</button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Example Row 2: Warning validation -->
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>general-device-type</td>
+                        <td>general</td>
+                        <td>Please use a tablet in landscape mode, or a desktop computer or a laptop to complete the activities.</td>
+                        <td>
+                            Por favor utiliza una tableta en modo horizontal, un ordenador de sobremesa o un portátil para que las actividades se puedan visualizar correctamente.
+                            <div class="validation-status">
+                                <div class="status-indicator status-warning" title="Validation: 78% similarity"></div>
+                                <button class="validate-btn" onclick="showValidation(this)">View</button>
+                            </div>
+                            
+                            <div class="back-translation" style="display: none;">
+                                <div class="similarity-score score-medium">Similarity: 78%</div>
+                                <div class="text-comparison">
+                                    <div class="comparison-section">
+                                        <div class="comparison-label">Original English</div>
+                                        <div>Please use a tablet in landscape mode, or a desktop computer or a laptop to complete the activities.</div>
+                                    </div>
+                                    <div class="comparison-section">
+                                        <div class="comparison-label">Back-translated</div>
+                                        <div>Please use a tablet in horizontal mode, a desktop computer or a laptop <span class="diff-highlight">so that activities can be displayed correctly</span>.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="audio-controls">
+                                <button class="play-btn">▶ Play</button>
+                                <button class="generate-btn">Generate</button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Example Row 3: Error/needs review -->
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>vocab-item-001</td>
+                        <td>vocab</td>
+                        <td>the acorn</td>
+                        <td>
+                            la bellota
+                            <div class="validation-status">
+                                <div class="status-indicator status-error" title="Validation: 45% similarity"></div>
+                                <button class="validate-btn" onclick="showValidation(this)">View</button>
+                            </div>
+                            
+                            <div class="back-translation" style="display: none;">
+                                <div class="similarity-score score-low">Similarity: 45%</div>
+                                <div class="text-comparison">
+                                    <div class="comparison-section">
+                                        <div class="comparison-label">Original English</div>
+                                        <div>the acorn</div>
+                                    </div>
+                                    <div class="comparison-section">
+                                        <div class="comparison-label">Back-translated</div>
+                                        <div><span class="diff-highlight">the oak</span></div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 8px; font-size: 12px; color: #856404; background: #fff3cd; padding: 6px; border-radius: 3px;">
+                                    ⚠️ Low similarity detected. Consider reviewing this translation.
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="audio-controls">
+                                <button class="play-btn">▶ Play</button>
+                                <button class="generate-btn">Generate</button>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Example Row 4: Not validated yet -->
+                    <tr>
+                        <td><input type="checkbox"></td>
+                        <td>vocab-item-002</td>
+                        <td>vocab</td>
+                        <td>the aloe</td>
+                        <td>
+                            el aloe
+                            <div class="validation-status">
+                                <div class="status-indicator status-pending" title="Not validated yet"></div>
+                                <button class="validate-btn" onclick="validateSingle(this)">Validate</button>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="audio-controls">
+                                <button class="play-btn">▶ Play</button>
+                                <button class="generate-btn">Generate</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Credentials Modal -->
+    <div id="credentialsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-key"></i> API Credentials</h2>
+                <span class="close" onclick="closeCredentialsModal()">&times;</span>
+            </div>
+            <div class="credentials-form">
+                <div class="credential-group">
+                    <label for="playhtApiKey">PlayHT API Key:</label>
+                    <input type="text" id="playhtApiKey" placeholder="Enter PlayHT API Key">
+                </div>
+                <div class="credential-group">
+                    <label for="playhtUserId">PlayHT User ID:</label>
+                    <input type="text" id="playhtUserId" placeholder="Enter PlayHT User ID">
+                </div>
+                <div class="credential-group">
+                    <label for="elevenlabsApiKey">ElevenLabs API Key:</label>
+                    <input type="text" id="elevenlabsApiKey" placeholder="Enter ElevenLabs API Key">
+                </div>
+                <div class="credential-group">
+                    <label for="googleTranslateApiKey">Google Translate API Key:</label>
+                    <input type="text" id="googleTranslateApiKey" placeholder="Enter Google Translate API Key">
+                </div>
+                <div class="credentials-buttons">
+                    <button id="saveCredentials" class="btn btn-primary" onclick="saveCredentials()">
+                        <i class="fas fa-save"></i> Save Credentials
+                    </button>
+                    <button id="recoverCredentials" class="btn btn-success" onclick="loadCredentials()">
+                        <i class="fas fa-history"></i> Load Credentials
+                    </button>
+                    <button id="clearCredentials" class="btn btn-secondary" onclick="clearCredentials()">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function toggleValidationPanel() {
+            const header = document.querySelector('.validation-header');
+            const content = document.getElementById('validationSummary');
+            
+            header.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+        }
+        
+        function showValidation(button) {
+            const row = button.closest('tr');
+            const validationPanel = row.querySelector('.back-translation');
+            
+            if (validationPanel.style.display === 'none') {
+                validationPanel.style.display = 'block';
+                button.textContent = 'Hide';
+            } else {
+                validationPanel.style.display = 'none';
+                button.textContent = 'View';
+            }
+        }
+        
+        function validateSingle(button) {
+            // Simulate validation
+            button.textContent = 'Validating...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                const indicator = button.parentElement.querySelector('.status-indicator');
+                indicator.className = 'status-indicator status-good';
+                indicator.title = 'Validation: 89% similarity';
+                button.textContent = 'View';
+                button.disabled = false;
+                
+                // Add back-translation panel
+                const cell = button.closest('td');
+                const backTransDiv = document.createElement('div');
+                backTransDiv.className = 'back-translation';
+                backTransDiv.innerHTML = `
+                    <div class="similarity-score score-high">Similarity: 89%</div>
+                    <div class="text-comparison">
+                        <div class="comparison-section">
+                            <div class="comparison-label">Original English</div>
+                            <div>the aloe</div>
+                        </div>
+                        <div class="comparison-section">
+                            <div class="comparison-label">Back-translated</div>
+                            <div>the aloe</div>
+                        </div>
+                    </div>
+                `;
+                cell.appendChild(backTransDiv);
+                
+                button.onclick = () => showValidation(button);
+            }, 2000);
+        }
+        
+        function validateSelected() {
+            alert('Would validate all selected translations using Google Translate API');
+        }
+        
+        function validateAll() {
+            alert('Would validate all visible translations using Google Translate API');
+        }
+        
+        // Credentials Management Functions
+        function openCredentialsModal() {
+            document.getElementById('credentialsModal').style.display = 'block';
+            loadCredentials(); // Load existing credentials when opening
+        }
+        
+        function closeCredentialsModal() {
+            document.getElementById('credentialsModal').style.display = 'none';
+        }
+        
+        function saveCredentials() {
+            const credentials = {
+                playhtApiKey: document.getElementById('playhtApiKey').value,
+                playhtUserId: document.getElementById('playhtUserId').value,
+                elevenlabsApiKey: document.getElementById('elevenlabsApiKey').value,
+                googleTranslateApiKey: document.getElementById('googleTranslateApiKey').value
+            };
+            
+            // Save to localStorage (following your existing pattern)
+            localStorage.setItem('levante_credentials', JSON.stringify(credentials));
+            
+            // Show success message
+            alert('Credentials saved successfully!');
+            
+            // Update any validation status if Google Translate key was added
+            if (credentials.googleTranslateApiKey) {
+                updateValidationAvailability(true);
+            }
+        }
+        
+        function loadCredentials() {
+            try {
+                const credentials = JSON.parse(localStorage.getItem('levante_credentials') || '{}');
+                
+                document.getElementById('playhtApiKey').value = credentials.playhtApiKey || '';
+                document.getElementById('playhtUserId').value = credentials.playhtUserId || '';
+                document.getElementById('elevenlabsApiKey').value = credentials.elevenlabsApiKey || '';
+                document.getElementById('googleTranslateApiKey').value = credentials.googleTranslateApiKey || '';
+                
+                // Update validation availability
+                updateValidationAvailability(!!credentials.googleTranslateApiKey);
+                
+            } catch (error) {
+                console.error('Error loading credentials:', error);
+                alert('Error loading credentials. Please re-enter them.');
+            }
+        }
+        
+        function clearCredentials() {
+            if (confirm('Are you sure you want to clear all credentials? This cannot be undone.')) {
+                localStorage.removeItem('levante_credentials');
+                
+                // Clear form fields
+                document.getElementById('playhtApiKey').value = '';
+                document.getElementById('playhtUserId').value = '';
+                document.getElementById('elevenlabsApiKey').value = '';
+                document.getElementById('googleTranslateApiKey').value = '';
+                
+                // Update validation availability
+                updateValidationAvailability(false);
+                
+                alert('All credentials cleared.');
+            }
+        }
+        
+        function updateValidationAvailability(hasGoogleTranslateKey) {
+            const validateButtons = document.querySelectorAll('.validation-button');
+            const validateBtns = document.querySelectorAll('.validate-btn');
+            
+            if (hasGoogleTranslateKey) {
+                validateButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.title = 'Validation enabled - Google Translate API key found';
+                });
+                validateBtns.forEach(btn => {
+                    btn.disabled = false;
+                    btn.title = 'Click to validate this translation';
+                });
+            } else {
+                validateButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.title = 'Validation disabled - Please add Google Translate API key in credentials';
+                });
+                validateBtns.forEach(btn => {
+                    btn.disabled = true;
+                    btn.title = 'Validation disabled - Please add Google Translate API key';
+                });
+            }
+        }
+        
+        // Load credentials on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCredentials();
+        });
+        
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('credentialsModal');
+            if (event.target === modal) {
+                closeCredentialsModal();
+            }
+        }
+    </script>
+</body>
+</html>

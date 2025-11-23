@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Levante Pitwall Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .dashboard-container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 300; }
+        .main-content { padding: 30px; }
+        .controls-section { margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #4facfe; }
+        .control-group { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .voice-select { padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; min-width: 200px; }
+        .tabs { margin-bottom: 30px; }
+        .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-button { padding: 15px 25px; background: #f8f9fa; border: none; border-radius: 10px 10px 0 0; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+        .tab-button.active { background: #007bff; color: white; }
+        .tab-content { display: none; padding: 20px; background: #f8f9fa; border-radius: 0 10px 10px 10px; }
+        .tab-content.active { display: block; }
+        .status-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #333; color: white; padding: 10px 20px; font-size: 14px; z-index: 1000; }
+        
+        /* Authentication Styles */
+        .auth-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; }
+        .auth-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 40px; border-radius: 15px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); max-width: 400px; width: 90%; }
+        .auth-header { text-align: center; margin-bottom: 30px; }
+        .auth-header h2 { color: #333; margin-bottom: 10px; }
+        .auth-header p { color: #666; font-size: 14px; }
+        .auth-form { display: flex; flex-direction: column; gap: 20px; }
+        .auth-input { padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; }
+        .auth-input:focus { outline: none; border-color: #007bff; }
+        .auth-button { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        .auth-button:hover { background: #0056b3; }
+        .auth-button:disabled { background: #ccc; cursor: not-allowed; }
+        .auth-error { color: #dc3545; font-size: 14px; margin-top: 10px; text-align: center; }
+        .auth-success { color: #28a745; font-size: 14px; margin-top: 10px; text-align: center; }
+        .user-info { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
+        .user-info .user-name { color: white; font-weight: 600; }
+        .user-info .logout-btn { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
+        .user-info .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        .loading { display: none; text-align: center; color: #666; }
+        
+        /* SSO Button Styles */
+        .auth-divider { 
+            text-align: center; 
+            margin: 20px 0; 
+            position: relative; 
+        }
+        .auth-divider::before { 
+            content: ''; 
+            position: absolute; 
+            top: 50%; 
+            left: 0; 
+            right: 0; 
+            height: 1px; 
+            background: #e0e0e0; 
+        }
+        .auth-divider span { 
+            background: white; 
+            padding: 0 15px; 
+            color: #666; 
+            font-size: 14px; 
+        }
+        .sso-buttons { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        .sso-button { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px; 
+            font-size: 14px; 
+        }
+        .sso-button.google { 
+            background: #db4437; 
+            color: white; 
+        }
+        .sso-button.google:hover { 
+            background: #c23321; 
+        }
+        .sso-button.microsoft { 
+            background: #0078d4; 
+            color: white; 
+        }
+        .sso-button.microsoft:hover { 
+            background: #106ebe; 
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1><i class="fas fa-microphone"></i> Levante Pitwall Dashboard</h1>
+            <p>Compare, validate, and generate TTS audio across multiple languages and services</p>
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span class="user-name" id="userName"></span>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="controls-section">
+                <div class="control-group">
+                    <label><i class="fas fa-volume-up"></i> Voice Comparison:</label>
+                    <div>
+                        <label for="playhtVoice">PlayHT Voice:</label>
+                        <select id="playhtVoice" class="voice-select">
+                            <option value="">Select PlayHT Voice...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="elevenlabsVoice">ElevenLabs Voice:</label>
+                        <select id="elevenlabsVoice" class="voice-select">
+                            <option value="">Select ElevenLabs Voice...</option>
+                        </select>
+                    </div>
+                    <button id="refreshVoices" class="btn btn-info">
+                        <i class="fas fa-sync-alt"></i> Refresh Voices
+                    </button>
+                </div>
+            </div>
+            <div class="tabs">
+                <div class="tab-buttons" id="tabButtons"></div>
+            </div>
+            <div id="tabContent"></div>
+        </div>
+        <div class="status-bar" id="statusBar">Ready</div>
+    </div>
+
+    <script>
+        // Voice data matching exact config.py settings
+        const VOICES = {
+            "playht": {
+                "en": [{"voice_id": "s3://voice-cloning-zero-shot/adb83b67-8d75-48ff-ad4d-a0840d231ef1/original/manifest.json", "name": "Inara", "language": "en", "gender": "female"}],
+                "de": [{"voice_id": "s3://voice-cloning-zero-shot/3d1a2ebc-6fe3-4b9b-b8f3-d23a3e5b6c7d/original/manifest.json", "name": "German_Anke Narrative", "language": "de", "gender": "female"}]
+            },
+            "elevenlabs": {
+                "de": [{"voice_id": "D4BIjjCRFRZhH8fGOzGP", "name": "German Voice", "language": "de", "gender": "female"}],
+                "fr-CA": [{"voice_id": "D4BIjjCRFRZhH8fGOzGP", "name": "Caroline - Top France - Narrative, warm, sweet", "language": "fr-CA", "gender": "female"}],
+                "nl": [{"voice_id": "BmGJM2HQCL8H5KfGOzGP", "name": "Emma - Natural conversations in Dutch", "language": "nl", "gender": "female"}]
+            }
+        };
+
+        class Dashboard {
+            constructor() {
+                // Match exact config.py language settings
+                this.languages = {
+                    'German': { lang_code: 'de', service: 'PlayHT', voice: 'German_Anke Narrative' },
+                    'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet' },
+                    'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' }
+                };
+                this.currentLanguage = 'English';
+                this.init();
+            }
+
+            init() {
+                console.log('Dashboard initializing...');
+                this.createTabs();
+                this.setupEventListeners();
+                this.populateVoices();
+                this.setStatus('Dashboard ready!');
+            }
+
+            createTabs() {
+                const tabButtons = document.getElementById('tabButtons');
+                const tabContent = document.getElementById('tabContent');
+                
+                Object.keys(this.languages).forEach((language, index) => {
+                    const button = document.createElement('button');
+                    button.className = `tab-button ${index === 0 ? 'active' : ''}`;
+                    button.textContent = language;
+                    button.addEventListener('click', () => this.switchTab(language, button));
+                    tabButtons.appendChild(button);
+
+                    const content = document.createElement('div');
+                    content.className = `tab-content ${index === 0 ? 'active' : ''}`;
+                    content.id = `tab-${language}`;
+                    content.innerHTML = `<h3>${language} Audio Generation</h3><p>Language: ${this.languages[language].lang_code}<br>Default Service: ${this.languages[language].service}<br>Default Voice: ${this.languages[language].voice}</p>`;
+                    tabContent.appendChild(content);
+                });
+            }
+
+            switchTab(language, button) {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                button.classList.add('active');
+                document.getElementById(`tab-${language}`).classList.add('active');
+                
+                this.currentLanguage = language;
+                this.populateVoices();
+                this.setStatus(`Switched to ${language}`);
+            }
+
+            populateVoices() {
+                const playhtSelect = document.getElementById('playhtVoice');
+                const elevenlabsSelect = document.getElementById('elevenlabsVoice');
+                
+                playhtSelect.innerHTML = '<option value="">Select PlayHT Voice...</option>';
+                elevenlabsSelect.innerHTML = '<option value="">Select ElevenLabs Voice...</option>';
+                
+                const langCode = this.languages[this.currentLanguage].lang_code;
+                
+                // Populate PlayHT voices
+                if (VOICES.playht[langCode]) {
+                    VOICES.playht[langCode].forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice.voice_id;
+                        option.textContent = voice.name;
+                        playhtSelect.appendChild(option);
+                    });
+                }
+                
+                // Populate ElevenLabs voices
+                if (VOICES.elevenlabs[langCode]) {
+                    VOICES.elevenlabs[langCode].forEach(voice => {
+                        const option = document.createElement('option');
+                        option.value = voice.voice_id;
+                        option.textContent = voice.name;
+                        elevenlabsSelect.appendChild(option);
+                    });
+                }
+            }
+
+            setupEventListeners() {
+                document.getElementById('refreshVoices').addEventListener('click', () => {
+                    this.populateVoices();
+                    this.setStatus('Voices refreshed!');
+                });
+            }
+
+            setStatus(message) {
+                document.getElementById('statusBar').textContent = message;
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, starting dashboard...');
+            // Wait for authentication before initializing dashboard
+            if (window.authManager && window.authManager.isAuthenticated()) {
+                window.dashboardInstance = new Dashboard();
+            } else {
+                // Dashboard will be initialized by auth manager when user is authenticated
+                console.log('Waiting for authentication...');
+            }
+        });
+    </script>
+
+    <script src="firebase-config.js"></script>
+    <script src="auth.js"></script>
+
+    <!-- Authentication Modal -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-modal">
+            <div class="auth-header">
+                <h2><i class="fas fa-shield-alt"></i> Superadmin Access Required</h2>
+                <p>Please sign in with your Levante superadmin account</p>
+            </div>
+            <form class="auth-form" id="authForm">
+                <input type="email" id="emailInput" class="auth-input" placeholder="Email" required>
+                <input type="password" id="passwordInput" class="auth-input" placeholder="Password" required>
+                <button type="submit" class="auth-button" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+                
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                
+                <div class="sso-buttons">
+                    <button type="button" class="auth-button sso-button google" id="googleLoginBtn">
+                        <i class="fab fa-google"></i> Sign in with Google
+                    </button>
+                    <button type="button" class="auth-button sso-button microsoft" id="microsoftLoginBtn">
+                        <i class="fab fa-microsoft"></i> Sign in with Microsoft
+                    </button>
+                </div>
+                
+                <div class="loading" id="authLoading">
+                    <i class="fas fa-spinner fa-spin"></i> Authenticating...
+                </div>
+                <div class="auth-error" id="authError"></div>
+                <div class="auth-success" id="authSuccess"></div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>  

@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Dashboard - Levante Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+    <script src="./js/Task.js"></script>
+    <!-- Firebase SDK (client-side read for assignment/admin variants) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="./firebase-config.js"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)),
+                linear-gradient(190deg, #020617 0%, #0b1220 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 40px auto 80px;
+            background: rgba(9, 17, 31, 0.94);
+            border-radius: 24px;
+            border: 1px solid rgba(0, 160, 222, 0.28);
+            box-shadow: 0 32px 70px rgba(2, 6, 23, 0.55);
+            overflow: hidden;
+            backdrop-filter: blur(6px);
+        }
+        .header {
+            background: linear-gradient(135deg, rgba(255, 111, 0, 0.95) 0%, rgba(255, 179, 71, 0.9) 55%, rgba(9, 17, 31, 0.95) 100%);
+            padding: 32px 32px 28px;
+            text-align: left;
+            position: relative;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            gap: 16px;
+        }
+        .header-main {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .header-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .header-image {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+        }
+        .header-image img {
+            width: clamp(290px, 32vw, 460px);
+            max-width: 100%;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
+            object-fit: cover;
+            object-position: left center;
+            margin-top: -24px;
+            transform: translateX(-12px);
+        }
+        .header h1 {
+            margin: 12px 0 8px;
+            font-size: 2.3rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            color: #030c1c;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+        }
+        .header h1 i {
+            color: #06121f;
+        }
+        .header p {
+            margin: 0;
+            max-width: 720px;
+            font-size: 1rem;
+            color: rgba(3, 13, 28, 0.78);
+        }
+        .main-content {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .controls-section {
+            background: rgba(3, 12, 28, 0.86);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            border-radius: 20px;
+            padding: 20px 24px;
+            box-shadow: 0 24px 52px rgba(2, 6, 23, 0.48);
+        }
+        .controls-section .control-group {
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        select,
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            background: rgba(4, 13, 26, 0.88) !important;
+            color: #f8fafc !important;
+            border: 1px solid rgba(56, 189, 248, 0.28) !important;
+            border-radius: 10px !important;
+            padding: 10px 12px !important;
+            font-family: 'Inter', system-ui, sans-serif !important;
+            box-shadow: inset 0 2px 8px rgba(2, 6, 23, 0.35);
+        }
+        select:focus,
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none !important;
+            border-color: rgba(59, 130, 246, 0.65) !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        textarea.large-list {
+            min-height: 280px;
+        }
+        .form-section {
+            margin-bottom: 24px;
+            padding: 24px 28px;
+            background: rgba(7, 13, 24, 0.9);
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            border-radius: 20px;
+            box-shadow: 0 24px 54px rgba(2, 6, 23, 0.5);
+        }
+        .form-section h2 {
+            margin: 0 0 18px;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #ffb347;
+        }
+        .form-section h3 {
+            margin: 18px 0 12px;
+            font-size: 1rem;
+            color: #cbd5f5;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: rgba(226, 232, 240, 0.92);
+            font-size: 0.95rem;
+        }
+        .help-text {
+            font-size: 0.78rem;
+            color: rgba(148, 198, 255, 0.7);
+            margin-top: 4px;
+        }
+        .language-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .language-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: rgba(4, 13, 26, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .language-checkbox:hover {
+            border-color: rgba(59, 130, 246, 0.55);
+            background: rgba(12, 27, 46, 0.9);
+        }
+        .language-checkbox label {
+            cursor: pointer;
+            margin: 0;
+            flex: 1;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(4, 13, 26, 0.82);
+            border: 1px solid rgba(56, 189, 248, 0.18);
+            border-radius: 10px;
+        }
+        .checklist-item label {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #f1f5f9;
+            cursor: pointer;
+        }
+        .checklist-item .code,
+        .help-text code,
+        .alert code,
+        .form-section code {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #bae6fd;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(3, 12, 28, 0.78);
+            color: #f8fafc;
+            box-shadow: 0 12px 32px rgba(2, 6, 23, 0.45);
+            letter-spacing: 0.03em;
+        }
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 42px rgba(56, 189, 248, 0.35);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6f00 0%, #ff9d2d 100%);
+            color: #03101f;
+            border: none;
+        }
+        .btn-secondary {
+            background: rgba(59, 130, 246, 0.18);
+            color: #e2e8f0;
+            border: 1px solid rgba(59, 130, 246, 0.42);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: #03101f;
+            border: none;
+        }
+        .btn-validate {
+            background: linear-gradient(135deg, #8b5cf6 0%, #c084fc 100%);
+            color: #0f172a;
+            border: none;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(56, 189, 248, 0.18);
+        }
+        .alert-info {
+            background: rgba(0, 160, 222, 0.12);
+            color: #bae6fd;
+            border-color: rgba(0, 160, 222, 0.4);
+        }
+        .alert-warning {
+            background: rgba(255, 159, 64, 0.12);
+            color: #ffedd5;
+            border-color: rgba(255, 159, 64, 0.4);
+        }
+        .alert-success {
+            background: rgba(34, 197, 94, 0.12);
+            color: #bbf7d0;
+            border-color: rgba(34, 197, 94, 0.35);
+        }
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: rgba(0, 160, 222, 0.3);
+            color: #03101f;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .collapsible-section:hover h2 {
+            color: #ffcf8a;
+        }
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .collapsible-content.expanded {
+            max-height: 5000px;
+        }
+        .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+        .toggle-icon.rotated {
+            transform: rotate(90deg);
+        }
+        .existing-task-selector label {
+            font-size: 0.9rem;
+            color: rgba(226, 232, 240, 0.85);
+            font-weight: 500;
+        }
+        .existing-task-selector select {
+            min-width: 200px;
+        }
+        .mode-indicator {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+        .mode-new {
+            background: rgba(34, 197, 94, 0.18);
+            color: #bbf7d0;
+        }
+        .mode-viewing {
+            background: rgba(0, 160, 222, 0.18);
+            color: #bae6fd;
+        }
+        #quickValidationStatus {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            background: rgba(0, 160, 222, 0.12);
+            border: 1px solid rgba(0, 160, 222, 0.35);
+            color: #bae6fd;
+        }
+        #actionHelpPanel {
+            flex: 0 0 360px;
+            background: rgba(8, 17, 31, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 18px 42px rgba(2, 6, 23, 0.45);
+            color: #e2e8f0;
+        }
+        .validation-report {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(7, 13, 24, 0.92);
+            border-radius: 18px;
+            border: 1px solid rgba(56, 189, 248, 0.18);
+        }
+        .validation-summary {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            background: rgba(8, 17, 31, 0.78);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+        .status-success {
+            color: #bbf7d0;
+            background: rgba(34, 197, 94, 0.15);
+        }
+        .status-error {
+            color: #fecaca;
+            background: rgba(248, 113, 113, 0.15);
+        }
+        .validation-section {
+            margin: 20px 0;
+            padding: 16px;
+            border-radius: 12px;
+        }
+        .validation-errors {
+            background: rgba(248, 113, 113, 0.12);
+            border-left: 4px solid rgba(248, 113, 113, 0.45);
+        }
+        .validation-warnings {
+            background: rgba(255, 159, 64, 0.12);
+            border-left: 4px solid rgba(255, 159, 64, 0.45);
+        }
+        .validation-info {
+            background: rgba(0, 160, 222, 0.12);
+            border-left: 4px solid rgba(0, 160, 222, 0.45);
+        }
+        .checks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .check-item {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid rgba(56, 189, 248, 0.32);
+            background: rgba(8, 17, 31, 0.85);
+            color: #f8fafc;
+        }
+        .check-item.check-passed {
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(34, 197, 94, 0.42);
+        }
+        .check-item.check-failed {
+            background: rgba(248, 113, 113, 0.15);
+            border-color: rgba(248, 113, 113, 0.45);
+        }
+        .check-item.check-warning {
+            background: rgba(255, 159, 64, 0.15);
+            border-color: rgba(255, 159, 64, 0.45);
+        }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: rgba(9, 17, 31, 0.95);
+            width: min(800px, 92vw);
+            max-height: 85vh;
+            border-radius: 18px;
+            box-shadow: 0 24px 60px rgba(2, 6, 23, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.32);
+            display: flex;
+            flex-direction: column;
+            color: #f1f5f9;
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #bae6fd;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #94a3b8;
+        }
+        .modal-body {
+            padding: 16px 20px;
+            overflow: auto;
+        }
+        .modal-body pre {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.22);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #e2e8f0;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(148, 197, 255, 0.3);
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        @media (max-width: 920px) {
+            .dashboard-container {
+                margin: 24px 12px 60px;
+            }
+            .header-main {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 18px;
+            }
+            .header-image img {
+                width: clamp(220px, 60vw, 320px);
+                max-width: 100%;
+                margin-top: 0;
+                transform: none;
+                object-position: center top;
+            }
+            .main-content {
+                padding: 24px;
+            }
+            .controls-section {
+                padding: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="header-top">
+                <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+            </div>
+            <div class="header-main">
+                <div class="header-text">
+                    <h1><i class="fas fa-clipboard-list"></i> Task Dashboard</h1>
+                    <p>Manage and validate task assets, translations, and configuration</p>
+                </div>
+                <div class="header-image">
+                    <img src="./images/task-pitstop.jpg?v=20241118" alt="McLaren pit stop team"/>
+                </div>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="alert alert-info" id="inlineOverview" style="display:none">
+                <i class="fas fa-info-circle"></i>
+                <strong>Overview:</strong> This form guides you through the 10-step process of adding a new assessment task to the Levante framework.
+                Based on <code>README_TASKS.md</code> and the current launcher implementation.
+            </div>
+
+        <!-- Top Controls (using dashboard styling) -->
+        <div class="controls-section">
+            <div style="display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+                <!-- Left column: action/task + buttons, then branch row -->
+                <div style="flex:1; min-width:520px;">
+                    <div class="control-group" style="gap:10px; align-items:center; flex-wrap:nowrap;">
+                        <select id="taskActionSelect" style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; min-width:220px; width:260px;">
+                            <option value="validate">Validate Existing Task</option>
+                            <option value="create">Create New Task</option>
+                            <option value="draft">Save Task as Draft</option>
+                        </select>
+                        <select id="existingTaskSelect" style="flex:1; min-width:320px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                            <option value="">-- Select a task --</option>
+                        </select>
+                    </div>
+                    <div class="control-group" style="gap:10px; align-items:center; flex-wrap:nowrap;">
+                        <button type="button" class="btn btn-validate" id="validateTaskTopBtn">
+                            <i class="fas fa-check-double"></i>
+                            Validate Task
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="refreshTaskTopBtn">
+                            <i class="fas fa-sync-alt"></i>
+                            Refresh Task
+                        </button>
+                        <label for="coreTasksBranchSelect" style="margin-left: 12px;"><i class="fas fa-code-branch"></i> Use Branch:</label>
+                        <select id="coreTasksBranchSelect" style="min-width:200px; padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px;"></select>
+                        <small id="branchStatus" style="color:#64748b;"></small>
+                    </div>
+                    <div id="quickValidationStatus" style="display:none; padding: 10px 12px; border-radius: 6px; font-size: 14px;"></div>
+                </div>
+
+                <!-- Right column: action help panel -->
+                <div id="actionHelpPanel" style="flex:0 0 360px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #1e293b;">
+                        <i class="fas fa-shield-alt"></i> Validate Selected Task
+                    </h3>
+                    <p style="margin: 0; font-size: 14px; color: #64748b;">
+                        Check assets, translations, audio files, and code for the task selected above
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <form id="taskTemplateForm">
+            <!-- Top-row controls moved above; legacy Options/Mode bar removed -->
+            <!-- Section 1: Basic Information -->
+            <div class="form-section">
+                <h2>
+                    <span class="section-number">1</span>
+                    <i class="fas fa-info-circle"></i> Basic Information
+                </h2>
+                
+                <div class="form-group">
+                    <label for="taskName">Task Name (kebab-case) *</label>
+                    <input type="text" id="taskName" name="taskName" required placeholder="e.g., egma-math, matrix-reasoning, swr">
+                    <div class="help-text">Use lowercase with hyphens. This will be used in camelCase for the registry (e.g., egmaMath).</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="taskDescription">Task Description</label>
+                    <textarea id="taskDescription" name="taskDescription" placeholder="Brief description of what this task assesses..."></textarea>
+                </div>
+
+                <div class="two-column">
+                    <div class="form-group">
+                        <label for="trialType">Trial Type</label>
+                        <input type="text" id="trialType" name="trialType" placeholder="e.g., audio, visual, audio-visual">
+                    </div>
+                    <div class="form-group">
+                        <label for="assessmentStage">Assessment Stage</label>
+                        <select id="assessmentStage" name="assessmentStage">
+                            <option value="">Select stage...</option>
+                            <option value="practice">Practice</option>
+                            <option value="test">Test</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="taskNotes">Implementation Notes (optional)</label>
+                    <textarea id="taskNotes" name="taskNotes" placeholder="Special considerations, dependencies, or important details..."></textarea>
+                    <div class="help-text">Additional context about the task implementation</div>
+                </div>
+            </div>
+
+            <!-- Section 2: Registry Configuration -->
+            <div class="form-section collapsible-section" data-section="registry">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">2</span>
+                    <i class="fas fa-cog"></i> Registry Configuration (taskConfig.ts)
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        <strong>File:</strong> <code>core-tasks/task-launcher/src/tasks/taskConfig.ts</code><br>
+                        Add your task with the required entries: setConfig, getCorpus, getTranslations, buildTaskTimeline, variants (optional).
+                    </div>
+
+                    <div class="form-group">
+                        <label for="registryKey">Registry Key (camelCase)</label>
+                        <input type="text" id="registryKey" name="registryKey" readonly placeholder="Auto-generated from task name">
+                        <div class="help-text">This is automatically generated from your task name (e.g., egma-math → egmaMath)</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Required Exports</label>
+                        <div class="checklist">
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check_setConfig" disabled checked>
+                                <label for="check_setConfig">✓ <span class="code">setConfig</span> - Configure task parameters</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check_getCorpus" disabled checked>
+                                <label for="check_getCorpus">✓ <span class="code">getCorpus</span> - Load stimulus data</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check_getTranslations" disabled checked>
+                                <label for="check_getTranslations">✓ <span class="code">getTranslations</span> - Load language strings</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="check_buildTaskTimeline" disabled checked>
+                                <label for="check_buildTaskTimeline">✓ <span class="code">buildTaskTimeline</span> - Construct jsPsych timeline</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Timeline Implementation -->
+            <div class="form-section collapsible-section" data-section="timeline">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">3</span>
+                    <i class="fas fa-project-diagram"></i> Timeline Implementation
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        <strong>File:</strong> <code>core-tasks/task-launcher/src/tasks/&lt;task-name&gt;/timeline.ts</code><br>
+                        Export a default function that builds and returns the jsPsych timeline using task config and media assets.
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timelineNotes">Timeline Notes</label>
+                        <textarea id="timelineNotes" name="timelineNotes" placeholder="Special considerations for your timeline implementation..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Corpus CSV Data -->
+            <div class="form-section collapsible-section" data-section="corpus">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">4</span>
+                    <i class="fas fa-database"></i> Corpus CSV (Stimulus Data)
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        <strong>Upload to:</strong><br>
+                        • Dev: <code>gs://levante-assets-dev/corpus/&lt;task-name&gt;/&lt;corpus&gt;.csv</code><br>
+                        • Prod: <code>gs://levante-assets-prod/corpus/&lt;task-name&gt;/&lt;corpus&gt;.csv</code>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="corpusFile">Corpus Filename</label>
+                        <input type="text" id="corpusFile" name="corpusFile" placeholder="e.g., corpus.csv, stimuli-en.csv">
+                        <div class="help-text">The CSV file containing your task's stimulus items</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Required CSV Headers (check all that apply)</label>
+                        <div class="checklist">
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_task">
+                                <label for="csv_task"><span class="code">task</span> - Task identifier</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_trial_type">
+                                <label for="csv_trial_type"><span class="code">trial_type</span> - Type of trial</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_item">
+                                <label for="csv_item"><span class="code">item</span> - Item content/prompt</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_item_id">
+                                <label for="csv_item_id"><span class="code">item_id</span> - Unique item identifier</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_item_uid">
+                                <label for="csv_item_uid"><span class="code">item_uid</span> - Universal unique ID</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_audio_file">
+                                <label for="csv_audio_file"><span class="code">audio_file</span> - Audio filename</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_response_alternatives">
+                                <label for="csv_response_alternatives"><span class="code">response_alternatives</span> - Answer choices</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_assessment_stage">
+                                <label for="csv_assessment_stage"><span class="code">assessment_stage</span> - Practice/test</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_time_limit">
+                                <label for="csv_time_limit"><span class="code">time_limit</span> - Max response time</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="csv_difficulty">
+                                <label for="csv_difficulty"><span class="code">d / difficulty</span> - Item difficulty</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Media Assets -->
+            <div class="form-section collapsible-section" data-section="media">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">5</span>
+                    <i class="fas fa-photo-video"></i> Media Assets (Audio/Visual)
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        <strong>Buckets:</strong> Automatically switch by environment (dev/prod)<br>
+                        <strong>Conventions:</strong><br>
+                        • Visual: <code>visual/&lt;task-name&gt;/...</code><br>
+                        • Audio: <code>audio/&lt;language&gt;/...</code> and <code>audio/shared/...</code>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="hasVisualAssets" name="hasVisualAssets">
+                            This task uses visual assets (images, videos)
+                        </label>
+                    </div>
+
+                    <div id="visualAssetsDetails" style="display: none;">
+                        <div class="two-column">
+                            <div class="form-group">
+                                <label for="visualAssetCount">Visual Asset Count</label>
+                                <input type="number" id="visualAssetCount" name="visualAssetCount" placeholder="e.g., 150" readonly>
+                                <div class="help-text">Total number of visual files</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="visualAssetTypes">Asset Types</label>
+                                <input type="text" id="visualAssetTypes" name="visualAssetTypes" placeholder="e.g., icons, images, diagrams">
+                                <div class="help-text">Categories of visual assets</div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="visualAssetsList">Visual Asset Filenames (optional)</label>
+                            <textarea id="visualAssetsList" name="visualAssetsList" placeholder="image1.png&#10;image2.jpg&#10;diagram.svg"></textarea>
+                            <div class="help-text">List specific visual files needed, one per line</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="hasAudioAssets" name="hasAudioAssets" checked>
+                            This task uses audio assets
+                        </label>
+                    </div>
+
+                    <div id="audioAssetsDetails" style="display: block;">
+                        <div class="form-group">
+                            <label for="audioAssetCount">Audio Asset Count</label>
+                            <input type="number" id="audioAssetCount" name="audioAssetCount" placeholder="e.g., 25" readonly>
+                            <div class="help-text">Total number of audio files (from assets-per-task.json)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 6: Required Assets Declaration -->
+            <div class="form-section collapsible-section" data-section="assets-declaration">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">6</span>
+                    <i class="fas fa-list-check"></i> Required Assets Declaration (assets-per-task.json)
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        <strong>Hosted at:</strong> <code>gs://levante-assets-{dev|prod}/audio/assets-per-task.json</code><br>
+                        List all audio item IDs your task requires (excluding corpus-specific audio).
+                    </div>
+
+                    <div class="form-group">
+                        <label for="requiredAudioIds">Task-level Audio IDs</label>
+                        <textarea id="requiredAudioIds" name="requiredAudioIds" class="large-list" placeholder="task-intro&#10;task-instructions&#10;correct-feedback&#10;incorrect-feedback&#10;task-exit"></textarea>
+                        <div class="help-text">Enter one ID per line (kebab-case). Logical audio IDs defined for this task; each typically requires a matching camelCase translation key.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="audioIdsWithoutText">Audio IDs Without Text (optional)</label>
+                        <textarea id="audioIdsWithoutText" name="audioIdsWithoutText" placeholder="beep&#10;chime&#10;silent-gap"></textarea>
+                        <div class="help-text">IDs for audio cues that do not display any on-screen text and therefore do not require translation keys.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sharedAudioIds">Shared Audio IDs (optional)</label>
+                        <textarea id="sharedAudioIds" name="sharedAudioIds" placeholder="correct&#10;incorrect&#10;timeout"></textarea>
+                        <div class="help-text">Shared audio used across multiple tasks (already in the shared section)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 7: Translations & Item IDs -->
+            <div class="form-section collapsible-section" data-section="translations">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">7</span>
+                    <i class="fas fa-language"></i> Translations (item-bank-translations.csv)
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        <strong>Source:</strong> <code>gs://levante-assets-{dev|prod}/translations/item-bank-translations.csv</code><br>
+                        All strings referenced by your timeline must be present. Keys use kebab-case.
+                    </div>
+
+                    <div class="form-group">
+                        <label for="translationKeys">Required Translation Keys</label>
+                        <textarea id="translationKeys" name="translationKeys" class="large-list" required placeholder="matrix-reasoning-intro&#10;matrix-reasoning-instructions&#10;matrix-reasoning-item1&#10;matrix-reasoning-item2&#10;matrix-reasoning-exit"></textarea>
+                        <div class="help-text">Enter translation keys (kebab-case), one per line</div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 8px;">
+                        <button type="button" class="btn btn-secondary" id="whereUsedBtn">
+                            <i class="fas fa-question-circle"></i>
+                            Where used?
+                        </button>
+                    </div>
+
+                    <div id="whereUsedInfo" style="display: none; margin-top: 12px;">
+                        <div class="alert alert-info" id="whereUsedContent">
+                            <!-- populated dynamically -->
+                        </div>
+                    </div>
+
+                    <h3>Language Support</h3>
+                    <div class="form-group">
+                        <label>Select languages this task will support:</label>
+                        <div class="language-grid" id="languageGrid">
+                            <!-- Languages will be populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 8: Variants -->
+            <div class="form-section collapsible-section" data-section="variants">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">8</span>
+                    <i class="fas fa-clone"></i> Variants (Optional)
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-info create-only" data-create-only="true">
+                        Define task variants with only fields that differ (e.g., <code>corpus</code>, <code>numOfPracticeTrials</code>, 
+                        <code>sequentialStimulus</code>, <code>buttonLayout</code>, <code>cat</code>, <code>language</code>).
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="hasVariants" name="hasVariants">
+                            This task has variants
+                        </label>
+                    </div>
+
+                    <div id="variantsDetails" style="display: none;">
+                        <div class="form-group">
+                            <label for="variantsList">Variant Names & Differences</label>
+                            <textarea id="variantsList" name="variantsList" placeholder="short: numOfPracticeTrials=5, corpus=corpus-short.csv&#10;long: numOfPracticeTrials=10, corpus=corpus-long.csv&#10;spanish: language=es"></textarea>
+                            <div class="help-text">List variant name followed by key differences</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 9: Environment Switching -->
+            <div class="form-section collapsible-section" data-section="environment">
+                <h2>
+                    <i class="fas fa-chevron-right toggle-icon"></i>
+                    <span class="section-number">9</span>
+                    <i class="fas fa-server"></i> Environment Switching
+                </h2>
+                <div class="collapsible-content">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>No action required!</strong> Environment is automatically determined by Firebase project ID. 
+                        Buckets change automatically—no code changes needed.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 10: Implementation Checklist -->
+            <div class="form-section" id="implementationChecklistSection">
+                <h2>
+                    <span class="section-number">10</span>
+                    <i class="fas fa-clipboard-check"></i> Implementation Checklist
+                </h2>
+                
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_timeline">
+                        <label for="todo_timeline">Create <span class="code">core-tasks/task-launcher/src/tasks/&lt;task-name&gt;/timeline.ts</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_registry">
+                        <label for="todo_registry">Register in <span class="code">core-tasks/task-launcher/src/tasks/taskConfig.ts</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_config">
+                        <label for="todo_config">(Optional) Add default corpus mapping in <span class="code">shared/helpers/config.ts</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_corpus_dev">
+                        <label for="todo_corpus_dev">Upload corpus CSV to <span class="code">levante-assets-dev/corpus/&lt;task-name&gt;/</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_corpus_prod">
+                        <label for="todo_corpus_prod">Upload corpus CSV to <span class="code">levante-assets-prod/corpus/&lt;task-name&gt;/</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_media_dev">
+                        <label for="todo_media_dev">Upload visual/audio assets to <span class="code">levante-assets-dev</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_media_prod">
+                        <label for="todo_media_prod">Upload visual/audio assets to <span class="code">levante-assets-prod</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_assets_per_task">
+                        <label for="todo_assets_per_task">Update <span class="code">assets-per-task.json</span> with required audio keys</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_translations">
+                        <label for="todo_translations">Ensure all translations exist in <span class="code">item-bank-translations.csv</span></label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_variants">
+                        <label for="todo_variants">(Optional) Add variants to taskConfig</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_test">
+                        <label for="todo_test">Test task in dev environment</label>
+                    </div>
+                    <div class="checklist-item">
+                        <input type="checkbox" id="todo_deploy">
+                        <label for="todo_deploy">Deploy to production</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button type="button" class="btn btn-validate" id="validateTaskBtn">
+                    <i class="fas fa-check-double"></i>
+                    Validate Task
+                </button>
+                <button type="button" class="btn btn-success" id="generateSummaryBtn">
+                    <i class="fas fa-file-export"></i>
+                    Generate Implementation Summary
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard-app.html'">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+            </div>
+        </form>
+
+        <!-- Validation Results -->
+        <div id="validationResults" style="display: none; margin-top: 32px;">
+            <div class="form-section">
+                <h2><i class="fas fa-clipboard-check"></i> Validation Results</h2>
+                <div id="validationReportContainer"></div>
+            </div>
+        </div>
+
+        <!-- Warning Details Modal -->
+        <div class="modal-overlay" id="warningModal">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="warningModalTitle">
+                <div class="modal-header">
+                    <div class="modal-title" id="warningModalTitle">Warning Details</div>
+                    <button class="modal-close" id="warningModalClose" aria-label="Close">×</button>
+                </div>
+                <div class="modal-body" id="warningModalBody"></div>
+            </div>
+        </div>
+
+        <!-- Summary Output -->
+        <div id="summaryOutput" style="display: none; margin-top: 32px;">
+            <div class="form-section">
+                <h2><i class="fas fa-file-alt"></i> Implementation Summary</h2>
+                <textarea id="summaryText" readonly style="width: 100%; min-height: 400px; font-family: monospace; font-size: 12px;"></textarea>
+                <div class="button-group">
+                    <button type="button" class="btn btn-primary" id="copySummaryBtn">
+                        <i class="fas fa-copy"></i>
+                        Copy to Clipboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="helpModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+            <div class="modal-header">
+                <div class="modal-title" id="helpModalTitle">Task Dashboard Help</div>
+                <button class="modal-close" id="helpModalClose" aria-label="Close">×</button>
+            </div>
+            <div class="modal-body">
+                <p>This dashboard has two modes:</p>
+                <ul>
+                    <li><strong>Create</strong>: Plan a new task, fill out assets/translations, and review the implementation checklist.</li>
+                    <li><strong>Validate</strong>: Validate an existing task against GCS assets and CSV translations. The implementation checklist is hidden.</li>
+                </ul>
+                <p>Languages in Validate mode come from item-bank-translations.csv headers.</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Languages currently available in Levante framework
+        const COMMON_LANGUAGES = [
+            { code: 'en', name: 'English' },
+            { code: 'es-AR', name: 'Spanish (Argentina)' },
+            { code: 'es-CO', name: 'Spanish (Colombia)' },
+            { code: 'de', name: 'German' },
+            { code: 'de-CH', name: 'German (Switzerland)' },
+        ];
+
+        // Convert kebab-case to camelCase
+        function kebabToCamel(str) {
+            return str.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+        }
+
+        // Populate language checkboxes
+        function populateLanguages() {
+            const grid = document.getElementById('languageGrid');
+            grid.innerHTML = '';
+
+            COMMON_LANGUAGES.forEach(lang => {
+                const div = document.createElement('div');
+                div.className = 'language-checkbox';
+                div.innerHTML = `
+                    <input type="checkbox" id="lang_${lang.code.replace('-', '_')}" name="languages" value="${lang.code}" ${lang.code === 'en' ? 'checked' : ''}>
+                    <label for="lang_${lang.code.replace('-', '_')}">${lang.name} <span class="code">${lang.code}</span></label>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        // Load existing tasks data
+        let existingTasksData = null;
+
+        async function loadExistingTasks() {
+            try {
+                const response = await fetch('./data/existing-tasks.json');
+                if (!response.ok) {
+                    console.warn('Could not load existing tasks');
+                    return;
+                }
+                const data = await response.json();
+                existingTasksData = data;
+
+                // Populate dropdown
+                const select = document.getElementById('existingTaskSelect');
+                const sorted = [...data.tasks].sort((a, b) => (a.taskName || '').localeCompare(b.taskName || ''));
+                sorted.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.taskName;
+                    option.textContent = `${task.taskName} - ${task.description.substring(0, 50)}...`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading existing tasks:', error);
+            }
+        }
+
+        // Current task instance
+        let currentTask = null;
+
+        // Populate form with task data
+        function loadTaskIntoForm(taskData) {
+            if (!taskData) return;
+
+            // Create Task instance and use its display method
+            currentTask = new Task(taskData);
+            const form = document.getElementById('taskTemplateForm');
+            currentTask.display(form);
+        }
+
+        // Clear form and reset to new mode
+        function resetForm() {
+            document.getElementById('taskTemplateForm').reset();
+            document.getElementById('existingTaskSelect').value = '';
+            currentTask = null;
+            
+            const modeIndicator = document.getElementById('modeIndicator');
+            modeIndicator.className = 'mode-indicator mode-new';
+            modeIndicator.innerHTML = '<i class="fas fa-plus"></i> New Task Mode';
+
+            // Reset checkboxes to default state
+            document.querySelectorAll('input[name="languages"]').forEach(cb => {
+                cb.checked = cb.value === 'en';
+            });
+
+            document.getElementById('registryKey').value = '';
+            document.getElementById('visualAssetsDetails').style.display = 'none';
+            document.getElementById('variantsDetails').style.display = 'none';
+            document.getElementById('audioAssetsDetails').style.display = 'block';
+            
+            // Hide validation results
+            document.getElementById('validationResults').style.display = 'none';
+        }
+
+        // Validate task button handler
+        document.getElementById('validateTaskBtn').addEventListener('click', async function() {
+            const form = document.getElementById('taskTemplateForm');
+            
+            // Create or update current task from form
+            if (!currentTask) {
+                currentTask = Task.createNew(form);
+            } else {
+                // Update existing task with current form data
+                currentTask = Task.createNew(form);
+            }
+
+            // Disable button and show loading
+            this.disabled = true;
+            const originalText = this.innerHTML;
+            this.innerHTML = '<span class="loading-spinner"></span> Validating...';
+
+            try {
+                const results = await currentTask.validate();
+                
+                // Display validation report
+                const container = document.getElementById('validationReportContainer');
+                container.innerHTML = currentTask.getValidationReport();
+                attachWarningDetailLinks(container, currentTask);
+                
+                document.getElementById('validationResults').style.display = 'block';
+                document.getElementById('validationResults').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error during validation:', error);
+                alert('Error during validation. See console for details.');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = originalText;
+            }
+        });
+
+        // Top quick-validate button handler (validates selected task or current form)
+        document.getElementById('validateTaskTopBtn').addEventListener('click', async function() {
+            const topBtn = this;
+            const statusEl = document.getElementById('quickValidationStatus');
+            const form = document.getElementById('taskTemplateForm');
+
+            // Determine task: prefer selected from dropdown, else use current form
+            let taskInstance = null;
+            const select = document.getElementById('existingTaskSelect');
+            const selectedTaskName = select ? select.value : '';
+            if (selectedTaskName && existingTasksData && Array.isArray(existingTasksData.tasks)) {
+                const taskData = existingTasksData.tasks.find(t => t.taskName === selectedTaskName);
+                if (taskData) {
+                    taskInstance = new Task(taskData);
+                }
+            }
+            if (!taskInstance) {
+                taskInstance = Task.createNew(form);
+            }
+            currentTask = taskInstance;
+
+            // Disable button and show loading
+            topBtn.disabled = true;
+            const originalTopText = topBtn.innerHTML;
+            topBtn.innerHTML = '<span class="loading-spinner"></span> Validating...';
+
+            // Show status area
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#eff6ff';
+                statusEl.style.color = '#1e40af';
+                statusEl.style.border = '1px solid #93c5fd';
+                statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running validation...';
+            }
+
+            try {
+                const results = await currentTask.validate();
+
+                // Display validation report
+                const container = document.getElementById('validationReportContainer');
+                container.innerHTML = currentTask.getValidationReport();
+                attachWarningDetailLinks(container, currentTask);
+                document.getElementById('validationResults').style.display = 'block';
+
+                // Update quick status with summary
+                const numErrors = (results && Array.isArray(results.errors)) ? results.errors.length : 0;
+                const numWarnings = (results && Array.isArray(results.warnings)) ? results.warnings.length : 0;
+                if (statusEl) {
+                    if (numErrors === 0) {
+                        statusEl.style.background = '#d1fae5';
+                        statusEl.style.color = '#065f46';
+                        statusEl.style.border = '1px solid #6ee7b7';
+                        statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Validation passed with ${numWarnings} warning${numWarnings !== 1 ? 's' : ''}.`;
+                    } else {
+                        statusEl.style.background = '#fee2e2';
+                        statusEl.style.color = '#991b1b';
+                        statusEl.style.border = '1px solid #fecaca';
+                        statusEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${numErrors} error${numErrors !== 1 ? 's' : ''} and ${numWarnings} warning${numWarnings !== 1 ? 's' : ''} detected. See details below.`;
+                    }
+                }
+
+                document.getElementById('validationResults').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error during quick validation:', error);
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.style.background = '#fee2e2';
+                    statusEl.style.color = '#991b1b';
+                    statusEl.style.border = '1px solid #fecaca';
+                    statusEl.innerHTML = `<i class="fas fa-times-circle"></i> Validation failed: ${error.message}`;
+                }
+                alert('Error during validation. See console for details.');
+            } finally {
+                topBtn.disabled = false;
+                topBtn.innerHTML = originalTopText;
+            }
+        });
+
+        // Top refresh button handler (rehydrates task from authoritative sources and updates form)
+        document.getElementById('refreshTaskTopBtn').addEventListener('click', async function() {
+            const btn = this;
+            const statusEl = document.getElementById('quickValidationStatus');
+            const form = document.getElementById('taskTemplateForm');
+
+            // Choose task: selected existing or current form
+            let taskInstance = null;
+            const select = document.getElementById('existingTaskSelect');
+            const selectedTaskName = select ? select.value : '';
+            if (selectedTaskName && existingTasksData && Array.isArray(existingTasksData.tasks)) {
+                const taskData = existingTasksData.tasks.find(t => t.taskName === selectedTaskName);
+                if (taskData) {
+                    taskInstance = new Task(taskData);
+                }
+            }
+            if (!taskInstance) {
+                taskInstance = Task.createNew(form);
+            }
+            currentTask = taskInstance;
+
+            // Disable button and show spinner
+            btn.disabled = true;
+            const original = btn.innerHTML;
+            btn.innerHTML = '<span class="loading-spinner"></span> Refreshing...';
+
+            // Show status area
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#eff6ff';
+                statusEl.style.color = '#1e40af';
+                statusEl.style.border = '1px solid #93c5fd';
+                statusEl.innerHTML = '<i class="fas fa-sync fa-spin"></i> Refreshing task from source (GCS)...';
+            }
+
+            try {
+                // Hydrate from backend and update the form view
+                await currentTask.hydrate('dev');
+                currentTask.display(form);
+
+                if (statusEl) {
+                    statusEl.style.background = '#d1fae5';
+                    statusEl.style.color = '#065f46';
+                    statusEl.style.border = '1px solid #6ee7b7';
+                    statusEl.innerHTML = '<i class="fas fa-check-circle"></i> Task refreshed from authoritative assets.';
+                }
+            } catch (e) {
+                console.error('Error refreshing task:', e);
+                if (statusEl) {
+                    statusEl.style.background = '#fee2e2';
+                    statusEl.style.color = '#991b1b';
+                    statusEl.style.border = '1px solid #fecaca';
+                    statusEl.innerHTML = `<i class="fas fa-times-circle"></i> Refresh failed: ${e.message}`;
+                }
+                alert('Error refreshing task. See console for details.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        });
+
+        // Handle task selection from dropdown
+        document.getElementById('existingTaskSelect').addEventListener('change', function(e) {
+            const taskName = e.target.value;
+            // Clear any existing validation status/results when switching tasks
+            const statusEl = document.getElementById('quickValidationStatus');
+            if (statusEl) {
+                statusEl.style.display = 'none';
+                statusEl.innerHTML = '';
+            }
+            const resultsWrap = document.getElementById('validationResults');
+            const report = document.getElementById('validationReportContainer');
+            if (report) report.innerHTML = '';
+            if (resultsWrap) resultsWrap.style.display = 'none';
+            
+            if (!taskName) {
+                resetForm();
+                return;
+            }
+
+            if (!existingTasksData) {
+                alert('Existing tasks data not loaded');
+                return;
+            }
+
+            const task = existingTasksData.tasks.find(t => t.taskName === taskName);
+            if (task) {
+                loadTaskIntoForm(task);
+            } else {
+                alert('Task data not found');
+            }
+        });
+
+        // Update registry key when task name changes
+        document.getElementById('taskName').addEventListener('input', function(e) {
+            const taskName = e.target.value.trim();
+            const registryKey = kebabToCamel(taskName);
+            document.getElementById('registryKey').value = registryKey;
+        });
+
+        // Toggle visual assets details
+        document.getElementById('hasVisualAssets').addEventListener('change', function(e) {
+            document.getElementById('visualAssetsDetails').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Toggle audio assets details
+        document.getElementById('hasAudioAssets').addEventListener('change', function(e) {
+            document.getElementById('audioAssetsDetails').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Toggle variants details
+        document.getElementById('hasVariants').addEventListener('change', function(e) {
+            document.getElementById('variantsDetails').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        // Collapsible sections
+        document.querySelectorAll('.collapsible-section').forEach(section => {
+            section.addEventListener('click', function(e) {
+                // Don't collapse if clicking on inputs
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.tagName === 'LABEL' || e.target.closest('#whereUsedBtn')) {
+                    return;
+                }
+                
+                const content = this.querySelector('.collapsible-content');
+                const icon = this.querySelector('.toggle-icon');
+                
+                if (content.classList.contains('expanded')) {
+                    content.classList.remove('expanded');
+                    icon.classList.remove('rotated');
+                } else {
+                    content.classList.add('expanded');
+                    icon.classList.add('rotated');
+                }
+            });
+        });
+
+        // Generate summary
+        document.getElementById('generateSummaryBtn').addEventListener('click', function() {
+            const taskName = document.getElementById('taskName').value.trim();
+            const registryKey = document.getElementById('registryKey').value.trim();
+            const description = document.getElementById('taskDescription').value.trim();
+            const corpusFile = document.getElementById('corpusFile').value.trim();
+            const audioIds = document.getElementById('requiredAudioIds').value.trim().split('\n').filter(s => s.trim());
+            const translationKeys = document.getElementById('translationKeys').value.trim().split('\n').filter(s => s.trim());
+            const selectedLangs = Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(cb => cb.value);
+            const hasVariants = document.getElementById('hasVariants').checked;
+            const hasVisualAssets = document.getElementById('hasVisualAssets').checked;
+
+            if (!taskName) {
+                alert('Please enter a task name');
+                return;
+            }
+
+            let summary = `# Implementation Summary: ${taskName}\n\n`;
+            summary += `Generated: ${new Date().toLocaleDateString()}\n\n`;
+            
+            if (description) {
+                summary += `## Description\n${description}\n\n`;
+            }
+
+            summary += `## Registry Configuration\n`;
+            summary += `- Registry Key: \`${registryKey}\`\n`;
+            summary += `- File: \`core-tasks/task-launcher/src/tasks/taskConfig.ts\`\n\n`;
+
+            summary += `## Implementation Checklist\n\n`;
+            summary += `### 1. Registry (taskConfig.ts)\n`;
+            summary += `- [ ] Add entry for \`${registryKey}\` in taskConfig.ts\n`;
+            summary += `- [ ] Provide: setConfig, getCorpus, getTranslations, buildTaskTimeline\n`;
+            if (hasVariants) summary += `- [ ] Define variants\n`;
+            summary += `\n`;
+
+            summary += `### 2. Timeline Implementation\n`;
+            summary += `- [ ] Create \`core-tasks/task-launcher/src/tasks/${taskName}/timeline.ts\`\n`;
+            summary += `- [ ] Export default function that builds jsPsych timeline\n\n`;
+
+            summary += `### 3. Corpus CSV\n`;
+            if (corpusFile) {
+                summary += `- [ ] Upload \`${corpusFile}\` to:\n`;
+                summary += `      - Dev: \`gs://levante-assets-dev/corpus/${taskName}/${corpusFile}\`\n`;
+                summary += `      - Prod: \`gs://levante-assets-prod/corpus/${taskName}/${corpusFile}\`\n`;
+            } else {
+                summary += `- [ ] Upload corpus CSV to \`gs://levante-assets-{dev|prod}/corpus/${taskName}/\`\n`;
+            }
+            summary += `\n`;
+
+            summary += `### 4. Media Assets\n`;
+            if (hasVisualAssets) {
+                summary += `- [ ] Upload visual assets to \`gs://levante-assets-{dev|prod}/visual/${taskName}/\`\n`;
+            }
+            summary += `- [ ] Upload audio assets to \`gs://levante-assets-{dev|prod}/audio/<language>/\`\n\n`;
+
+            if (audioIds.length > 0) {
+                summary += `### 5. Required Audio (assets-per-task.json)\n`;
+                summary += `Add to \`gs://levante-assets-{dev|prod}/audio/assets-per-task.json\`:\n\n`;
+                summary += `\`\`\`json\n`;
+                summary += `"${taskName}": {\n`;
+                summary += `  "audio": [\n`;
+                audioIds.forEach((id, i) => {
+                    summary += `    "${id}"${i < audioIds.length - 1 ? ',' : ''}\n`;
+                });
+                summary += `  ]\n`;
+                summary += `}\n`;
+                summary += `\`\`\`\n\n`;
+            }
+
+            if (translationKeys.length > 0) {
+                summary += `### 6. Translations (item-bank-translations.csv)\n`;
+                summary += `Required translation keys:\n\n`;
+                translationKeys.forEach(key => {
+                    summary += `- \`${key}\`\n`;
+                });
+                summary += `\n`;
+                summary += `Languages to support: ${selectedLangs.join(', ')}\n\n`;
+            }
+
+            summary += `### 7. Testing\n`;
+            summary += `- [ ] Test in dev environment (Firebase project ID determines bucket)\n`;
+            summary += `- [ ] Verify all assets load correctly\n`;
+            summary += `- [ ] Test all variants (if applicable)\n`;
+            summary += `- [ ] Test all language versions\n\n`;
+
+            summary += `### 8. Deployment\n`;
+            summary += `- [ ] Deploy to production\n`;
+            summary += `- [ ] Verify prod assets are in place\n\n`;
+
+            summary += `## End-to-End Flow\n`;
+            summary += `1. Resolve buckets and fetch media listings\n`;
+            summary += `2. setSharedConfig → compute final task config\n`;
+            summary += `3. Fetch corpus (as applicable)\n`;
+            summary += `4. Fetch translations and assets-per-task.json\n`;
+            summary += `5. Combine/filter media assets\n`;
+            summary += `6. Build and run jsPsych timeline\n\n`;
+
+            summary += `## Reference Files\n`;
+            summary += `- \`core-tasks/task-launcher/src/tasks/shared/helpers/getCorpus.ts\`\n`;
+            summary += `- \`core-tasks/task-launcher/src/tasks/shared/helpers/getMediaAssets.ts\`\n`;
+            summary += `- \`core-tasks/task-launcher/src/tasks/shared/helpers/getTranslations.ts\`\n`;
+            summary += `- \`README_TASKS.md\`\n`;
+
+            document.getElementById('summaryText').value = summary;
+            document.getElementById('summaryOutput').style.display = 'block';
+            document.getElementById('summaryOutput').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Copy summary to clipboard
+        document.getElementById('copySummaryBtn').addEventListener('click', function() {
+            const summaryText = document.getElementById('summaryText');
+            summaryText.select();
+            document.execCommand('copy');
+            
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                this.innerHTML = originalText;
+            }, 2000);
+        });
+
+        // Add "Clear Form" button functionality
+        function addClearFormButton() {
+            const buttonGroup = document.querySelector('.button-group');
+            if (buttonGroup) {
+                const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'btn btn-secondary';
+                clearBtn.innerHTML = '<i class="fas fa-eraser"></i> Clear Form';
+                clearBtn.onclick = resetForm;
+                
+                // Insert before the cancel button
+                const cancelBtn = buttonGroup.querySelector('button[onclick*="dashboard-app.html"]');
+                if (cancelBtn) {
+                    buttonGroup.insertBefore(clearBtn, cancelBtn);
+                }
+            }
+        }
+
+        // Render the "Where used?" info box based on current form values
+        function renderWhereUsedInfo() {
+            const keysText = document.getElementById('translationKeys').value.trim();
+            const audioText = document.getElementById('requiredAudioIds').value.trim();
+
+            const keys = keysText ? keysText.split('\n').map(s => s.trim()).filter(Boolean) : [];
+            const audios = audioText ? audioText.split('\n').map(s => s.trim()).filter(Boolean) : [];
+
+            // pick examples
+            const exampleKeys = keys.slice(0, 3);
+            const exampleAudio = audios[0] || 'task-intro';
+            const expectedFromAudio = exampleAudio.replace(/-([a-z0-9])/g, (g) => g[1].toUpperCase());
+
+            // code samples
+            const codeTs = `import { getTranslations } from 'shared/helpers/getTranslations';\n\nconst t = await getTranslations(languageCode);\n// Access by camelCase key\nconst prompt = t.${exampleKeys[0] || 'matrixReasoningPrompt1'};\n\n// Typical usage in a timeline trial\njsPsychHtmlAudioButton({\n  prompt: t.${exampleKeys[0] || 'matrixReasoningPrompt1'},\n  // media mapping example\n  audio: media['${exampleAudio}']\n});`;
+
+            const codeMap = `// Audio ID → expected translation key mapping\n'${exampleAudio}' → '${expectedFromAudio}'`;
+
+            const html = [
+                `<p><strong>Where these keys are consumed:</strong></p>`,
+                `<ul>`,
+                `<li><code>core-tasks/task-launcher/src/tasks/taskConfig.ts</code> via <code>getTranslations</code></li>`,
+                `<li><code>core-tasks/task-launcher/src/tasks/&lt;task-name&gt;/timeline.ts</code> when building trials</li>`,
+                `<li><code>item-bank-translations.csv</code> provides the localized strings for each key</li>`,
+                `</ul>`,
+                `<p><strong>Example TypeScript usage:</strong></p>`,
+                `<pre>${codeTs.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
+                `<p><strong>Audio → key convention:</strong></p>`,
+                `<pre>${codeMap.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`,
+                (exampleKeys.length ? `<p><strong>Sample keys in this form:</strong> ${exampleKeys.map(k => `<code>${k}</code>`).join(', ')}</p>` : '')
+            ].join('');
+
+            const container = document.getElementById('whereUsedContent');
+            if (container) container.innerHTML = html;
+        }
+
+        // Attach clickable warning details into the rendered report
+        function attachWarningDetailLinks(container, taskInstance) {
+            const warningListItems = container.querySelectorAll('.validation-warnings li');
+            warningListItems.forEach(li => {
+                const text = li.textContent || '';
+                let key = null;
+                if (text.startsWith('Invalid translation key format')) key = 'invalidTranslation';
+                if (text.includes('may not have corresponding translation keys')) key = 'audioMissingTranslations';
+                if (!key) return;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-secondary';
+                btn.style.marginLeft = '8px';
+                btn.innerHTML = '<i class="fas fa-info-circle"></i> Details';
+                btn.addEventListener('click', () => openWarningModal(taskInstance, key));
+                li.appendChild(btn);
+            });
+        }
+
+        function openWarningModal(taskInstance, key) {
+            const modal = document.getElementById('warningModal');
+            const body = document.getElementById('warningModalBody');
+            const ctx = (taskInstance && taskInstance._validationResults && taskInstance._validationResults._warningContext) || {};
+            const details = ctx[key];
+            if (!details) return;
+
+            let html = '';
+            if (key === 'invalidTranslation') {
+                html += `<p><strong>Total invalid keys:</strong> ${details.total}</p>`;
+                html += `<p><strong>Rule:</strong> ${details.rule}</p>`;
+                html += `<p><strong>Why it matters:</strong> ${details.why}</p>`;
+                html += '<p><strong>Examples:</strong></p><pre>' + details.examples.map(e => `${e.from}  =>  ${e.to}`).join('\n') + '</pre>';
+                html += '<p><strong>How to fix:</strong></p><ul>' + details.howToFix.map(s => `<li>${s}</li>`).join('') + '</ul>';
+                if (details.invalidKeys && details.invalidKeys.length) {
+                    html += '<p><strong>Exact keys flagged (first 50):</strong></p><pre>' + details.invalidKeys.join('\n') + '</pre>';
+                }
+            } else if (key === 'audioMissingTranslations') {
+                html += `<p><strong>Total affected audio IDs:</strong> ${details.total}</p>`;
+                html += `<p><strong>Rule:</strong> ${details.rule}</p>`;
+                if (details.caveats && details.caveats.length) {
+                    html += '<p><strong>Caveats:</strong></p><ul>' + details.caveats.map(s => `<li>${s}</li>`).join('') + '</ul>';
+                }
+                html += '<p><strong>Examples:</strong></p><pre>' + details.examples.map(e => `${e.audioId}  =>  ${e.expectedKey}`).join('\n') + '</pre>';
+                html += '<p><strong>How to fix:</strong></p><ul>' + details.howToFix.map(s => `<li>${s}</li>`).join('') + '</ul>';
+                if (details.missingKeys && details.missingKeys.length) {
+                    html += '<p><strong>Add these keys to item-bank-translations.csv:</strong></p>';
+                    html += '<pre>' + details.csvSnippet + '</pre>';
+                    html += '<div class="button-group"><button type="button" class="btn btn-primary" id="copyCsvSnippetBtn"><i class="fas fa-copy"></i> Copy CSV Snippet</button></div>';
+                    html += `<p><strong>CSV path (dev):</strong> ${details.csvPath?.dev || ''}<br>`;
+                    html += `<strong>CSV path (prod):</strong> ${details.csvPath?.prod || ''}</p>`;
+                }
+                if (details.bucketPaths) {
+                    html += `<p><strong>Audio buckets:</strong><br>Dev: ${details.bucketPaths.dev}<br>Prod: ${details.bucketPaths.prod}</p>`;
+                }
+                if (details.source) {
+                    const src = details.source;
+                    html += '<p><strong>Where these audio IDs come from:</strong></p><ul>';
+                    if (src.source === 'gcs-assets-per-task') {
+                        html += `<li>Source: GCS assets-per-task.json</li>`;
+                        html += `<li>Bucket: ${src.bucket}</li>`;
+                        html += `<li>Path: ${src.path}</li>`;
+                    } else {
+                        html += `<li>Source: Entered in form or existing-tasks.json</li>`;
+                    }
+                    html += '</ul>';
+                }
+                if (details.conventions) {
+                    html += '<p><strong>Conventions:</strong></p><ul>';
+                    html += `<li>${details.conventions.idDefinition}</li>`;
+                    html += `<li>Example: ${details.conventions.filenameExample}</li>`;
+                    html += '</ul>';
+                }
+            }
+            body.innerHTML = html;
+            modal.style.display = 'flex';
+
+            const copyBtn = document.getElementById('copyCsvSnippetBtn');
+            if (copyBtn && details && details.csvSnippet) {
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(details.csvSnippet).then(() => {
+                        const original = copyBtn.innerHTML;
+                        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                        setTimeout(() => copyBtn.innerHTML = original, 1500);
+                    });
+                });
+            }
+        }
+
+        function closeWarningModal() {
+            const modal = document.getElementById('warningModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        document.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'warningModalClose') closeWarningModal();
+            if (e.target && e.target.id === 'warningModal') closeWarningModal();
+        });
+
+        // Initialize
+        populateLanguages();
+        populateBranches();
+        loadExistingTasks(); // Load existing tasks into dropdown
+        addClearFormButton(); // Add clear form button
+
+        // Expand first section by default
+        const firstSection = document.querySelector('.collapsible-content');
+        const firstIcon = document.querySelector('.toggle-icon');
+        if (firstSection && firstIcon) {
+            firstSection.classList.add('expanded');
+            firstIcon.classList.add('rotated');
+        }
+
+        // Hook up Where used? interactions
+        const whereUsedBtn = document.getElementById('whereUsedBtn');
+        const whereUsedInfo = document.getElementById('whereUsedInfo');
+        if (whereUsedBtn && whereUsedInfo) {
+            whereUsedBtn.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                if (whereUsedInfo.style.display === 'none' || !whereUsedInfo.style.display) {
+                    renderWhereUsedInfo();
+                    whereUsedInfo.style.display = 'block';
+                } else {
+                    whereUsedInfo.style.display = 'none';
+                }
+            });
+
+            // Re-render on input changes for live examples
+            const reRender = () => {
+                if (whereUsedInfo.style.display === 'block') renderWhereUsedInfo();
+            };
+            document.getElementById('translationKeys')?.addEventListener('input', reRender);
+            document.getElementById('requiredAudioIds')?.addEventListener('input', reRender);
+        }
+
+        // Mode toggle behavior
+        const modeSelect = document.getElementById('modeSelect');
+        const checklist = document.getElementById('implementationChecklistSection');
+        function applyMode(mode) {
+            if (mode === 'validate') {
+                if (checklist) checklist.style.display = 'none';
+                // If hydrated languages from CSV are present, auto-select them
+                if (currentTask && Array.isArray(currentTask.__csvLanguages) && currentTask.__csvLanguages.length) {
+                    document.querySelectorAll('input[name="languages"]').forEach(cb => cb.checked = false);
+                    currentTask.__csvLanguages.forEach(code => {
+                        const id = `lang_${code.replace('-', '_')}`;
+                        const cb = document.getElementById(id);
+                        if (cb) cb.checked = true;
+                    });
+                }
+            } else {
+                if (checklist) checklist.style.display = 'block';
+            }
+        }
+        if (modeSelect) {
+            modeSelect.addEventListener('change', (e) => applyMode(e.target.value));
+        }
+
+        // Help modal
+        const helpModal = document.getElementById('helpModal');
+        const helpClose = document.getElementById('helpModalClose');
+        // Top-row action dropdown
+        const taskActionSelect = document.getElementById('taskActionSelect');
+        async function populateBranches() {
+            const branchSelect = document.getElementById('coreTasksBranchSelect');
+            const branchStatus = document.getElementById('branchStatus');
+            if (!branchSelect) return;
+            try {
+                branchSelect.innerHTML = '<option value="">Loading branches...</option>';
+                const resp = await fetch('/api/core-tasks?op=branches');
+                if (!resp.ok) {
+                    branchSelect.innerHTML = '<option value="main" selected>Main</option>';
+                    if (branchStatus) branchStatus.textContent = '';
+                    return;
+                }
+                const data = await resp.json();
+                const branches = Array.isArray(data.branches) ? data.branches : [];
+                branchSelect.innerHTML = '';
+                // Put main first if present
+                const main = branches.find(b => b.name === 'main');
+                if (main) {
+                    const opt = document.createElement('option');
+                    opt.value = main.name;
+                    opt.textContent = `${main.name}`;
+                    branchSelect.appendChild(opt);
+                }
+                branches.filter(b => b.name !== 'main').forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.name;
+                    const label = b.date ? `${b.name} (${new Date(b.date).toLocaleDateString()})` : b.name;
+                    opt.textContent = label;
+                    branchSelect.appendChild(opt);
+                });
+                if (!main && branches.length) branchSelect.selectedIndex = 0; else branchSelect.value = 'main';
+                if (branchStatus) { branchStatus.textContent = ''; }
+            } catch (e) {
+                branchSelect.innerHTML = '<option value="main">main</option>';
+                if (branchStatus) branchStatus.textContent = '';
+            }
+        }
+
+        // Right-panel help content
+        function renderActionHelp(action) {
+            const panel = document.getElementById('actionHelpPanel');
+            if (!panel) return;
+            // base panel styling
+            panel.style.padding = '10px 12px';
+            panel.style.borderRadius = '6px';
+            panel.style.border = '1px solid #e2e8f0';
+            if (action === 'create') {
+                panel.style.background = '#ecfdf5';
+                panel.style.borderColor = '#6ee7b7';
+                panel.style.color = '#065f46';
+                panel.innerHTML = `
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #1e293b;">
+                        <i class="fas fa-plus"></i> Create New Task
+                    </h3>
+                    <p style="margin: 0; font-size: 14px; color: #64748b;">
+                        Start a new task configuration. Fill out the sections below and use the Implementation Checklist.
+                    </p>
+                `;
+            } else if (action === 'draft') {
+                panel.style.background = '#fffbeb';
+                panel.style.borderColor = '#f59e0b';
+                panel.style.color = '#92400e';
+                panel.innerHTML = `
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #1e293b;">
+                        <i class="fas fa-save"></i> Save Task as Draft
+                    </h3>
+                    <p style="margin: 0; font-size: 14px; color: #64748b;">
+                        This will save the current form locally in your browser (feature TBD).
+                    </p>
+                `;
+            } else {
+                panel.style.background = '#eff6ff';
+                panel.style.borderColor = '#93c5fd';
+                panel.style.color = '#1e40af';
+                panel.innerHTML = `
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #1e293b;">
+                        <i class="fas fa-shield-alt"></i> Validate Selected Task
+                    </h3>
+                    <p style="margin: 0; font-size: 14px; color: #64748b;">
+                        Check assets, translations, audio files, and code for the task selected above
+                    </p>
+                `;
+            }
+        }
+
+        function updateActionButton(action) {
+            const btn = document.getElementById('validateTaskTopBtn');
+            if (!btn) return;
+            if (action === 'create') {
+                btn.innerHTML = '<i class="fas fa-plus"></i>\n                    Create';
+            } else if (action === 'draft') {
+                btn.innerHTML = '<i class="fas fa-save"></i>\n                    (Save TBD)';
+            } else {
+                btn.innerHTML = '<i class="fas fa-check-double"></i>\n                    Validate Task';
+            }
+        }
+
+        if (taskActionSelect) {
+            taskActionSelect.addEventListener('change', (e) => {
+                const action = e.target.value;
+                const taskSelect = document.getElementById('existingTaskSelect');
+                renderActionHelp(action);
+                updateActionButton(action);
+                // Show instructional alerts only in create mode
+                document.querySelectorAll('.create-only').forEach(el => {
+                    el.style.display = action === 'create' ? 'block' : 'none';
+                });
+                if (action === 'validate') {
+                    if (taskSelect) taskSelect.disabled = false;
+                    applyMode('validate');
+                } else if (action === 'create') {
+                    if (taskSelect) taskSelect.disabled = true; // not needed when creating
+                    resetForm();
+                    applyMode('create');
+                } else if (action === 'draft') {
+                    if (taskSelect) taskSelect.disabled = true;
+                    applyMode('create'); // show checklist like Create
+                }
+            });
+            // initialize panel/button to current selection
+            renderActionHelp(taskActionSelect.value);
+            updateActionButton(taskActionSelect.value);
+            document.querySelectorAll('.create-only').forEach(el => {
+                el.style.display = taskActionSelect.value === 'create' ? 'block' : 'none';
+            });
+        }
+        if (helpClose) helpClose.addEventListener('click', () => helpModal.style.display = 'none');
+        document.addEventListener('click', (e) => { if (e.target && e.target.id === 'helpModal') helpModal.style.display = 'none'; });
+    </script>
+</body>
+</html>

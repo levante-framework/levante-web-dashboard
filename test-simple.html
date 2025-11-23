@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .tab-button {
+            background: #6c757d;
+            margin: 2px;
+            padding: 8px 16px;
+        }
+        .tab-button.active {
+            background: #007bff;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .voice-info {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Dashboard Diagnostic Test</h1>
+        
+        <div id="status"></div>
+        
+        <h2>1. Comprehensive Voices Test</h2>
+        <button onclick="testComprehensiveVoices()">Test Comprehensive Voices</button>
+        <div id="voicesTest"></div>
+        
+        <h2>2. Language Tabs Test</h2>
+        <div id="tabButtons"></div>
+        <div id="tabTest"></div>
+        
+        <h2>3. Voice Dropdowns Test</h2>
+        <div>
+            <label>PlayHT Voices:</label>
+            <select id="playhtVoice"></select>
+        </div>
+        <div>
+            <label>ElevenLabs Voices:</label>
+            <select id="elevenlabsVoice"></select>
+        </div>
+        <button onclick="testVoiceDropdowns()">Test Voice Dropdowns</button>
+        <div id="voiceDropdownTest"></div>
+        
+        <h2>4. Data Loading Test</h2>
+        <button onclick="testDataLoading()">Test Data Loading</button>
+        <div id="dataTest"></div>
+        
+        <h2>5. Full Dashboard Test</h2>
+        <button onclick="testFullDashboard()">Test Full Dashboard</button>
+        <div id="fullTest"></div>
+    </div>
+
+    <!-- Load comprehensive voices -->
+    <script src="comprehensive-voices.js"></script>
+    
+    <script>
+        function setStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+        }
+
+        function testComprehensiveVoices() {
+            const testDiv = document.getElementById('voicesTest');
+            testDiv.innerHTML = '';
+            
+            try {
+                if (typeof COMPREHENSIVE_VOICES === 'undefined') {
+                    testDiv.innerHTML = '<div class="error">❌ COMPREHENSIVE_VOICES is not defined</div>';
+                    return;
+                }
+                
+                const playhtVoices = COMPREHENSIVE_VOICES.playht || {};
+                const elevenlabsVoices = COMPREHENSIVE_VOICES.elevenlabs || {};
+                
+                let html = '<div class="success">✅ COMPREHENSIVE_VOICES loaded successfully</div>';
+                
+                // Count voices by language
+                const playhtCount = Object.keys(playhtVoices).reduce((total, lang) => total + playhtVoices[lang].length, 0);
+                const elevenlabsCount = Object.keys(elevenlabsVoices).reduce((total, lang) => total + elevenlabsVoices[lang].length, 0);
+                
+                html += `<div class="info">PlayHT: ${playhtCount} voices across ${Object.keys(playhtVoices).length} languages</div>`;
+                html += `<div class="info">ElevenLabs: ${elevenlabsCount} voices across ${Object.keys(elevenlabsVoices).length} languages</div>`;
+                
+                // Show language breakdown
+                html += '<div class="voice-info"><strong>PlayHT Languages:</strong> ' + Object.keys(playhtVoices).join(', ') + '</div>';
+                html += '<div class="voice-info"><strong>ElevenLabs Languages:</strong> ' + Object.keys(elevenlabsVoices).join(', ') + '</div>';
+                
+                testDiv.innerHTML = html;
+                setStatus('Comprehensive voices test completed', 'success');
+            } catch (error) {
+                testDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                setStatus('Comprehensive voices test failed', 'error');
+            }
+        }
+
+        function testVoiceDropdowns() {
+            const testDiv = document.getElementById('voiceDropdownTest');
+            testDiv.innerHTML = '';
+            
+            try {
+                if (typeof COMPREHENSIVE_VOICES === 'undefined') {
+                    testDiv.innerHTML = '<div class="error">❌ COMPREHENSIVE_VOICES not available</div>';
+                    return;
+                }
+                
+                const playhtSelect = document.getElementById('playhtVoice');
+                const elevenlabsSelect = document.getElementById('elevenlabsVoice');
+                
+                // Clear existing options
+                playhtSelect.innerHTML = '<option value="">Choose PlayHT voice...</option>';
+                elevenlabsSelect.innerHTML = '<option value="">Choose ElevenLabs voice...</option>';
+                
+                // Test with English voices
+                const targetLang = 'en';
+                
+                // Filter PlayHT voices
+                const playhtVoices = COMPREHENSIVE_VOICES.playht[targetLang] || [];
+                playhtVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.voice_id;
+                    option.textContent = voice.name;
+                    playhtSelect.appendChild(option);
+                });
+                
+                // Filter ElevenLabs voices
+                const elevenlabsVoices = COMPREHENSIVE_VOICES.elevenlabs[targetLang] || [];
+                elevenlabsVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.voice_id;
+                    option.textContent = voice.name;
+                    elevenlabsSelect.appendChild(option);
+                });
+                
+                testDiv.innerHTML = `
+                    <div class="success">✅ Voice dropdowns populated</div>
+                    <div class="info">PlayHT English voices: ${playhtVoices.length}</div>
+                    <div class="info">ElevenLabs English voices: ${elevenlabsVoices.length}</div>
+                `;
+                
+                setStatus('Voice dropdowns test completed', 'success');
+            } catch (error) {
+                testDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                setStatus('Voice dropdowns test failed', 'error');
+            }
+        }
+
+        function testDataLoading() {
+            const testDiv = document.getElementById('dataTest');
+            testDiv.innerHTML = '<div class="info">Loading data...</div>';
+            
+            const csvUrl = 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/text/translated_prompts.csv';
+            
+            fetch(csvUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    const lines = csvText.split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+                    
+                    testDiv.innerHTML = `
+                        <div class="success">✅ Data loaded successfully</div>
+                        <div class="info">CSV lines: ${lines.length}</div>
+                        <div class="info">Headers: ${headers.join(', ')}</div>
+                    `;
+                    
+                    setStatus('Data loading test completed', 'success');
+                })
+                .catch(error => {
+                    testDiv.innerHTML = `<div class="error">❌ Error loading data: ${error.message}</div>`;
+                    setStatus('Data loading test failed', 'error');
+                });
+        }
+
+        function testFullDashboard() {
+            const testDiv = document.getElementById('fullTest');
+            testDiv.innerHTML = '<div class="info">Testing full dashboard initialization...</div>';
+            
+            try {
+                // Test language configuration
+                const languages = {
+                    'English': { lang_code: 'en', service: 'ElevenLabs', voice: 'Alexandra - Conversational and Real' },
+                    'Spanish': { lang_code: 'es', service: 'ElevenLabs', voice: 'Ana María - Calm & natural neutral Spanish' },
+                    'German': { lang_code: 'de', service: 'PlayHT', voice: 'German_Anke Narrative' },
+                    'French': { lang_code: 'fr', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet' },
+                    'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma  - Natural conversations in Dutch' }
+                };
+                
+                // Create tabs
+                const tabButtons = document.getElementById('tabButtons');
+                tabButtons.innerHTML = '';
+                
+                Object.keys(languages).forEach((language, index) => {
+                    const button = document.createElement('button');
+                    button.className = `tab-button ${index === 0 ? 'active' : ''}`;
+                    button.textContent = language;
+                    tabButtons.appendChild(button);
+                });
+                
+                testDiv.innerHTML = `
+                    <div class="success">✅ Full dashboard test completed</div>
+                    <div class="info">Language tabs created: ${Object.keys(languages).length}</div>
+                    <div class="info">Languages: ${Object.keys(languages).join(', ')}</div>
+                `;
+                
+                setStatus('Full dashboard test completed', 'success');
+            } catch (error) {
+                testDiv.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+                setStatus('Full dashboard test failed', 'error');
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setStatus('Dashboard diagnostic test ready', 'info');
+            console.log('Test page loaded');
+            
+            // Auto-run comprehensive voices test
+            setTimeout(() => {
+                testComprehensiveVoices();
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

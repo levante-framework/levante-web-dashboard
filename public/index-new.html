@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Levante Pitwall Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1><i class="fas fa-microphone"></i> Levante Pitwall Dashboard</h1>
+            <p>Multi-language Translation Validation and TTS audio generation</p>
+        </div>
+        <div class="main-content">
+            <div class="controls-section">
+                <div class="control-group">
+                    <label><i class="fas fa-volume-up"></i> Voice Comparison Tools:</label>
+                    <div class="voice-controls">
+                        <div class="voice-control">
+                            <label for="playhtVoice">PlayHT Voice</label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <select id="playhtVoice" class="voice-select">
+                                    <option value="">Select PlayHT Voice...</option>
+                                </select>
+                                <button id="copyPlayhtVoice" class="btn btn-secondary" style="padding: 8px 12px; min-width: auto;" title="Copy selected voice name to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="voice-control">
+                            <label for="elevenlabsVoice">ElevenLabs Voice</label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <select id="elevenlabsVoice" class="voice-select">
+                                    <option value="">Select ElevenLabs Voice...</option>
+                                </select>
+                                <button id="copyElevenlabsVoice" class="btn btn-secondary" style="padding: 8px 12px; min-width: auto;" title="Copy selected voice name to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button id="refreshVoices" class="btn btn-info">
+                            <i class="fas fa-sync-alt"></i> Refresh Voices
+                        </button>
+                        <button id="manageCredentials" class="btn btn-secondary" onclick="openCredentialsModal()" title="Manage API credentials for TTS services">
+                            <i class="fas fa-key"></i> Manage Credentials
+                        </button>
+                        <button id="editLanguageConfig" class="btn btn-warning btn-compact" onclick="openLanguageConfigModal()" title="Edit shared language configuration">
+                            <i class="fas fa-language"></i> Edit Language Config
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Text Generation Section -->
+                <div class="control-group">
+                    <label><i class="fas fa-edit"></i> Text to Speech Generation:</label>
+                    <div style="display: flex; gap: 15px; width: 100%; align-items: flex-start;">
+                        <textarea id="textInput" placeholder="Enter text to convert to speech, or select an item from the table below..." 
+                                  style="flex: 1; min-height: 100px; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical;"></textarea>
+                        <div style="display: flex; flex-direction: column; gap: 10px; min-width: 180px;">
+                            <button id="generateAudio" class="btn btn-success">
+                                <i class="fas fa-play"></i> Generate Audio
+                            </button>
+                            <button id="populateSelected" class="btn btn-primary">
+                                <i class="fas fa-arrow-down"></i> Use Selected Item
+                            </button>
+                            <button id="clearText" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Clear Text
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Translation Validation Panel -->
+            <div class="validation-panel">
+                <div class="validation-header" onclick="toggleValidationPanel()">
+                    <span><i class="fas fa-check-circle"></i> Translation Validation</span>
+                    <span class="collapse-icon">▲</span>
+                </div>
+                <div class="validation-content expanded" id="validationContent">
+                    <!-- Validation Controls -->
+                    <div class="validation-controls" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <button id="validateSelected" class="btn validation-button btn-compact" onclick="validateSelected()">
+                            <i class="fas fa-check-double"></i> Validate Selected
+                        </button>
+                        <button id="validateAll" class="btn validation-button btn-compact" onclick="validateAll()">
+                            <i class="fas fa-check-circle"></i> Validate All
+                        </button>
+                        <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button id="loadValidations" class="btn btn-info btn-compact" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
+                            <i class="fas fa-cloud-download-alt"></i> Load
+                        </button>
+                        <button id="exportValidations" class="btn btn-secondary btn-compact" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button id="viewValidations" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="View summary of all validation results">
+                            <i class="fas fa-chart-bar"></i> View
+                        </button>
+                        <button class="btn btn-warning btn-compact" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
+                            <i class="fas fa-trash"></i> Clear Cache
+                        </button>
+                    </div>
+                    
+                    <!-- Validation Summary -->
+                    <div id="validationSummary" style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
+                            <h4 style="margin: 0; color: #333; font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
+                            <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #28a745;" id="goodCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Good</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #ffc107;" id="warningCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Warning</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #dc3545;" id="errorCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Review</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #6c757d;" id="pendingCount">0</span>
+                                    <span style="color: #6c757d; font-size: 0.9em;">Pending</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab-buttons" id="tabButtons"></div>
+            </div>
+            <div id="tabContent"></div>
+        </div>
+        <div class="status-bar" id="statusBar">
+            <i class="fas fa-circle status-icon loading"></i>
+            <span>Loading dashboard...</span>
+        </div>
+    </div>
+    
+    <!-- Load Modals -->
+    <div id="modals-container"></div>
+    
+    <!-- Scripts -->
+    <script src="./config.js"></script>
+    <script>
+        async function loadRemoteLanguagesIntoConfig() {
+            try {
+                const resp = await fetch('/api/language-config');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                if (data && data.languages && typeof data.languages === 'object') {
+                    window.CONFIG = window.CONFIG || {};
+                    window.CONFIG.languages = data.languages;
+                    console.log('Loaded languages from remote language_config.json');
+                } else {
+                    console.log('No remote language_config.json found; using local config.js');
+                }
+            } catch (e) {
+                console.log('Failed to load remote language_config.json; using local config.js');
+            }
+        }
+        // fire and forget; dashboard constructor will pick up window.CONFIG.languages
+        loadRemoteLanguagesIntoConfig();
+    </script>
+    <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+    <script src="./dashboard.js"></script>
+    
+    <script>
+        // Load modals dynamically
+        fetch('./modals.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('modals-container').innerHTML = html;
+            })
+            .catch(error => console.warn('Could not load modals:', error));
+    </script>
+</body>
+</html>

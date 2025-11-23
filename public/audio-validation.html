@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Audio Validation • Levante</title>
+	<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+	<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+	<link rel="apple-touch-icon" sizes="192x192" href="./favicon-192x192.png">
+	<link rel="stylesheet" href="./styles.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+	<style>
+		.page-container { padding: 16px; }
+		.panel { background:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.1); padding:16px; resize:both; overflow:auto; min-height:300px; }
+		.panel-header { display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:10px; cursor:default; }
+		.panel-title { font-size:18px; font-weight:700; color:#333; display:flex; align-items:center; gap:8px; }
+		.controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+		.data-table { width:100%; border-collapse:collapse; font-size:12px; }
+		.data-table th { background:#4facfe; color:#fff; padding:8px; text-align:left; position:sticky; top:0; }
+		.data-table td { padding:8px; border-bottom:1px solid #eee; vertical-align:top; }
+		.data-table tr:hover { background:#f8f9fa; }
+		.row-highlight { background:#fff7cc !important; outline:2px solid #f59e0b; outline-offset:-2px; }
+		.audio-path { font-family:monospace; font-size:11px; color:#6c757d; }
+		.text-cell { white-space:normal; word-wrap:break-word; }
+		.badge { padding:2px 6px; border-radius:12px; font-size:11px; background:#eef; color:#334; }
+		.regen-menu { position: relative; display: inline-block; }
+		.regen-dropdown { position:absolute; right:0; top:100%; background:#fff; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1); min-width:160px; z-index:10; }
+		.regen-dropdown button { display:block; width:100%; text-align:left; padding:6px 10px; background:#fff; border:none; cursor:pointer; font-size:12px; }
+		.regen-dropdown button:hover { background:#f1f1f1; }
+		.durations-cell { font-size:11px; line-height:1.2; }
+		.duration-badge { display:block; padding:1px 4px; border-radius:8px; background:#eef; color:#334; margin-bottom:2px; white-space:nowrap; width:max-content; }
+	</style>
+</head>
+<body>
+	<div class="page-container">
+		<div class="panel" id="audio-validation-panel">
+			<div class="panel-header">
+				<div class="panel-title"><i class="fas fa-wave-square"></i> Audio Validation</div>
+				<div class="controls">
+					<label for="searchBox">Search</label>
+					<input id="searchBox" v-model="search" @keyup.enter="doSearch" placeholder="Search filename or expected…" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px;" />
+					<button class="btn btn-compact" @click="doSearch" title="Search"><i class="fas fa-search"></i></button>
+					<button class="btn btn-compact" @click="nextSearch" title="Next result"><i class="fas fa-arrow-down"></i></button>
+					<label for="validationFile" style="margin-left:16px;">Results file:</label>
+					<select id="validationFile" v-model="selectedFile" @change="loadSelected">
+						<option v-for="f in files" :key="f" :value="f">{{ f }}</option>
+					</select>
+					<button class="btn btn-info btn-compact" @click="loadSelected"><i class="fas fa-folder-open"></i> Load</button>
+					<span class="badge" v-if="summary">Lang: {{ displayLang || '—' }}</span>
+					<span class="badge" v-if="voiceName">Voice: {{ voiceName }}</span>
+					<span class="badge" v-if="summary">Count: {{ summary.count }}</span>
+					<span class="badge" v-if="summary">Avg: {{ (summary.avg*100).toFixed(1) }}%</span>
+				</div>
+			</div>
+			<div v-if="error" style="color:#b71c1c; margin-bottom:8px;">{{ error }}</div>
+			<div style="border:1px solid #eee; border-radius:8px; overflow:auto; max-height:70vh;">
+				<table class="data-table" style="table-layout: fixed;">
+					<colgroup>
+						<col style="width: 13%">
+						<col style="width: 9%">
+						<col style="width: 9%">
+						<col style="width: 24%">
+						<col style="width: 24%">
+						<col style="width: 9%">
+						<col style="width: 6%">
+						<col style="width: 6%">
+						<col style="width: 6%">
+					</colgroup>
+					<thead>
+						<tr>
+							<th @click="setSort('filename')" style="cursor:pointer">filename</th>
+							<th @click="setSort('similarity')" style="cursor:pointer">similarity_ratio</th>
+							<th @click="setSort('meaning')" style="cursor:pointer">meaning</th>
+							<th>expected</th>
+							<th>transcribed</th>
+							<th>durations</th>
+							<th>play</th>
+							<th>regen</th>
+							<th>save</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="r in sortedRows" :key="r.audio_path">
+							<td class="audio-path">{{ r.filename }}</td>
+							<td>{{ (r.elevenlabs_validation?.word_level_similarity ?? r.elevenlabs_validation?.similarity_score ?? r.basic_metrics?.similarity_ratio ?? 0).toFixed(3) }}</td>
+							<td>{{ (typeof r.meaning_similarity==='number' ? r.meaning_similarity : 0).toFixed(3) }}</td>
+							<td class="text-cell">{{ r.expected_text || r.basic_metrics?.original_cleaned || r.elevenlabs_validation?.original_cleaned || '' }}</td>
+							<td class="text-cell">{{ r.transcribed_text || r.basic_metrics?.transcribed_cleaned || r.elevenlabs_validation?.transcribed_cleaned || '' }}</td>
+							<td class="durations-cell">
+								<span class="duration-badge" v-if="origDurations[rowId(r)]">o: {{ origDurations[rowId(r)].toFixed(1) }}s</span>
+								<span class="duration-badge" v-if="lastGen[rowId(r)]?.durationSec">r: {{ lastGen[rowId(r)].durationSec.toFixed(1) }}s</span>
+							</td>
+							<td><button class="btn btn-primary btn-compact" @click="playRow(r)" title="Play existing"><i class="fas fa-play"></i></button></td>
+							<td>
+								<div class="regen-menu" @click.stop>
+									<button class="btn btn-success btn-compact" @click="toggleRegen(r)" title="Regenerate & Play">
+										<i class="fas fa-magic"></i>
+									</button>
+									<div class="regen-dropdown" v-if="regenOpenId===rowId(r)">
+										<div style="font-size:11px; color:#6b7280; padding:6px 10px; text-transform:uppercase;">speed</div>
+										<button @click="chooseRegen(r,'default')">default</button>
+										<button @click="chooseRegen(r,'speed_0_9')">.9 speed</button>
+										<button @click="chooseRegen(r,'speed_0_7')">.7 speed</button>
+										<button @click="chooseRegen(r,'boost_style')">boost style</button>
+									</div>
+								</div>
+							</td>
+							<td><button class="btn btn-secondary btn-compact" @click="saveRow(r)" title="Save over original"><i class="fas fa-save"></i></button></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+	<script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+	<script src="./config.js"></script>
+	<script src="./js-compiled/utils.js"></script>
+	<script src="./js-compiled/credentials.js"></script>
+	<script src="./js/audio-validation-page.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bucket Info Manager - Coming Soon</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="./styles.css">
+    <style>
+        /* Future Feature Override Styles */
+        .future-feature-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+        }
+        .future-feature-card {
+            background: white;
+            padding: 60px 80px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .future-feature-icon {
+            font-size: 80px;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .future-feature-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .future-feature-message {
+            font-size: 18px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .future-feature-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .future-feature-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        .container { display: none !important; }
+        body { 
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+            margin: 20px; 
+            color: #222; 
+            background: #f8fafc;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 { 
+            font-size: 24px; 
+            margin-bottom: 8px;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #059669;
+        }
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .bucket-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .bucket-table th,
+        .bucket-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .bucket-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            font-size: 13px;
+            color: #374151;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .bucket-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        .bucket-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .bucket-name {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .env-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .env-dev {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .env-prod {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        select {
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            background: white;
+            cursor: pointer;
+            min-width: 160px;
+        }
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 60px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+        }
+        .status-message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status-message.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f4f6;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .deploy-status {
+            font-size: 12px;
+            color: #6b7280;
+            margin-left: 12px;
+        }
+        .section-divider {
+            border-top: 2px solid #e5e7eb;
+            margin: 32px 0;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Future Feature Overlay -->
+    <div class="future-feature-overlay">
+        <div class="future-feature-card">
+            <div class="future-feature-icon">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h1 class="future-feature-title">Future Feature</h1>
+            <p class="future-feature-message">
+                The Bucket Info Manager is currently being developed and will be available soon. 
+                <br><br>
+                This feature will allow superadmins to manage README and LICENSE files across all Google Cloud Storage buckets.
+            </p>
+            <a href="./dashboard-app.html" class="future-feature-btn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>
+            <i class="fas fa-database"></i>
+            Bucket Info Manager
+        </h1>
+        <p class="subtitle">Manage README and LICENSE files for Google Cloud Storage buckets</p>
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="loadBuckets()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh Buckets
+            </button>
+            <button class="btn btn-success" onclick="deployAll()" id="deployBtn">
+                <i class="fas fa-rocket"></i>
+                Deploy All
+            </button>
+            <button class="btn btn-secondary" onclick="testAPI()">
+                <i class="fas fa-flask"></i>
+                Test API
+            </button>
+            <button class="btn btn-secondary" onclick="saveToLocalStorage()">
+                <i class="fas fa-save"></i>
+                Save Changes
+            </button>
+            <button class="btn btn-secondary" onclick="window.location.href='./dashboard-app.html'">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </button>
+        </div>
+
+        <div class="section-title">
+            <i class="fas fa-server"></i>
+            Development Buckets
+        </div>
+        <div class="table-container">
+            <table class="bucket-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Bucket Name</th>
+                        <th style="width: 20%;">License</th>
+                        <th style="width: 45%;">Description</th>
+                    </tr>
+                </thead>
+                <tbody id="devBucketsTable">
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px; color: #6b7280;">
+                            <i class="fas fa-spinner fa-spin"></i> Loading buckets...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="section-title">
+            <i class="fas fa-shield-alt"></i>
+            Production Buckets
+        </div>
+        <div class="table-container">
+            <table class="bucket-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">Bucket Name</th>
+                        <th style="width: 20%;">License</th>
+                        <th style="width: 45%;">Description</th>
+                    </tr>
+                </thead>
+                <tbody id="prodBucketsTable">
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px; color: #6b7280;">
+                            <i class="fas fa-spinner fa-spin"></i> Loading buckets...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const DEV_BUCKETS = [
+            'levante-assets-dev',
+            'levante-assets-draft',
+            'levante-audio-dev',
+            'levante-corpora-airtable',
+            'levante-dashboard-dev',
+            'levante-external-data',
+            'levante-hearts-and-flowers-dev',
+            'levante-images-dev',
+            'levante-intro-dev',
+            'levante-math-dev',
+            'levante-memory-dev',
+            'levante-pattern-matching-dev',
+            'levante-same-different-dev',
+            'levante-sentence-understanding-dev',
+            'levante-shape-rotation-dev',
+            'levante-stories-dev',
+            'levante-tasks-shared-dev',
+            'levante-vocabulary-dev'
+        ];
+
+        const PROD_BUCKETS = [
+            'levante-assets-prod',
+            'levante-audio-prod',
+            'levante-audiofiles',
+            'levante-auth-backup',
+            'levante-dashboard-prod',
+            'levante-hearts-and-flowers-prod',
+            'levante-intro-prod',
+            'levante-math-prod',
+            'levante-memory-prod',
+            'levante-pattern-matching-prod',
+            'levante-roar-data-bucket-prod',
+            'levante-same-different-prod',
+            'levante-sentence-understanding-prod',
+            'levante-shape-rotation-prod',
+            'levante-stories-prod',
+            'levante-tasks-shared-prod',
+            'levante-vocabulary-prod'
+        ];
+
+        let bucketData = {};
+
+        function showStatus(message, type = 'info') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = `status-message ${type}`;
+            statusEl.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i> ${message}`;
+            statusEl.style.display = 'flex';
+            
+            if (type === 'success' || type === 'error') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('bucketInfo');
+            if (saved) {
+                try {
+                    bucketData = JSON.parse(saved);
+                    console.log('Loaded bucket data from localStorage');
+                } catch (e) {
+                    console.error('Failed to parse saved bucket data:', e);
+                }
+            }
+        }
+
+        function saveToLocalStorage() {
+            // Collect current form data
+            document.querySelectorAll('.bucket-row').forEach(row => {
+                const bucket = row.dataset.bucket;
+                const license = row.querySelector('.license-select').value;
+                const description = row.querySelector('.description-input').value;
+                bucketData[bucket] = { license, description };
+            });
+
+            localStorage.setItem('bucketInfo', JSON.stringify(bucketData));
+            showStatus('Changes saved locally', 'success');
+        }
+
+        function renderBucketRow(bucket, env) {
+            const data = bucketData[bucket] || { license: 'Creative Commons', description: '' };
+            
+            return `
+                <tr class="bucket-row" data-bucket="${bucket}">
+                    <td>
+                        <span class="bucket-name">${bucket}</span>
+                        <span class="env-badge env-${env}">${env.toUpperCase()}</span>
+                    </td>
+                    <td>
+                        <select class="license-select" onchange="updateBucketData('${bucket}')">
+                            <option value="Creative Commons" ${data.license === 'Creative Commons' ? 'selected' : ''}>Creative Commons</option>
+                            <option value="ROAR" ${data.license === 'ROAR' ? 'selected' : ''}>ROAR</option>
+                        </select>
+                    </td>
+                    <td>
+                        <textarea class="description-input" 
+                                  placeholder="Enter bucket description..." 
+                                  onchange="updateBucketData('${bucket}')">${data.description}</textarea>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function updateBucketData(bucket) {
+            const row = document.querySelector(`[data-bucket="${bucket}"]`);
+            const license = row.querySelector('.license-select').value;
+            const description = row.querySelector('.description-input').value;
+            bucketData[bucket] = { license, description };
+        }
+
+        function loadBuckets() {
+            loadFromLocalStorage();
+
+            const devTable = document.getElementById('devBucketsTable');
+            const prodTable = document.getElementById('prodBucketsTable');
+
+            devTable.innerHTML = DEV_BUCKETS.map(bucket => renderBucketRow(bucket, 'dev')).join('');
+            prodTable.innerHTML = PROD_BUCKETS.map(bucket => renderBucketRow(bucket, 'prod')).join('');
+
+            showStatus('Buckets loaded successfully', 'success');
+        }
+
+        async function testAPI() {
+            console.log('🧪 Testing API endpoint...');
+            showStatus('Testing API endpoint...', 'info');
+            
+            try {
+                const response = await fetch('/api/deploy-bucket-docs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bucket: 'levante-assets-dev',
+                        license: 'Creative Commons',
+                        description: 'Test deployment from bucket info tool'
+                    })
+                });
+
+                console.log('API Response Status:', response.status, response.statusText);
+                
+                let result;
+                try {
+                    const text = await response.text();
+                    console.log('API Response Text:', text);
+                    result = JSON.parse(text);
+                } catch (e) {
+                    showStatus(`API returned invalid JSON: ${e.message}`, 'error');
+                    return;
+                }
+
+                if (response.ok) {
+                    showStatus(`✓ API test successful! Files deployed to ${result.files?.join(', ')}`, 'success');
+                    console.log('✓ API test successful:', result);
+                } else {
+                    showStatus(`✗ API test failed: ${result.error}`, 'error');
+                    console.error('✗ API test failed:', result);
+                }
+            } catch (error) {
+                showStatus(`✗ API test error: ${error.message}`, 'error');
+                console.error('✗ API test error:', error);
+            }
+        }
+
+        async function deployAll() {
+            // Save current state first
+            saveToLocalStorage();
+
+            const deployBtn = document.getElementById('deployBtn');
+            deployBtn.disabled = true;
+            deployBtn.innerHTML = '<div class="loading"></div> Deploying...';
+
+            showStatus('Deploying README and LICENSE files to all buckets...', 'info');
+
+            // Deploy to both dev and prod buckets
+            const allBuckets = [...DEV_BUCKETS, ...PROD_BUCKETS];
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            for (const bucket of allBuckets) {
+                const data = bucketData[bucket];
+                if (!data || !data.description) {
+                    console.log(`Skipping ${bucket} - no description`);
+                    continue;
+                }
+
+                try {
+                    console.log(`📦 Deploying to ${bucket}...`);
+                    const response = await fetch('/api/deploy-bucket-docs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            bucket,
+                            license: data.license,
+                            description: data.description
+                        })
+                    });
+
+                    let result;
+                    try {
+                        result = await response.json();
+                    } catch (e) {
+                        result = { error: `Failed to parse response: ${e.message}` };
+                    }
+                    
+                    if (response.ok) {
+                        successCount++;
+                        console.log(`✓ Deployed to ${bucket}:`, result);
+                    } else {
+                        errorCount++;
+                        const errorMsg = result.error || `HTTP ${response.status}: ${response.statusText}`;
+                        errors.push(`${bucket}: ${errorMsg}`);
+                        console.error(`✗ Failed to deploy to ${bucket}:`, errorMsg, result);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`${bucket}: ${error.message}`);
+                    console.error(`✗ Error deploying to ${bucket}:`, error);
+                }
+            }
+
+            deployBtn.disabled = false;
+            deployBtn.innerHTML = '<i class="fas fa-rocket"></i> Deploy All';
+
+            if (errorCount === 0) {
+                showStatus(`✓ Successfully deployed to all ${successCount} bucket${successCount !== 1 ? 's' : ''}!`, 'success');
+            } else {
+                const successMsg = successCount > 0 ? `Deployed to ${successCount} bucket${successCount !== 1 ? 's' : ''}, ` : '';
+                showStatus(`${successMsg}${errorCount} error${errorCount !== 1 ? 's' : ''}. ${errorCount > 0 && errors.some(e => e.includes('403') || e.includes('denied')) ? 'Some buckets require admin to grant permissions.' : 'Check console for details.'}`, errorCount === errors.length ? 'error' : 'info');
+                console.error('Deployment errors:', errors);
+            }
+        }
+
+        // Load buckets on page load
+        window.addEventListener('DOMContentLoaded', loadBuckets);
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 160">
+  <defs>
+    <pattern id="checker" width="16" height="16" patternUnits="userSpaceOnUse">
+      <rect width="16" height="16" fill="#ffffff"/>
+      <rect width="8" height="8" fill="#0f172a"/>
+      <rect x="8" y="8" width="8" height="8" fill="#0f172a"/>
+    </pattern>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#020617" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M90 10l-74 18c-4 1-7 5-6 9l18 84c1 4 6 7 10 6l74-18c4-1 7-6 6-10L100 16c-1-4-6-7-10-6z" fill="url(#checker)" stroke="#0f172a" stroke-width="4"/>
+    <path d="M166 10l74 18c4 1 7 5 6 9l-18 84c-1 4-6 7-10 6l-74-18c-4-1-7-6-6-10l18-84c1-4 6-7 10-6z" fill="url(#checker)" stroke="#0f172a" stroke-width="4"/>
+    <path d="M120 20l-86 128" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/>
+    <path d="M136 20l86 128" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "functions": {
+    "api/playht-proxy.js": { "maxDuration": 30 },
+    "api/elevenlabs-proxy.js": { "maxDuration": 30 },
+    "api/translate-proxy.js": { "maxDuration": 30 },
+    "api/read-tags.js": { "maxDuration": 30 },
+    "api/language-config.js": { "maxDuration": 30 },
+    "api/validation-storage.js": { "maxDuration": 30 },
+    "api/visual-audit.js": { "maxDuration": 60 },
+    "api/visual-fix.js": { "maxDuration": 60 },
+    "api/google-translate.js": { "maxDuration": 30 },
+    "api/list-validation-files.js": { "maxDuration": 10 },
+    "api/get-validation-file.js": { "maxDuration": 10 },
+    "api/save-audio.js": { "maxDuration": 60 },
+    "api/crowdin-stats.js": { "maxDuration": 30 },
+    "api/crowdin-untranslated.js": { "maxDuration": 60 },
+    "api/crowdin-auth.js": { "maxDuration": 30 },
+    "api/crowdin-check-permissions.js": { "maxDuration": 30 },
+    "api/deploy-bucket-docs.js": { "maxDuration": 60 },
+    "api/task-assets.js": { "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/proxy/elevenlabs/voices", "destination": "/api/elevenlabs-proxy" },
+    { "source": "/proxy/elevenlabs/(.*)", "destination": "/api/elevenlabs-proxy?voice_id=$1" },
+    { "source": "/proxy/translate", "destination": "/api/translate-proxy" },
+    { "source": "/proxy/playht", "destination": "/api/playht-proxy" },
+
+    { "source": "/api/(.*)", "destination": "/api/$1" },
+
+    { "source": "/favicon.ico", "destination": "/public/favicon-32x32.png" },
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/dashboard", "destination": "/public/dashboard-app.html" },
+    { "source": "/(.*)", "destination": "/public/$1" }
+  ],
+  "headers": [
+    { "source": "/", "headers": [ { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" } ] },
+    { "source": "/(.*)\\.html", "headers": [ { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" } ] },
+    { "source": "/public/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=3600" } ] }
+  ]
+} 

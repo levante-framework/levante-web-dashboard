@@ -1,0 +1,331 @@
+<!-- Credentials Modal -->
+<div id="credentialsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-key"></i> API Credentials</h2>
+            <span class="close" onclick="closeCredentialsModal()">&times;</span>
+        </div>
+        <div class="credentials-form">
+            <div class="credential-group">
+                <label for="playhtApiKey">PlayHT API Key:</label>
+                <input type="text" id="playhtApiKey" placeholder="Enter PlayHT API Key">
+            </div>
+            <div class="credential-group">
+                <label for="playhtUserId">PlayHT User ID:</label>
+                <input type="text" id="playhtUserId" placeholder="Enter PlayHT User ID">
+            </div>
+            <div class="credential-group">
+                <label for="elevenlabsApiKey">ElevenLabs API Key:</label>
+                <input type="text" id="elevenlabsApiKey" placeholder="Enter ElevenLabs API Key">
+            </div>
+            <div class="credential-group">
+                <label for="googleTranslateApiKey">Google Translate API Key:</label>
+                <input type="text" id="googleTranslateApiKey" placeholder="Enter Google Translate API Key">
+            </div>
+            <div class="credentials-buttons">
+                <button id="saveCredentials" class="btn btn-primary" onclick="saveCredentials()">
+                    <i class="fas fa-save"></i> Save Credentials
+                </button>
+                <button id="recoverCredentials" class="btn btn-success" onclick="loadCredentials()">
+                    <i class="fas fa-history"></i> Load Credentials
+                </button>
+                <button id="clearCredentials" class="btn btn-secondary" onclick="clearCredentials()">
+                    <i class="fas fa-trash"></i> Clear All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Language Config Modal (Vue-powered) -->
+<div id="languageConfigModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-language"></i> Language Configuration</h2>
+            <span class="close" onclick="closeLanguageConfigModal()">&times;</span>
+        </div>
+        <div class="audio-info-content">
+            <div id="language-config-app">
+                <div v-if="loading" class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading configuration...</div>
+                <div v-else>
+                    <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+                        <button class="btn btn-success btn-compact" :disabled="saving" @click="saveConfig"><i class="fas fa-save"></i> {{ saving ? 'Saving...' : 'Save' }}</button>
+                    </div>
+                    <div class="info-section" style="border:1px dashed #ddd; padding:12px; border-radius:8px; margin-bottom:12px;">
+                        <h3 style="display:flex; align-items:center; gap:8px;">Add Language</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Display Name</label>
+                                <input v-model="newLang.name" placeholder="Spanish (Argentina)" />
+                            </div>
+                            <div class="info-item">
+                                <label>Language Code</label>
+                                <input v-model="newLang.lang_code" placeholder="es-AR" />
+                            </div>
+                            <div class="info-item">
+                                <label>Default Service</label>
+                                <select v-model="newLang.service">
+                                    <option>ElevenLabs</option>
+                                    <option>PlayHT</option>
+                                </select>
+                            </div>
+                            <div class="info-item">
+                                <label>Default Voice</label>
+                                <input v-model="newLang.voice" placeholder="e.g., Sophia" />
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-compact" @click="addLanguage"><i class="fas fa-plus"></i> Add</button>
+                    </div>
+
+                    <div v-for="(cfg, name) in config.languages" :key="name" class="info-section">
+                        <h3 style="display:flex; align-items:center; gap:8px;">{{ name }}</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>Display Name</label>
+                                <input v-model="cfg.display_name" :placeholder="name" />
+                            </div>
+                            <div class="info-item">
+                                <label>Language Code</label>
+                                <input v-model="cfg.lang_code" />
+                            </div>
+                            <div class="info-item">
+                                <label>Default Service</label>
+                                <select v-model="cfg.service">
+                                    <option>ElevenLabs</option>
+                                    <option>PlayHT</option>
+                                </select>
+                            </div>
+                            <div class="info-item">
+                                <label>Default Voice</label>
+                                <input v-model="cfg.voice" />
+                            </div>
+                            <div class="info-item">
+                                <label>&nbsp;</label>
+                                <button class="btn btn-danger btn-compact" @click="removeLanguage(name)"><i class="fas fa-trash"></i> Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audio Info Modal -->
+<div id="audioInfoModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-info-circle"></i> Audio Metadata</h2>
+            <span class="close" onclick="closeAudioInfoModal()">&times;</span>
+        </div>
+        <div class="audio-info-content">
+            <div id="audioInfoLoading" class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i> Loading metadata...
+            </div>
+            <div id="audioInfoData" style="display: none;">
+                <div class="info-section">
+                    <h3><i class="fas fa-file-audio"></i> Audio File Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>Created:</label>
+                            <span id="info-created-date"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Service:</label>
+                            <span id="info-service"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Voice:</label>
+                            <span id="info-voice"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Source Text:</label>
+                            <span id="info-text" class="text-content"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-section">
+                    <h3><i class="fas fa-info-circle"></i> Additional Info</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <label>File Name:</label>
+                            <span id="info-fileName"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Size:</label>
+                            <span id="info-size"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Content Type:</label>
+                            <span id="info-contentType"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Language:</label>
+                            <span id="info-language"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Language Code:</label>
+                            <span id="info-lang-code"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Title:</label>
+                            <span id="info-title"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Artist:</label>
+                            <span id="info-artist"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Album:</label>
+                            <span id="info-album"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Genre:</label>
+                            <span id="info-genre"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Copyright:</label>
+                            <span id="info-copyright" class="text-content"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Comment:</label>
+                            <span id="info-comment" class="text-content"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>File Created:</label>
+                            <span id="info-created"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-section">
+                    <div class="info-note" id="info-note"></div>
+                </div>
+            </div>
+            <div id="audioInfoError" style="display: none;">
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="errorMessage"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Results Modal -->
+<div id="validationResultsModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h2 id="validationModalTitle"><i class="fas fa-clipboard-check"></i> Validation Results</h2>
+            <span class="close" onclick="closeValidationResultsModal()">&times;</span>
+        </div>
+        <div class="validation-results-content">
+            <div class="validation-score-header">
+                <div class="score-display">
+                    <span id="validationScoreEmoji">✅</span>
+                    <span id="validationScoreText">85% Similarity</span>
+                </div>
+                <div class="validation-status-badge" id="validationStatusBadge">Excellent</div>
+            </div>
+            
+            <div class="text-comparison-container">
+                <div class="comparison-side">
+                    <h3><i class="fas fa-language"></i> Original Text (English)</h3>
+                    <div class="text-display original-text" id="validationOriginalText">
+                        Original text will appear here...
+                    </div>
+                </div>
+                
+                <div class="comparison-divider">
+                    <div class="comparison-arrow">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                </div>
+                
+                <div class="comparison-side">
+                    <h3><i class="fas fa-globe"></i> Translated Text (<span id="validationTargetLang">Spanish</span>)</h3>
+                    <div class="text-display translated-text" id="validationTranslatedText">
+                        Translated text will appear here...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="back-translation-section">
+                <h3><i class="fas fa-undo"></i> Back-Translation Analysis</h3>
+                <div class="text-display back-translated-text" id="validationBackTranslation">
+                    Back-translated text will appear here...
+                </div>
+                <div class="validation-notes" id="validationNotes">
+                    Analysis notes will appear here...
+                </div>
+            </div>
+            
+            <div class="validation-metadata">
+                <div class="metadata-item">
+                    <strong>Item ID:</strong> <span id="validationItemId">item-id</span>
+                </div>
+                <div class="metadata-item">
+                    <strong>Language Code:</strong> <span id="validationLangCode">es-CO</span>
+                </div>
+                <div class="metadata-item">
+                    <strong>Validated:</strong> <span id="validationTimestamp">timestamp</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Draft Audio Modal -->
+<div id="draftAudioModal" class="modal">
+    <div class="modal-content modal-wide">
+        <div class="modal-header">
+            <h2><i class="fas fa-music"></i> Draft Audio Files</h2>
+            <div class="modal-actions">
+                <button id="copyDraftBucketLink" class="btn btn-secondary btn-compact" title="Copy draft bucket link">
+                    <i class="fas fa-link"></i> Copy Draft Link
+                </button>
+                <span class="close" onclick="closeDraftAudioModal()">&times;</span>
+            </div>
+        </div>
+        <div class="draft-audio-content">
+            <div id="draftAudioLoading" class="loading-spinner" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Loading draft audio...
+            </div>
+            <div id="draftAudioBody" class="draft-audio-body"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Summary Modal -->
+<div id="validationSummaryModal" class="modal">
+    <div class="modal-content" style="max-width: 1100px; width: 90%;">
+        <div class="modal-header">
+            <h2><i class="fas fa-chart-bar"></i> Validation Summary</h2>
+            <span class="close" onclick="closeValidationSummaryModal()">&times;</span>
+        </div>
+        <div class="validation-summary-content">
+            <div id="validationSummaryHeader" class="summary-header">
+                <!-- Filled by JS: totals per language -->
+            </div>
+            <div id="validationSummaryBody" class="summary-body">
+                <!-- Filled by JS: table of items and statuses -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+    <div class="modal-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+        <div class="modal-header">
+            <h2><i class="fas fa-question-circle"></i> Help & Documentation</h2>
+            <span class="close" onclick="closeHelpModal()">&times;</span>
+        </div>
+        <div class="audio-info-content">
+            <div id="helpLoading" class="loading-spinner" style="display:none;">
+                <i class="fas fa-spinner fa-spin"></i> Loading documentation...
+            </div>
+            <div id="helpContent" class="markdown-body" style="padding: 20px;"></div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Patch &amp; Deploy Workflow</title>
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background:
+                radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)),
+                linear-gradient(190deg, #020617 0%, #0b1220 100%);
+            color: #e2e8f0;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .page-container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: rgba(4, 11, 24, 0.88);
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 32px 80px rgba(2, 6, 23, 0.55);
+            padding: 36px 42px;
+        }
+
+        h1 {
+            font-size: 2.6rem;
+            margin: 0 0 18px;
+            letter-spacing: 0.03em;
+            color: #f8fafc;
+        }
+
+        h2 {
+            margin-top: 40px;
+            margin-bottom: 18px;
+            font-size: 1.55rem;
+            letter-spacing: 0.02em;
+            color: #ffb347;
+        }
+
+        h3 {
+            margin-top: 28px;
+            margin-bottom: 12px;
+            font-size: 1.25rem;
+            letter-spacing: 0.02em;
+            color: #3dd5ff;
+        }
+
+        p {
+            line-height: 1.6;
+            color: rgba(226, 232, 240, 0.88);
+        }
+
+        ul, ol {
+            line-height: 1.6;
+            color: rgba(226, 232, 240, 0.85);
+            padding-left: 22px;
+        }
+
+        li + li {
+            margin-top: 6px;
+        }
+
+        .note {
+            margin-top: 32px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            background: rgba(15, 23, 42, 0.7);
+            font-size: 0.95rem;
+            color: rgba(203, 213, 225, 0.85);
+        }
+
+        @media (max-width: 720px) {
+            .page-container {
+                padding: 36px 16px 60px;
+            }
+
+            .card {
+                padding: 28px 24px;
+            }
+
+            h1 {
+                font-size: 2.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <a href="../index.html" class="back-link">
+            <span>&larr;</span>
+            <span>Back to Pitwall</span>
+        </a>
+
+        <div class="card">
+            <h1>Patch &amp; Deploy Workflow</h1>
+            <p>
+                Levante Pitwall now streamlines patch audio fixes—from auditioning draft takes to queuing approved versions for deployment.
+                Use this guide as the single reference for generating, reviewing, and promoting patched clips.
+            </p>
+
+            <h2>Summary</h2>
+            <ul>
+                <li>Browse or filter every audio clip per language, audition samples, and regenerate text-to-speech as needed.</li>
+                <li>Save preferred takes into the draft bucket using the <strong>Save</strong> button. Multiple saves create <code>_v###</code> versioned files tagged with <code>source=patch</code>.</li>
+                <li>Open <strong>Draft Audio</strong> to review, share, and approve the subset you intend to ship.</li>
+                <li>Share the <strong>Review Alternative Audio Clips</strong> link with research partners so they can approve or reject candidate versions.</li>
+                <li>Site approvals move the chosen clips into the <code>deploy/&lt;lang&gt;/</code> staging folder; the “To be Deployed” view shows exactly what is queued for downstream promotion.</li>
+                <li>DCC admins review a stoplight view of those deploy files, tag the clips that are <strong>Okay to Push</strong>, and downstream scripts promote the flagged set into the repo (<code>audio_files/…</code>) and <code>levante-assets-dev</code>.</li>
+            </ul>
+
+            <h2>Workflow</h2>
+
+            <h3>1. Prepare the audio</h3>
+            <ul>
+                <li>Choose the correct language tab and row in the dashboard table.</li>
+                <li>Regenerate audio if you want to reuse/adjust existing voices; metadata is preloaded when available.</li>
+                <li>Edit the transcription text if needed and click <strong>Generate Audio</strong> to audition the new clip.</li>
+            </ul>
+
+            <h3>2. Save to drafts</h3>
+            <ul>
+                <li>When the preview sounds right, click <strong>Save</strong> on the row.</li>
+                <li>The dashboard writes <code>audio/&lt;lang&gt;/&lt;itemId&gt;_v###.mp3</code> to <code>levante-assets-draft</code> and stamps the file with ID3 metadata (<code>voice</code>, <code>album</code>, <code>source=patch</code>, etc.).</li>
+                <li>Re-saving the same item increments the numeric suffix so you can compare alternates.</li>
+            </ul>
+
+            <h3>3. Review and share drafts</h3>
+            <ul>
+                <li>Open the <strong>Draft Audio</strong> modal from the dashboard or visit <code>/draft-share.html?bucket=levante-assets-draft&amp;folder=audio</code> directly.</li>
+                <li>Preview clips and delete any versions you do not want to keep.</li>
+                <li>Click <strong>Copy Draft Link</strong> to share with the research site so they can review the alternatives and select the preferred version.</li>
+            </ul>
+
+            <h3>4. Site approval (research partner)</h3>
+            <ul>
+                <li>Share the review link; researchers can preview, delete, or select the winning versions.</li>
+                <li>When they click <strong>Approve Selected</strong>, Pitwall copies the chosen clip(s) into <code>deploy/&lt;lang&gt;/&lt;itemId&gt;.mp3</code> (stripping the version suffix) and the dashboard flags them as <em>Approved by Site</em>.</li>
+                <li>The deploy copy records <code>siteApprovedSource</code>, <code>siteApprovedVersion</code>, and a timestamp so Pitwall can highlight which `_v###` draft was approved and mark newer drafts as needing re-approval.</li>
+                <li>No repo or <code>levante-assets-dev</code> writes occur during this step—research partners only control what appears in the deploy queue.</li>
+            </ul>
+
+            <h3>5. Flag site-approved audio for promotion (by DCC admin)</h3>
+            <ul>
+                <li>Open <code>/draft-share.html?bucket=levante-assets-draft&amp;folder=deploy</code> (no <code>mode=site</code> parameter). This presents a stoplight column.</li>
+                <li><strong>Stoplight legend</strong>:
+                    <ul>
+                        <li><strong>Not approved</strong> (red) — no site-approved version exists yet.</li>
+                        <li><strong>Approved by Site</strong> (yellow) — the clip lives in <code>deploy/&lt;lang&gt;/</code> but has not been flagged for promotion.</li>
+                        <li><strong>Ready to push</strong> (green) — the clip has been marked with <strong>Okay to Push</strong> and is queued for promotion.</li>
+                    </ul>
+                </li>
+                <li>Select one or more green/yellow rows and click <strong>Okay to Push</strong>. Pitwall writes the selection to <code>gs://&lt;draft-bucket&gt;/deploy-queue/queue.json</code> (the bucket defaults to <code>levante-assets-draft</code> and can be overridden via <code>ASSETS_DRAFT_BUCKET</code> / <code>AUDIO_DEPLOY_QUEUE_PREFIX</code>). No copies to the repo or <code>levante-assets-dev</code> are performed here.</li>
+            </ul>
+
+            <h3>6. Promote flagged audio (automation / engineering)</h3>
+            <ul>
+                <li>Run the deployment script (e.g., <code>python utilities/promote_flagged_audio.py</code>) to download and process the queue JSON from <code>gs://&lt;draft-bucket&gt;/deploy-queue/queue.json</code> (respecting the <code>ASSETS_DRAFT_BUCKET</code> / <code>AUDIO_DEPLOY_QUEUE_PREFIX</code> overrides if set).</li>
+                <li>The script copies each flagged file into the repo (<code>audio_files/&lt;lang&gt;/…</code>) and uploads the same file to <code>levante-assets-dev/audio/&lt;lang&gt;/…</code>.</li>
+                <li>After a successful promotion it should clear the corresponding entries from the queue file so the stoplight view returns to yellow.</li>
+                <li>Follow existing release processes (CI/CD or manual rsyncs) to push assets beyond the dev bucket.</li>
+            </ul>
+
+            <h2>Notes &amp; Troubleshooting</h2>
+            <ul>
+                <li>The “Select all” checkbox ignores rows without a valid path, and it will reflect the current selection if you manually toggle rows.</li>
+                <li>The selection counter only reflects files from the current view; switching folders clears items that disappear.</li>
+                <li><strong>Accidental approvals:</strong> in the research view, simply uncheck the row before clicking Approve. In the DCC view, click <strong>Remove Selected</strong> (which also clears the “Okay to Push” flag) if a clip should drop out of the queue.</li>
+                <li><strong>“Needs re-approval” badge:</strong> when a draft is regenerated after site approval, the dashboard keeps the older deploy copy but marks it as stale until the new version is approved again.</li>
+                <li><strong>Clipboard/share issues:</strong> the Draft Audio share link button shows inline feedback; if the browser blocks clipboard access the dashboard falls back to a manual prompt.</li>
+                <li><strong>Credential errors:</strong> reopen the Credentials modal and verify PlayHT / ElevenLabs tokens for the active session.</li>
+                <li><strong>Deploy failures:</strong> ensure the dashboard service account has <code>storage.objects.get</code>, <code>copy</code>, and <code>delete</code> permissions on <code>levante-assets-draft</code>.</li>
+            </ul>
+
+            <h2>Follow-up after Deployment</h2>
+            <p>
+                Promoting files into <code>deploy/&lt;lang&gt;/</code> (and copying to the repo/dev bucket) is the last automated step. Downstream promotion—committing the updated
+                <code>audio_files/&lt;lang&gt;/</code> assets or syncing to other production buckets—remains a manual/CI responsibility. Always verify the deploy folder before triggering those jobs.
+            </p>
+
+            <div class="note">
+                Downstream promotion (committing <code>audio_files/</code> changes or syncing to production buckets) remains a manual/CI step. Always verify the deploy folder and queue status before running those jobs.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

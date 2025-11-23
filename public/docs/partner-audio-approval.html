@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Partner Audio Approval Tool Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="../styles.css" />
+    <style>
+        body {
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
+            color: #3f3f46;
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid #e4e4e7;
+            padding: 48px 40px 80px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #da3d16;
+            text-decoration: none;
+            margin-bottom: 32px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: #a22d10;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            margin-bottom: 12px;
+            color: #27272a;
+            letter-spacing: -0.02em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 i {
+            color: #da3d16;
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #71717a;
+            margin-bottom: 40px;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
+            border-radius: 10px;
+            padding: 32px 36px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #d4d4d8;
+        }
+
+        h2 {
+            margin-top: 40px;
+            margin-bottom: 18px;
+            font-size: 1.55rem;
+            letter-spacing: 0.02em;
+            color: #27272a;
+            font-weight: 700;
+        }
+
+        h3 {
+            margin-top: 28px;
+            margin-bottom: 12px;
+            font-size: 1.25rem;
+            letter-spacing: 0.02em;
+            color: #da3d16;
+            font-weight: 600;
+        }
+
+        h4 {
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            color: #52525b;
+            font-weight: 600;
+        }
+
+        p {
+            line-height: 1.7;
+            color: #3f3f46;
+        }
+
+        ul, ol {
+            line-height: 1.7;
+            color: #3f3f46;
+            padding-left: 22px;
+        }
+
+        li + li {
+            margin-top: 6px;
+        }
+
+        .note {
+            margin-top: 32px;
+            padding: 18px 20px;
+            border-radius: 8px;
+            border: 1px solid #e4e4e7;
+            background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
+            font-size: 0.95rem;
+            color: #52525b;
+        }
+
+        .note a {
+            color: #da3d16;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .note a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            background: #f4f4f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #da3d16;
+            border: 1px solid #e4e4e7;
+        }
+
+        .url-box {
+            background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 16px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #27272a;
+        }
+
+        @media (max-width: 720px) {
+            .page-container {
+                padding: 36px 16px 60px;
+            }
+
+            .card {
+                padding: 28px 24px;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <a href="../audio-approval.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Partner Audio Approval Tool
+        </a>
+
+        <h1><i class="fas fa-book"></i> Partner Audio Approval Tool</h1>
+        <p class="subtitle">A guide for research partners to review and approve audio translations</p>
+
+        <div class="card">
+            <h2>Overview</h2>
+            <p>The Partner Audio Approval Tool is a streamlined interface designed for research partners to:</p>
+            <ul>
+                <li>Review audio translations for their specific language</li>
+                <li>Listen to existing audio clips</li>
+                <li>Generate audio for items without audio files</li>
+                <li>Regenerate audio with custom text if needed</li>
+                <li>Approve audio clips for deployment (immediate approval workflow)</li>
+                <li>Search and filter items for efficient review</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Access</h2>
+            <p>The Partner Audio Approval Tool is available at:</p>
+            <div class="url-box">https://levante-partner-tools.vercel.app/audio-approval.html</div>
+            <p>Development version:</p>
+            <div class="url-box">https://levante-pitwall.vercel.app/partner-audio-dashboard.html</div>
+        </div>
+
+        <div class="card">
+            <h2>Prerequisites</h2>
+            <ul>
+                <li>Valid admin credentials for your research site</li>
+                <li>Access granted by Levante administrators</li>
+                <li>Your site's language must be configured in the system</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Authentication</h2>
+            <p>The dashboard supports three authentication methods:</p>
+            
+            <h3>1. Firebase Password Login</h3>
+            <ul>
+                <li>Enter your email address and password</li>
+                <li>Standard authentication for users with Firebase accounts</li>
+                <li>The system will automatically restrict you to your site's assigned language</li>
+            </ul>
+            
+            <h3>2. SuperAdmin Passwordless Login</h3>
+            <ul>
+                <li><strong>SuperAdmin emails can log in without a password</strong></li>
+                <li>Enter your SuperAdmin email address</li>
+                <li>Leave the password field empty (or don't fill it)</li>
+                <li>Click "Sign In with Password"</li>
+                <li>You will be automatically logged in</li>
+                <li>SuperAdmin users have full access to all languages</li>
+            </ul>
+            <p><strong>SuperAdmin Email List:</strong></p>
+            <ul>
+                <li><code>sachino@stanford.edu</code></li>
+                <li><code>david81@stanford.edu</code></li>
+                <li><code>cuskley@stanford.edu</code></li>
+                <li><code>aal@stanford.edu</code></li>
+                <li><code>zdwatson@stanford.edu</code></li>
+                <li><code>serlee@stanford.edu</code></li>
+                <li><code>mcfrank@stanford.edu</code></li>
+                <li><code>acardinal42@gmail.com</code></li>
+                <li><code>admin@levante.com</code></li>
+                <li><code>superadmin@levante.com</code></li>
+            </ul>
+            
+            <h3>3. Crowdin Username Login</h3>
+            <ul>
+                <li>Click the "Crowdin Username" tab</li>
+                <li>Enter your Crowdin username (no password needed — find it in Crowdin → Profile)</li>
+                <li>Click "Sign In with Crowdin Username"</li>
+                <li>The system verifies your username with Crowdin and grants access based on your role:
+                    <ul>
+                        <li><strong>Crowdin Owner/Manager</strong>: Full access to all languages</li>
+                        <li><strong>Crowdin Editor</strong>: Access to languages you have editor permissions for</li>
+                        <li><strong>Crowdin Translator</strong>: Access to languages you have translator permissions for (other languages appear grayed out in dropdown)</li>
+                    </ul>
+                </li>
+            </ul>
+            
+            <h3>Language Access</h3>
+            <ul>
+                <li><strong>Full Access Users</strong> (SuperAdmin, Crowdin Owner/Manager): Can access all languages</li>
+                <li><strong>Language-Specific Users</strong> (Crowdin Editor/Translator): Can only access languages they have permissions for</li>
+                <li><strong>Crowdin Translators</strong>: See language dropdown with accessible languages enabled and others grayed out</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Workflow</h2>
+
+            <h3>1. Select Language</h3>
+            <ul>
+                <li>If you have access to multiple languages, select your language from the dropdown</li>
+                <li>If you're restricted to a single language, it will be automatically selected</li>
+                <li>The dashboard will load all available audio items for your language</li>
+                <li>Items display immediately after language selection</li>
+            </ul>
+
+            <h3>2. Review Items</h3>
+            <p>The dashboard shows three tabs:</p>
+            
+            <h4><strong>To Be Approved Tab</strong></h4>
+            <ul>
+                <li>Displays all audio items that need review</li>
+                <li>Shows source text (English) and translated text</li>
+                <li>Each item includes:
+                    <ul>
+                        <li><strong>Source (English)</strong>: The original English text</li>
+                        <li><strong>Translation</strong>: The translated text in your language</li>
+                        <li><strong>Audio-enhanced string</strong>: Editable text field for custom audio generation</li>
+                        <li><strong>Action buttons</strong>: Play, Approve, Regenerate, Approve & Save</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4><strong>Approved Tab</strong></h4>
+            <ul>
+                <li>Shows all items you've approved</li>
+                <li>Compact view with item ID, translated text, and Unapprove button</li>
+                <li>Items in this tab have been moved to the approved bucket (<code>levante-assets-dev</code>)</li>
+                <li>Unapproving moves items back to the draft bucket</li>
+            </ul>
+
+            <h4><strong>No Audio Tab</strong></h4>
+            <ul>
+                <li>Displays items that don't have audio files yet</li>
+                <li>Compact card layout showing:
+                    <ul>
+                        <li>Item ID</li>
+                        <li>Source text (English)</li>
+                        <li>Translated text</li>
+                        <li><strong>Generate Audio</strong> button: Creates audio from the translated text</li>
+                        <li><strong>Save & Approve</strong> button: Saves generated audio and immediately approves it</li>
+                    </ul>
+                </li>
+                <li>Items can be generated and approved in one workflow</li>
+            </ul>
+
+            <h3>3. Listen to Audio</h3>
+            <ul>
+                <li>Click the <strong>Play</strong> button to listen to the current audio clip</li>
+                <li>Audio is fetched from the draft bucket (<code>levante-assets-draft</code>) for pending items</li>
+                <li>Audio is fetched from the dev bucket (<code>levante-assets-dev</code>) for approved items</li>
+                <li>If no audio exists, you'll need to generate it (use the "No Audio" tab)</li>
+            </ul>
+
+            <h3>4. Generate Audio (No Audio Tab)</h3>
+            <p>For items without audio files:</p>
+            <ol>
+                <li>Navigate to the <strong>No Audio</strong> tab</li>
+                <li>Review the source text and translation</li>
+                <li>Click <strong>Generate Audio</strong> to create audio from the translated text</li>
+                <li>The audio will play automatically after generation</li>
+                <li>Click <strong>Save & Approve</strong> to save the audio and immediately approve it</li>
+                <li>The item will move to the "Approved" tab</li>
+            </ol>
+
+            <h3>5. Regenerate Audio (Optional)</h3>
+            <p>If you want to customize the audio:</p>
+            <ol>
+                <li>Edit the <strong>Audio-enhanced string</strong> text field (pre-filled with translated text)</li>
+                <li>Click <strong>Regenerate</strong> to generate new audio with your custom text</li>
+                <li>The audio will play automatically after generation</li>
+                <li>Click <strong>Save</strong> to save the regenerated audio</li>
+                <li>Click <strong>Approve</strong> to immediately approve the audio</li>
+            </ol>
+
+            <h3>6. Approve Items</h3>
+            <p><strong>Immediate Approval Workflow:</strong></p>
+            <ul>
+                <li>Click the <strong>Approve</strong> button on any item</li>
+                <li>The audio file is immediately moved from <code>levante-assets-draft</code> to <code>levante-assets-dev</code></li>
+                <li>The item disappears from the "To Be Approved" tab</li>
+                <li>The item appears in the "Approved" tab</li>
+                <li>Statistics update automatically</li>
+                <li>No batch confirmation needed</li>
+            </ul>
+
+            <h3>7. Unapprove Items (if needed)</h3>
+            <ul>
+                <li>Switch to the <strong>Approved</strong> tab</li>
+                <li>Click <strong>Unapprove</strong> on any item</li>
+                <li>The audio file is immediately moved back from <code>levante-assets-dev</code> to <code>levante-assets-draft</code></li>
+                <li>The item disappears from the "Approved" tab</li>
+                <li>The item appears back in the "To Be Approved" tab</li>
+                <li>Statistics update automatically</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Search Functionality</h2>
+            <ul>
+                <li>Use the search box above the tabs to find specific items</li>
+                <li>Search by:
+                    <ul>
+                        <li>Item ID (e.g., "vocab-item-119")</li>
+                        <li>Any text content (source text, translated text, etc.)</li>
+                    </ul>
+                </li>
+                <li>Search works in real-time as you type</li>
+                <li>Search filters work across all tabs</li>
+                <li>Click the X button to clear the search</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Statistics</h2>
+            <p>The top of the dashboard shows four statistics:</p>
+            <ul>
+                <li><strong>Total Items</strong>: All items with translations for your language</li>
+                <li><strong>Approved</strong>: Items that have been approved and moved to dev bucket</li>
+                <li><strong>Pending</strong>: Items still awaiting approval in the draft bucket</li>
+                <li><strong>No Audio</strong>: Items without audio files that need generation</li>
+            </ul>
+            <p>Statistics update automatically as you approve/unapprove items.</p>
+        </div>
+
+        <div class="card">
+            <h2>Tips</h2>
+            <ul>
+                <li><strong>Immediate Feedback</strong>: All approval actions happen immediately - no need to confirm batches</li>
+                <li><strong>Audio Generation</strong>: Use the "No Audio" tab to quickly generate audio for missing items</li>
+                <li><strong>Audio Enhancement</strong>: Use the "Audio-enhanced string" field to customize pronunciation or add pauses</li>
+                <li><strong>Search</strong>: Use search to quickly find specific items you need to review</li>
+                <li><strong>Tab Navigation</strong>: Switch between tabs to track your progress</li>
+                <li><strong>Save & Approve</strong>: On the "No Audio" tab, use "Save & Approve" to generate and approve in one step</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Troubleshooting</h2>
+
+            <h3>"No items found"</h3>
+            <ul>
+                <li>Ensure your language has translations in the CSV file</li>
+                <li>Check that translations exist for your language</li>
+                <li>Contact Levante support if items should be available</li>
+            </ul>
+
+            <h3>"ElevenLabs API key missing"</h3>
+            <ul>
+                <li>Audio regeneration requires API credentials</li>
+                <li>These are configured server-side</li>
+                <li>Contact Levante support if regeneration fails</li>
+            </ul>
+
+            <h3>Items not appearing after approval</h3>
+            <ul>
+                <li>Approved items move to the "Approved" tab immediately</li>
+                <li>Check the Approved tab to see your approved items</li>
+                <li>Statistics update automatically</li>
+                <li>Refresh the page if items don't appear</li>
+            </ul>
+
+            <h3>Items not displaying after language selection</h3>
+            <ul>
+                <li>Items should display immediately after selecting a language</li>
+                <li>If items don't appear, try switching tabs</li>
+                <li>Check the browser console (F12 → Console) for errors</li>
+                <li>Contact Levante support if the issue persists</li>
+            </ul>
+
+            <h3>Can't see my language</h3>
+            <ul>
+                <li>Your account may be restricted to a specific language</li>
+                <li>Contact Levante administrators to verify your language assignment</li>
+                <li>Superadmins can access all languages</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Technical Details</h2>
+
+            <h3>Buckets</h3>
+            <ul>
+                <li><strong>levante-assets-draft</strong>: Contains draft audio files awaiting approval</li>
+                <li><strong>levante-assets-dev</strong>: Contains approved audio files ready for deployment</li>
+            </ul>
+
+            <h3>File Structure</h3>
+            <ul>
+                <li>Audio files are stored as: <code>audio/{language-code}/{item-id}.mp3</code></li>
+                <li>Versioned files use format: <code>{item-id}_v###.mp3</code></li>
+            </ul>
+
+            <h3>Approval Process</h3>
+            <ol>
+                <li>User clicks "Approve" → File immediately moves from draft to dev bucket</li>
+                <li>UI updates to show item in "Approved" tab</li>
+                <li>Statistics update automatically</li>
+                <li>No batch confirmation needed</li>
+            </ol>
+
+            <h3>Unapproval Process</h3>
+            <ol>
+                <li>User clicks "Unapprove" → File immediately moves from dev back to draft bucket</li>
+                <li>UI updates to show item in "To Be Approved" tab</li>
+                <li>Statistics update automatically</li>
+            </ol>
+        </div>
+
+        <div class="card">
+            <h2>Support</h2>
+            <p>For issues or questions:</p>
+            <ul>
+                <li>Contact your Levante administrator</li>
+                <li>Check the documentation link at the top of the dashboard</li>
+                <li>Review the console for error messages (F12 → Console)</li>
+            </ul>
+        </div>
+
+        <div class="note">
+            <strong>Related Documentation:</strong><br>
+            <a href="patching.html" style="color: #7dd3fc;">Patch & Deploy Workflow</a> - For administrators<br>
+            <a href="../dashboard-app.html" style="color: #7dd3fc;">Main Dashboard</a> - Full audio generation dashboard
+        </div>
+    </div>
+</body>
+</html>
+

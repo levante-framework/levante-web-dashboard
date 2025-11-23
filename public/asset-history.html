@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset History – Levante Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header" style="text-align: left;">
+            <div class="header-actions" style="left: 20px; right: auto;">
+                <a class="btn btn-secondary btn-compact" href="./dashboard-app.html">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+            <h1 style="margin-top: 10px; text-align: center;">Asset History</h1>
+            <p style="text-align: center;">Track translation commits on <code>l10n_pending</code> and compare with deployments to dev &amp; prod</p>
+        </header>
+
+        <main class="main-content">
+            <section class="controls-section" style="margin-bottom: 20px;">
+                <div class="control-group" style="gap: 20px; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label for="filterStart"><i class="fas fa-calendar-check"></i> Start Date</label>
+                        <input type="date" id="filterStart" class="voice-select" style="min-width: 200px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label for="filterEnd"><i class="fas fa-calendar-xmark"></i> End Date</label>
+                        <input type="date" id="filterEnd" class="voice-select" style="min-width: 200px;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label for="filterLimit"><i class="fas fa-list-ol"></i> Max Commits</label>
+                        <select id="filterLimit" class="voice-select" style="min-width: 160px;">
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                            <option value="75">75</option>
+                            <option value="100">100</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="applyFilters" class="btn btn-primary btn-compact"><i class="fas fa-filter"></i> Apply</button>
+                        <button id="resetFilters" class="btn btn-secondary btn-compact"><i class="fas fa-undo"></i> Reset</button>
+                    </div>
+                    <div style="margin-left:auto; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-weight:500; color:#6c757d;">Last Updated</label>
+                        <div id="lastUpdated" style="font-size:0.9em; color:#495057;">—</div>
+                    </div>
+                </div>
+                <div id="filterSummary" style="margin-top: 10px; font-size: 0.9em; color: #495057;"></div>
+            </section>
+
+            <section style="margin-bottom: 24px;">
+                <h2 style="font-size: 1.4em; margin-bottom: 12px; color: #495057; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-server"></i> Deployment Snapshot
+                </h2>
+                <div id="fileStatusContainer" class="history-env-grid"></div>
+            </section>
+
+            <section>
+                <div class="table-header" style="border-radius: 10px 10px 0 0;">
+                    <div>
+                        <h2 style="font-size: 1.3em; color: #495057;">Translation Commits</h2>
+                        <p id="commitTotals" style="font-size:0.9em; color:#6c757d; margin-top:4px;">No commits loaded yet.</p>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="search" id="commitSearch" class="search-box" placeholder="Search message, author, sha..." aria-label="Search commits">
+                        <button id="refreshBtn" class="btn btn-info btn-compact"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                </div>
+                <div class="data-table" style="border-radius: 0 0 10px 10px;">
+                    <div class="table-content" style="max-height: 520px;">
+                        <table class="summary-table" id="commitsTable">
+                            <thead>
+                                <tr>
+                                    <th style="min-width: 150px;">Committed</th>
+                                    <th style="min-width: 160px;">Author</th>
+                                    <th>Message</th>
+                                    <th style="min-width: 110px;">Dev</th>
+                                    <th style="min-width: 110px;">Prod</th>
+                                    <th style="min-width: 110px;">Commit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="commitTableBody">
+                                <tr><td colspan="6" style="text-align:center; padding:20px; color:#6c757d;">Loading history…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const API_ENDPOINT = '/api/asset-history';
+        const DEFAULT_OBJECT_PATH = 'translations/item-bank-translations.csv';
+        const MOCK_HISTORY = (() => {
+            const now = new Date();
+            const recent = new Date(now.getTime() - 1000 * 60 * 45);
+            const older = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 3);
+            const devUpdated = new Date(now.getTime() - 1000 * 60 * 60 * 6);
+            const prodUpdated = new Date(now.getTime() - 1000 * 60 * 60 * 24 * 2);
+
+            const commits = [
+                {
+                    sha: 'mockc0ffee1',
+                    url: 'https://github.com/levante-framework/levante_translations/commit/mockc0ffee1',
+                    author: { name: 'Crowdin Export', email: null, login: 'crowdin-export', avatar_url: null },
+                    committer: { name: 'Crowdin Export', email: null, login: 'crowdin-export' },
+                    message: 'New translations item-bank-translations.csv (bundle: 28)',
+                    headline: 'New translations item-bank-translations.csv (bundle: 28)',
+                    summary: '1 file changed • +24 / -12 • Files: item-bank-translations.csv',
+                    date: recent.toISOString(),
+                },
+                {
+                    sha: 'mockbead42',
+                    url: 'https://github.com/levante-framework/levante_translations/commit/mockbead42',
+                    author: { name: 'Crowdin Export', email: null, login: 'crowdin-export', avatar_url: null },
+                    committer: { name: 'Crowdin Export', email: null, login: 'crowdin-export' },
+                    message: 'New translations item-bank-translations-de-DE.xlf (bundle: 27)',
+                    headline: 'New translations item-bank-translations-de-DE.xlf (bundle: 27)',
+                    summary: '3 files changed • +65 / -20 • Files: item-bank-translations-de-DE.xlf, item-bank-translations-es-CO.xlf, item-bank-translations-en-US.xlf',
+                    date: older.toISOString(),
+                },
+            ];
+
+            return {
+                commits,
+                environments: {
+                    dev: {
+                        bucket: 'levante-assets-dev',
+                        path: DEFAULT_OBJECT_PATH,
+                        status: 'ok',
+                        updated: devUpdated.toISOString(),
+                        size: 524288,
+                        md5Hash: 'mockMd5Dev==',
+                        correlation: {
+                            status: 'behind',
+                            pendingCommits: 1,
+                            latestCommitDate: commits[0].date,
+                            updatedDate: devUpdated.toISOString(),
+                            lastCommitAfterUpdate: commits[0].date,
+                        },
+                    },
+                    prod: {
+                        bucket: 'levante-assets-prod',
+                        path: DEFAULT_OBJECT_PATH,
+                        status: 'ok',
+                        updated: prodUpdated.toISOString(),
+                        size: 524288,
+                        md5Hash: 'mockMd5Prod==',
+                        correlation: {
+                            status: 'behind',
+                            pendingCommits: 2,
+                            latestCommitDate: commits[0].date,
+                            updatedDate: prodUpdated.toISOString(),
+                            lastCommitAfterUpdate: commits[0].date,
+                        },
+                    },
+                },
+                paths: ['translations'],
+                range: {
+                    start: older.toISOString(),
+                    end: recent.toISOString(),
+                },
+                meta: {
+                    total: commits.length,
+                    limit: 50,
+                    rateLimited: false,
+                    fetchedAt: now.toISOString(),
+                    tokenPresent: false,
+                },
+            };
+        })();
+
+        const state = {
+            commits: [],
+            fileStatuses: [],
+            paths: [],
+            usingMock: false,
+            filters: {
+                start: null,
+                end: null,
+                limit: 50,
+            },
+        };
+
+        const elements = {
+            start: document.getElementById('filterStart'),
+            end: document.getElementById('filterEnd'),
+            limit: document.getElementById('filterLimit'),
+            apply: document.getElementById('applyFilters'),
+            reset: document.getElementById('resetFilters'),
+            refresh: document.getElementById('refreshBtn'),
+            summary: document.getElementById('filterSummary'),
+            totals: document.getElementById('commitTotals'),
+            tableBody: document.getElementById('commitTableBody'),
+            search: document.getElementById('commitSearch'),
+            lastUpdated: document.getElementById('lastUpdated'),
+            fileStatusContainer: document.getElementById('fileStatusContainer'),
+        };
+
+        function escapeHtml(str) {
+            return (str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatDateTime(isoString) {
+            const date = new Date(isoString);
+            if (!isoString || Number.isNaN(date.getTime())) return '—';
+            return date.toLocaleString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
+
+        function formatRelative(isoString) {
+            const date = new Date(isoString);
+            if (!isoString || Number.isNaN(date.getTime())) return 'unknown';
+            const diff = Date.now() - date.getTime();
+            const minutes = Math.round(diff / 60000);
+            if (minutes < 60) return `${minutes}m ago`;
+            const hours = Math.round(minutes / 60);
+            if (hours < 48) return `${hours}h ago`;
+            const days = Math.round(hours / 24);
+            return `${days}d ago`;
+        }
+
+        function shortSha(sha) {
+            return sha ? sha.substring(0, 7) : '—';
+        }
+
+        function renderFileStatuses() {
+            const container = elements.fileStatusContainer;
+            if (!container) return;
+
+            if (!state.fileStatuses.length) {
+                container.innerHTML = '<div class="history-card"><div class="history-card-body">No tracked assets for this range.</div></div>';
+                return;
+            }
+
+            const cards = state.fileStatuses.map((entry) => {
+                const dev = entry.dev?.deployment || { state: 'unknown' };
+                const prod = entry.prod?.deployment || { state: 'unknown' };
+                return `
+                    <div class="history-card">
+                        <div class="history-card-heading">
+                            <span class="history-env-label"><i class="${entry.type === 'surveyXliff' ? 'fas fa-file-alt' : 'fas fa-table'}"></i> ${escapeHtml(entry.displayName || entry.filenames?.[0] || entry.key)}</span>
+                        </div>
+                        <div class="history-card-body">
+                            <div class="history-row">
+                                <span>Dev</span>
+                                <div>
+                                    ${renderStatusPill(dev.state)}
+                                    <div class="history-subtext">${dev.updated ? formatRelative(dev.updated) : 'No deployment timestamp'}</div>
+                                </div>
+                            </div>
+                            <div class="history-row">
+                                <span>Prod</span>
+                                <div>
+                                    ${renderStatusPill(prod.state)}
+                                    <div class="history-subtext">${prod.updated ? formatRelative(prod.updated) : 'No deployment timestamp'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = cards;
+        }
+
+        function normalizeCommit(commit) {
+            if (!commit || typeof commit !== 'object') return commit;
+            const message = commit.message || '';
+            const computedHeadline = (message.split('\n')[0] || '').trim();
+            const computedSummary = message
+                .split('\n')
+                .slice(1)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .join(' ');
+
+            return {
+                ...commit,
+                headline: commit.headline || computedHeadline,
+                summary: commit.summary || (computedSummary || null),
+            };
+        }
+
+        function renderCommitTable() {
+            const rows = state.commits.map((commit) => {
+                const headline = commit.headline || (commit.message || '').split('\n')[0] || '—';
+                const summaryLine = commit.summary || (commit.message || '').split('\n').slice(1).map((s) => s.trim()).filter(Boolean).join(' ');
+                const haystack = `${headline} ${summaryLine} ${commit.author?.name || ''} ${commit.author?.login || ''} ${commit.sha || ''}`.toLowerCase();
+                const filter = (elements.search.value || '').trim().toLowerCase();
+                if (filter && !haystack.includes(filter)) {
+                    return null;
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <div>${formatDateTime(commit.date)}</div>
+                            <div class="history-subtext">${formatRelative(commit.date)}</div>
+                        </td>
+                        <td>
+                            <div>${escapeHtml(commit.author?.name || 'Unknown')}</div>
+                            <div class="history-subtext">${commit.author?.login ? '@' + escapeHtml(commit.author.login) : escapeHtml(commit.author?.email || '')}</div>
+                        </td>
+                        <td>
+                            <div class="history-message">${escapeHtml(headline)}</div>
+                            ${summaryLine ? `<div class="history-subtext history-summary">${escapeHtml(summaryLine)}</div>` : ''}
+                        </td>
+                        <td>
+                            ${renderStatusCell(commit.deployment_targets, 'dev')}
+                        </td>
+                        <td>
+                            ${renderStatusCell(commit.deployment_targets, 'prod')}
+                        </td>
+                        <td>
+                            <a class="history-link" href="${commit.url}" target="_blank" rel="noopener noreferrer">${shortSha(commit.sha)} <i class="fas fa-arrow-up-right-from-square"></i></a>
+                        </td>
+                    </tr>
+                `;
+            }).filter(Boolean);
+
+            if (!rows.length) {
+                elements.tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#6c757d;">No commits found for the selected filters.</td></tr>';
+            } else {
+                elements.tableBody.innerHTML = rows.join('');
+            }
+        }
+
+        function renderStatusPill(stateValue) {
+            if (stateValue === 'deployed') {
+                return '<span class="status-pill deployed"><i class="fas fa-check"></i> Deployed</span>';
+            }
+            if (stateValue === 'pending') {
+                return '<span class="status-pill pending"><i class="fas fa-hourglass-half"></i> Pending</span>';
+            }
+            if (stateValue === 'missing') {
+                return '<span class="status-pill missing"><i class="fas fa-exclamation-triangle"></i> Missing</span>';
+            }
+            return '<span class="status-pill unknown"><i class="fas fa-question"></i> Unknown</span>';
+        }
+
+        function renderStatusCell(targetKeys = [], env) {
+            if (!Array.isArray(targetKeys) || !targetKeys.length) {
+                return '<span class="history-subtext">—</span>';
+            }
+            const pieces = targetKeys.map((key) => {
+                const entry = state.fileStatuses.find((fs) => fs.key === key);
+                if (!entry) return '<span class="history-subtext">—</span>';
+                const deployment = env === 'dev' ? entry.dev?.deployment : entry.prod?.deployment;
+                return `<div>${renderStatusPill(deployment?.state)}<div class="history-subtext">${deployment?.updated ? formatRelative(deployment.updated) : 'No timestamp'}</div></div>`;
+            });
+            return `<div class="status-multi">${pieces.join('')}</div>`;
+        }
+
+        function updateSummary(range, meta) {
+            const parts = [];
+            if (range?.start) parts.push(`from <strong>${formatDateTime(range.start)}</strong>`);
+            if (range?.end) parts.push(`to <strong>${formatDateTime(range.end)}</strong>`);
+            if (!parts.length) parts.push('showing most recent commits');
+            parts.push(`limit <strong>${meta?.limit ?? state.filters.limit}</strong>`);
+            if (state.paths && state.paths.length) {
+                parts.push(`paths <strong>${state.paths.join(', ')}</strong>`);
+            }
+            if (state.usingMock) {
+                parts.push('<strong>using mock data</strong> (API offline)');
+            }
+            elements.summary.innerHTML = parts.join(' · ');
+            const totalLabel = `${meta?.total ?? state.commits.length} commits returned${state.usingMock ? ' (mock)' : ''}`;
+            elements.totals.textContent = totalLabel;
+            const fetchedAt = meta?.fetchedAt || new Date().toISOString();
+            elements.lastUpdated.textContent = formatDateTime(fetchedAt) + ` (${formatRelative(fetchedAt)})`;
+        }
+
+        function applyPayload(payload, isMock = false) {
+            state.commits = Array.isArray(payload.commits)
+                ? payload.commits.map(normalizeCommit)
+                : [];
+            state.fileStatuses = Array.isArray(payload.file_statuses) ? payload.file_statuses : [];
+            state.paths = Array.isArray(payload.paths)
+                ? payload.paths
+                : payload.path
+                ? [payload.path]
+                : [];
+            state.usingMock = isMock;
+
+            renderFileStatuses();
+            updateSummary(payload.range || {}, payload.meta || {});
+            renderCommitTable();
+        }
+
+        async function loadHistory() {
+            elements.tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#6c757d;"><i class="fas fa-circle-notch fa-spin"></i> Loading commit history…</td></tr>';
+
+            const url = new URL(API_ENDPOINT, window.location.origin);
+            url.searchParams.set('limit', state.filters.limit);
+            if (state.filters.start) url.searchParams.set('start', state.filters.start);
+            if (state.filters.end) url.searchParams.set('end', state.filters.end);
+
+            try {
+                const response = await fetch(url, { cache: 'no-store' });
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`API ${response.status}: ${text}`);
+                }
+                const payload = await response.json();
+                applyPayload(payload, false);
+            } catch (error) {
+                console.error('Failed to load history', error);
+                applyPayload(MOCK_HISTORY, true);
+            }
+        }
+
+        function resetFilters() {
+            const today = new Date();
+            const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 30);
+            elements.start.value = start.toISOString().slice(0, 10);
+            elements.end.value = '';
+            elements.limit.value = '50';
+            elements.search.value = '';
+            state.filters.start = elements.start.value || null;
+            state.filters.end = null;
+            state.filters.limit = Number(elements.limit.value);
+        }
+
+        function applyFiltersFromInputs() {
+            state.filters.start = elements.start.value || null;
+            state.filters.end = elements.end.value || null;
+            state.filters.limit = Number(elements.limit.value) || 50;
+        }
+
+        // Event bindings
+        elements.apply.addEventListener('click', () => {
+            applyFiltersFromInputs();
+            loadHistory();
+        });
+
+        elements.reset.addEventListener('click', () => {
+            resetFilters();
+            loadHistory();
+        });
+
+        elements.refresh.addEventListener('click', () => {
+            applyFiltersFromInputs();
+            loadHistory();
+        });
+
+        elements.search.addEventListener('input', () => {
+            renderCommitTable();
+        });
+
+        // Initialize
+        resetFilters();
+        applyFiltersFromInputs();
+        loadHistory();
+    </script>
+</body>
+</html>
+
