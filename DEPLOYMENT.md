@@ -12,6 +12,16 @@ Your dashboard is always available at these stable URLs:
 
 These URLs automatically point to the latest production deployment.
 
+## Build & Test Checklist
+
+Before deploying (locally or via CI):
+
+1. Install dependencies once: `npm install`
+2. Compile the TypeScript sources that power the dashboard UI: `npm run build`
+3. (Optional) Run the TypeScript smoke tests: `npm test` - this suite is browser-API aware and may flag missing DOM stubs when run headlessly, but it is still useful for catching missing files or compile failures.
+
+The Vercel build step now calls `npm run build`, so as long as the command succeeds locally, the deployment build will match production.
+
 ## Deployment Methods
 
 ### Method 1: Automated Script (Recommended)
@@ -33,12 +43,13 @@ npm run deploy-bat
 
 ### Method 2: Manual Deployment
 
-1. Deploy to production:
+1. Make sure `npm run build` succeeds locally (Vercel executes the same command during `vercel build`).
+2. Deploy to production:
    ```bash
    vercel --prod
    ```
 
-2. Set up aliases (replace `<deployment-url>` with the actual URL):
+3. Set up aliases (replace `<deployment-url>` with the actual URL):
    ```bash
    vercel alias set <deployment-url> audio-dashboard-levante.vercel.app
    vercel alias set <deployment-url> levante-audio-dashboard.vercel.app

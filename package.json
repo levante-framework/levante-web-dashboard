@@ -6,7 +6,7 @@
   "homepage": "https://audio-dashboard-levante.vercel.app",
   "scripts": {
     "start": "serve .",
-    "build": "echo 'No build step needed'",
+    "build": "npm run build:ts",
     "build:ts": "tsc",
     "build:ts-watch": "tsc --watch",
     "type-check": "tsc --noEmit",
