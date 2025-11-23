@@ -185,13 +185,16 @@
             display: flex;
             gap: 16px;
             align-items: center;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            justify-content: space-between;
         }
 
         .language-select {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex: 1 1 320px;
+            min-width: 0;
         }
 
         .language-select label {
@@ -208,6 +211,8 @@
             background: #ffffff;
             color: #27272a;
             min-width: 220px;
+            width: 100%;
+            max-width: 420px;
             cursor: pointer;
             transition: all 0.2s;
             font-family: inherit;
@@ -445,8 +450,11 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            margin: 12px 0 24px;
             flex-wrap: wrap;
+            margin-left: auto;
+            text-align: right;
+            justify-content: flex-end;
+            flex-shrink: 0;
         }
 
         .refresh-status span {
@@ -932,14 +940,24 @@
             .controls {
                 flex-direction: column;
                 align-items: stretch;
+                flex-wrap: wrap;
+            }
+
+            .refresh-status {
+                justify-content: flex-start;
+                margin-left: 0;
+                margin-top: 12px;
+                width: 100%;
             }
 
             .language-select {
                 width: 100%;
+                flex: none;
             }
 
             .language-select select {
                 width: 100%;
+                max-width: none;
             }
         }
     </style>
@@ -1014,12 +1032,12 @@
                     <option value="">Select a language...</option>
                 </select>
             </div>
-        </div>
-        <div class="refresh-status">
-            <span id="refreshTimestamp">Last refreshed: Not yet</span>
-            <button class="refresh-button" id="refreshDataBtn" disabled>
-                <i class="fas fa-sync-alt"></i> Refresh Data
-            </button>
+            <div class="refresh-status">
+                <span id="refreshTimestamp">Last refreshed: Not yet</span>
+                <button class="refresh-button" id="refreshDataBtn" disabled>
+                    <i class="fas fa-sync-alt"></i> Refresh Data
+                </button>
+            </div>
         </div>
 
         <div class="approval-stats" id="approvalStats" style="display: none;">
