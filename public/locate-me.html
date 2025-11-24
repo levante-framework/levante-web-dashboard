@@ -256,46 +256,6 @@
         .coordinates-info i {
             color: #da3d16;
         }
-        .weather-card {
-            border: 1px solid #e4e4e7;
-            border-radius: 12px;
-            padding: 20px;
-            background: linear-gradient(135deg, #f8fafc 0%, #fef8f2 100%);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
-        .weather-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #0f172a;
-            font-weight: 600;
-        }
-        .weather-details {
-            display: flex;
-            gap: 24px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        .weather-temp {
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #1f2937;
-        }
-        .weather-meta {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            color: #475569;
-            font-size: 0.95rem;
-        }
-        .weather-source {
-            font-size: 0.8rem;
-            color: #94a3b8;
-            margin-top: 10px;
-        }
         .log-display {
             background: #ffffff;
             border: 2px solid #e4e4e7;
@@ -438,28 +398,6 @@
                 </div>
             </div>
             <div v-else class="result-area" v-text="status"></div>
-            <div v-if="weather" class="weather-card">
-                <div class="weather-header">
-                    <i class="fas fa-cloud-sun"></i>
-                    <span>Current Weather</span>
-                </div>
-                <div class="weather-details">
-                    <div class="weather-temp">{{ weather.temperature }}°{{ weather.unit }}</div>
-                    <div class="weather-meta">
-                        <span>{{ weather.description }}</span>
-                        <span>Feels like {{ weather.apparent }}°{{ weather.unit }}</span>
-                        <span>Humidity: {{ weather.humidity }}%</span>
-                        <span>Wind: {{ weather.wind }} {{ weather.windUnit }}</span>
-                    </div>
-                </div>
-                <div class="weather-meta">
-                    <small class="weather-source">Powered by open-meteo.com</small>
-                    <small>{{ formatDateTime(weather.updatedAt) }}</small>
-                </div>
-            </div>
-            <div v-else-if="weatherStatus" class="weather-card" style="background:#fff;">
-                <div class="weather-meta">{{ weatherStatus }}</div>
-            </div>
             <div class="metrics-grid" v-if="latestMetrics && Object.keys(latestMetrics).length > 0">
                 <div class="metric-card">
                     <h4>Dataset File</h4>
@@ -483,15 +421,7 @@
                 <p style="color: #71717a;">Execute "Locate Me" to populate logs and see timing data.</p>
                 <p v-if="latestMetrics === null" style="color: #991b1b; font-size: 0.8rem; margin-top: 8px;">Debug: latestMetrics is null</p>
             </div>
-            <div v-if="showLog" class="log-display">
-                <div class="log-header">
-                    <h4>Location Log File</h4>
-                    <button class="btn-close" @click="showLog = false">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <pre class="log-content">{{ logFileContent || 'Loading...' }}</pre>
-            </div>
+
             <div v-if="error" class="metric-card" style="background: #fef2f2; border-color: #fecaca;">
                 <h4 style="color: #991b1b;">Error</h4>
                 <p style="color: #991b1b; margin: 0;">{{ error }}</p>
@@ -549,19 +479,22 @@
                             </p>
                             <p style="margin: 4px 0 0; color: #475569;">{{ formatDateTime(logStats.latest.timestamp) }}</p>
                         </div>
-                        <div class="log-table" v-if="logEntries.length">
-                            <div class="log-row log-header-row">
-                                <div class="log-cell">City</div>
-                                <div class="log-cell">Country</div>
-                                <div class="log-cell">Distance</div>
-                                <div class="log-cell">Timestamp</div>
-                            </div>
-                            <div class="log-row" v-for="entry in logEntries" :key="entry.timestamp + entry.latitude">
-                                <div class="log-cell">{{ entry.cityName || 'Unknown' }}</div>
-                                <div class="log-cell">{{ entry.country || '-' }}</div>
-                                <div class="log-cell">{{ entry.distanceKm ? entry.distanceKm + ' km' : '-' }}</div>
-                                <div class="log-cell">{{ formatDateTime(entry.timestamp) }}</div>
-                            </div>
+                        <div class="log-card-list" v-if="logEntries.length">
+                            <article class="log-card" v-for="entry in logEntries" :key="entry.timestamp + entry.latitude">
+                                <div class="log-card-header">
+                                    <div>
+                                        <h4>{{ entry.cityName || 'Unknown location' }}</h4>
+                                        <small>{{ entry.country || 'N/A' }} • {{ entry.distanceKm ? entry.distanceKm + ' km away' : 'Distance unknown' }}</small>
+                                    </div>
+                                    <span class="log-chip">{{ formatDateTime(entry.timestamp) }}</span>
+                                </div>
+                                <div class="log-card-meta">
+                                        <span v-if="entry.latitude && entry.longitude"><i class="fas fa-location-dot"></i> {{ entry.latitude.toFixed(4) }}, {{ entry.longitude.toFixed(4) }}</span>
+                                        <span><i class="fas fa-clock"></i> {{ entry.lookupMs || '—' }} ms</span>
+                                        <span><i class="fas fa-layer-group"></i> Results: {{ entry.resultCount }}</span>
+                                        <span v-if="entry.weather"><i class="fas fa-cloud"></i> {{ entry.weather.temperature }}° · {{ entry.weather.description || 'Weather' }}</span>
+                                </div>
+                            </article>
                         </div>
                         <div v-else class="modal-empty-state">
                             No log entries found yet. Try running "Locate Me" to create entries.
