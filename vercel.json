@@ -21,7 +21,10 @@
     "api/task-assets.js": { "maxDuration": 60 },
     "api/reverse-geocode.js": {
       "maxDuration": 15,
-      "includeFiles": "data/geocoder/cities.min.json"
+      "includeFiles": "data/geocoder/cities.min.json.gz"
+    },
+    "api/location-log.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
