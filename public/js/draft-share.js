@@ -5,6 +5,7 @@
   const statusEl = document.getElementById('status');
   const contentEl = document.getElementById('content');
   const folderInfoEl = document.getElementById('folderInfo');
+  const languageFilterEl = document.getElementById('languageFilter');
   const logButton = document.getElementById('viewLogButton');
   const logPanel = document.getElementById('activityLogPanel');
   const logListEl = document.getElementById('activityLogList');
@@ -33,6 +34,9 @@
   }
 
   folderInfoEl.textContent = `Bucket: ${bucket} • Prefix: ${prefix}`;
+  let allItems = [];
+  let currentLanguageFilter = '';
+
   updateActionButtons();
   updateLogButton();
 
@@ -63,6 +67,13 @@
       .replace(/[\\/]+$/, '')
       .trim();
     return cleaned || '';
+  }
+
+  if (languageFilterEl) {
+    languageFilterEl.addEventListener('change', (event) => {
+      currentLanguageFilter = event.target.value || '';
+      renderFiles(applyLanguageFilter(allItems));
+    });
   }
 
   function updateActionButtons() {
@@ -208,6 +219,33 @@
     return `https://storage.googleapis.com/${bucket}/${safeSegments.join('/')}`;
   }
 
+  function applyLanguageFilter(items) {
+    if (!currentLanguageFilter) return items.slice();
+    return items.filter(item => {
+      const lang = item.language || '';
+      return lang.toLowerCase() === currentLanguageFilter.toLowerCase();
+    });
+  }
+
+  function populateLanguageFilter(items) {
+    if (!languageFilterEl) return;
+    const languages = Array.from(new Set(items
+      .map(item => (item.language || '').trim())
+      .filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b));
+    languageFilterEl.innerHTML = '<option value=\"\">All languages</option>';
+    languages.forEach(lang => {
+      const option = document.createElement('option');
+      option.value = lang;
+      option.textContent = lang;
+      languageFilterEl.appendChild(option);
+    });
+    if (currentLanguageFilter && !languages.includes(currentLanguageFilter)) {
+      currentLanguageFilter = '';
+    }
+    languageFilterEl.value = currentLanguageFilter;
+  }
+
   function renderFiles(items) {
     if (!items.length) {
       contentEl.innerHTML = '<div class="empty-state">No audio files found for this folder.</div>';
@@ -337,7 +375,7 @@
     contentEl.innerHTML = '';
     contentEl.appendChild(table);
     updateActionButtons();
-    setStatus(`Loaded ${items.length} file${items.length === 1 ? '' : 's'} from ${bucket}/${prefix}`, 'success');
+      setStatus(`Loaded ${items.length} file${items.length === 1 ? '' : 's'} from ${bucket}/${prefix}${currentLanguageFilter ? ` (${currentLanguageFilter})` : ''}`, 'success');
   }
 
   async function loadFiles() {
@@ -350,8 +388,9 @@
         throw new Error(text || `HTTP ${response.status}`);
       }
       const data = await response.json();
-      const items = Array.isArray(data.items) ? data.items : [];
-      renderFiles(items);
+      allItems = Array.isArray(data.items) ? data.items : [];
+      populateLanguageFilter(allItems);
+      renderFiles(applyLanguageFilter(allItems));
     } catch (error) {
       console.error('Failed to load audio list', error);
       contentEl.innerHTML = '<div class="empty-state">We could not load the audio files. Please try again later.</div>';
