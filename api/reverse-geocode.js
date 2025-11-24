@@ -1,13 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const KDBush = require('kdbush/kdbush');
 const { appendLog } = require('../lib/locationLog');
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
 const EARTH_RADIUS_KM = 6371;
 
 let geoData = null;
-let geoIndex = null;
 let datasetStats = null;
 
 function msSince(startNs) {
@@ -15,18 +13,13 @@ function msSince(startNs) {
 }
 
 function loadData() {
-  if (geoIndex && geoData && datasetStats) return datasetStats;
+  if (geoData && datasetStats) return datasetStats;
   if (!fs.existsSync(DATA_PATH)) {
     throw new Error(`Geocoder dataset missing at ${DATA_PATH}. Run "npm run geocoder:build" first.`);
   }
   const loadStart = process.hrtime.bigint();
   const raw = fs.readFileSync(DATA_PATH, 'utf8');
   geoData = JSON.parse(raw);
-  geoIndex = new KDBush(geoData.length, 64, Float64Array);
-  for (const point of geoData) {
-    geoIndex.add(point.lon, point.lat);
-  }
-  geoIndex.finish();
   const fileStats = fs.statSync(DATA_PATH);
   datasetStats = {
     filePath: DATA_PATH,
@@ -59,27 +52,25 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return EARTH_RADIUS_KM * c;
 }
 
-// Simple implementation of geokdbush.around
-function around(index, lng, lat, maxResults = Infinity) {
-  // Use kdbush's range search with a reasonable bounding box
-  // Expand search area until we have enough results
-  let boxSize = 0.1; // Start with ~11km box
-  let neighbors = [];
+function findNearest(data, lng, lat, maxResults = 10, maxDistanceKm = Infinity) {
+  const results = [];
   
-  while (neighbors.length < maxResults && boxSize < 10) {
-    neighbors = index.range(lng - boxSize, lat - boxSize, lng + boxSize, lat + boxSize);
-    boxSize *= 2;
+  for (let i = 0; i < data.length; i++) {
+    const point = data[i];
+    const dist = haversineDistance(lat, lng, point.lat, point.lon);
+    
+    if (dist > maxDistanceKm) continue;
+    
+    results.push({ idx: i, dist });
+    
+    if (results.length > maxResults * 2) {
+      results.sort((a, b) => a.dist - b.dist);
+      results.splice(maxResults);
+    }
   }
   
-  // Sort by distance and return top results
-  const withDistance = neighbors.map(idx => ({
-    idx,
-    dist: haversineDistance(lat, lng, geoData[idx].lat, geoData[idx].lon)
-  }));
-  
-  withDistance.sort((a, b) => a.dist - b.dist);
-  
-  return withDistance.slice(0, maxResults).map(item => item.idx);
+  results.sort((a, b) => a.dist - b.dist);
+  return results.slice(0, maxResults).map(item => item.idx);
 }
 
 module.exports = async function handler(req, res) {
@@ -116,12 +107,12 @@ module.exports = async function handler(req, res) {
   }
 
   const limit = Math.max(1, Math.min(10, toNumber(req.query.limit) || 3));
-  const maxDistanceKm = toNumber(req.query.maxDistanceKm) || 50; // optional filter
+  const maxDistanceKm = toNumber(req.query.maxDistanceKm) || 150;
 
   let results = [];
   const lookupStart = process.hrtime.bigint();
   try {
-    const matches = around(geoIndex, lon, lat, limit * 5);
+    const matches = findNearest(geoData, lon, lat, limit * 2, maxDistanceKm);
 
     for (const idx of matches) {
       const city = geoData[idx];
