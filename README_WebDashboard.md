@@ -52,6 +52,16 @@ ConfigHelper.setApiKey('elevenlabs', 'apiKey', 'your-elevenlabs-api-key');
 3. Enter your API keys when prompted
 4. Start using the dashboard!
 
+### Offline Reverse Geocoder
+
+The new **Locate Me** panel uses a local GeoNames dataset so that no coordinates are sent to third-party services. To build/update the dataset:
+
+1. Download `cities5000.zip` from [GeoNames](https://download.geonames.org/export/dump/cities5000.zip) and place it under `data/` (e.g. `data/geonames_cities5000.zip`).
+2. Extract it into `data/geonames/` so that `data/geonames/cities5000.txt` exists.
+3. Run `npm run geocoder:build` to generate `data/geocoder/cities.min.json`.
+
+The Vercel functions (`api/reverse-geocode.js`) load this file at runtime, so deployments must include the generated JSON.
+
 #### Simple Local Server Options:
 
 **Python 3:**

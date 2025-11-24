@@ -16,7 +16,8 @@
     "deploy": "node scripts/deploy-and-alias.js",
     "deploy-dev": "vercel --yes",
     "deploy-bat": "deploy.bat",
-    "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts"
+    "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
+    "geocoder:build": "node scripts/geocoder/build-geocoder.js"
   },
   "keywords": [
     "audio",
@@ -28,6 +29,8 @@
   "license": "MIT",
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
+    "geokdbush": "^2.0.1",
+    "kdbush": "^4.0.2",
     "node-id3": "^0.2.9",
     "sharp": "^0.33.2"
   },

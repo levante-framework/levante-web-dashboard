@@ -147,6 +147,21 @@
                         </div>
                     </div>
                 </div>
+            <div class="control-group location-panel">
+                <label><i class="fas fa-location-dot"></i> Locate Me:</label>
+                <div class="location-wrapper">
+                    <div class="location-actions">
+                        <button id="locateMeButton" class="btn btn-primary">
+                            <i class="fas fa-location-arrow"></i> Locate Me
+                        </button>
+                        <small class="location-hint">Uses on-device GPS and a local dataset only.</small>
+                    </div>
+                    <div class="location-result" id="locationResult">
+                        <strong>Current Location:</strong>
+                        <span id="locationResultText">Not determined yet.</span>
+                    </div>
+                </div>
+            </div>
                 
                 <!-- Text Generation Section -->
                 <div class="control-group tts-control-group">
