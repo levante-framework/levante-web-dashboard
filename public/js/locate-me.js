@@ -142,17 +142,17 @@ createApp({
       try {
         const res = await fetch('/api/location-log');
         if (!res.ok) {
-          this.logFileContent = `Error: HTTP ${res.status}\n\nNote: In Vercel serverless functions, log files are ephemeral and don't persist between function invocations. Each function instance has its own /tmp directory.`;
+          this.logFileContent = `Error: HTTP ${res.status}\n\nNote: In Vercel, logs are stored in memory and reset between function invocations.`;
           return;
         }
         const data = await res.json();
         if (Array.isArray(data) && data.length === 0) {
-          this.logFileContent = `[]\n\nNote: Log file is empty. In Vercel, each serverless function invocation has its own /tmp directory, so logs don't persist between requests. Metrics are shown above from the current API response instead.`;
+          this.logFileContent = `[]\n\nNote: Log file is empty. In Vercel serverless functions, logs are stored in memory and reset between requests. In local development, logs are saved to data/locations.json. Metrics above show data from the current API response.`;
         } else {
           this.logFileContent = JSON.stringify(data, null, 2);
         }
       } catch (error) {
-        this.logFileContent = `Error: ${error.message}\n\nNote: In Vercel serverless functions, log files are ephemeral and don't persist between function invocations.`;
+        this.logFileContent = `Error: ${error.message}\n\nNote: In Vercel, logs are stored in memory and reset between function invocations.`;
       }
     }
   },
