@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locate Me · Levante</title>
+    <link rel="stylesheet" href="./styles.css">
+    <style>
+        body {
+            background: radial-gradient(circle at top, rgba(255, 150, 34, 0.25), rgba(3, 7, 18, 0.95)), #020617;
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+        .locate-wrapper {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px 64px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .locate-header {
+            background: rgba(3, 7, 18, 0.65);
+            border: 1px solid rgba(255, 111, 0, 0.4);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+        }
+        .locate-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            color: #ffb347;
+        }
+        .locate-header p {
+            margin: 0;
+            color: rgba(255,255,255,0.85);
+        }
+        .locate-panel {
+            background: rgba(7, 18, 34, 0.95);
+            padding: 28px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 160, 222, 0.25);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.35);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .locate-button {
+            align-self: flex-start;
+        }
+        .result-area {
+            min-height: 160px;
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 16px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #dbeafe;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+        .metric-card {
+            padding: 14px;
+            border-radius: 12px;
+            background: rgba(59, 130, 246, 0.05);
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            min-height: 96px;
+        }
+        .metric-card h4 {
+            margin: 0 0 6px;
+            color: #bfdbfe;
+            font-size: 0.9rem;
+        }
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e0f2fe;
+        }
+        @media (max-width: 640px) {
+            .locate-header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="locate-wrapper" id="locateMeApp">
+        <header class="locate-header">
+            <h1><i class="fas fa-location-dot"></i> Levante Locate Me</h1>
+            <p>Discover the nearest city without any authentication. This page uses the same offline geocoder powering the dashboard.</p>
+        </header>
+        <section class="locate-panel">
+            <button class="btn btn-primary locate-button" :class="{ 'btn-loading': loading }" :disabled="loading" @click="locate">
+                <i class="fas fa-location-arrow"></i>
+                <span v-if="!loading">Locate Me</span>
+                <span v-else>Locating…</span>
+            </button>
+            <div class="result-area" v-text="resultText || status"></div>
+            <div class="metrics-grid" v-if="latestMetrics">
+                <div class="metric-card">
+                    <h4>Dataset File</h4>
+                    <div class="metric-value">{{ latestMetrics.datasetFile }}</div>
+                    <p style="margin: 6px 0 0; color: #94a3b8;">Loaded {{ latestMetrics.datasetLoadMs }} ms ago ({{ latestMetrics.fileSizeBytes }} bytes)</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Lookup Time</h4>
+                    <div class="metric-value">{{ latestMetrics.lookupMs }} ms</div>
+                    <p style="margin: 6px 0 0; color: #94a3b8;">Results: {{ latestMetrics.resultCount }}</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Last Seen</h4>
+                    <div class="metric-value">{{ latestMetrics.loadedAt }}</div>
+                    <p style="margin: 6px 0 0; color: #94a3b8;">Lat {{ latestMetrics.latitude }}, Lon {{ latestMetrics.longitude }}</p>
+                </div>
+            </div>
+            <div class="metric-card" v-else>
+                <h4>No metrics yet</h4>
+                <p>Execute “Locate Me” to populate logs and see timing data.</p>
+            </div>
+            <div v-if="error" class="metric-card" style="background: rgba(248,146,100,0.1); border-color: rgba(248,146,100,0.5);">
+                <h4>Error</h4>
+                <p style="color: #fecdd3;">{{ error }}</p>
+            </div>
+        </section>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="./js/locate-me.js"></script>
+</body>
+</html>
+

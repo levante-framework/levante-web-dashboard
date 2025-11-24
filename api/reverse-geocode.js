@@ -2,18 +2,25 @@ const fs = require('fs');
 const path = require('path');
 const KDBush = require('kdbush').default || require('kdbush');
 const geokdbush = require('geokdbush');
+const { appendLog } = require('../lib/locationLog');
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
 const EARTH_RADIUS_KM = 6371;
 
 let geoData = null;
 let geoIndex = null;
+let datasetStats = null;
+
+function msSince(startNs) {
+  return Number((process.hrtime.bigint() - startNs) / 1000000n);
+}
 
 function loadData() {
-  if (geoIndex && geoData) return;
+  if (geoIndex && geoData && datasetStats) return datasetStats;
   if (!fs.existsSync(DATA_PATH)) {
     throw new Error(`Geocoder dataset missing at ${DATA_PATH}. Run "npm run geocoder:build" first.`);
   }
+  const loadStart = process.hrtime.bigint();
   const raw = fs.readFileSync(DATA_PATH, 'utf8');
   geoData = JSON.parse(raw);
   geoIndex = new KDBush(geoData.length, 64, Float64Array);
@@ -21,6 +28,16 @@ function loadData() {
     geoIndex.add(point.lon, point.lat);
   }
   geoIndex.finish();
+  const fileStats = fs.statSync(DATA_PATH);
+  datasetStats = {
+    filePath: DATA_PATH,
+    fileName: path.basename(DATA_PATH),
+    loadDurationMs: Number(msSince(loadStart).toFixed ? Number(msSince(loadStart).toFixed(2)) : msSince(loadStart)),
+    fileSizeBytes: fileStats.size,
+    totalPoints: geoData.length,
+    loadedAt: new Date().toISOString()
+  };
+  return datasetStats;
 }
 
 function toNumber(value) {
@@ -59,8 +76,9 @@ export default async function handler(req, res) {
     return;
   }
 
+  let datasetInfo;
   try {
-    loadData();
+    datasetInfo = loadData();
   } catch (error) {
     console.error('reverse-geocode: dataset unavailable', error);
     res.status(500).json({ error: 'dataset_missing', message: error.message });
@@ -79,6 +97,7 @@ export default async function handler(req, res) {
   const maxDistanceKm = toNumber(req.query.maxDistanceKm) || 50; // optional filter
 
   let results = [];
+  const lookupStart = process.hrtime.bigint();
   try {
     const matches = geokdbush.around(geoIndex, lon, lat, limit * 5);
 
@@ -106,6 +125,18 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'lookup_failed', message: error.message || 'Unknown error' });
     return;
   }
+  const lookupDurationMs = msSince(lookupStart);
+
+  appendLog({
+    timestamp: new Date().toISOString(),
+    latitude: lat,
+    longitude: lon,
+    datasetFile: datasetInfo?.fileName || path.basename(DATA_PATH),
+    datasetPath: datasetInfo?.filePath || DATA_PATH,
+    datasetLoadMs: datasetInfo?.loadDurationMs ?? null,
+    lookupMs: Number(lookupDurationMs.toFixed ? lookupDurationMs.toFixed(2) : lookupDurationMs),
+    resultCount: results.length
+  });
 
   res.status(200).json({
     lat,
