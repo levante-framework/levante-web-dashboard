@@ -19,7 +19,7 @@
     "api/crowdin-check-permissions.js": { "maxDuration": 30 },
     "api/deploy-bucket-docs.js": { "maxDuration": 60 },
     "api/task-assets.js": { "maxDuration": 60 },
-    "api/reverse-geocode.mjs": {
+    "api/reverse-geocode.js": {
       "maxDuration": 15,
       "includeFiles": "data/geocoder/cities.min.json"
     }
