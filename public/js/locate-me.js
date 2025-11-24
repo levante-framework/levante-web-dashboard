@@ -63,11 +63,14 @@ createApp({
             this.coordinates = { lat: payload.lat, lon: payload.lon };
             
             // Use metrics from API response directly
+            console.log('API Response:', payload);
             if (payload.metrics) {
               this.latestMetrics = payload.metrics;
-              console.log('Metrics set:', this.latestMetrics);
+              console.log('Metrics set from API:', this.latestMetrics);
             } else {
-              console.warn('No metrics in API response:', payload);
+              console.warn('No metrics in API response. Payload keys:', Object.keys(payload));
+              // Try to refresh from log file as fallback
+              this.refreshMetrics();
             }
             
             if (this.results.length > 0) {
@@ -77,9 +80,6 @@ createApp({
             } else {
               this.status = 'No city found';
             }
-            
-            // Also refresh metrics from log file (for historical data)
-            this.refreshMetrics();
           } catch (fetchError) {
             console.error('Locate Me failed', fetchError);
             this.error = fetchError.message;
@@ -109,28 +109,31 @@ createApp({
       );
     },
     async refreshMetrics() {
+      // Only refresh from log file if we don't already have metrics
+      if (this.latestMetrics && Object.keys(this.latestMetrics).length > 0) {
+        console.log('Skipping refreshMetrics - already have metrics:', this.latestMetrics);
+        return;
+      }
+      
       try {
         const res = await fetch('/api/location-log');
         if (!res.ok) {
           console.warn('Location log API returned:', res.status);
-          this.latestMetrics = null;
           return;
         }
         const data = await res.json();
         console.log('Location log data:', data);
         if (Array.isArray(data) && data.length > 0) {
           this.latestMetrics = data[0];
-          console.log('Set latestMetrics:', this.latestMetrics);
+          console.log('Set latestMetrics from log:', this.latestMetrics);
         } else if (data && typeof data === 'object' && !Array.isArray(data)) {
           // Handle case where API returns object instead of array
           this.latestMetrics = data;
         } else {
           console.warn('Location log returned empty or invalid data:', data);
-          this.latestMetrics = null;
         }
       } catch (error) {
         console.error('Failed to load metrics', error);
-        this.latestMetrics = null;
       }
     },
     async showLogFile() {
