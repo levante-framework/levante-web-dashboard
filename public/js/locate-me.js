@@ -11,6 +11,21 @@ createApp({
     };
   },
   methods: {
+    formatBytes(bytes) {
+      if (!bytes) return 'N/A';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    },
+    formatDateTime(isoString) {
+      if (!isoString) return 'N/A';
+      try {
+        const date = new Date(isoString);
+        return date.toLocaleString();
+      } catch {
+        return isoString;
+      }
+    },
     async locate() {
       if (!navigator.geolocation) {
         this.error = 'Geolocation is not supported by this browser.';
@@ -34,13 +49,23 @@ createApp({
               maxDistanceKm: '150'
             });
             const response = await fetch(`/api/reverse-geocode?${query.toString()}`);
-            const payload = await response.json();
             if (!response.ok) {
-              throw new Error(payload?.message || payload?.error || 'Unknown error');
+              const errorPayload = await response.json().catch(() => ({ error: 'Unknown error' }));
+              throw new Error(errorPayload?.message || errorPayload?.error || 'Unknown error');
             }
+            const payload = await response.json();
 
-            this.resultText = JSON.stringify(payload, null, 2);
-            this.status = 'Nearest city resolved';
+            // Parse and display the results nicely
+            if (payload.results && payload.results.length > 0) {
+              const best = payload.results[0];
+              const parts = [best.name, best.admin1, best.country].filter(Boolean);
+              const locationLine = parts.join(', ');
+              this.resultText = `${locationLine}\n\nApproximately ${best.distanceKm} km away\n\nCoordinates: ${payload.lat.toFixed(4)}, ${payload.lon.toFixed(4)}\n\nFull results:\n${JSON.stringify(payload, null, 2)}`;
+              this.status = `Found: ${locationLine}`;
+            } else {
+              this.resultText = 'No nearby populated place found within 150 km.';
+              this.status = 'No city found';
+            }
             await this.refreshMetrics();
           } catch (fetchError) {
             console.error('Locate Me failed', fetchError);

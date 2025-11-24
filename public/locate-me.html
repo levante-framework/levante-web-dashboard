@@ -6,64 +6,102 @@
     <title>Locate Me · Levante</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            background: radial-gradient(circle at top, rgba(255, 150, 34, 0.35), rgba(3, 7, 18, 0.95)), #020617;
-            color: #fefefe;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
             min-height: 100vh;
-            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            padding: 24px;
+            color: #3f3f46;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         .locate-wrapper {
             max-width: 960px;
             margin: 0 auto;
-            padding: 48px 24px 64px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid #e4e4e7;
         }
         .locate-header {
-            background: linear-gradient(135deg, rgba(255, 111, 0, 0.9), rgba(255, 78, 0, 0.95));
-            border-radius: 26px;
-            padding: 32px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(255, 111, 0, 0.5);
+            background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+            color: #3f3f46;
+            padding: 40px 32px;
+            border-bottom: 2px solid #e4e4e7;
         }
         .locate-header h1 {
-            font-size: 2.7rem;
+            font-size: 1.75rem;
+            font-weight: 700;
             margin-bottom: 8px;
-            color: #030712;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            color: #27272a;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .locate-header h1 i {
+            color: #da3d16;
         }
         .locate-header p {
+            font-size: 0.95rem;
+            color: #71717a;
             margin: 0;
-            color: rgba(3, 7, 18, 0.9);
             font-weight: 500;
         }
         .locate-panel {
-            background: rgba(13, 23, 39, 0.9);
-            padding: 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 40px rgba(5, 10, 20, 0.5);
+            padding: 30px 32px;
             display: flex;
             flex-direction: column;
             gap: 20px;
         }
-        .locate-button {
-            align-self: flex-start;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             padding: 12px 28px;
             font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #da3d16 0%, #a22d10 100%);
+            color: #ffffff;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(218, 61, 22, 0.3);
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .btn-loading {
+            position: relative;
+        }
+        .locate-button {
+            align-self: flex-start;
         }
         .result-area {
             min-height: 160px;
-            background: rgba(2, 6, 23, 0.85);
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #e4e4e7;
             padding: 18px;
             font-family: 'Consolas', 'Courier New', monospace;
-            color: #e0f2fe;
+            color: #27272a;
             white-space: pre-wrap;
             overflow-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.6;
         }
         .metrics-grid {
             display: grid;
@@ -71,25 +109,36 @@
             gap: 12px;
         }
         .metric-card {
-            padding: 14px;
-            border-radius: 12px;
-            background: rgba(15, 118, 180, 0.12);
-            border: 1px solid rgba(59, 130, 246, 0.4);
+            padding: 18px;
+            border-radius: 8px;
+            background: #ffffff;
+            border: 1px solid #e4e4e7;
             min-height: 96px;
         }
         .metric-card h4 {
-            margin: 0 0 6px;
-            color: #bfdbfe;
+            margin: 0 0 8px;
+            color: #52525b;
             font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .metric-value {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #e0f2fe;
+            color: #27272a;
+        }
+        .metric-card p {
+            margin: 6px 0 0;
+            color: #71717a;
+            font-size: 0.85rem;
         }
         @media (max-width: 640px) {
             .locate-header h1 {
-                font-size: 2rem;
+                font-size: 1.5rem;
+            }
+            .locate-wrapper {
+                padding: 0;
             }
         }
     </style>
@@ -110,27 +159,28 @@
             <div class="metrics-grid" v-if="latestMetrics">
                 <div class="metric-card">
                     <h4>Dataset File</h4>
-                    <div class="metric-value">{{ latestMetrics.datasetFile }}</div>
-                    <p style="margin: 6px 0 0; color: #94a3b8;">Loaded {{ latestMetrics.datasetLoadMs }} ms ago ({{ latestMetrics.fileSizeBytes }} bytes)</p>
+                    <div class="metric-value">{{ latestMetrics.datasetFile || 'N/A' }}</div>
+                    <p v-if="latestMetrics.datasetLoadMs">Loaded {{ latestMetrics.datasetLoadMs }} ms</p>
+                    <p v-if="latestMetrics.fileSizeBytes">{{ formatBytes(latestMetrics.fileSizeBytes) }}</p>
                 </div>
                 <div class="metric-card">
                     <h4>Lookup Time</h4>
-                    <div class="metric-value">{{ latestMetrics.lookupMs }} ms</div>
-                    <p style="margin: 6px 0 0; color: #94a3b8;">Results: {{ latestMetrics.resultCount }}</p>
+                    <div class="metric-value">{{ latestMetrics.lookupMs ? latestMetrics.lookupMs + ' ms' : 'N/A' }}</div>
+                    <p v-if="latestMetrics.resultCount !== undefined">Results: {{ latestMetrics.resultCount }}</p>
                 </div>
                 <div class="metric-card">
-                    <h4>Last Seen</h4>
-                    <div class="metric-value">{{ latestMetrics.loadedAt }}</div>
-                    <p style="margin: 6px 0 0; color: #94a3b8;">Lat {{ latestMetrics.latitude }}, Lon {{ latestMetrics.longitude }}</p>
+                    <h4>Last Lookup</h4>
+                    <div class="metric-value">{{ formatDateTime(latestMetrics.timestamp) }}</div>
+                    <p v-if="latestMetrics.latitude && latestMetrics.longitude">Lat {{ latestMetrics.latitude.toFixed(4) }}, Lon {{ latestMetrics.longitude.toFixed(4) }}</p>
                 </div>
             </div>
             <div class="metric-card" v-else>
                 <h4>No metrics yet</h4>
-                <p>Execute “Locate Me” to populate logs and see timing data.</p>
+                <p style="color: #71717a;">Execute "Locate Me" to populate logs and see timing data.</p>
             </div>
-            <div v-if="error" class="metric-card" style="background: rgba(248,146,100,0.1); border-color: rgba(248,146,100,0.5);">
-                <h4>Error</h4>
-                <p style="color: #fecdd3;">{{ error }}</p>
+            <div v-if="error" class="metric-card" style="background: #fef2f2; border-color: #fecaca;">
+                <h4 style="color: #991b1b;">Error</h4>
+                <p style="color: #991b1b; margin: 0;">{{ error }}</p>
             </div>
         </section>
     </div>

@@ -1,8 +1,28 @@
 const fs = require('fs');
 const path = require('path');
-const KDBush = require('kdbush').default || require('kdbush');
-const geokdbush = require('geokdbush');
-const { appendLog } = require('../lib/locationLog');
+
+let KDBush = null;
+let geokdbush = null;
+let locationLog = null;
+
+async function loadDependencies() {
+  if (KDBush && geokdbush && locationLog) return;
+  
+  // Dynamic import for ES modules
+  const kdbushMod = await import('kdbush');
+  KDBush = kdbushMod.default || kdbushMod;
+  
+  const geokdbushMod = await import('geokdbush');
+  geokdbush = geokdbushMod.default || geokdbushMod;
+  
+  // CommonJS require for our own module
+  try {
+    locationLog = require('../lib/locationLog');
+  } catch (error) {
+    console.warn('reverse-geocode: locationLog module not available', error.message);
+    locationLog = { appendLog: () => {} }; // no-op fallback
+  }
+}
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
 const EARTH_RADIUS_KM = 6371;
@@ -16,6 +36,9 @@ function msSince(startNs) {
 }
 
 function loadData() {
+  if (!KDBush) {
+    throw new Error('KDBush not loaded - dependencies not initialized');
+  }
   if (geoIndex && geoData && datasetStats) return datasetStats;
   if (!fs.existsSync(DATA_PATH)) {
     throw new Error(`Geocoder dataset missing at ${DATA_PATH}. Run "npm run geocoder:build" first.`);
@@ -60,7 +83,7 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return EARTH_RADIUS_KM * c;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -73,6 +96,14 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'method_not_allowed' });
+    return;
+  }
+
+  try {
+    await loadDependencies();
+  } catch (error) {
+    console.error('reverse-geocode: failed to load dependencies', error);
+    res.status(500).json({ error: 'dependency_load_failed', message: error.message });
     return;
   }
 
@@ -127,16 +158,22 @@ export default async function handler(req, res) {
   }
   const lookupDurationMs = msSince(lookupStart);
 
-  appendLog({
-    timestamp: new Date().toISOString(),
-    latitude: lat,
-    longitude: lon,
-    datasetFile: datasetInfo?.fileName || path.basename(DATA_PATH),
-    datasetPath: datasetInfo?.filePath || DATA_PATH,
-    datasetLoadMs: datasetInfo?.loadDurationMs ?? null,
-    lookupMs: Number(lookupDurationMs.toFixed ? lookupDurationMs.toFixed(2) : lookupDurationMs),
-    resultCount: results.length
-  });
+  try {
+    if (locationLog && locationLog.appendLog) {
+      locationLog.appendLog({
+        timestamp: new Date().toISOString(),
+        latitude: lat,
+        longitude: lon,
+        datasetFile: datasetInfo?.fileName || path.basename(DATA_PATH),
+        datasetPath: datasetInfo?.filePath || DATA_PATH,
+        datasetLoadMs: datasetInfo?.loadDurationMs ?? null,
+        lookupMs: Number(lookupDurationMs.toFixed ? lookupDurationMs.toFixed(2) : lookupDurationMs),
+        resultCount: results.length
+      });
+    }
+  } catch (logError) {
+    console.error('reverse-geocode: log write failed (non-fatal)', logError);
+  }
 
   res.status(200).json({
     lat,
