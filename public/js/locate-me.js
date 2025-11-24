@@ -8,7 +8,9 @@ createApp({
       coordinates: null,
       latestMetrics: null,
       loading: false,
-      error: null
+      error: null,
+      showLog: false,
+      logFileContent: ''
     };
   },
   methods: {
@@ -60,6 +62,11 @@ createApp({
             this.results = payload.results || [];
             this.coordinates = { lat: payload.lat, lon: payload.lon };
             
+            // Use metrics from API response directly
+            if (payload.metrics) {
+              this.latestMetrics = payload.metrics;
+            }
+            
             if (this.results.length > 0) {
               const best = this.results[0];
               const parts = [best.name, best.admin1, best.country].filter(Boolean);
@@ -68,8 +75,8 @@ createApp({
               this.status = 'No city found';
             }
             
-            // Refresh metrics after a short delay to ensure log is written
-            setTimeout(() => this.refreshMetrics(), 500);
+            // Also refresh metrics from log file (for historical data)
+            this.refreshMetrics();
           } catch (fetchError) {
             console.error('Locate Me failed', fetchError);
             this.error = fetchError.message;
@@ -103,12 +110,15 @@ createApp({
         const res = await fetch('/api/location-log');
         if (!res.ok) {
           console.warn('Location log API returned:', res.status);
+          this.latestMetrics = null;
           return;
         }
         const data = await res.json();
+        console.log('Location log data:', data);
         if (Array.isArray(data) && data.length > 0) {
           this.latestMetrics = data[0];
-        } else if (data && typeof data === 'object') {
+          console.log('Set latestMetrics:', this.latestMetrics);
+        } else if (data && typeof data === 'object' && !Array.isArray(data)) {
           // Handle case where API returns object instead of array
           this.latestMetrics = data;
         } else {
@@ -118,6 +128,20 @@ createApp({
       } catch (error) {
         console.error('Failed to load metrics', error);
         this.latestMetrics = null;
+      }
+    },
+    async showLogFile() {
+      this.showLog = true;
+      try {
+        const res = await fetch('/api/location-log');
+        if (!res.ok) {
+          this.logFileContent = `Error: HTTP ${res.status}`;
+          return;
+        }
+        const data = await res.json();
+        this.logFileContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        this.logFileContent = `Error: ${error.message}`;
       }
     }
   },

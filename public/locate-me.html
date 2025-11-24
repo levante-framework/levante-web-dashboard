@@ -87,8 +87,22 @@
         .btn-loading {
             position: relative;
         }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
         .locate-button {
             align-self: flex-start;
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: #52525b;
+            border: 1px solid #e4e4e7;
+        }
+        .btn-secondary:hover {
+            background: #fafafa;
+            border-color: #d4d4d8;
         }
         .result-area {
             min-height: 160px;
@@ -209,6 +223,52 @@
         .coordinates-info i {
             color: #da3d16;
         }
+        .log-display {
+            background: #ffffff;
+            border: 2px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e4e4e7;
+        }
+        .log-header h4 {
+            margin: 0;
+            color: #27272a;
+            font-size: 1rem;
+        }
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: #71717a;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .btn-close:hover {
+            background: #fafafa;
+            color: #27272a;
+        }
+        .log-content {
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #27272a;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -256,11 +316,17 @@
             <p>Discover the nearest city without any authentication. This page uses the same offline geocoder powering the dashboard.</p>
         </header>
         <section class="locate-panel">
-            <button class="btn btn-primary locate-button" :class="{ 'btn-loading': loading }" :disabled="loading" @click="locate">
-                <i class="fas fa-location-arrow"></i>
-                <span v-if="!loading">Locate Me</span>
-                <span v-else>Locating…</span>
-            </button>
+            <div class="button-group">
+                <button class="btn btn-primary locate-button" :class="{ 'btn-loading': loading }" :disabled="loading" @click="locate">
+                    <i class="fas fa-location-arrow"></i>
+                    <span v-if="!loading">Locate Me</span>
+                    <span v-else>Locating…</span>
+                </button>
+                <button class="btn btn-secondary" @click="showLogFile">
+                    <i class="fas fa-file-alt"></i>
+                    Show Log File
+                </button>
+            </div>
             <div v-if="results.length > 0" class="results-container">
                 <div v-for="(result, index) in results" :key="result.id" class="result-card" :class="{ 'result-card-primary': index === 0 }">
                     <div class="result-rank">{{ index === 0 ? '1st' : '2nd' }}</div>
@@ -307,6 +373,15 @@
             <div class="metric-card" v-else>
                 <h4>No metrics yet</h4>
                 <p style="color: #71717a;">Execute "Locate Me" to populate logs and see timing data.</p>
+            </div>
+            <div v-if="showLog" class="log-display">
+                <div class="log-header">
+                    <h4>Location Log File</h4>
+                    <button class="btn-close" @click="showLog = false">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <pre class="log-content">{{ logFileContent || 'Loading...' }}</pre>
             </div>
             <div v-if="error" class="metric-card" style="background: #fef2f2; border-color: #fecaca;">
                 <h4 style="color: #991b1b;">Error</h4>
