@@ -4,7 +4,8 @@ createApp({
   data() {
     return {
       status: 'Click Locate Me to begin',
-      resultText: '',
+      results: [],
+      coordinates: null,
       latestMetrics: null,
       loading: false,
       error: null
@@ -45,7 +46,7 @@ createApp({
             const query = new URLSearchParams({
               lat: latitude.toString(),
               lon: longitude.toString(),
-              limit: '3',
+              limit: '2',
               maxDistanceKm: '150'
             });
             const response = await fetch(`/api/reverse-geocode?${query.toString()}`);
@@ -55,18 +56,20 @@ createApp({
             }
             const payload = await response.json();
 
-            // Parse and display the results nicely
-            if (payload.results && payload.results.length > 0) {
-              const best = payload.results[0];
+            // Store results for display
+            this.results = payload.results || [];
+            this.coordinates = { lat: payload.lat, lon: payload.lon };
+            
+            if (this.results.length > 0) {
+              const best = this.results[0];
               const parts = [best.name, best.admin1, best.country].filter(Boolean);
-              const locationLine = parts.join(', ');
-              this.resultText = `${locationLine}\n\nApproximately ${best.distanceKm} km away\n\nCoordinates: ${payload.lat.toFixed(4)}, ${payload.lon.toFixed(4)}\n\nFull results:\n${JSON.stringify(payload, null, 2)}`;
-              this.status = `Found: ${locationLine}`;
+              this.status = `Found: ${parts.join(', ')}`;
             } else {
-              this.resultText = 'No nearby populated place found within 150 km.';
               this.status = 'No city found';
             }
-            await this.refreshMetrics();
+            
+            // Refresh metrics after a short delay to ensure log is written
+            setTimeout(() => this.refreshMetrics(), 500);
           } catch (fetchError) {
             console.error('Locate Me failed', fetchError);
             this.error = fetchError.message;
@@ -98,11 +101,23 @@ createApp({
     async refreshMetrics() {
       try {
         const res = await fetch('/api/location-log');
-        if (!res.ok) return;
+        if (!res.ok) {
+          console.warn('Location log API returned:', res.status);
+          return;
+        }
         const data = await res.json();
-        this.latestMetrics = data[0] || null;
+        if (Array.isArray(data) && data.length > 0) {
+          this.latestMetrics = data[0];
+        } else if (data && typeof data === 'object') {
+          // Handle case where API returns object instead of array
+          this.latestMetrics = data;
+        } else {
+          console.warn('Location log returned empty or invalid data:', data);
+          this.latestMetrics = null;
+        }
       } catch (error) {
         console.error('Failed to load metrics', error);
+        this.latestMetrics = null;
       }
     }
   },
