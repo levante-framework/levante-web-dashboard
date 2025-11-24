@@ -52,6 +52,8 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return EARTH_RADIUS_KM * c;
 }
 
+// Simple brute-force nearest neighbor search
+// For ~50k cities, this is fast enough (<100ms)
 function findNearest(data, lng, lat, maxResults = 10, maxDistanceKm = Infinity) {
   const results = [];
   
@@ -63,12 +65,14 @@ function findNearest(data, lng, lat, maxResults = 10, maxDistanceKm = Infinity) 
     
     results.push({ idx: i, dist });
     
+    // Keep only the closest N results
     if (results.length > maxResults * 2) {
       results.sort((a, b) => a.dist - b.dist);
       results.splice(maxResults);
     }
   }
   
+  // Sort and return top results
   results.sort((a, b) => a.dist - b.dist);
   return results.slice(0, maxResults).map(item => item.idx);
 }
@@ -107,7 +111,7 @@ module.exports = async function handler(req, res) {
   }
 
   const limit = Math.max(1, Math.min(10, toNumber(req.query.limit) || 3));
-  const maxDistanceKm = toNumber(req.query.maxDistanceKm) || 150;
+  const maxDistanceKm = toNumber(req.query.maxDistanceKm) || 150; // default 150km
 
   let results = [];
   const lookupStart = process.hrtime.bigint();
@@ -158,7 +162,18 @@ module.exports = async function handler(req, res) {
   res.status(200).json({
     lat,
     lon,
-    results
+    results,
+    metrics: {
+      datasetFile: datasetInfo?.fileName || path.basename(DATA_PATH),
+      datasetPath: datasetInfo?.filePath || DATA_PATH,
+      datasetLoadMs: datasetInfo?.loadDurationMs ?? null,
+      fileSizeBytes: datasetInfo?.fileSizeBytes ?? null,
+      lookupMs: Number(lookupDurationMs.toFixed ? lookupDurationMs.toFixed(2) : lookupDurationMs),
+      resultCount: results.length,
+      timestamp: new Date().toISOString(),
+      latitude: lat,
+      longitude: lon
+    }
   });
   } catch (error) {
     console.error('reverse-geocode: unhandled error', error);
