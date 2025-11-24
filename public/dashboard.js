@@ -31,7 +31,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.draftSharePageBase = (window.CONFIG && window.CONFIG.draftSharePageBase) || defaultShareBase;
                 this.selectedDraftAudio = null;
                 this.approvedDrafts = new Set();
-                this.deployingDrafts = false;
                 this.pendingSaveKey = null;
                 
                 this.setupGlobalActions();
@@ -1277,17 +1276,17 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.populateSelectedText();
                 });
 
-                const viewDeployFolderBtn = document.getElementById('viewDeployFolder');
-                if (viewDeployFolderBtn) {
-                    viewDeployFolderBtn.addEventListener('click', () => {
-                        this.openDeployFolderLink();
-                    });
-                }
-
                 const viewDraftAudioBtn = document.getElementById('viewDraftAudio');
                 if (viewDraftAudioBtn) {
                     viewDraftAudioBtn.addEventListener('click', () => {
-                        this.openDraftAudioModal();
+                        window.open('./draft-share.html?bucket=levante-assets-draft&folder=audio', '_blank', 'noopener');
+                    });
+                }
+
+                const viewApprovedAudioBtn = document.getElementById('viewApprovedAudio');
+                if (viewApprovedAudioBtn) {
+                    viewApprovedAudioBtn.addEventListener('click', () => {
+                        window.open('./draft-share.html?bucket=levante-assets-dev&folder=audio', '_blank', 'noopener');
                     });
                 }
 
@@ -1487,17 +1486,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return { service, voiceId, voiceName, source };
             }
 
-            openDeployFolderLink() {
-                const bucketName = this.currentDraftBucketName || 'levante-assets-draft';
-                const link = this.buildDraftFolderLink('deploy/', bucketName);
-                if (link) {
-                    window.open(link, '_blank', 'noopener');
-                    this.setStatus('Opened deploy folder listing in new tab.', 'success');
-                } else {
-                    this.setStatus('Unable to open deploy folder link.', 'error');
-                }
-            }
-
             async openDraftAudioModal() {
                 const modal = document.getElementById('draftAudioModal');
                 if (!modal) {
@@ -1549,10 +1537,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (refreshBtn) {
                             refreshBtn.addEventListener('click', () => this.loadDraftAudioData());
                         }
-                        const deployBtn = document.getElementById('deployDraftAudio');
-                        if (deployBtn) {
-                            deployBtn.addEventListener('click', () => this.handleDeployDraftAudio());
-                        }
                         this.bindCopyDraftLinkButton(modalEl);
                     }
                     this.setStatus(`Loaded ${items.length} draft audio files`, 'success');
@@ -1588,9 +1572,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             <strong>${sorted.length}</strong> files in <code>${bucketName}/${prefix}</code>
                         </div>
                         <div class="draft-actions">
-                            <button id="deployDraftAudio" class="btn btn-primary btn-compact">
-                                <i class="fas fa-cloud-upload-alt"></i> Deploy
-                            </button>
                             <button id="refreshDraftAudio" class="btn btn-secondary btn-compact">
                                 <i class="fas fa-sync-alt"></i> Refresh
                             </button>
@@ -1752,129 +1733,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         this.setStatus(`${state} ${itemId}${versionLabel}${langLabel}`, checkbox.checked ? 'success' : 'info');
                     });
                 });
-            }
-
-            async handleDeployDraftAudio() {
-                if (this.deployingDrafts) {
-                    this.setStatus('Deployment already in progress...', 'info');
-                    return;
-                }
-
-                const modal = document.getElementById('draftAudioModal');
-                if (!modal) {
-                    this.setStatus('Draft modal not available for deployment', 'error');
-                    return;
-                }
-
-                const checkboxes = modal.querySelectorAll('input.draft-approve');
-                const selections = [];
-                checkboxes.forEach(checkbox => {
-                    if (!checkbox.checked) return;
-                    const encodedPath = checkbox.dataset.path || '';
-                    const path = encodedPath ? decodeURIComponent(encodedPath) : '';
-                    if (!path) return;
-                    const row = checkbox.closest('tr');
-                    const dataset = row && row.dataset ? row.dataset : {};
-                    selections.push({
-                        bucket: this.currentDraftBucketName || 'levante-assets-draft',
-                        path,
-                        itemId: dataset.itemId || path,
-                        language: dataset.language || '',
-                        version: dataset.version || ''
-                    });
-                });
-
-                if (!selections.length) {
-                    this.setStatus('Select at least one site-approved draft before deploying.', 'warning');
-                    alert('Please tick the Approved by Site checkbox next to each draft you want to deploy.');
-                    return;
-                }
-
-                const summary = selections
-                    .map(sel => `${sel.bucket}/${sel.path}`)
-                    .join('\n');
-
-                const confirmed = window.confirm(`Deploy ${selections.length} draft audio file(s)?\n\n${summary}`);
-                if (!confirmed) {
-                    this.setStatus('Deployment cancelled.', 'info');
-                    return;
-                }
-
-                try {
-                    this.deployingDrafts = true;
-                    this.setStatus(`Deploying ${selections.length} draft audio file(s)...`, 'loading');
-                    const payload = {
-                        files: selections,
-                        bucket: this.currentDraftBucketName || 'levante-assets-draft'
-                    };
-
-                    const response = await fetch('/api/deploy-draft-audio', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const result = await response.json().catch(() => ({}));
-
-                    if (!response.ok || !result.success) {
-                        const message = result?.message || result?.error || `HTTP ${response.status}`;
-                        throw new Error(message);
-                    }
-
-                    const movedCountRaw = Number(result.moved);
-                    const movedCount = Number.isFinite(movedCountRaw) ? movedCountRaw : selections.length;
-                    const deletedCountRaw = Number(result.deleted);
-                    const deletedCount = Number.isFinite(deletedCountRaw) ? deletedCountRaw : 0;
-                    const bucketList = Array.isArray(result.buckets) && result.buckets.length ? result.buckets : [this.currentDraftBucketName || 'levante-assets-draft'];
-
-                    const summaryParts = [];
-                    summaryParts.push(`Moved ${movedCount} file${movedCount === 1 ? '' : 's'} to deploy folder`);
-                    if (deletedCount > 0) {
-                        summaryParts.push(`removed ${deletedCount} old version${deletedCount === 1 ? '' : 's'}`);
-                    }
-                    const summaryMessage = summaryParts.join(', ') || 'Deployment complete';
-                    this.setStatus(`${summaryMessage}.`, 'success');
-
-                    const lines = [];
-                    lines.push(summaryMessage + '.');
-                    lines.push(`Bucket: ${bucketList.join(', ')}`);
-
-                    if (Array.isArray(result.results) && result.results.length) {
-                        const preview = result.results
-                            .slice(0, Math.min(result.results.length, 3))
-                            .map(item => {
-                                const lang = item.language || 'lang';
-                                const dest = item.destination || item.source || '';
-                                return `${lang}: ${dest}`;
-                            });
-                        if (preview.length) {
-                            lines.push('\nExamples:');
-                            lines.push(preview.join('\n'));
-                        }
-                    }
-
-                    alert(lines.join('\n'));
-                    selections.forEach(sel => this.approvedDrafts.delete(sel.path));
-                    await this.loadDraftAudioData();
-                } catch (error) {
-                    console.error('Error deploying draft audio', error);
-                    this.setStatus(`❌ Deployment failed: ${error.message}`, 'error');
-                    alert(`Failed to deploy draft audio: ${error.message}`);
-                } finally {
-                    this.deployingDrafts = false;
-                }
-            }
-
-            buildDraftDeployCommitMessage(selections = []) {
-                if (!Array.isArray(selections) || selections.length === 0) {
-                    return 'Deploy draft audio from dashboard';
-                }
-                const samples = selections.slice(0, 3).map(sel => {
-                    const lang = sel.language || 'lang';
-                    const item = sel.itemId || sel.path || 'item';
-                    return `${lang}:${item}`;
-                });
-                const suffix = selections.length > 3 ? ` +${selections.length - 3} more` : '';
-                return `Deploy draft audio: ${samples.join(', ')}${suffix}`;
             }
 
             async playDraftAudioSample(path, bucketName = 'levante-assets-draft') {

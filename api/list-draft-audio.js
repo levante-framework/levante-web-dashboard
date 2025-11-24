@@ -1,5 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 
+const DEV_BUCKET = process.env.ASSETS_DEV_BUCKET || 'levante-assets-dev';
+
 let storageClient = null;
 function getStorage() {
     if (storageClient) return storageClient;
@@ -62,6 +64,34 @@ function coerceVersion(value) {
     return Number.isFinite(parsed) ? parsed : null;
 }
 
+async function listAllFiles(bucket, prefix, requestedLimit, maxPerPage) {
+    const collected = [];
+    let pageToken;
+    let remaining = requestedLimit;
+    do {
+        const maxResults = Number.isFinite(remaining)
+            ? Math.min(maxPerPage, Math.max(1, remaining))
+            : maxPerPage;
+        const [files, nextQuery] = await bucket.getFiles({
+            prefix,
+            maxResults,
+            autoPaginate: false,
+            pageToken
+        });
+        collected.push(...files);
+        if (Number.isFinite(remaining)) {
+            remaining -= files.length;
+            if (remaining <= 0) {
+                break;
+            }
+        }
+        pageToken = nextQuery && typeof nextQuery.pageToken === 'string' && nextQuery.pageToken.length
+            ? nextQuery.pageToken
+            : null;
+    } while (pageToken);
+    return collected;
+}
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -84,91 +114,50 @@ export default async function handler(req, res) {
         const maxPerPage = Number.isFinite(pageSizeRaw) ? Math.min(Math.max(pageSizeRaw, 1), 1000) : 500;
 
         const bucket = storage.bucket(bucketName);
+        const files = await listAllFiles(bucket, prefix, requestedLimit, maxPerPage);
 
-        async function listAllFiles() {
-            const collected = [];
-            let pageToken;
-            let remaining = requestedLimit;
-            do {
-                const maxResults = Number.isFinite(remaining)
-                    ? Math.min(maxPerPage, Math.max(1, remaining))
-                    : maxPerPage;
-                const [files, nextQuery] = await bucket.getFiles({
-                    prefix,
-                    maxResults,
-                    autoPaginate: false,
-                    pageToken
+        const isDevBucket = bucketName === DEV_BUCKET;
+        const shouldLoadDevInfo = !isDevBucket && prefix.startsWith('audio/');
+        const approvalInfo = new Map();
+
+        if (isDevBucket) {
+            // The files we're listing are already the approved versions.
+            files.forEach((file) => {
+                const parts = (file.name || '').split('/').filter(Boolean);
+                if (parts.length < 3) return;
+                const language = parts[1] || '';
+                const fileBase = removeVersionSuffix(stripExtension(parts[parts.length - 1] || ''));
+                const key = buildApprovalKey(language, fileBase);
+                if (!key) return;
+                approvalInfo.set(key, {
+                    path: file.name,
+                    bucket: DEV_BUCKET,
+                    updated: file.metadata?.updated || file.metadata?.timeCreated || null,
+                    generation: file.metadata?.generation || null,
+                    approvedVersion: parseVersionFromPath(file.name),
+                    approvedAt: file.metadata?.updated || file.metadata?.timeCreated || null
                 });
-                collected.push(...files);
-                if (Number.isFinite(remaining)) {
-                    remaining -= files.length;
-                    if (remaining <= 0) {
-                        break;
-                    }
-                }
-                pageToken = nextQuery && typeof nextQuery.pageToken === 'string' && nextQuery.pageToken.length
-                    ? nextQuery.pageToken
-                    : null;
-            } while (pageToken);
-            return collected;
+            });
+        } else if (shouldLoadDevInfo) {
+            const devBucket = storage.bucket(DEV_BUCKET);
+            const devFiles = await listAllFiles(devBucket, prefix, Infinity, maxPerPage);
+            devFiles.forEach((file) => {
+                const parts = (file.name || '').split('/').filter(Boolean);
+                if (parts.length < 3) return;
+                const language = parts[1] || '';
+                const fileBase = removeVersionSuffix(stripExtension(parts[parts.length - 1] || ''));
+                const key = buildApprovalKey(language, fileBase);
+                if (!key) return;
+                approvalInfo.set(key, {
+                    path: file.name,
+                    bucket: DEV_BUCKET,
+                    updated: file.metadata?.updated || file.metadata?.timeCreated || null,
+                    generation: file.metadata?.generation || null,
+                    approvedVersion: parseVersionFromPath(file.name),
+                    approvedAt: file.metadata?.updated || file.metadata?.timeCreated || null
+                });
+            });
         }
-
-        const files = await listAllFiles();
-
-        const [deployFiles] = await bucket.getFiles({ prefix: 'deploy/', maxResults: 2000 });
-        const deployInfo = new Map();
-        deployFiles.forEach((file) => {
-            const name = file.name || '';
-            const segments = name.split('/');
-            if (segments.length < 3) return;
-            const language = segments[1] || '';
-            const fileBase = removeVersionSuffix(stripExtension(segments[segments.length - 1] || ''));
-            const key = buildApprovalKey(language, fileBase);
-            if (!key) return;
-
-            const metadata = file.metadata || {};
-            const customMetadata = metadata.metadata || {};
-            const approvedSourceRaw = customMetadata.siteApprovedSource
-                || customMetadata['site-approved-source']
-                || null;
-            const approvedSource = approvedSourceRaw ? normalizePath(approvedSourceRaw) : null;
-            const approvedVersionRaw = customMetadata.siteApprovedVersion
-                || customMetadata['site-approved-version']
-                || null;
-            const approvedVersion = (() => {
-                const coerced = coerceVersion(approvedVersionRaw);
-                if (coerced !== null) return coerced;
-                if (approvedSourceRaw) {
-                    const parsed = parseVersionFromPath(approvedSourceRaw);
-                    if (parsed !== null) return parsed;
-                }
-                return null;
-            })();
-            const approvedAt = customMetadata.siteApprovedAt
-                || customMetadata['site-approved-at']
-                || metadata.updated
-                || metadata.timeCreated
-                || null;
-
-            const updatedRaw = metadata.updated || metadata.timeCreated || null;
-            const updatedDate = parseTimestamp(updatedRaw);
-            const current = deployInfo.get(key);
-
-            if (!current || (updatedDate && (!current.updatedDate || updatedDate > current.updatedDate))) {
-                deployInfo.set(key, {
-                    path: name,
-                    bucket: bucketName,
-                    updated: updatedRaw,
-                    updatedDate,
-                    generation: metadata.generation || null,
-                    size: Number(metadata.size || 0),
-                    approvedSource,
-                    approvedSourceRaw,
-                    approvedVersion,
-                    approvedAt
-                });
-            }
-        });
 
         const items = files
             .filter(file => file.name && file.name.toLowerCase().endsWith('.mp3'))
@@ -186,47 +175,29 @@ export default async function handler(req, res) {
 
                 const draftUpdated = metadata.updated || metadata.timeCreated || null;
                 const draftUpdatedDate = parseTimestamp(draftUpdated);
-                const deployEntry = approvalKey ? deployInfo.get(approvalKey) : null;
-                const normalizedPath = normalizePath(name);
-                const isDeployObject = normalizedPath.startsWith('deploy/');
+                const approvalEntry = approvalKey ? approvalInfo.get(approvalKey) : null;
 
                 let approvedBySite = false;
                 let approvalStatus = 'not_approved';
 
-                if (deployEntry) {
-                    const matchesApprovedSource = deployEntry.approvedSource
-                        ? (!isDeployObject && deployEntry.approvedSource === normalizedPath)
-                        : false;
-
-                    if (isDeployObject) {
-                        approvedBySite = true;
+                if (isDevBucket) {
+                    approvedBySite = true;
+                    approvalStatus = 'approved';
+                } else if (approvalEntry) {
+                    approvedBySite = true;
+                    const approvalUpdatedDate = parseTimestamp(approvalEntry.updated);
+                    if (!draftUpdatedDate || !approvalUpdatedDate || approvalUpdatedDate >= draftUpdatedDate) {
                         approvalStatus = 'approved';
-                    } else if (deployEntry.approvedSource) {
-                        if (matchesApprovedSource) {
-                            approvedBySite = true;
-                            approvalStatus = 'approved';
-                        } else {
-                            approvedBySite = false;
-                            approvalStatus = 'stale';
-                        }
                     } else {
-                        const deployUpdatedDate = deployEntry.updatedDate;
-                        if (!draftUpdatedDate || !deployUpdatedDate) {
-                            approvedBySite = true;
-                            approvalStatus = 'approved';
-                        } else if (deployUpdatedDate >= draftUpdatedDate) {
-                            approvedBySite = true;
-                            approvalStatus = 'approved';
-                        } else {
-                            approvedBySite = false;
-                            approvalStatus = 'stale';
-                        }
+                        approvalStatus = 'stale';
                     }
                 }
 
-                const derivedVersion = version !== null
-                    ? version
-                    : (deployEntry && deployEntry.approvedVersion !== null ? deployEntry.approvedVersion : null);
+                const derivedVersion = (() => {
+                    if (version !== null) return version;
+                    if (approvalEntry && approvalEntry.approvedVersion !== null) return approvalEntry.approvedVersion;
+                    return null;
+                })();
 
                 return {
                     name,
@@ -241,13 +212,16 @@ export default async function handler(req, res) {
                     approvedBySite,
                     siteApproval: {
                         status: approvalStatus,
-                        deployPath: deployEntry ? deployEntry.path : null,
-                        deployUpdated: deployEntry ? deployEntry.updated : null,
-                        deployGeneration: deployEntry ? deployEntry.generation : null,
+                        deployPath: approvalEntry ? approvalEntry.path : (isDevBucket ? name : null),
+                        deployBucket: approvalEntry ? approvalEntry.bucket : (isDevBucket ? bucketName : null),
+                        deployUpdated: approvalEntry ? approvalEntry.updated : (isDevBucket ? (metadata.updated || metadata.timeCreated || null) : null),
+                        deployGeneration: approvalEntry ? approvalEntry.generation : (isDevBucket ? (metadata.generation || null) : null),
                         draftUpdated,
-                        approvedSource: deployEntry ? deployEntry.approvedSourceRaw || deployEntry.approvedSource : null,
-                        approvedVersion: deployEntry && deployEntry.approvedVersion !== null ? deployEntry.approvedVersion : null,
-                        approvedAt: deployEntry ? deployEntry.approvedAt : null
+                        approvedSource: approvalEntry ? approvalEntry.path : (isDevBucket ? name : null),
+                        approvedVersion: approvalEntry && approvalEntry.approvedVersion !== null
+                            ? approvalEntry.approvedVersion
+                            : (isDevBucket && derivedVersion !== null ? derivedVersion : null),
+                        approvedAt: approvalEntry ? approvalEntry.approvedAt : (isDevBucket ? (metadata.updated || metadata.timeCreated || null) : null)
                     }
                 };
             });
