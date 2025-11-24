@@ -147,7 +147,7 @@ createApp({
         }
         const data = await res.json();
         if (Array.isArray(data) && data.length === 0) {
-          this.logFileContent = `[]\n\nNote: Log file is empty. In Vercel serverless functions, logs are stored in memory and reset between requests. In local development, logs are saved to data/locations.json. Metrics above show data from the current API response.`;
+          this.logFileContent = `[]\n\nNote: Log file is empty. Logs are stored in Google Cloud Storage bucket (gs://levante-assets-dev/logs/locations.json) and persist across invocations and sessions. If you see this message, it means no logs have been written yet. Try clicking "Locate Me" first to create log entries.`;
         } else {
           this.logFileContent = JSON.stringify(data, null, 2);
         }
