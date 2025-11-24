@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="./styles.css">
     <style>
         body {
-            background: radial-gradient(circle at top, rgba(255, 150, 34, 0.25), rgba(3, 7, 18, 0.95)), #020617;
-            color: #f8fafc;
+            background: radial-gradient(circle at top, rgba(255, 150, 34, 0.35), rgba(3, 7, 18, 0.95)), #020617;
+            color: #fefefe;
             min-height: 100vh;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
         .locate-wrapper {
             max-width: 960px;
@@ -20,42 +21,47 @@
             gap: 24px;
         }
         .locate-header {
-            background: rgba(3, 7, 18, 0.65);
-            border: 1px solid rgba(255, 111, 0, 0.4);
-            border-radius: 24px;
-            padding: 28px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+            background: linear-gradient(135deg, rgba(255, 111, 0, 0.9), rgba(255, 78, 0, 0.95));
+            border-radius: 26px;
+            padding: 32px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(255, 111, 0, 0.5);
         }
         .locate-header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 12px;
-            color: #ffb347;
+            font-size: 2.7rem;
+            margin-bottom: 8px;
+            color: #030712;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         .locate-header p {
             margin: 0;
-            color: rgba(255,255,255,0.85);
+            color: rgba(3, 7, 18, 0.9);
+            font-weight: 500;
         }
         .locate-panel {
-            background: rgba(7, 18, 34, 0.95);
-            padding: 28px;
+            background: rgba(13, 23, 39, 0.9);
+            padding: 30px;
             border-radius: 20px;
-            border: 1px solid rgba(0, 160, 222, 0.25);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px rgba(5, 10, 20, 0.5);
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 20px;
         }
         .locate-button {
             align-self: flex-start;
+            padding: 12px 28px;
+            font-size: 1rem;
         }
         .result-area {
             min-height: 160px;
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(2, 6, 23, 0.85);
             border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 18px;
             font-family: 'Consolas', 'Courier New', monospace;
-            color: #dbeafe;
+            color: #e0f2fe;
             white-space: pre-wrap;
             overflow-wrap: break-word;
         }
@@ -67,8 +73,8 @@
         .metric-card {
             padding: 14px;
             border-radius: 12px;
-            background: rgba(59, 130, 246, 0.05);
-            border: 1px solid rgba(59, 130, 246, 0.35);
+            background: rgba(15, 118, 180, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.4);
             min-height: 96px;
         }
         .metric-card h4 {
