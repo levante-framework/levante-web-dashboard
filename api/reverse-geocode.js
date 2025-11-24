@@ -44,6 +44,7 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 export default async function handler(req, res) {
+  try {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -111,5 +112,13 @@ export default async function handler(req, res) {
     lon,
     results
   });
+  } catch (error) {
+    console.error('reverse-geocode: unhandled error', error);
+    res.status(500).json({
+      error: 'unexpected_error',
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || null
+    });
+  }
 }
 
