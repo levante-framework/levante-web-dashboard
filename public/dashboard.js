@@ -1290,11 +1290,90 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     });
                 }
 
+                this.setupLocationPanel();
+
                  // Setup search functionality for all language tabs
                  this.setupSearchListeners();
              }
 
-             setupSearchListeners() {
+            setupLocationPanel() {
+                const button = document.getElementById('locateMeButton');
+                const outputEl = document.getElementById('locationResultText');
+                if (!button || !outputEl) return;
+
+                const setMessage = (message) => {
+                    outputEl.textContent = message;
+                };
+
+                if (!('geolocation' in navigator)) {
+                    button.disabled = true;
+                    button.textContent = 'Location unavailable';
+                    setMessage('Geolocation is not supported in this browser.');
+                    return;
+                }
+
+                button.addEventListener('click', () => {
+                    const original = button.innerHTML;
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating...';
+                    setMessage('Requesting device location...');
+
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        setMessage(`Coordinates acquired: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}. Resolving nearest city...`);
+                        try {
+                            const query = new URLSearchParams({
+                                lat: latitude.toString(),
+                                lon: longitude.toString(),
+                                limit: '3',
+                                maxDistanceKm: '150'
+                            });
+                            const response = await fetch(`/api/reverse-geocode?${query.toString()}`);
+                            if (!response.ok) {
+                                const text = await response.text();
+                                throw new Error(text || `HTTP ${response.status}`);
+                            }
+                            const payload = await response.json();
+                            if (payload.results && payload.results.length) {
+                                const best = payload.results[0];
+                                const parts = [
+                                    best.name,
+                                    best.admin1,
+                                    best.country
+                                ].filter(Boolean);
+                                const locationLine = parts.join(', ');
+                                setMessage(`${locationLine || 'Unknown area'} · approx ${best.distanceKm} km away`);
+                                this.setStatus(`Detected nearest city: ${locationLine || 'Unknown area'}`, 'success');
+                            } else {
+                                setMessage('No nearby populated place found within 150 km.');
+                                this.setStatus('No nearby city found for your location.', 'warning');
+                            }
+                        } catch (error) {
+                            console.error('Locate me error', error);
+                            setMessage('Unable to resolve location.');
+                            this.setStatus(`Failed to resolve location: ${error.message}`, 'error');
+                        } finally {
+                            button.disabled = false;
+                            button.innerHTML = original;
+                        }
+                    }, (error) => {
+                        let message = 'Location request failed.';
+                        if (error.code === error.PERMISSION_DENIED) {
+                            message = 'Location permission denied.';
+                        } else if (error.code === error.POSITION_UNAVAILABLE) {
+                            message = 'Location unavailable.';
+                        } else if (error.code === error.TIMEOUT) {
+                            message = 'Location request timed out.';
+                        }
+                        setMessage(message);
+                        this.setStatus(message, 'error');
+                        button.disabled = false;
+                        button.innerHTML = original;
+                    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+                });
+            }
+
+            setupSearchListeners() {
                  // Add search event listeners for each language
                  Object.keys(this.languages).forEach(language => {
                      const searchBox = document.getElementById(`search-${language}`);
