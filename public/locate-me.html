@@ -352,27 +352,28 @@
                 </div>
             </div>
             <div v-else class="result-area" v-text="status"></div>
-            <div class="metrics-grid" v-if="latestMetrics">
+            <div class="metrics-grid" v-if="latestMetrics && Object.keys(latestMetrics).length > 0">
                 <div class="metric-card">
                     <h4>Dataset File</h4>
                     <div class="metric-value">{{ latestMetrics.datasetFile || 'N/A' }}</div>
-                    <p v-if="latestMetrics.datasetLoadMs">Loaded {{ latestMetrics.datasetLoadMs }} ms</p>
+                    <p v-if="latestMetrics.datasetLoadMs !== null && latestMetrics.datasetLoadMs !== undefined">Loaded {{ latestMetrics.datasetLoadMs }} ms</p>
                     <p v-if="latestMetrics.fileSizeBytes">{{ formatBytes(latestMetrics.fileSizeBytes) }}</p>
                 </div>
                 <div class="metric-card">
                     <h4>Lookup Time</h4>
-                    <div class="metric-value">{{ latestMetrics.lookupMs ? latestMetrics.lookupMs + ' ms' : 'N/A' }}</div>
-                    <p v-if="latestMetrics.resultCount !== undefined">Results: {{ latestMetrics.resultCount }}</p>
+                    <div class="metric-value">{{ latestMetrics.lookupMs !== null && latestMetrics.lookupMs !== undefined ? latestMetrics.lookupMs + ' ms' : 'N/A' }}</div>
+                    <p v-if="latestMetrics.resultCount !== null && latestMetrics.resultCount !== undefined">Results: {{ latestMetrics.resultCount }}</p>
                 </div>
                 <div class="metric-card">
                     <h4>Last Lookup</h4>
-                    <div class="metric-value">{{ formatDateTime(latestMetrics.timestamp) }}</div>
+                    <div class="metric-value">{{ latestMetrics.timestamp ? formatDateTime(latestMetrics.timestamp) : 'N/A' }}</div>
                     <p v-if="latestMetrics.latitude && latestMetrics.longitude">Lat {{ latestMetrics.latitude.toFixed(4) }}, Lon {{ latestMetrics.longitude.toFixed(4) }}</p>
                 </div>
             </div>
             <div class="metric-card" v-else>
                 <h4>No metrics yet</h4>
                 <p style="color: #71717a;">Execute "Locate Me" to populate logs and see timing data.</p>
+                <p v-if="latestMetrics === null" style="color: #991b1b; font-size: 0.8rem; margin-top: 8px;">Debug: latestMetrics is null</p>
             </div>
             <div v-if="showLog" class="log-display">
                 <div class="log-header">

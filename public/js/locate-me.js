@@ -65,6 +65,9 @@ createApp({
             // Use metrics from API response directly
             if (payload.metrics) {
               this.latestMetrics = payload.metrics;
+              console.log('Metrics set:', this.latestMetrics);
+            } else {
+              console.warn('No metrics in API response:', payload);
             }
             
             if (this.results.length > 0) {
@@ -132,16 +135,21 @@ createApp({
     },
     async showLogFile() {
       this.showLog = true;
+      this.logFileContent = 'Loading...';
       try {
         const res = await fetch('/api/location-log');
         if (!res.ok) {
-          this.logFileContent = `Error: HTTP ${res.status}`;
+          this.logFileContent = `Error: HTTP ${res.status}\n\nNote: In Vercel serverless functions, log files are ephemeral and don't persist between function invocations. Each function instance has its own /tmp directory.`;
           return;
         }
         const data = await res.json();
-        this.logFileContent = JSON.stringify(data, null, 2);
+        if (Array.isArray(data) && data.length === 0) {
+          this.logFileContent = `[]\n\nNote: Log file is empty. In Vercel, each serverless function invocation has its own /tmp directory, so logs don't persist between requests. Metrics are shown above from the current API response instead.`;
+        } else {
+          this.logFileContent = JSON.stringify(data, null, 2);
+        }
       } catch (error) {
-        this.logFileContent = `Error: ${error.message}`;
+        this.logFileContent = `Error: ${error.message}\n\nNote: In Vercel serverless functions, log files are ephemeral and don't persist between function invocations.`;
       }
     }
   },
