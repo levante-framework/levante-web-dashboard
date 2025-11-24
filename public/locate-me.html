@@ -256,6 +256,46 @@
         .coordinates-info i {
             color: #da3d16;
         }
+        .weather-card {
+            border: 1px solid #e4e4e7;
+            border-radius: 12px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8fafc 0%, #fef8f2 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+        .weather-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        .weather-details {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .weather-temp {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .weather-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            color: #475569;
+            font-size: 0.95rem;
+        }
+        .weather-source {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 10px;
+        }
         .log-display {
             background: #ffffff;
             border: 2px solid #e4e4e7;
@@ -361,8 +401,16 @@
                     <span v-else>Locating…</span>
                 </button>
                 <button class="btn btn-secondary" @click="showLogFile">
-                    <i class="fas fa-file-alt"></i>
-                    Show Log File
+                    <i class="fas fa-file-code"></i>
+                    Show Log
+                </button>
+                <button class="btn btn-secondary" @click="openViewLogModal">
+                    <i class="fas fa-chart-bar"></i>
+                    View Log
+                </button>
+                <button class="btn btn-secondary" @click="openMapModal">
+                    <i class="fas fa-globe"></i>
+                    Show Map
                 </button>
             </div>
             <div v-if="results.length > 0" class="results-container">
@@ -390,6 +438,28 @@
                 </div>
             </div>
             <div v-else class="result-area" v-text="status"></div>
+            <div v-if="weather" class="weather-card">
+                <div class="weather-header">
+                    <i class="fas fa-cloud-sun"></i>
+                    <span>Current Weather</span>
+                </div>
+                <div class="weather-details">
+                    <div class="weather-temp">{{ weather.temperature }}°{{ weather.unit }}</div>
+                    <div class="weather-meta">
+                        <span>{{ weather.description }}</span>
+                        <span>Feels like {{ weather.apparent }}°{{ weather.unit }}</span>
+                        <span>Humidity: {{ weather.humidity }}%</span>
+                        <span>Wind: {{ weather.wind }} {{ weather.windUnit }}</span>
+                    </div>
+                </div>
+                <div class="weather-meta">
+                    <small class="weather-source">Powered by open-meteo.com</small>
+                    <small>{{ formatDateTime(weather.updatedAt) }}</small>
+                </div>
+            </div>
+            <div v-else-if="weatherStatus" class="weather-card" style="background:#fff;">
+                <div class="weather-meta">{{ weatherStatus }}</div>
+            </div>
             <div class="metrics-grid" v-if="latestMetrics && Object.keys(latestMetrics).length > 0">
                 <div class="metric-card">
                     <h4>Dataset File</h4>
@@ -427,6 +497,99 @@
                 <p style="color: #991b1b; margin: 0;">{{ error }}</p>
             </div>
         </section>
+        <!-- Raw Log Modal -->
+        <div v-if="showRawLogModal" class="modal-overlay" @click.self="closeRawLogModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-file-code"></i> Raw Location Log</h3>
+                    <button class="btn-close" @click="closeRawLogModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre class="log-content">{{ logFileContent || 'Loading...' }}</pre>
+                </div>
+            </div>
+        </div>
+        <!-- View Log Modal -->
+        <div v-if="showViewLogModal" class="modal-overlay" @click.self="closeViewLogModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-chart-pie"></i> Log Insights</h3>
+                    <button class="btn-close" @click="closeViewLogModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <template v-if="logStats">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h5>Total Lookups</h5>
+                                <div class="value">{{ logStats.total }}</div>
+                            </div>
+                            <div class="stat-card">
+                                <h5>Unique Cities</h5>
+                                <div class="value">{{ logStats.uniqueCities }}</div>
+                            </div>
+                            <div class="stat-card">
+                                <h5>Unique Countries</h5>
+                                <div class="value">{{ logStats.uniqueCountries }}</div>
+                            </div>
+                            <div class="stat-card">
+                                <h5>Avg Lookup Time</h5>
+                                <div class="value">{{ logStats.avgLookupMs }} ms</div>
+                            </div>
+                        </div>
+                        <div class="stat-card" v-if="logStats.latest">
+                            <h5>Latest Lookup</h5>
+                            <p style="margin: 4px 0 0; color: #1f2937;">
+                                <strong>{{ logStats.latest.cityName || 'Unknown city' }}</strong>
+                                <span v-if="logStats.latest.admin1"> · {{ logStats.latest.admin1 }}</span>
+                                <span v-if="logStats.latest.country"> · {{ logStats.latest.country }}</span>
+                            </p>
+                            <p style="margin: 4px 0 0; color: #475569;">{{ formatDateTime(logStats.latest.timestamp) }}</p>
+                        </div>
+                        <div class="log-table" v-if="logEntries.length">
+                            <div class="log-row log-header-row">
+                                <div class="log-cell">City</div>
+                                <div class="log-cell">Country</div>
+                                <div class="log-cell">Distance</div>
+                                <div class="log-cell">Timestamp</div>
+                            </div>
+                            <div class="log-row" v-for="entry in logEntries" :key="entry.timestamp + entry.latitude">
+                                <div class="log-cell">{{ entry.cityName || 'Unknown' }}</div>
+                                <div class="log-cell">{{ entry.country || '-' }}</div>
+                                <div class="log-cell">{{ entry.distanceKm ? entry.distanceKm + ' km' : '-' }}</div>
+                                <div class="log-cell">{{ formatDateTime(entry.timestamp) }}</div>
+                            </div>
+                        </div>
+                        <div v-else class="modal-empty-state">
+                            No log entries found yet. Try running "Locate Me" to create entries.
+                        </div>
+                    </template>
+                    <div v-else class="modal-empty-state">Loading insights...</div>
+                </div>
+            </div>
+        </div>
+        <!-- Map Modal -->
+        <div v-if="showMapModal" class="modal-overlay" @click.self="closeMapModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-globe"></i> Location Map</h3>
+                    <button class="btn-close" @click="closeMapModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <template v-if="logEntries.length">
+                        <div id="logMap" class="map-container"></div>
+                    </template>
+                    <div v-else class="modal-empty-state">
+                        No log entries available to display on the map yet.
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
