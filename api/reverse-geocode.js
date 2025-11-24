@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const KDBush = require('kdbush');
+const KDBush = require('kdbush').default || require('kdbush');
 const geokdbush = require('geokdbush');
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
@@ -16,7 +16,11 @@ function loadData() {
   }
   const raw = fs.readFileSync(DATA_PATH, 'utf8');
   geoData = JSON.parse(raw);
-  geoIndex = new KDBush(geoData, (p) => p.lon, (p) => p.lat, 64, Float64Array);
+  geoIndex = new KDBush(geoData.length, 64, Float64Array);
+  for (const point of geoData) {
+    geoIndex.add(point.lon, point.lat);
+  }
+  geoIndex.finish();
 }
 
 function toNumber(value) {
