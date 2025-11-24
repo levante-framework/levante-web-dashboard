@@ -161,6 +161,14 @@ module.exports = async function handler(req, res) {
   const lookupDurationMs = msSince(lookupStart);
 
   try {
+    // Extract best result city info for logging
+    const bestResult = results.length > 0 ? {
+      cityName: results[0].name,
+      admin1: results[0].admin1,
+      country: results[0].country,
+      distanceKm: results[0].distanceKm
+    } : null;
+    
     const logEntry = {
       timestamp: new Date().toISOString(),
       latitude: lat,
@@ -169,7 +177,13 @@ module.exports = async function handler(req, res) {
       datasetPath: datasetInfo?.filePath || DATA_PATH,
       datasetLoadMs: datasetInfo?.loadDurationMs ?? null,
       lookupMs: Number(lookupDurationMs.toFixed ? lookupDurationMs.toFixed(2) : lookupDurationMs),
-      resultCount: results.length
+      resultCount: results.length,
+      ...(bestResult ? {
+        cityName: bestResult.cityName,
+        admin1: bestResult.admin1,
+        country: bestResult.country,
+        distanceKm: bestResult.distanceKm
+      } : {})
     };
     console.log('reverse-geocode: Attempting to append log entry:', logEntry);
     await appendLog(logEntry);
