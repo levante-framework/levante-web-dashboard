@@ -7,11 +7,81 @@ const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json'
 const DATA_PATH_GZ = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json.gz');
 const EARTH_RADIUS_KM = 6371;
 
+const WEATHER_CODES = {
+  0: 'Clear sky',
+  1: 'Mainly clear',
+  2: 'Partly cloudy',
+  3: 'Overcast',
+  45: 'Foggy',
+  48: 'Depositing rime fog',
+  51: 'Light drizzle',
+  53: 'Moderate drizzle',
+  55: 'Dense drizzle',
+  56: 'Light freezing drizzle',
+  57: 'Dense freezing drizzle',
+  61: 'Slight rain',
+  63: 'Moderate rain',
+  65: 'Heavy rain',
+  66: 'Light freezing rain',
+  67: 'Heavy freezing rain',
+  71: 'Slight snow fall',
+  73: 'Moderate snow fall',
+  75: 'Heavy snow fall',
+  77: 'Snow grains',
+  80: 'Rain showers',
+  81: 'Heavy rain showers',
+  82: 'Violent rain showers',
+  85: 'Snow showers',
+  86: 'Heavy snow showers',
+  95: 'Thunderstorm',
+  96: 'Thunderstorm with hail',
+  99: 'Thunderstorm with heavy hail'
+};
+
+
 let geoData = null;
 let datasetStats = null;
 
 function msSince(startNs) {
   return Number((process.hrtime.bigint() - startNs) / 1000000n);
+}
+
+function describeWeather(code) {
+  return WEATHER_CODES[code] || 'Unknown conditions';
+}
+
+async function fetchWeatherSnapshot(lat, lon) {
+  if (typeof fetch !== 'function') return null;
+  try {
+    const params = new URLSearchParams({
+      latitude: lat.toString(),
+      longitude: lon.toString(),
+      current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code',
+      temperature_unit: 'fahrenheit',
+      wind_speed_unit: 'mph',
+      timezone: 'UTC'
+    });
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`, {
+      headers: { 'User-Agent': 'LevanteDashboard/1.0' }
+    });
+    if (!response.ok) throw new Error(`Weather status ${response.status}`);
+    const data = await response.json();
+    const current = data?.current;
+    if (!current) return null;
+    return {
+      temperature: current.temperature_2m,
+      apparent: current.apparent_temperature,
+      humidity: current.relative_humidity_2m,
+      wind: current.wind_speed_10m,
+      windUnit: data?.current_units?.wind_speed_10m || 'mph',
+      description: describeWeather(current.weather_code),
+      observedAt: current.time,
+      source: 'open-meteo'
+    };
+  } catch (error) {
+    console.warn('reverse-geocode: weather fetch failed', error.message);
+    return null;
+  }
 }
 
 function loadData() {
@@ -169,6 +239,8 @@ module.exports = async function handler(req, res) {
       distanceKm: results[0].distanceKm
     } : null;
     
+    const weatherSnapshot = await fetchWeatherSnapshot(lat, lon);
+
     const logEntry = {
       timestamp: new Date().toISOString(),
       latitude: lat,
@@ -185,6 +257,9 @@ module.exports = async function handler(req, res) {
         distanceKm: bestResult.distanceKm
       } : {})
     };
+    if (weatherSnapshot) {
+      logEntry.weather = weatherSnapshot;
+    }
     console.log('reverse-geocode: Attempting to append log entry:', logEntry);
     await appendLog(logEntry);
     console.log('reverse-geocode: Log entry appended successfully');
