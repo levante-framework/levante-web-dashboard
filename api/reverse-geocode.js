@@ -1,8 +1,10 @@
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { appendLog } = require('../lib/locationLog');
 
 const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
+const DATA_PATH_GZ = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json.gz');
 const EARTH_RADIUS_KM = 6371;
 
 let geoData = null;
@@ -14,16 +16,30 @@ function msSince(startNs) {
 
 function loadData() {
   if (geoData && datasetStats) return datasetStats;
-  if (!fs.existsSync(DATA_PATH)) {
-    throw new Error(`Geocoder dataset missing at ${DATA_PATH}. Run "npm run geocoder:build" first.`);
-  }
+  
   const loadStart = process.hrtime.bigint();
-  const raw = fs.readFileSync(DATA_PATH, 'utf8');
+  let raw, filePath, fileStats;
+  
+  // Use compressed file (smaller download) - prefer .gz, fallback to uncompressed
+  if (fs.existsSync(DATA_PATH_GZ)) {
+    filePath = DATA_PATH_GZ;
+    console.log(`location-log: Loading compressed dataset from ${DATA_PATH_GZ}`);
+    const compressed = fs.readFileSync(DATA_PATH_GZ);
+    raw = zlib.gunzipSync(compressed).toString('utf8');
+    fileStats = fs.statSync(DATA_PATH_GZ);
+  } else if (fs.existsSync(DATA_PATH)) {
+    filePath = DATA_PATH;
+    console.log(`location-log: Loading uncompressed dataset from ${DATA_PATH} (compressed file not found)`);
+    raw = fs.readFileSync(DATA_PATH, 'utf8');
+    fileStats = fs.statSync(DATA_PATH);
+  } else {
+    throw new Error(`Geocoder dataset missing at ${DATA_PATH} or ${DATA_PATH_GZ}. Run "npm run geocoder:build" first.`);
+  }
+  
   geoData = JSON.parse(raw);
-  const fileStats = fs.statSync(DATA_PATH);
   datasetStats = {
-    filePath: DATA_PATH,
-    fileName: path.basename(DATA_PATH),
+    filePath: filePath,
+    fileName: path.basename(filePath),
     loadDurationMs: Number(msSince(loadStart).toFixed ? Number(msSince(loadStart).toFixed(2)) : msSince(loadStart)),
     fileSizeBytes: fileStats.size,
     totalPoints: geoData.length,
@@ -145,7 +161,7 @@ module.exports = async function handler(req, res) {
   const lookupDurationMs = msSince(lookupStart);
 
   try {
-    appendLog({
+    const logEntry = {
       timestamp: new Date().toISOString(),
       latitude: lat,
       longitude: lon,
@@ -154,7 +170,10 @@ module.exports = async function handler(req, res) {
       datasetLoadMs: datasetInfo?.loadDurationMs ?? null,
       lookupMs: Number(lookupDurationMs.toFixed ? lookupDurationMs.toFixed(2) : lookupDurationMs),
       resultCount: results.length
-    });
+    };
+    console.log('reverse-geocode: Attempting to append log entry:', logEntry);
+    await appendLog(logEntry);
+    console.log('reverse-geocode: Log entry appended successfully');
   } catch (logError) {
     console.error('reverse-geocode: log write failed (non-fatal)', logError);
   }
