@@ -95,6 +95,61 @@
             flex-direction: column;
             gap: 20px;
         }
+        .results-map-grid {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .results-column {
+            flex: 1 1 520px;
+        }
+        .map-column {
+            flex: 0 0 360px;
+        }
+        .map-card {
+            border: 1px solid #e4e4e7;
+            border-radius: 14px;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+        }
+        .map-card-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .map-card-header h4 {
+            margin: 0;
+            font-size: 1rem;
+            color: #111827;
+        }
+        .map-card-subtitle {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        .inline-map {
+            width: 100%;
+            min-height: 280px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e4e4e7;
+        }
+        .map-placeholder {
+            min-height: 280px;
+            border: 1px dashed #d4d4d8;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.95rem;
+            background: #f9fafb;
+        }
         .btn {
             display: inline-flex;
             align-items: center;
@@ -497,6 +552,12 @@
             .locate-wrapper {
                 padding: 0;
             }
+            .results-map-grid {
+                flex-direction: column;
+            }
+            .map-column {
+                flex: 1 1 100%;
+            }
         }
     </style>
 </head>
@@ -531,31 +592,47 @@
                     Show Map
                 </button>
             </div>
-            <div v-if="results.length > 0" class="results-container">
-                <div v-for="(result, index) in results" :key="result.id" class="result-card" :class="{ 'result-card-primary': index === 0 }">
-                    <div class="result-rank">{{ index === 0 ? '1st' : '2nd' }}</div>
-                    <div class="result-content">
-                        <h3 class="result-name">{{ result.name }}</h3>
-                        <div class="result-details">
-                            <span v-if="result.admin1" class="result-admin">{{ result.admin1 }}</span>
-                            <span v-if="result.country" class="result-country">{{ result.country }}</span>
+            <div class="results-map-grid">
+                <div class="results-column">
+                    <div v-if="results.length > 0" class="results-container">
+                        <div v-for="(result, index) in results" :key="result.id" class="result-card" :class="{ 'result-card-primary': index === 0 }">
+                            <div class="result-rank">{{ index === 0 ? '1st' : '2nd' }}</div>
+                            <div class="result-content">
+                                <h3 class="result-name">{{ result.name }}</h3>
+                                <div class="result-details">
+                                    <span v-if="result.admin1" class="result-admin">{{ result.admin1 }}</span>
+                                    <span v-if="result.country" class="result-country">{{ result.country }}</span>
+                                </div>
+                                <div class="result-distance">
+                                    <i class="fas fa-ruler"></i>
+                                    {{ result.distanceKm }} km away
+                                </div>
+                                <div v-if="result.population" class="result-population">
+                                    <i class="fas fa-users"></i>
+                                    {{ result.population.toLocaleString() }} people
+                                </div>
+                            </div>
                         </div>
-                        <div class="result-distance">
-                            <i class="fas fa-ruler"></i>
-                            {{ result.distanceKm }} km away
+                        <div v-if="coordinates" class="coordinates-info">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Your coordinates: {{ coordinates.lat.toFixed(4) }}, {{ coordinates.lon.toFixed(4) }}
                         </div>
-                        <div v-if="result.population" class="result-population">
-                            <i class="fas fa-users"></i>
-                            {{ result.population.toLocaleString() }} people
+                    </div>
+                    <div v-else class="result-area" v-text="status"></div>
+                </div>
+                <div class="map-column">
+                    <div class="map-card">
+                        <div class="map-card-header">
+                            <h4>Location preview</h4>
+                            <p class="map-card-subtitle">Your latest GPS fix</p>
+                        </div>
+                        <div v-if="coordinates" id="resultMap" class="inline-map"></div>
+                        <div v-else class="map-placeholder">
+                            Run "Locate Me" to render a preview of the mapped location.
                         </div>
                     </div>
                 </div>
-                <div v-if="coordinates" class="coordinates-info">
-                    <i class="fas fa-map-marker-alt"></i>
-                    Your coordinates: {{ coordinates.lat.toFixed(4) }}, {{ coordinates.lon.toFixed(4) }}
-                </div>
             </div>
-            <div v-else class="result-area" v-text="status"></div>
             <div class="metrics-grid" v-if="latestMetrics && Object.keys(latestMetrics).length > 0">
                 <div class="metric-card">
                     <h4>Dataset File</h4>
@@ -718,7 +795,7 @@
     <script src="./vendor/leaflet/leaflet.js?v=3"></script>
     <script src="./js/locate-me-v2.js?v=3"></script>
     <footer style="text-align: center; margin-top: 40px; color: #a1a1aa; font-size: 0.8rem;">
-        Levante Locate Me · v2.1
+        Levante Locate Me · v2.1.1
     </footer>
 </body>
 </html>
