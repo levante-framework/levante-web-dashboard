@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Locate Me · Levante</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="icon" type="image/svg+xml" href="./images/location-pin.svg">
+    <link rel="apple-touch-icon" href="./images/location-pin.svg">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+        <link rel="stylesheet" href="./vendor/leaflet/leaflet.css">
     <style>
         * {
             margin: 0;
@@ -21,19 +24,50 @@
             -moz-osx-font-smoothing: grayscale;
         }
         .locate-wrapper {
-            max-width: 960px;
+            max-width: 1200px;
             margin: 0 auto;
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
             overflow: hidden;
             border: 1px solid #e4e4e7;
+            transition: box-shadow 0.3s ease;
+        }
+        .locate-wrapper:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
         }
         .locate-header {
             background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
             color: #3f3f46;
             padding: 40px 32px;
             border-bottom: 2px solid #e4e4e7;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .locate-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #da3d16 0%, #a22d10 100%);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .header-logo {
+            height: 48px;
+            width: auto;
+            flex-shrink: 0;
+        }
+        .header-content {
+            flex: 1;
         }
         .locate-header h1 {
             font-size: 1.75rem;
@@ -43,9 +77,11 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            letter-spacing: -0.02em;
         }
         .locate-header h1 i {
             color: #da3d16;
+            font-size: 1.5rem;
         }
         .locate-header p {
             font-size: 0.95rem;
@@ -87,8 +123,22 @@
         .btn-loading {
             position: relative;
         }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
         .locate-button {
             align-self: flex-start;
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: #52525b;
+            border: 1px solid #e4e4e7;
+        }
+        .btn-secondary:hover {
+            background: #fafafa;
+            border-color: #d4d4d8;
         }
         .result-area {
             min-height: 160px;
@@ -102,6 +152,313 @@
             overflow-wrap: break-word;
             font-size: 14px;
             line-height: 1.6;
+        }
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .result-card {
+            background: #ffffff;
+            border: 2px solid #e4e4e7;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            gap: 16px;
+            transition: all 0.2s ease;
+        }
+        .result-card:hover {
+            border-color: #d4d4d8;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .result-card-primary {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border-color: #da3d16;
+        }
+        .result-rank {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #da3d16 0%, #a22d10 100%);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+        .result-card-primary .result-rank {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            box-shadow: 0 4px 12px rgba(218, 61, 22, 0.3);
+        }
+        .result-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .result-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #27272a;
+            margin: 0;
+        }
+        .result-details {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .result-admin {
+            background: #eff6ff;
+            color: #1e40af;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .result-country {
+            background: #f0fdf4;
+            color: #166534;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .result-distance {
+            color: #52525b;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .result-distance i {
+            color: #da3d16;
+        }
+        .result-population {
+            color: #71717a;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .result-population i {
+            color: #52525b;
+        }
+        .coordinates-info {
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #71717a;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            padding: 20px;
+        }
+        .modal {
+            background: #ffffff;
+            border-radius: 16px;
+            width: min(900px, 100%);
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e4e4e7;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e4e4e7;
+            background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
+        }
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            padding: 18px;
+            border: 1px solid #e4e4e7;
+            border-radius: 12px;
+            background: #ffffff;
+        }
+        .stat-card.accent {
+            background: #fef2f2;
+            border-color: #fecaca;
+        }
+        .stat-card h5 {
+            margin: 0 0 6px;
+            font-size: 0.9rem;
+            color: #52525b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .stat-card .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #27272a;
+        }
+        .log-card-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 18px;
+        }
+        .log-card {
+            position: relative;
+            border: 1px solid #e4e4e7;
+            border-radius: 14px;
+            padding: 20px;
+            background: #ffffff;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .log-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 16px;
+            bottom: 16px;
+            width: 4px;
+            border-radius: 4px;
+            background: linear-gradient(180deg, #da3d16 0%, #a22d10 100%);
+        }
+        .log-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .log-card-header h4 {
+            margin: 0;
+            font-size: 1.05rem;
+            color: #0f172a;
+        }
+        .log-chip {
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .log-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .chip {
+            background: #f8fafc;
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+        }
+        .chip strong {
+            font-weight: 700;
+            margin-right: 4px;
+        }
+        .map-container {
+            width: 100%;
+            height: 420px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e4e4e7;
+        }
+        .map-error {
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+        }
+        .modal-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #71717a;
+            font-size: 0.95rem;
+        }
+        .coordinates-info i {
+            color: #da3d16;
+        }
+        .log-display {
+            background: #ffffff;
+            border: 2px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e4e4e7;
+        }
+        .log-header h4 {
+            margin: 0;
+            color: #27272a;
+            font-size: 1rem;
+        }
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: #71717a;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .btn-close:hover {
+            background: #fafafa;
+            color: #27272a;
+        }
+        .log-content {
+            background: #fafafa;
+            border: 1px solid #e4e4e7;
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #27272a;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
         }
         .metrics-grid {
             display: grid;
@@ -146,47 +503,220 @@
 <body>
     <div class="locate-wrapper" id="locateMeApp">
         <header class="locate-header">
-            <h1><i class="fas fa-location-dot"></i> Levante Locate Me</h1>
-            <p>Discover the nearest city without any authentication. This page uses the same offline geocoder powering the dashboard.</p>
+            <div class="header-left">
+                <img src="./images/levante_icon.svg" alt="Levante" class="header-logo" onerror="this.src='https://levante-dashboard.web.app/levante_icon.svg'; this.onerror=function(){this.style.display='none';};">
+                <div class="header-content">
+                    <h1><i class="fas fa-map-marker-alt"></i> Levante - Locate Me</h1>
+                    <p>Discover the nearest city without any authentication. This page uses the same offline geocoder powering the dashboard.</p>
+                </div>
+            </div>
         </header>
         <section class="locate-panel">
-            <button class="btn btn-primary locate-button" :class="{ 'btn-loading': loading }" :disabled="loading" @click="locate">
-                <i class="fas fa-location-arrow"></i>
-                <span v-if="!loading">Locate Me</span>
-                <span v-else>Locating…</span>
-            </button>
-            <div class="result-area" v-text="resultText || status"></div>
-            <div class="metrics-grid" v-if="latestMetrics">
+            <div class="button-group">
+                <button class="btn btn-primary locate-button" :class="{ 'btn-loading': loading }" :disabled="loading" @click="locate">
+                    <i class="fas fa-location-arrow"></i>
+                    <span v-if="!loading">Locate Me</span>
+                    <span v-else>Locating…</span>
+                </button>
+                <button class="btn btn-secondary" @click="showLogFile">
+                    <i class="fas fa-file-code"></i>
+                    Show Log
+                </button>
+                <button class="btn btn-secondary" @click="openViewLogModal">
+                    <i class="fas fa-chart-bar"></i>
+                    View Log
+                </button>
+                <button class="btn btn-secondary" @click="openMapModal">
+                    <i class="fas fa-globe"></i>
+                    Show Map
+                </button>
+            </div>
+            <div v-if="results.length > 0" class="results-container">
+                <div v-for="(result, index) in results" :key="result.id" class="result-card" :class="{ 'result-card-primary': index === 0 }">
+                    <div class="result-rank">{{ index === 0 ? '1st' : '2nd' }}</div>
+                    <div class="result-content">
+                        <h3 class="result-name">{{ result.name }}</h3>
+                        <div class="result-details">
+                            <span v-if="result.admin1" class="result-admin">{{ result.admin1 }}</span>
+                            <span v-if="result.country" class="result-country">{{ result.country }}</span>
+                        </div>
+                        <div class="result-distance">
+                            <i class="fas fa-ruler"></i>
+                            {{ result.distanceKm }} km away
+                        </div>
+                        <div v-if="result.population" class="result-population">
+                            <i class="fas fa-users"></i>
+                            {{ result.population.toLocaleString() }} people
+                        </div>
+                    </div>
+                </div>
+                <div v-if="coordinates" class="coordinates-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Your coordinates: {{ coordinates.lat.toFixed(4) }}, {{ coordinates.lon.toFixed(4) }}
+                </div>
+            </div>
+            <div v-else class="result-area" v-text="status"></div>
+            <div class="metrics-grid" v-if="latestMetrics && Object.keys(latestMetrics).length > 0">
                 <div class="metric-card">
                     <h4>Dataset File</h4>
                     <div class="metric-value">{{ latestMetrics.datasetFile || 'N/A' }}</div>
-                    <p v-if="latestMetrics.datasetLoadMs">Loaded {{ latestMetrics.datasetLoadMs }} ms</p>
+                    <p v-if="latestMetrics.datasetLoadMs !== null && latestMetrics.datasetLoadMs !== undefined">Loaded {{ latestMetrics.datasetLoadMs }} ms</p>
                     <p v-if="latestMetrics.fileSizeBytes">{{ formatBytes(latestMetrics.fileSizeBytes) }}</p>
                 </div>
                 <div class="metric-card">
                     <h4>Lookup Time</h4>
-                    <div class="metric-value">{{ latestMetrics.lookupMs ? latestMetrics.lookupMs + ' ms' : 'N/A' }}</div>
-                    <p v-if="latestMetrics.resultCount !== undefined">Results: {{ latestMetrics.resultCount }}</p>
+                    <div class="metric-value">{{ latestMetrics.lookupMs !== null && latestMetrics.lookupMs !== undefined ? latestMetrics.lookupMs + ' ms' : 'N/A' }}</div>
+                    <p v-if="latestMetrics.resultCount !== null && latestMetrics.resultCount !== undefined">Results: {{ latestMetrics.resultCount }}</p>
                 </div>
                 <div class="metric-card">
                     <h4>Last Lookup</h4>
-                    <div class="metric-value">{{ formatDateTime(latestMetrics.timestamp) }}</div>
+                    <div class="metric-value">{{ latestMetrics.timestamp ? formatDateTime(latestMetrics.timestamp) : 'N/A' }}</div>
                     <p v-if="latestMetrics.latitude && latestMetrics.longitude">Lat {{ latestMetrics.latitude.toFixed(4) }}, Lon {{ latestMetrics.longitude.toFixed(4) }}</p>
                 </div>
             </div>
             <div class="metric-card" v-else>
                 <h4>No metrics yet</h4>
                 <p style="color: #71717a;">Execute "Locate Me" to populate logs and see timing data.</p>
+                <p v-if="latestMetrics === null" style="color: #991b1b; font-size: 0.8rem; margin-top: 8px;">Debug: latestMetrics is null</p>
             </div>
             <div v-if="error" class="metric-card" style="background: #fef2f2; border-color: #fecaca;">
                 <h4 style="color: #991b1b;">Error</h4>
                 <p style="color: #991b1b; margin: 0;">{{ error }}</p>
             </div>
         </section>
+        <!-- Raw Log Modal -->
+        <div v-if="showRawLogModal" class="modal-overlay" @click.self="closeRawLogModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-file-code"></i> Raw Location Log</h3>
+                    <button class="btn-close" @click="closeRawLogModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <pre class="log-content">{{ logFileContent || 'Loading...' }}</pre>
+                </div>
+            </div>
+        </div>
+        <!-- View Log Modal -->
+        <div v-if="showViewLogModal" class="modal-overlay" @click.self="closeViewLogModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-chart-pie"></i> Log Insights</h3>
+                    <button class="btn-close" @click="closeViewLogModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <template v-if="logStats">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h5>Total Lookups</h5>
+                                <div class="value">{{ logStats.total }}</div>
+                            </div>
+                            <div class="stat-card">
+                                <h5>Unique Cities</h5>
+                                <div class="value">{{ logStats.uniqueCities }}</div>
+                            </div>
+                            <div class="stat-card">
+                                <h5>Unique Countries</h5>
+                                <div class="value">{{ logStats.uniqueCountries }}</div>
+                            </div>
+                            <div class="stat-card">
+                                <h5>Avg Lookup Time</h5>
+                                <div class="value">{{ logStats.avgLookupMs }} ms</div>
+                            </div>
+                        </div>
+                        <div class="stat-card" v-if="logStats.latest">
+                            <h5>Latest Lookup</h5>
+                            <p style="margin: 4px 0 0; color: #1f2937;">
+                                <strong>{{ logStats.latest.cityName || 'Unknown city' }}</strong>
+                                <span v-if="logStats.latest.admin1"> · {{ logStats.latest.admin1 }}</span>
+                                <span v-if="logStats.latest.country"> · {{ logStats.latest.country }}</span>
+                            </p>
+                            <p style="margin: 4px 0 0; color: #475569;">{{ formatDateTime(logStats.latest.timestamp) }}</p>
+                        </div>
+                        <div class="stats-grid" style="margin-top: 0;">
+                            <div class="stat-card accent" v-if="topCities.length">
+                                <h5>Top Cities</h5>
+                                <div class="chip-row">
+                                    <span class="chip" v-for="city in topCities" :key="city.name">
+                                        <strong>{{ city.count }}</strong>{{ city.name }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="stat-card accent" v-if="topCountries.length">
+                                <h5>Top Countries</h5>
+                                <div class="chip-row">
+                                    <span class="chip" v-for="country in topCountries" :key="country.name">
+                                        <strong>{{ country.count }}</strong>{{ country.name }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="stat-card accent" v-if="latestWeather">
+                                <h5>Weather Snapshot</h5>
+                                <p style="margin: 0; color: #0f172a; font-size: 1rem;">
+                                    {{ latestWeather.weather.temperature }}°
+                                    <span style="color: #475569;">{{ latestWeather.weather.description }}</span>
+                                </p>
+                                <p style="margin: 6px 0 0; color: #71717a; font-size: 0.85rem;">{{ formatDateTime(latestWeather.timestamp) }}</p>
+                            </div>
+                        </div>
+                        <div class="log-card-list" v-if="logEntries.length">
+                            <article class="log-card" v-for="entry in logEntries" :key="entry.timestamp + entry.latitude">
+                                <div class="log-card-header">
+                                    <div>
+                                        <h4>{{ entry.cityName || 'Unknown location' }}</h4>
+                                        <small>{{ entry.country || 'N/A' }} • {{ entry.distanceKm ? entry.distanceKm + ' km away' : 'Distance unknown' }}</small>
+                                    </div>
+                                    <span class="log-chip">{{ formatDateTime(entry.timestamp) }}</span>
+                                </div>
+                                <div class="log-card-meta">
+                                    <span v-if="entry.latitude && entry.longitude"><i class="fas fa-location-dot"></i> {{ Number(entry.latitude).toFixed(4) }}, {{ Number(entry.longitude).toFixed(4) }}</span>
+                                    <span><i class="fas fa-clock"></i> {{ entry.lookupMs || '—' }} ms</span>
+                                    <span><i class="fas fa-layer-group"></i> Results: {{ entry.resultCount }}</span>
+                                    <span v-if="entry.weather"><i class="fas fa-cloud"></i> {{ entry.weather.temperature }}° · {{ entry.weather.description || 'Weather' }}</span>
+                                </div>
+                            </article>
+                        </div>
+                        <div v-else class="modal-empty-state">
+                            No log entries found yet. Try running "Locate Me" to create entries.
+                        </div>
+                    </template>
+                    <div v-else class="modal-empty-state">
+                        Loading insights...
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Map Modal -->
+        <div v-if="showMapModal" class="modal-overlay" @click.self="closeMapModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-globe"></i> Location Map</h3>
+                    <button class="btn-close" @click="closeMapModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="mapError" class="map-error">
+                        {{ mapError }}
+                        <p style="margin-top: 8px; font-size: 0.85rem; font-weight: 400;">Allow requests to unpkg.com or jsDelivr and reopen the map.</p>
+                    </div>
+                    <template v-else>
+                        <div v-if="logEntries.length" id="logMap" class="map-container"></div>
+                        <div v-else class="modal-empty-state">
+                            No log entries available to display on the map yet.
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="./js/locate-me.js"></script>
+    <script src="./vendor/leaflet/leaflet.js"></script>
+    <script src="./js/locate-me-v2.js"></script>
 </body>
 </html>
 
