@@ -43,6 +43,6 @@
   "headers": [
     { "source": "/", "headers": [ { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" } ] },
     { "source": "/(.*)\\.html", "headers": [ { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" } ] },
-    { "source": "/public/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=3600" } ] }
+    { "source": "/public/(.*)", "headers": [ { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" } ] }
   ]
 } 
