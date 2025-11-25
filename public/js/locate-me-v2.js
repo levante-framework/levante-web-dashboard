@@ -291,20 +291,17 @@ createApp({
         }
 
         const topRegions = this.results.slice(0, 2);
+        const boundaryColors = ['#ea580c', '#2563eb'];
         topRegions.forEach((region, index) => {
           const lat = Number(region.lat);
           const lon = Number(region.lon);
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-          const delta = 0.25;
-          const bounds = [
-            [lat - delta, lon - delta],
-            [lat + delta, lon + delta]
-          ];
-          const colors = ['#ea580c', '#2563eb'];
-          L.rectangle(bounds, {
-            color: colors[index % colors.length],
+          const boundaryRadius = Math.max(5000, (region.distanceKm || 5) * 1000);
+          L.circle([lat, lon], {
+            radius: boundaryRadius,
+            color: boundaryColors[index % boundaryColors.length],
             weight: 2,
-            dashArray: '6,4',
+            dashArray: '8,4',
             fillOpacity: 0
           }).addTo(this.inlineMapLayers);
         });

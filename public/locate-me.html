@@ -97,15 +97,17 @@
         }
         .results-map-grid {
             display: flex;
-            gap: 24px;
+            gap: 16px;
             flex-wrap: wrap;
             align-items: flex-start;
         }
         .results-column {
-            flex: 1 1 520px;
+            flex: 0 0 420px;
+            max-width: 420px;
         }
         .map-column {
-            flex: 0 0 360px;
+            flex: 1;
+            min-width: 360px;
         }
         .map-card {
             border: 1px solid #e4e4e7;
@@ -552,8 +554,9 @@
             .locate-wrapper {
                 padding: 0;
             }
-            .results-map-grid {
-                flex-direction: column;
+            .results-column {
+                flex: 1 1 100%;
+                max-width: none;
             }
             .map-column {
                 flex: 1 1 100%;
