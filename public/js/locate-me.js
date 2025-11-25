@@ -186,17 +186,16 @@ createApp({
       if (this.mapInstance) {
         this.mapInstance.remove();
       }
-      const first = this.logEntries[0];
-      const center = first?.latitude && first?.longitude ? [first.latitude, first.longitude] : [20, 0];
-      const zoom = first ? 7 : 2;
-      this.mapInstance = L.map('logMap').setView(center, zoom);
+      this.mapInstance = L.map('logMap');
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 18,
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(this.mapInstance);
 
+      const coords = [];
       this.logEntries.forEach((entry) => {
         if (entry.latitude && entry.longitude) {
+          coords.push([entry.latitude, entry.longitude]);
           const marker = L.marker([entry.latitude, entry.longitude]).addTo(this.mapInstance);
           const popup = `
             <strong>${entry.cityName || 'Unknown city'}</strong><br>
@@ -206,6 +205,13 @@ createApp({
           marker.bindPopup(popup);
         }
       });
+      if (coords.length > 1) {
+        this.mapInstance.fitBounds(coords, { padding: [20, 20] });
+      } else if (coords.length === 1) {
+        this.mapInstance.setView(coords[0], 9);
+      } else {
+        this.mapInstance.setView([20, 0], 2);
+      }
       setTimeout(() => this.mapInstance.invalidateSize(), 0);
     }
   },
