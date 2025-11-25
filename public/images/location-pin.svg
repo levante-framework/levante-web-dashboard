@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Location pin">
+  <defs>
+    <linearGradient id="pinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff6b2c"/>
+      <stop offset="100%" stop-color="#c12a09"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#pinGradient)" d="M32 4c-11.6 0-21 9.4-21 21 0 13.9 18.7 33.9 20 35.3a1.5 1.5 0 0 0 2 0C34.3 58.9 53 38.9 53 25c0-11.6-9.4-21-21-21zm0 32a11 11 0 1 1 0-22 11 11 0 0 1 0 22z"/>
+  <circle cx="32" cy="25" r="7" fill="#fff" opacity="0.9"/>
+</svg>
+
+

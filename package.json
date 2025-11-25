@@ -1,6 +1,6 @@
 {
   "name": "levante-audio-dashboard",
-  "version": "1.0.0",
+  "version": "2.1.2",
   "description": "Web-based audio dashboard for Levante translations",
   "main": "index.html",
   "homepage": "https://audio-dashboard-levante.vercel.app",
@@ -35,8 +35,13 @@
     "node-id3": "^0.2.9",
     "shapefile": "^0.6.6",
     "sharp": "^0.33.2",
+<<<<<<< HEAD
     "unzipper": "^0.12.3",
     "yargs": "^18.0.0"
+=======
+    "unzipper": "^0.10.11",
+    "yargs": "^17.7.2"
+>>>>>>> 1fccb95 (feat: add gadm polygons and version helper)
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
