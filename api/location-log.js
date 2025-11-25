@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const entries = readLog();
+    const entries = await readLog();
     res.status(200).json(entries);
   } catch (error) {
     console.error('location-log: failed to serve log', error);
