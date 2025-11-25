@@ -17,6 +17,7 @@ function run(command) {
 (async () => {
   try {
     console.log('🚀 Deploying to Vercel (production)...');
+    await run('node scripts/apply-version.js');
     const { stdout: deployOut } = await run('npx -y vercel --prod --yes');
     process.stdout.write(deployOut);
 

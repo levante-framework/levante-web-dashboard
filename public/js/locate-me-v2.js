@@ -23,7 +23,8 @@ createApp({
       mapError: null,
       leafletPromise: null,
       inlineMapInstance: null,
-      inlineMapLayers: null
+      inlineMapLayers: null,
+      gadmPolygonCache: {}
     };
   },
   computed: {
@@ -81,6 +82,61 @@ createApp({
       } catch {
         return isoString;
       }
+    },
+    normalizeGadmKey(name, admin1, country) {
+      return [name, admin1, country]
+        .map((part) => (part || '').toString().trim().toLowerCase())
+        .join('|');
+    },
+    async fetchGadmPolygon(result) {
+      if (!result || !result.country || !result.lat || !result.lon) {
+        return null;
+      }
+      const cacheKey = this.normalizeGadmKey(result.name, result.admin1, result.country);
+      if (this.gadmPolygonCache[cacheKey]) {
+        return this.gadmPolygonCache[cacheKey];
+      }
+      const params = new URLSearchParams({
+        name: result.name || '',
+        admin1: result.admin1 || '',
+        country: result.country,
+        lat: result.lat,
+        lon: result.lon
+      });
+      try {
+        const response = await fetch(`/api/gadm-polygon?${params.toString()}`);
+        if (!response.ok) {
+          return null;
+        }
+        const payload = await response.json();
+        if (payload?.feature) {
+          this.gadmPolygonCache[cacheKey] = payload.feature;
+          return payload.feature;
+        }
+      } catch (error) {
+        console.warn('Failed to load GADM polygon', error);
+      }
+      return null;
+    },
+    async drawRegionPolygons(results = []) {
+      if (!results.length || !this.inlineMapLayers) {
+        return;
+      }
+      const colors = ['#ea580c', '#2563eb'];
+      await Promise.all(
+        results.slice(0, 2).map(async (result, index) => {
+          const feature = await this.fetchGadmPolygon(result);
+          if (!feature) return;
+          L.geoJSON(feature, {
+            style: {
+              color: colors[index % colors.length],
+              weight: 3,
+              dashArray: '6,4',
+              fillOpacity: 0.04
+            }
+          }).addTo(this.inlineMapLayers);
+        })
+      );
     },
     async locate() {
       if (!navigator.geolocation) {
@@ -290,21 +346,7 @@ createApp({
           coords.push([gpsLat, gpsLon]);
         }
 
-        const topRegions = this.results.slice(0, 2);
-        const boundaryColors = ['#ea580c', '#2563eb'];
-        topRegions.forEach((region, index) => {
-          const lat = Number(region.lat);
-          const lon = Number(region.lon);
-          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-          const boundaryRadius = Math.max(5000, (region.distanceKm || 5) * 1000);
-          L.circle([lat, lon], {
-            radius: boundaryRadius,
-            color: boundaryColors[index % boundaryColors.length],
-            weight: 2,
-            dashArray: '8,4',
-            fillOpacity: 0
-          }).addTo(this.inlineMapLayers);
-        });
+        await this.drawRegionPolygons(this.results);
 
         if (coords.length > 1) {
           this.inlineMapInstance.fitBounds(coords, { padding: [32, 32] });
