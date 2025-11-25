@@ -1,0 +1,12 @@
+{
+  "US": "maps/gadm41_USA_shp.zip",
+  "CA": "maps/gadm41_CAN_shp.zip",
+  "CO": "maps/gadm41_COL_shp.zip",
+  "IN": "maps/gadm41_IND_shp.zip",
+  "AR": "maps/gadm41_ARG_shp.zip",
+  "NL": "maps/gadm41_NLD_shp.zip",
+  "GH": "maps/gadm41_GHA_shp.zip",
+  "CH": "maps/gadm41_CHE_shp.zip",
+  "DE": "maps/gadm41_DEU_shp.zip",
+  "GB": "maps/gadm41_GBR_shp.zip"
+}
