@@ -117,7 +117,7 @@
         if (v == null || isNaN(v)) return "—";
         return (v <= 1 ? (v*100).toFixed(0) : v.toFixed(0)) + "%";
     }
-    function escapeHtml(s){ return (s||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+    function escapeHtml(s){return (s||"").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
 
     async function fetchLatestValidation(){
         // For now, use the shipped snapshot to avoid 404 noise
