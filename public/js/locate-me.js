@@ -220,3 +220,4 @@ createApp({
     this.fetchLogEntries();
   }
 }).mount('#locateMeApp');
+ 
