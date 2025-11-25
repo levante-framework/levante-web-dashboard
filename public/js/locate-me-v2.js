@@ -21,7 +21,8 @@ createApp({
       logEntries: [],
       mapInstance: null,
       mapError: null,
-      leafletPromise: null
+      leafletPromise: null,
+      inlineMapInstance: null
     };
   },
   computed: {
@@ -130,6 +131,8 @@ createApp({
 
             // Refresh logs so modals show the most recent entry
             await this.fetchLogEntries(true);
+            await nextTick();
+            await this.renderInlineMap();
           } catch (fetchError) {
             console.error('Locate Me failed', fetchError);
             this.error = fetchError.message;
@@ -215,6 +218,68 @@ createApp({
     },
     closeViewLogModal() {
       this.showViewLogModal = false;
+    },
+    destroyInlineMap() {
+      if (this.inlineMapInstance) {
+        this.inlineMapInstance.remove();
+        this.inlineMapInstance = null;
+      }
+    },
+    async renderInlineMap() {
+      try {
+        if (!this.coordinates || !this.results.length) {
+          this.destroyInlineMap();
+          return;
+        }
+        const ready = await this.ensureLeaflet();
+        if (!ready) return;
+        const mapElement = document.getElementById('resultMap');
+        if (!mapElement) return;
+        if (this.inlineMapInstance) {
+          this.inlineMapInstance.remove();
+        }
+        this.inlineMapInstance = L.map(mapElement, {
+          zoomControl: false,
+          attributionControl: false
+        });
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(this.inlineMapInstance);
+
+        const coords = [];
+        this.results.forEach((result) => {
+          const lat = Number(result.lat);
+          const lon = Number(result.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+          coords.push([lat, lon]);
+          const marker = L.circleMarker([lat, lon], {
+            color: '#da3d16',
+            fillColor: '#ffffff',
+            fillOpacity: 1,
+            radius: 7,
+            weight: 2
+          }).addTo(this.inlineMapInstance);
+          const popup = `
+            <strong>${result.name || 'Location'}</strong><br>
+            ${result.country || ''} · ${result.distanceKm ? result.distanceKm + ' km' : 'Distance unknown'}
+          `;
+          marker.bindPopup(popup);
+        });
+
+        if (coords.length > 1) {
+          this.inlineMapInstance.fitBounds(coords, { padding: [32, 32] });
+        } else if (coords.length === 1) {
+          this.inlineMapInstance.setView(coords[0], 10);
+        } else if (Number.isFinite(this.coordinates.lat) && Number.isFinite(this.coordinates.lon)) {
+          this.inlineMapInstance.setView([this.coordinates.lat, this.coordinates.lon], 10);
+        }
+
+        setTimeout(() => this.inlineMapInstance.invalidateSize(), 0);
+      } catch (inlineError) {
+        console.warn('inline map render failed', inlineError);
+        this.destroyInlineMap();
+      }
     },
     async openMapModal() {
       console.log('openMapModal called');
