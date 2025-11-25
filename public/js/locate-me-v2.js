@@ -22,7 +22,8 @@ createApp({
       mapInstance: null,
       mapError: null,
       leafletPromise: null,
-      inlineMapInstance: null
+      inlineMapInstance: null,
+      inlineMapLayers: null
     };
   },
   computed: {
@@ -224,6 +225,10 @@ createApp({
         this.inlineMapInstance.remove();
         this.inlineMapInstance = null;
       }
+      if (this.inlineMapLayers) {
+        this.inlineMapLayers.clearLayers();
+        this.inlineMapLayers = null;
+      }
     },
     async renderInlineMap() {
       try {
@@ -239,13 +244,16 @@ createApp({
           this.inlineMapInstance.remove();
         }
         this.inlineMapInstance = L.map(mapElement, {
-          zoomControl: false,
+          zoomControl: true,
           attributionControl: false
         });
+        this.inlineMapInstance.zoomControl?.setPosition('topright');
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 18,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(this.inlineMapInstance);
+
+        this.inlineMapLayers = L.layerGroup().addTo(this.inlineMapInstance);
 
         const coords = [];
         this.results.forEach((result) => {
@@ -259,7 +267,7 @@ createApp({
             fillOpacity: 1,
             radius: 7,
             weight: 2
-          }).addTo(this.inlineMapInstance);
+          }).addTo(this.inlineMapLayers);
           const popup = `
             <strong>${result.name || 'Location'}</strong><br>
             ${result.country || ''} · ${result.distanceKm ? result.distanceKm + ' km' : 'Distance unknown'}
@@ -267,12 +275,46 @@ createApp({
           marker.bindPopup(popup);
         });
 
+        const gpsLat = Number(this.coordinates.lat);
+        const gpsLon = Number(this.coordinates.lon);
+        if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon)) {
+          L.marker([gpsLat, gpsLon], {
+            title: 'Device GPS location'
+          }).addTo(this.inlineMapLayers);
+          const circle = L.circle([gpsLat, gpsLon], {
+            radius: 1609, // 1 mile
+            color: '#1d4ed8',
+            weight: 2,
+            fillOpacity: 0.05
+          }).addTo(this.inlineMapLayers);
+          coords.push([gpsLat, gpsLon]);
+        }
+
+        const topRegions = this.results.slice(0, 2);
+        topRegions.forEach((region, index) => {
+          const lat = Number(region.lat);
+          const lon = Number(region.lon);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+          const delta = 0.25;
+          const bounds = [
+            [lat - delta, lon - delta],
+            [lat + delta, lon + delta]
+          ];
+          const colors = ['#ea580c', '#2563eb'];
+          L.rectangle(bounds, {
+            color: colors[index % colors.length],
+            weight: 2,
+            dashArray: '6,4',
+            fillOpacity: 0
+          }).addTo(this.inlineMapLayers);
+        });
+
         if (coords.length > 1) {
           this.inlineMapInstance.fitBounds(coords, { padding: [32, 32] });
         } else if (coords.length === 1) {
-          this.inlineMapInstance.setView(coords[0], 10);
-        } else if (Number.isFinite(this.coordinates.lat) && Number.isFinite(this.coordinates.lon)) {
-          this.inlineMapInstance.setView([this.coordinates.lat, this.coordinates.lon], 10);
+          this.inlineMapInstance.setView(coords[0], 12);
+        } else if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon)) {
+          this.inlineMapInstance.setView([gpsLat, gpsLon], 12);
         }
 
         setTimeout(() => this.inlineMapInstance.invalidateSize(), 0);
