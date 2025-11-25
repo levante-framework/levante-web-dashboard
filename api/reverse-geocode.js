@@ -268,7 +268,9 @@ module.exports = async function handler(req, res) {
     if (weatherSnapshot) {
       logEntry.weather = weatherSnapshot;
     }
+    console.log('reverse-geocode: Attempting to append log entry:', logEntry);
     await appendLog(logEntry);
+    console.log('reverse-geocode: Log entry appended successfully');
   } catch (logError) {
     console.error('reverse-geocode: log write failed (non-fatal)', logError);
   }
