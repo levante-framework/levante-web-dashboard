@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Locate Me · Documentation</title>
+  <link rel="icon" type="image/svg+xml" href="../images/location-pin.svg">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f7f7f9;
+      margin: 0;
+      color: #1f2933;
+      line-height: 1.6;
+    }
+    header {
+      background: linear-gradient(120deg, #fef3c7, #fecdd3);
+      padding: 24px;
+      border-bottom: 1px solid #f5f5f5;
+    }
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 1.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    header p {
+      margin: 0;
+      color: #4b5563;
+    }
+    main {
+      max-width: 960px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+      border: 1px solid #e5e7eb;
+      padding: 32px;
+    }
+    section {
+      margin-bottom: 32px;
+    }
+    section:last-of-type {
+      margin-bottom: 0;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      color: #111827;
+    }
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+      color: #0f172a;
+    }
+    h3 + p {
+      margin-top: 0;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    pre {
+      background: #111827;
+      color: #f8fafc;
+      overflow-x: auto;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+    code {
+      font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+    }
+    .cta {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .note {
+      background: #fef2f2;
+      border-left: 4px solid #f87171;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span>📍</span> Locate Me · GADM docs</h1>
+    <p>Documentation for the polygon/region lookup flow that powers the map on the Locate Me page.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Data sources</h2>
+      <ul>
+        <li><strong>GADM shapefiles:</strong> Zipped per country in <code>gs://levante-assets-dev/maps</code>, mapped in <code>config/gadm-bucket-files.json</code>.</li>
+        <li><strong>Country whitelist:</strong> The ten approved countries appear in <code>config/gadm-countries.json</code>.</li>
+        <li><strong>City geocoder:</strong> <code>data/geocoder/cities.min.json(.gz)</code> supplies the top-ranked <code>name|admin1|country</code> tuples driving polygon lookups.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Polygon API workflow</h2>
+      <h3>1. Download + cache</h3>
+      <p><code>api/gadm-polygon.js</code> downloads the country archive once, picks the most detailed shapefile (<code>_3</code> or <code>_2</code>), reads every feature via <code>shapefile</code>, and populates:</p>
+      <ul>
+        <li><code>bucketCache</code> – raw features keyed by country code.</li>
+        <li><code>snippetCache</code> – normalized <code>name|admin1|country</code> snapshots.</li>
+      </ul>
+      <h3>2. Exact snippet lookup</h3>
+      <p>The handler attempts to match the normalized name (and its ASCII alias) with the snippet index before resorting to geometry scans. Matches return the polygon plus <code>adminLevel</code>, candidate count, and <code>source: "snippet"</code>.</p>
+      <h3>3. Fallback scan</h3>
+      <p>If no snippet matches, it iterates the cached features and tests each with <code>@turf/boolean-point-in-polygon</code>, still preferring the most specific polygon (highest GID level and smallest area) and tagging the response <code>source: "scan"</code>.</p>
+      <h3>4. Caching</h3>
+      <p>Both the raw features and snippet map stay in memory after the first download, so subsequent requests to that country are fast.</p>
+    </section>
+    <section>
+      <h2>Snippet generation</h2>
+      <p>Run this helper after downloading an updated extract:</p>
+      <pre><code>node scripts/build-gadm-snippets.js \
+  --input /path/to/gadm41_USA.geojson \
+  --output public/data/gadm/snippets.json \
+  --config config/gadm-countries.json</code></pre>
+      <ul>
+        <li>Normalizes <code>name|admin1|country</code> the same way the client does.</li>
+        <li>Groups every matching feature into a lightweight <code>FeatureCollection</code>.</li>
+        <li>Host those snippets directly if you prefer instead of serving the entire shapefiles.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Frontend hooks</h2>
+      <ul>
+        <li><code>public/js/locate-me-v2.js</code> builds normalized keys, calls <code>/api/gadm-polygon</code> with <code>name</code>, <code>ascii</code>, <code>admin1</code>, <code>lat</code>, and <code>lon</code>, caches the JSON, and renders it with Leaflet.</li>
+        <li>The Documentation button now links here for quick reference.</li>
+        <li><code>scripts/apply-version.js</code> rewrites the footer text and asset query strings prior to every deploy to avoid caching issues.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Next steps</h2>
+      <p class="note">If the polygon still spans multiple cities it means the shapefile only offers the county/municipality for that location. A more granular source (e.g., city-level shapefile) is required for tighter outlines.</p>
+      <a class="cta" href="https://github.com/levante-framework/levante-web-dashboard/blob/main/README.md" target="_blank" rel="noopener noreferrer">
+        View the full README
+      </a>
+    </section>
+  </main>
+</body>
+</html>
