@@ -5,6 +5,7 @@ const shapefile = require('shapefile');
 const unzipper = require('unzipper');
 const { Storage } = require('@google-cloud/storage');
 const booleanPointInPolygon = require('@turf/boolean-point-in-polygon').default;
+const area = require('@turf/area').default;
 const gadmConfig = require('../config/gadm-bucket-files.json');
 
 const BUCKET_NAME = process.env.GADM_BUCKET_NAME || 'levante-assets-dev';
@@ -33,18 +34,53 @@ function normalizeCountry(code) {
 }
 
 async function findShapefile(dir) {
-  const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const resolved = path.join(dir, entry.name);
-    if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.shp') {
-      return resolved;
-    }
-    if (entry.isDirectory()) {
-      const nested = await findShapefile(resolved);
-      if (nested) return nested;
+  // GADM shapefiles are named like gadm41_USA_0.shp, gadm41_USA_1.shp, etc.
+  // Higher number = more specific (3 = municipality, 2 = county, 1 = state, 0 = country)
+  // We want to prioritize level 2 or 3 for more accurate boundaries
+  const allShpFiles = [];
+  
+  async function collectShpFiles(currentDir) {
+    const entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const resolved = path.join(currentDir, entry.name);
+      if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.shp') {
+        allShpFiles.push(resolved);
+      }
+      if (entry.isDirectory()) {
+        await collectShpFiles(resolved);
+      }
     }
   }
-  return null;
+  
+  await collectShpFiles(dir);
+  
+  if (allShpFiles.length === 0) {
+    return null;
+  }
+  
+  // Sort by filename to prioritize higher levels (gadm41_XXX_3.shp > gadm41_XXX_2.shp > ...)
+  allShpFiles.sort((a, b) => {
+    const aMatch = a.match(/_(\d+)\.shp$/);
+    const bMatch = b.match(/_(\d+)\.shp$/);
+    if (aMatch && bMatch) {
+      return parseInt(bMatch[1]) - parseInt(aMatch[1]); // Descending: prefer 3, then 2, then 1, then 0
+    }
+    return a.localeCompare(b);
+  });
+  
+  // Prefer level 2 or 3, but fall back to any available
+  for (const shpFile of allShpFiles) {
+    const levelMatch = shpFile.match(/_(\d+)\.shp$/);
+    if (levelMatch) {
+      const level = parseInt(levelMatch[1]);
+      if (level >= 2) {
+        return shpFile; // Prefer level 2 or 3
+      }
+    }
+  }
+  
+  // Fall back to first file if no level 2+ found
+  return allShpFiles[0];
 }
 
 async function loadCountryFeatures(countryCode) {
@@ -116,6 +152,28 @@ function normalizePoint(lat, lon) {
   return [lonNum, latNum];
 }
 
+function getAdminLevel(feature) {
+  // GADM features have GID_0, GID_1, GID_2, GID_3 properties
+  // Higher number = more specific (3 = municipality, 0 = country)
+  const props = feature.properties || {};
+  if (props.GID_3) return 3;
+  if (props.GID_2) return 2;
+  if (props.GID_1) return 1;
+  if (props.GID_0) return 0;
+  return -1; // Unknown level
+}
+
+function calculatePolygonArea(feature) {
+  try {
+    // Convert to GeoJSON Feature for turf.js
+    const geoJsonFeature = createGeoJSONFeature(feature);
+    return area(geoJsonFeature); // Returns area in square meters
+  } catch (error) {
+    // Fallback: estimate from bounding box
+    return Infinity;
+  }
+}
+
 async function handler(req, res) {
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'method_not_allowed' });
@@ -142,22 +200,52 @@ async function handler(req, res) {
   }
 
   const point = normalizePoint(lat, lon);
+  
+  // Find ALL polygons that contain the point
+  const matchingFeatures = [];
   for (const feature of features) {
     if (!feature || !feature.geometry) {
       continue;
     }
     try {
       if (booleanPointInPolygon(point, feature.geometry)) {
-        res.status(200).json({ feature: createGeoJSONFeature(feature) });
-        return;
+        matchingFeatures.push(feature);
       }
     } catch (error) {
       console.warn('gadm-polygon: failed to test point in polygon', error.message);
     }
   }
 
-  res.status(404).json({ error: 'polygon_not_found' });
+  if (matchingFeatures.length === 0) {
+    res.status(404).json({ error: 'polygon_not_found' });
+    return;
+  }
+
+  // Find the most specific polygon:
+  // 1. Prefer higher administrative level (GID_3 > GID_2 > GID_1 > GID_0)
+  // 2. If same level, prefer smaller area (more specific)
+  let bestFeature = matchingFeatures[0];
+  let bestLevel = getAdminLevel(bestFeature);
+  let bestArea = calculatePolygonArea(bestFeature);
+
+  for (let i = 1; i < matchingFeatures.length; i++) {
+    const feature = matchingFeatures[i];
+    const level = getAdminLevel(feature);
+    const featureArea = calculatePolygonArea(feature);
+
+    // Prefer higher level, or same level with smaller area
+    if (level > bestLevel || (level === bestLevel && featureArea < bestArea)) {
+      bestFeature = feature;
+      bestLevel = level;
+      bestArea = featureArea;
+    }
+  }
+
+  res.status(200).json({ 
+    feature: createGeoJSONFeature(bestFeature),
+    adminLevel: bestLevel,
+    candidates: matchingFeatures.length
+  });
 }
 
 module.exports = handler;
-
