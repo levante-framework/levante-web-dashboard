@@ -73,28 +73,61 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return EARTH_RADIUS_KM * c;
 }
 
+function selectResults(results, limit) {
+  if (!results.length) return [];
+  const sorted = results.slice().sort((a, b) => a.distanceKm - b.distanceKm);
+  if (limit === 1) {
+    return [sorted[0]];
+  }
+
+  const preferredAdmin1 = sorted[0].admin1;
+  const sameRegion = preferredAdmin1
+    ? sorted.filter((entry) => entry.admin1 === preferredAdmin1)
+    : [];
+
+  if (sameRegion.length >= limit) {
+    return sameRegion.slice(0, limit);
+  }
+
+  const combined = [];
+  const seen = new Set();
+
+  for (const entry of sameRegion) {
+    combined.push(entry);
+    seen.add(entry.id);
+  }
+
+  for (const entry of sorted) {
+    if (combined.length >= limit) break;
+    if (seen.has(entry.id)) continue;
+    combined.push(entry);
+    seen.add(entry.id);
+  }
+
+  return combined.slice(0, limit);
+}
+
 function findNearest(lat, lon, limit, maxDistanceKm) {
-  const results = [];
+  const matches = [];
   const maxResults = limit * 20; // Keep more candidates than needed for better accuracy
-  
+
   // Quick bounding box filter: 1 degree lat/lon ≈ 111km, so we can pre-filter
   const latRange = maxDistanceKm ? maxDistanceKm / 111 : 90;
   const lonRange = maxDistanceKm ? maxDistanceKm / (111 * Math.cos(lat * Math.PI / 180)) : 180;
-  
+
   for (const city of geoData) {
     if (!city || typeof city.lat !== 'number' || typeof city.lon !== 'number') continue;
-    
-    // Quick bounding box check before expensive distance calculation
+
     if (maxDistanceKm) {
       const latDiff = Math.abs(city.lat - lat);
       const lonDiff = Math.abs(city.lon - lon);
       if (latDiff > latRange || lonDiff > lonRange) continue;
     }
-    
+
     const distanceKm = haversineDistance(lat, lon, city.lat, city.lon);
     if (maxDistanceKm && distanceKm > maxDistanceKm) continue;
-    
-    results.push({
+
+    matches.push({
       id: city.id,
       name: city.name,
       ascii: city.ascii,
@@ -106,17 +139,13 @@ function findNearest(lat, lon, limit, maxDistanceKm) {
       population: city.population,
       distanceKm: Number(distanceKm.toFixed(2))
     });
-    
-    // Early termination if we have enough candidates
-    if (results.length >= maxResults) {
-      results.sort((a, b) => a.distanceKm - b.distanceKm);
-      return results.slice(0, limit);
+
+    if (matches.length >= maxResults) {
+      break;
     }
   }
-  
-  // Sort and return top N
-  results.sort((a, b) => a.distanceKm - b.distanceKm);
-  return results.slice(0, limit);
+
+  return selectResults(matches, limit);
 }
 
 module.exports = async function handler(req, res) {
