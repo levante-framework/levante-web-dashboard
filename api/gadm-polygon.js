@@ -11,6 +11,7 @@ const gadmConfig = require('../config/gadm-bucket-files.json');
 const BUCKET_NAME = process.env.GADM_BUCKET_NAME || 'levante-assets-dev';
 const bucketCache = new Map();
 const loadingCache = new Map();
+const snippetCache = new Map();
 
 function getStorageClient() {
   try {
@@ -31,6 +32,161 @@ const storageClient = getStorageClient();
 
 function normalizeCountry(code) {
   return (code || '').trim().toUpperCase();
+}
+
+function normalizeSnippetKey(name, admin1, country) {
+  const normalizedName = (name || '').toString().trim().toLowerCase();
+  const normalizedAdmin1 = (admin1 || '').toString().trim().toLowerCase();
+  const normalizedCountry = (country || '').toString().trim().toLowerCase();
+  return `${normalizedName}|${normalizedAdmin1}|${normalizedCountry}`;
+}
+
+function getFeatureNameCandidates(feature) {
+  const props = feature.properties || {};
+  const candidates = new Set();
+  const add = (value) => {
+    if (!value) {
+      return;
+    }
+    const text = value.toString().trim();
+    if (text) {
+      candidates.add(text);
+    }
+  };
+
+  add(props.NAME);
+  add(props.NAME_EN);
+  add(props.NAME_LOCAL);
+  add(props.NAME_3);
+  add(props.NAME_2);
+  add(props.NAME_1);
+  add(props.NAME_0);
+  return [...candidates];
+}
+
+function addAdmin1Candidate(value, collector) {
+  if (!value) {
+    return;
+  }
+  const text = value.toString().trim();
+  if (!text) {
+    return;
+  }
+  const lower = text.toLowerCase();
+  collector.add(lower);
+  const dotPieces = text.split('.');
+  if (dotPieces.length > 1) {
+    const last = dotPieces[dotPieces.length - 1];
+    if (last) {
+      const stripped = last.replace(/_.*$/, '');
+      if (stripped) {
+        collector.add(stripped.toLowerCase());
+      }
+    }
+  }
+  const underscoreMatch = text.match(/^([^_]+)/);
+  if (underscoreMatch && underscoreMatch[1]) {
+    collector.add(underscoreMatch[1].toLowerCase());
+  }
+}
+
+function getFeatureAdmin1Candidates(feature) {
+  const props = feature.properties || {};
+  const collector = new Set();
+  addAdmin1Candidate(props.HASC_1, collector);
+  addAdmin1Candidate(props.ISO_1, collector);
+  addAdmin1Candidate(props.ADM1_CODE, collector);
+  addAdmin1Candidate(props.ADMIN1_CODE, collector);
+  addAdmin1Candidate(props.GID_1, collector);
+  addAdmin1Candidate(props.NAME_1, collector);
+  addAdmin1Candidate(props.ADM1_NAME, collector);
+  if (collector.size === 0) {
+    collector.add('');
+  }
+  return [...collector];
+}
+
+function buildSnippetIndex(normalizedCountry, features) {
+  if (snippetCache.has(normalizedCountry)) {
+    return snippetCache.get(normalizedCountry);
+  }
+
+  const map = new Map();
+  for (const feature of features) {
+    const names = getFeatureNameCandidates(feature);
+    if (!names.length) {
+      continue;
+    }
+    const admin1Candidates = getFeatureAdmin1Candidates(feature);
+    for (const name of names) {
+      for (const admin1 of admin1Candidates) {
+        const key = normalizeSnippetKey(name, admin1, normalizedCountry);
+        if (!map.has(key)) {
+          map.set(key, []);
+        }
+        map.get(key).push(feature);
+      }
+    }
+  }
+
+  snippetCache.set(normalizedCountry, map);
+  return map;
+}
+
+function pickBestFeatureFromList(features) {
+  let bestFeature = features[0];
+  let bestLevel = getAdminLevel(bestFeature);
+  let bestArea = calculatePolygonArea(bestFeature);
+  for (let i = 1; i < features.length; i += 1) {
+    const candidate = features[i];
+    const level = getAdminLevel(candidate);
+    const candidateArea = calculatePolygonArea(candidate);
+    if (level > bestLevel || (level === bestLevel && candidateArea < bestArea)) {
+      bestFeature = candidate;
+      bestLevel = level;
+      bestArea = candidateArea;
+    }
+  }
+  return bestFeature;
+}
+
+function findSnippetFeature(normalizedCountry, name, ascii, admin1) {
+  const snippetMap = snippetCache.get(normalizedCountry);
+  if (!snippetMap) {
+    return null;
+  }
+
+  const normalizedAdmin1 = (admin1 || '').toString().trim().toLowerCase();
+  const candidates = [];
+  if (name) {
+    candidates.push(name);
+  }
+  if (ascii && ascii !== name) {
+    candidates.push(ascii);
+  }
+
+  for (const candidateName of candidates) {
+    const key = normalizeSnippetKey(candidateName, normalizedAdmin1, normalizedCountry);
+    const matches = snippetMap.get(key);
+    if (matches && matches.length) {
+      return {
+        feature: pickBestFeatureFromList(matches),
+        candidates: matches.length
+      };
+    }
+    if (normalizedAdmin1) {
+      const fallback = normalizeSnippetKey(candidateName, '', normalizedCountry);
+      const fallbackMatches = snippetMap.get(fallback);
+      if (fallbackMatches && fallbackMatches.length) {
+        return {
+          feature: pickBestFeatureFromList(fallbackMatches),
+          candidates: fallbackMatches.length
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 async function findShapefile(dir) {
@@ -125,6 +281,7 @@ async function loadCountryFeatures(countryCode) {
       features.push(result.value);
     }
     await fs.promises.rm(tempDir, { recursive: true, force: true });
+    buildSnippetIndex(normalized, features);
     bucketCache.set(normalized, features);
     return features;
   })().finally(() => {
@@ -190,12 +347,33 @@ async function handler(req, res) {
     return;
   }
 
+  const normalizedCountry = normalizeCountry(country);
+  const nameQuery = req.query.name || '';
+  const asciiQuery = req.query.ascii || '';
+  const admin1Query = req.query.admin1 || '';
+
   let features;
   try {
     features = await loadCountryFeatures(country);
   } catch (error) {
     console.error('gadm-polygon: failed to load features', error);
     res.status(500).json({ error: 'failed_to_load_country_data' });
+    return;
+  }
+
+  const snippetMatch = findSnippetFeature(normalizedCountry, nameQuery, asciiQuery, admin1Query);
+  if (snippetMatch) {
+    console.log('gadm-polygon: returning snippet match', {
+      country: normalizedCountry,
+      name: nameQuery,
+      admin1: admin1Query
+    });
+    res.status(200).json({
+      feature: createGeoJSONFeature(snippetMatch.feature),
+      adminLevel: getAdminLevel(snippetMatch.feature),
+      candidates: snippetMatch.candidates,
+      source: 'snippet'
+    });
     return;
   }
 
