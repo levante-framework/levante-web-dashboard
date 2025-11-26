@@ -1,0 +1,116 @@
+const fs = require('fs');
+const path = require('path');
+
+const DATA_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
+const EARTH_RADIUS_KM = 6371;
+
+let geoData = null;
+
+function loadData() {
+  if (!fs.existsSync(DATA_PATH)) {
+    throw new Error(`Geocoder dataset missing at ${DATA_PATH}. Run "npm run geocoder:build" first.`);
+  }
+  const raw = fs.readFileSync(DATA_PATH, 'utf8');
+  geoData = JSON.parse(raw);
+  for (const point of geoData) {
+  }
+}
+
+function toNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const toRadians = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon1 - lon2);
+  const radLat1 = toRadians(lat1);
+  const radLat2 = toRadians(lat2);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(radLat1) * Math.cos(radLat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_RADIUS_KM * c;
+}
+
+module.exports = async function handler(req, res) {
+  try {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'method_not_allowed' });
+    return;
+  }
+
+  try {
+    loadData();
+  } catch (error) {
+    console.error('reverse-geocode: dataset unavailable', error);
+    res.status(500).json({ error: 'dataset_missing', message: error.message });
+    return;
+  }
+
+  const lat = toNumber(req.query.lat);
+  const lon = toNumber(req.query.lon);
+
+  if (lat === null || lon === null) {
+    res.status(400).json({ error: 'invalid_coordinates', message: 'lat and lon query params are required numbers.' });
+    return;
+  }
+
+  const limit = Math.max(1, Math.min(10, toNumber(req.query.limit) || 3));
+  const maxDistanceKm = toNumber(req.query.maxDistanceKm) || 50; // optional filter
+
+  let results = [];
+  try {
+
+    for (const idx of matches) {
+      const city = geoData[idx];
+      if (!city) continue;
+      const distanceKm = haversineDistance(lat, lon, city.lat, city.lon);
+      if (maxDistanceKm && distanceKm > maxDistanceKm) continue;
+      results.push({
+        id: city.id,
+        name: city.name,
+        ascii: city.ascii,
+        lat: city.lat,
+        lon: city.lon,
+        country: city.country,
+        admin1: city.admin1,
+        admin2: city.admin2,
+        population: city.population,
+        distanceKm: Number(distanceKm.toFixed(2))
+      });
+      if (results.length >= limit) break;
+    }
+  } catch (error) {
+    console.error('reverse-geocode: lookup failed', error);
+    res.status(500).json({ error: 'lookup_failed', message: error.message || 'Unknown error' });
+    return;
+  }
+
+  res.status(200).json({
+    lat,
+    lon,
+    results
+  });
+  } catch (error) {
+    console.error('reverse-geocode: unhandled error', error);
+    res.status(500).json({
+      error: 'unexpected_error',
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || null
+    });
+  }
+}
+
