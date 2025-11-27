@@ -1,0 +1,97 @@
+{
+  "version": "4.1",
+  "lastUpdated": "2025-11-26T23:40:56.217Z",
+  "bucket": "gs://levante-assets-dev/maps/gadm",
+  "countries": {
+    "ARG": {
+      "name": "Argentina",
+      "level": 2,
+      "shapefile": "ARG/level2/gadm41_ARG_2.zip",
+      "snippets": "ARG/snippets/gadm_ARG_snippets.json",
+      "nameField": "NAME_2",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "CAN": {
+      "name": "Canada",
+      "level": 3,
+      "shapefile": "CAN/level3/gadm41_CAN_3.zip",
+      "snippets": "CAN/snippets/gadm_CAN_snippets.json",
+      "nameField": "NAME_3",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "CHE": {
+      "name": "Switzerland",
+      "level": 3,
+      "shapefile": "CHE/level3/gadm41_CHE_3.zip",
+      "snippets": "CHE/snippets/gadm_CHE_snippets.json",
+      "nameField": "NAME_3",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "COL": {
+      "name": "Colombia",
+      "level": 2,
+      "shapefile": "COL/level2/gadm41_COL_2.zip",
+      "snippets": "COL/snippets/gadm_COL_snippets.json",
+      "nameField": "NAME_2",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "DEU": {
+      "name": "Germany",
+      "level": 4,
+      "shapefile": "DEU/level4/gadm41_DEU_4.zip",
+      "snippets": "DEU/snippets/gadm_DEU_snippets.json",
+      "nameField": "NAME_4",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "GBR": {
+      "name": "Scotland",
+      "level": 4,
+      "shapefile": "GBR/level4/gadm41_GBR_4.zip",
+      "snippets": "GBR/snippets/gadm_GBR_snippets.json",
+      "nameField": "NAME_4",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "GHA": {
+      "name": "Ghana",
+      "level": 2,
+      "shapefile": "GHA/level2/gadm41_GHA_2.zip",
+      "snippets": "GHA/snippets/gadm_GHA_snippets.json",
+      "nameField": "NAME_2",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "IND": {
+      "name": "India",
+      "level": 3,
+      "shapefile": "IND/level3/gadm41_IND_3.zip",
+      "snippets": "IND/snippets/gadm_IND_snippets.json",
+      "nameField": "NAME_3",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "NLD": {
+      "name": "Netherlands",
+      "level": 2,
+      "shapefile": "NLD/level2/gadm41_NLD_2.zip",
+      "snippets": "NLD/snippets/gadm_NLD_snippets.json",
+      "nameField": "NAME_2",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    },
+    "USA": {
+      "name": "United States",
+      "level": 2,
+      "shapefile": "USA/level2/gadm41_USA_2.zip",
+      "snippets": "USA/snippets/gadm_USA_snippets.json",
+      "nameField": "NAME_2",
+      "admin1Field": "NAME_1",
+      "countryField": "NAME_0"
+    }
+  }
+}
