@@ -6,7 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Pre-Release Readiness Report</title>
 <link href="./favicon.svg" rel="icon" type="image/svg+xml"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link href="./styles.css" rel="stylesheet"/>
 <style>
     body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%); color: #e2e8f0; min-height: 100vh; }
@@ -132,12 +132,14 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Bucket: <span class="code" id="visualBucket"></span> · Prefix: <span class="code" id="visualPrefix">visual/</span></p>
 <p class="small" id="visualSummary">Loading…</p>
+<p class="small" id="visualGifSummary">Loading…</p>
 <p class="small"><span class="link" id="visualDetails" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
 </div>
 <div id="visualAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Bucket: <span class="code" id="visualBucketProd"></span> · Prefix: <span class="code" id="visualPrefixProd">visual/</span></p>
 <p class="small" id="visualSummaryProd">Loading…</p>
+<p class="small" id="visualGifSummaryProd">Loading…</p>
 <p class="small"><span class="link" id="visualDetailsProd" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
 </div>
 </div>

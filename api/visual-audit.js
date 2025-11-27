@@ -42,6 +42,12 @@ export default async function handler(req, res) {
         webpCount: 0,
         missingCount: 0,
         missing: [],
+        gifCount: 0,
+        gifSizeBytes: 0,
+        gifWebpCount: 0,
+        gifWebpSizeBytes: 0,
+        gifSavingsBytes: 0,
+        gifMissingCount: 0,
         timestamp: new Date().toISOString()
       });
     }
@@ -51,9 +57,41 @@ export default async function handler(req, res) {
     const [files] = await bucket.getFiles({ prefix, autoPaginate: true });
     const names = files.map(f => f.name);
     const nameSet = new Set(names.map(n => n.toLowerCase()));
+    const fileMap = new Map();
+    for (const file of files) {
+      fileMap.set(file.name.toLowerCase(), file);
+    }
 
     const pngs = names.filter(n => n.toLowerCase().endsWith('.png'));
     const webps = names.filter(n => n.toLowerCase().endsWith('.webp'));
+    const gifs = names.filter(n => n.toLowerCase().endsWith('.gif'));
+
+    const getFileSize = (fileOrName) => {
+      if (!fileOrName) return 0;
+      const file = typeof fileOrName === 'string' ? fileMap.get(fileOrName.toLowerCase()) : fileOrName;
+      if (!file) return 0;
+      const metadataSize = Number(file.metadata?.size);
+      if (Number.isFinite(metadataSize)) return metadataSize;
+      if (typeof file.size === 'number' && Number.isFinite(file.size)) return file.size;
+      return 0;
+    };
+
+    let gifSizeBytes = 0;
+    let gifWebpCount = 0;
+    let gifWebpSizeBytes = 0;
+    let gifMissingCount = 0;
+    for (const gifName of gifs) {
+      gifSizeBytes += getFileSize(gifName);
+      const candidate = gifName.replace(/\.gif$/i, '.webp').toLowerCase();
+      const matchingWebp = fileMap.get(candidate);
+      if (matchingWebp) {
+        gifWebpCount += 1;
+        gifWebpSizeBytes += getFileSize(matchingWebp);
+      } else {
+        gifMissingCount += 1;
+      }
+    }
+    const gifSavingsBytes = Math.max(0, gifSizeBytes - gifWebpSizeBytes);
 
     const missing = [];
     for (const p of pngs) {
@@ -71,6 +109,12 @@ export default async function handler(req, res) {
       webpCount: webps.length,
       missingCount: missing.length,
       missing,
+      gifCount: gifs.length,
+      gifSizeBytes,
+      gifWebpCount,
+      gifWebpSizeBytes,
+      gifSavingsBytes,
+      gifMissingCount,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

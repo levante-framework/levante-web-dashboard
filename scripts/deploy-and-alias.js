@@ -38,6 +38,7 @@ function run(command) {
     }
     console.log(`✅ Deployment URL: ${deploymentUrl}`);
 
+    const deploymentHost = new URL(deploymentUrl).host;
     const aliases = [
       'audio-dashboard-levante.vercel.app',
       'levante-audio-dashboard.vercel.app',
@@ -54,6 +55,10 @@ function run(command) {
         console.warn(`⚠️  Failed to set alias ${alias}: ${e.message}`);
       }
     }
+
+    const hostsToVerify = [deploymentHost, ...aliases];
+    console.log('🔎 Verifying deployment across aliases...');
+    await run(`node scripts/verify-deploy.js ${hostsToVerify.map((host) => `https://${host}`).join(' ')}`);
 
     console.log('🎉 Deployment and aliasing complete.');
   } catch (err) {
