@@ -109,12 +109,12 @@ function selectResults(results, limit) {
 
 function findNearest(lat, lon, limit, maxDistanceKm) {
   const matches = [];
-  const maxResults = limit * 20; // Keep more candidates than needed for better accuracy
 
   // Quick bounding box filter: 1 degree lat/lon ≈ 111km, so we can pre-filter
   const latRange = maxDistanceKm ? maxDistanceKm / 111 : 90;
   const lonRange = maxDistanceKm ? maxDistanceKm / (111 * Math.cos(lat * Math.PI / 180)) : 180;
 
+  // Scan all cities in bounding box to find true nearest
   for (const city of geoData) {
     if (!city || typeof city.lat !== 'number' || typeof city.lon !== 'number') continue;
 
@@ -139,12 +139,9 @@ function findNearest(lat, lon, limit, maxDistanceKm) {
       population: city.population,
       distanceKm: Number(distanceKm.toFixed(2))
     });
-
-    if (matches.length >= maxResults) {
-      break;
-    }
   }
 
+  // Sort by distance and return top N
   return selectResults(matches, limit);
 }
 

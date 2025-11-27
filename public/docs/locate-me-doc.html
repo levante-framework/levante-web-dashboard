@@ -71,6 +71,15 @@
     code {
       font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
     }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 0.85rem;
+      margin-left: 6px;
+    }
     .cta {
       display: inline-block;
       background: #2563eb;
@@ -88,64 +97,156 @@
       border-radius: 8px;
       color: #991b1b;
     }
+    .success {
+      background: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 12px 16px;
+      border-radius: 8px;
+      color: #166534;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1><span>📍</span> Locate Me · GADM docs</h1>
-    <p>Documentation for the polygon/region lookup flow that powers the map on the Locate Me page.</p>
+    <h1><span>📍</span> Locate Me · Documentation</h1>
+    <p>Documentation for the reverse geocoding and polygon lookup flow that powers the map on the Locate Me page.</p>
   </header>
   <main>
     <section>
-      <h2>Data sources</h2>
+      <h2>Overview</h2>
+      <p>The Locate Me feature uses GPS coordinates to find the nearest cities and display their boundaries on an interactive map. The system consists of two main APIs:</p>
       <ul>
-        <li><strong>GADM shapefiles:</strong> Zipped per country in <code>gs://levante-assets-dev/maps</code>, mapped in <code>config/gadm-bucket-files.json</code>.</li>
-        <li><strong>Country whitelist:</strong> The ten approved countries appear in <code>config/gadm-countries.json</code>.</li>
-        <li><strong>City geocoder:</strong> <code>data/geocoder/cities.min.json(.gz)</code> supplies the top-ranked <code>name|admin1|country</code> tuples driving polygon lookups.</li>
+        <li><strong>Reverse Geocoding API</strong> (<code>/api/reverse-geocode</code>) – Finds the nearest cities based on GPS coordinates</li>
+        <li><strong>Polygon API</strong> (<code>/api/gadm-polygon</code>) – Retrieves administrative boundary polygons for display on the map</li>
       </ul>
     </section>
+
     <section>
-      <h2>Polygon API workflow</h2>
-      <h3>1. Download + cache</h3>
-      <p><code>api/gadm-polygon.js</code> downloads the country archive once, picks the most detailed shapefile (<code>_3</code> or <code>_2</code>), reads every feature via <code>shapefile</code>, and populates:</p>
+      <h2>Reverse Geocoding</h2>
+      <h3>Data Source</h3>
+      <p>The reverse geocoding API uses <code>data/geocoder/cities.min.json.gz</code>, a compressed dataset containing city locations worldwide. The dataset includes:</p>
       <ul>
-        <li><code>bucketCache</code> – raw features keyed by country code.</li>
-        <li><code>snippetCache</code> – normalized <code>name|admin1|country</code> snapshots.</li>
+        <li>City names (original and ASCII)</li>
+        <li>Latitude/longitude coordinates</li>
+        <li>Country and administrative region codes (admin1, admin2)</li>
+        <li>Population data</li>
       </ul>
-      <h3>2. Exact snippet lookup</h3>
-      <p>The handler attempts to match the normalized name (and its ASCII alias) with the snippet index before resorting to geometry scans. Matches return the polygon plus <code>adminLevel</code>, candidate count, and <code>source: "snippet"</code>.</p>
-      <h3>3. Fallback scan</h3>
-      <p>If no snippet matches, it iterates the cached features and tests each with <code>@turf/boolean-point-in-polygon</code>, still preferring the most specific polygon (highest GID level and smallest area) and tagging the response <code>source: "scan"</code>.</p>
-      <h3>4. Caching</h3>
-      <p>Both the raw features and snippet map stay in memory after the first download, so subsequent requests to that country are fast.</p>
-    </section>
-    <section>
-      <h2>Snippet generation</h2>
-      <p>Run this helper after downloading an updated extract:</p>
-      <pre><code>node scripts/build-gadm-snippets.js \
-  --input /path/to/gadm41_USA.geojson \
-  --output public/data/gadm/snippets.json \
-  --config config/gadm-countries.json</code></pre>
+
+      <h3>Algorithm</h3>
+      <p>The API uses a brute-force search algorithm optimized with bounding-box pre-filtering:</p>
+      <ol>
+        <li><strong>Bounding Box Filter:</strong> Pre-filters cities using a quick lat/lon bounding box check (1 degree ≈ 111km) to reduce the search space</li>
+        <li><strong>Distance Calculation:</strong> Computes Haversine distance for all cities within the bounding box</li>
+        <li><strong>Distance Filter:</strong> Filters out cities beyond the <code>maxDistanceKm</code> threshold (default: 50km)</li>
+        <li><strong>Sorting & Selection:</strong> Sorts by distance and prioritizes cities in the same administrative region (admin1) as the nearest result</li>
+      </ol>
+      <p class="success">This approach ensures accurate results by scanning all candidates within range, not just the first N matches.</p>
+
+      <h3>API Parameters</h3>
+      <pre><code>GET /api/reverse-geocode?lat=37.424&lon=-122.166&limit=3&maxDistanceKm=50</code></pre>
       <ul>
-        <li>Normalizes <code>name|admin1|country</code> the same way the client does.</li>
-        <li>Groups every matching feature into a lightweight <code>FeatureCollection</code>.</li>
-        <li>Host those snippets directly if you prefer instead of serving the entire shapefiles.</li>
-      </ul>
-    </section>
-    <section>
-      <h2>Frontend hooks</h2>
-      <ul>
-        <li><code>public/js/locate-me-v2.js</code> builds normalized keys, calls <code>/api/gadm-polygon</code> with <code>name</code>, <code>ascii</code>, <code>admin1</code>, <code>lat</code>, and <code>lon</code>, caches the JSON, and renders it with Leaflet.</li>
-        <li>The Documentation button now links here for quick reference.</li>
-        <li><code>scripts/apply-version.js</code> rewrites the footer text and asset query strings prior to every deploy to avoid caching issues.</li>
+        <li><code>lat</code> – Latitude (required)</li>
+        <li><code>lon</code> – Longitude (required)</li>
+        <li><code>limit</code> – Number of results (1-10, default: 3)</li>
+        <li><code>maxDistanceKm</code> – Maximum search radius in kilometers (default: 50)</li>
       </ul>
     </section>
+
     <section>
-      <h2>Next steps</h2>
-      <p class="note">If the polygon still spans multiple cities it means the shapefile only offers the county/municipality for that location. A more granular source (e.g., city-level shapefile) is required for tighter outlines.</p>
-      <a class="cta" href="https://github.com/levante-framework/levante-web-dashboard/blob/main/README.md" target="_blank" rel="noopener noreferrer">
-        View the full README
-      </a>
+      <h2>Polygon Lookup</h2>
+      <h3>Data Source</h3>
+      <p>The polygon API uses <strong>OpenStreetMap (OSM) via Overpass Turbo</strong> to retrieve administrative boundaries. This provides more granular boundaries (towns, neighborhoods) compared to GADM data.</p>
+      <ul>
+        <li><strong>Overpass API:</strong> Queries <code>https://overpass-api.de/api/interpreter</code> for administrative boundaries</li>
+        <li><strong>Admin Levels:</strong> Searches for admin_level 6-10 (counties, cities, towns, neighborhoods)</li>
+        <li><strong>Country Support:</strong> Currently supports 10 countries (US, CA, CO, IN, AR, NL, GH, CH, DE, GB)</li>
+      </ul>
+
+      <h3>Workflow</h3>
+      <ol>
+        <li><strong>Initial Query:</strong> Queries Overpass for administrative boundaries containing the GPS point</li>
+        <li><strong>Filtering:</strong> Filters out counties (admin_level=6) if city/town boundaries (admin_level ≥ 7) are available</li>
+        <li><strong>Selection:</strong> Chooses the most specific boundary (highest admin level, then smallest area)</li>
+        <li><strong>Nearby City Fallback:</strong> If only a county is found, queries for nearby cities within 10km. If a city is within 5km, uses it instead of the county</li>
+        <li><strong>Caching:</strong> Caches responses for 5 minutes to reduce API calls</li>
+      </ol>
+
+      <h3>Example: Stanford University</h3>
+      <p>Stanford doesn't have its own administrative boundary in OSM. The system:</p>
+      <ol>
+        <li>Finds Santa Clara County (admin_level=6) containing the point</li>
+        <li>Queries for nearby cities within 10km</li>
+        <li>Finds Menlo Park (admin_level=8) at 2.84km distance</li>
+        <li>Returns Menlo Park's boundary instead of the huge county boundary</li>
+      </ol>
+
+      <h3>API Parameters</h3>
+      <pre><code>GET /api/gadm-polygon?country=USA&lat=37.424&lon=-122.166</code></pre>
+      <ul>
+        <li><code>country</code> – Country code (required, must be in supported list)</li>
+        <li><code>lat</code> – Latitude (required)</li>
+        <li><code>lon</code> – Longitude (required)</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Frontend Integration</h2>
+      <p>The frontend (<code>public/locate-me.html</code> and <code>public/js/locate-me-v2.js</code>) handles:</p>
+      <ul>
+        <li>GPS location detection via browser Geolocation API</li>
+        <li>Calling both APIs with the detected coordinates</li>
+        <li>Rendering polygons on a Leaflet map</li>
+        <li>Caching API responses to avoid redundant requests</li>
+        <li>Displaying city names and distances</li>
+      </ul>
+      <p>The Documentation button in the header links to this page for easy reference.</p>
+    </section>
+
+    <section>
+      <h2>Deployment</h2>
+      <p>Before deployment, <code>scripts/apply-version.js</code> automatically:</p>
+      <ul>
+        <li>Updates version numbers in HTML files</li>
+        <li>Adds cache-busting query strings to asset URLs</li>
+        <li>Ensures browsers load the latest code</li>
+      </ul>
+      <p>Deployment is handled via <code>scripts/deploy-and-alias.js</code>, which:</p>
+      <ul>
+        <li>Runs version updates</li>
+        <li>Deploys to Vercel</li>
+        <li>Sets up domain aliases</li>
+        <li>Verifies deployment across all aliases</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Technical Details</h2>
+      <h3>Dependencies</h3>
+      <ul>
+        <li><code>@turf/boolean-point-in-polygon</code> – Point-in-polygon testing</li>
+        <li><code>@turf/area</code> – Polygon area calculation</li>
+        <li><code>@turf/distance</code> – Distance calculations</li>
+        <li><code>@turf/centroid</code> – Polygon centroid calculation</li>
+        <li><code>osmtogeojson</code> – Converts OSM data to GeoJSON</li>
+        <li><code>zlib</code> – Decompresses gzipped city data</li>
+      </ul>
+
+      <h3>Performance</h3>
+      <ul>
+        <li>Reverse geocoding scans all cities in the bounding box (typically 100-1000 cities)</li>
+        <li>Polygon queries are cached for 5 minutes to reduce Overpass API calls</li>
+        <li>City data is loaded once per serverless function invocation</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Future Improvements</h2>
+      <ul>
+        <li>Add support for more countries</li>
+        <li>Consider using a spatial index (kdbush) for faster reverse geocoding if performance becomes an issue</li>
+        <li>Add support for custom boundary data sources</li>
+        <li>Implement offline polygon caching for frequently accessed regions</li>
+      </ul>
     </section>
   </main>
 </body>
