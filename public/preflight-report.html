@@ -1368,19 +1368,32 @@
 				}
 			const total = langStats.total || 0;
 			// Fetch missing breakdown (unapproved + untranslated) from modal API
-			const missRes = await fetch(`/api/crowdin-untranslated?lang=${encodeURIComponent(lang)}&env=${encodeURIComponent(environment)}`, { cache: 'no-cache' });
 			let unapproved = 0, untranslated = 0, missing = 0;
-			if (missRes.ok) {
-				const miss = await missRes.json();
-				if (miss.error) {
-					console.warn(`Crowdin untranslated API error for ${lang}:`, miss.error, miss.details);
-				} else {
-					unapproved = miss?.totals?.unapproved || 0;
-					untranslated = miss?.totals?.untranslated || 0;
-					missing = unapproved + untranslated;
-				}
+			const baseLang = toBase(lang);
+			if (baseLang === 'en') {
+				// English locales do not have an untranslated breakdown endpoint; treat as zero without fetching.
+				// eslint-disable-next-line no-console
+				console.debug?.(`Skipping crowdin-untranslated fetch for ${lang} (${environment}) – english locales assumed complete.`);
 			} else {
-				console.warn(`Failed to fetch untranslated data for ${lang}: ${missRes.status} ${missRes.statusText}`);
+				try {
+					const missRes = await fetch(`/api/crowdin-untranslated?lang=${encodeURIComponent(lang)}&env=${encodeURIComponent(environment)}`, { cache: 'no-cache' });
+					if (missRes.status === 404) {
+						console.warn(`crowdin-untranslated not available for ${lang} (${environment}) (404).`);
+					} else if (missRes.ok) {
+						const miss = await missRes.json();
+						if (miss.error) {
+							console.warn(`Crowdin untranslated API error for ${lang}:`, miss.error, miss.details);
+						} else {
+							unapproved = miss?.totals?.unapproved || 0;
+							untranslated = miss?.totals?.untranslated || 0;
+							missing = unapproved + untranslated;
+						}
+					} else {
+						console.warn(`Failed to fetch untranslated data for ${lang}: ${missRes.status} ${missRes.statusText}`);
+					}
+				} catch (err) {
+					console.warn(`crowdin-untranslated fetch failed for ${lang}:`, err.message || err);
+				}
 			}
 			const approved = Math.max(0, total - missing);
 			const translated = Math.max(0, approved + unapproved);
@@ -1425,21 +1438,39 @@
 			}
 			return count;
 		}
+		async function headExists(url) {
+			try {
+				const res = await fetch(url, { method: 'HEAD', cache: 'no-cache' });
+				if (res.status === 404) return false;
+				return res.ok;
+			} catch {
+				return false;
+			}
+		}
+
+		const KNOWN_MISSING_DASHBOARD_LOCALES = new Set([
+			'en', // rely on en-US only
+			'pt', // rely on pt-PT only
+			'pt-PT'
+		]);
+
 		async function dashboardStats(lang, environment = 'dev') {
+			if (KNOWN_MISSING_DASHBOARD_LOCALES.has(lang)) {
+				return { exactMatch: false, baseMatch: true };
+			}
 			const exactUrl = await fetchDashboardJsonPath(lang);
-			let exactMatch = false;
+			let exactMatch = await headExists(exactUrl);
 			let baseMatch = false;
-			try { const r = await fetch(exactUrl, { method: 'HEAD', cache: 'no-cache' }); if (r.ok) exactMatch = true; } catch (e) {}
 			
 			// Special handling for 'en' - try en-US fallback
 			if (!exactMatch && lang === 'en') {
 				const enUSUrl = `https://raw.githubusercontent.com/levante-framework/levante-dashboard/main/src/translations/en/us/en-US-componentTranslations.json`;
-				try { const r = await fetch(enUSUrl, { method: 'HEAD', cache: 'no-cache' }); if (r.ok) baseMatch = true; } catch (e) {}
+				baseMatch = await headExists(enUSUrl);
 			}
 			
 			if (!exactMatch && !baseMatch && lang.includes('-')) {
 				const baseUrl = await fetchDashboardJsonPath(toBase(lang));
-				try { const r2 = await fetch(baseUrl, { method: 'HEAD', cache: 'no-cache' }); if (r2.ok) baseMatch = true; } catch (e) {}
+				baseMatch = await headExists(baseUrl);
 			}
 			return { exactMatch, baseMatch };
 		}
@@ -1475,6 +1506,34 @@
 			} catch { return { checked: 0, exact: 0, withBase: 0, details: [] }; }
 		}
 
+		function formatBytes(bytes) {
+			if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+			const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+			let unitIndex = 0;
+			let value = bytes;
+			while (value >= 1024 && unitIndex < units.length - 1) {
+				value /= 1024;
+				unitIndex++;
+			}
+			return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+		}
+
+		function formatBytes(bytes) {
+			if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+			if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+			if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
+			if (bytes >= 1e3) return `${(bytes / 1e3).toFixed(1)} KB`;
+			return `${bytes} B`;
+		}
+
+		function formatBytes(bytes) {
+			if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+			if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+			if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
+			if (bytes >= 1e3) return `${(bytes / 1e3).toFixed(1)} KB`;
+			return `${bytes} B`;
+		}
+
 		// Audio presence: ping api/read-tags in strict mode for a subset, but here aggregate presence by listing top-level prefixes from bucket via API list=1
 		async function audioStats(lang, environment = 'dev') {
 			try {
@@ -1498,8 +1557,18 @@
 				const pngCount = data.pngCount || 0;
 				const webpCount = data.webpCount || 0;
 				const missingCount = data.missingCount || missing.length;
+				const gifCount = data.gifCount || 0;
+				const gifWebpCount = data.gifWebpCount || 0;
+				const gifSizeBytes = data.gifSizeBytes || 0;
+				const gifSavingsBytes = data.gifSavingsBytes || 0;
+				const gifMissingCount = data.gifMissingCount || 0;
 				const summary = document.getElementById('visualSummary');
 				summary.innerHTML = `PNGs: <span class="code">${pngCount}</span> · WEBPs: <span class="code">${webpCount}</span> · Missing WEBP: <span class="badge ${missingCount===0?'ok':'err'}">${missingCount}</span>`;
+				const gifSummaryEl = document.getElementById('visualGifSummary');
+				if (gifSummaryEl) {
+					const gifMissingBadge = gifMissingCount > 0 ? ` · Missing WEBP: <span class="badge err">${gifMissingCount}</span>` : '';
+					gifSummaryEl.innerHTML = `GIFs: <span class="code">${gifCount}</span> · WebP matches: <span class="code">${gifWebpCount}</span> · Current: <span class="code">${formatBytes(gifSizeBytes)}</span> · Savings: <span class="code">${formatBytes(gifSavingsBytes)}</span>${gifMissingBadge}`;
+				}
 				const detailsLink = document.getElementById('visualDetails');
 				const fixBtn = document.getElementById('visualFixBtn');
 				if (missingCount > 0) {
@@ -1515,6 +1584,8 @@
 				window.visualDevMissing = missingCount;
 			} catch (e) {
 				document.getElementById('visualSummary').textContent = 'Visual audit unavailable';
+				const gifEl = document.getElementById('visualGifSummary');
+				if (gifEl) gifEl.textContent = 'Visual audit unavailable';
 				window.visualDevMissing = null;
 			}
 		}
@@ -1530,8 +1601,18 @@
 				const pngCount = data.pngCount || 0;
 				const webpCount = data.webpCount || 0;
 				const missingCount = data.missingCount || missing.length;
+				const gifCount = data.gifCount || 0;
+				const gifWebpCount = data.gifWebpCount || 0;
+				const gifSizeBytes = data.gifSizeBytes || 0;
+				const gifSavingsBytes = data.gifSavingsBytes || 0;
+				const gifMissingCount = data.gifMissingCount || 0;
 				const summary = document.getElementById('visualSummaryProd');
 				if (summary) summary.innerHTML = `PNGs: <span class=\"code\">${pngCount}</span> · WEBPs: <span class=\"code\">${webpCount}</span> · Missing WEBP: <span class=\"badge ${missingCount===0?'ok':'err'}\">${missingCount}</span>`;
+				const gifSummaryProd = document.getElementById('visualGifSummaryProd');
+				if (gifSummaryProd) {
+					const gifMissingBadge = gifMissingCount > 0 ? ` · Missing WEBP: <span class=\"badge err\">${gifMissingCount}</span>` : '';
+					gifSummaryProd.innerHTML = `GIFs: <span class=\"code\">${gifCount}</span> · WebP matches: <span class=\"code\">${gifWebpCount}</span> · Current: <span class=\"code\">${formatBytes(gifSizeBytes)}</span> · Savings: <span class=\"code\">${formatBytes(gifSavingsBytes)}</span>${gifMissingBadge}`;
+				}
 				const detailsLink = document.getElementById('visualDetailsProd');
 				const fixBtn = document.getElementById('visualFixBtnProd');
 				if (missingCount > 0) {
@@ -1547,6 +1628,7 @@
 				window.visualProdMissing = missingCount;
 			} catch (e) {
 				const el = document.getElementById('visualSummaryProd'); if (el) el.textContent = 'Visual audit (prod) unavailable';
+				const gifEl = document.getElementById('visualGifSummaryProd'); if (gifEl) gifEl.textContent = 'Visual audit (prod) unavailable';
 				window.visualProdMissing = null;
 			}
 		}
@@ -3378,22 +3460,21 @@
 
 		await refreshVisualAudit();
 		await refreshVisualAuditProd();
-			await refreshAudioAudit();
-			await refreshAudioAuditProd();
-			await refreshCoreTasksAudit();
-			await refreshCoreTasksAuditProd();
-			await refreshCorpusAudit();
-			await refreshCorpusAuditProd();
-			await refreshTranslationCompletenessAudit();
-			await refreshTranslationCompletenessAuditProd();
-			await refreshAssetIntegrityAudit();
-			await refreshAssetIntegrityAuditProd();
-			await refreshConfigValidationAudit();
-			await refreshConfigValidationAuditProd();
-			await refreshGitHubIssuesAudit();
-			await refreshBucketInfo();
-			
-		// Update stoplight buttons after all audits complete
+		await refreshAudioAudit();
+		await refreshAudioAuditProd();
+		await refreshCoreTasksAudit();
+		await refreshCoreTasksAuditProd();
+		await refreshCorpusAudit();
+		await refreshCorpusAuditProd();
+		await refreshTranslationCompletenessAudit();
+		await refreshTranslationCompletenessAuditProd();
+		await refreshAssetIntegrityAudit();
+		await refreshAssetIntegrityAuditProd();
+		await refreshConfigValidationAudit();
+		await refreshConfigValidationAuditProd();
+		await refreshGitHubIssuesAudit();
+		await refreshBucketInfo();
+		
 		updateStoplight('visualStoplight', window.visualDevMissing, window.visualProdMissing);
 		updateStoplight('audioStoplight', window.audioDevLanguages, window.audioProdLanguages);
 		updateStoplight('coreTasksStoplight', window.coreTasksDevCsvs, window.coreTasksProdCsvs);
@@ -3401,68 +3482,22 @@
 		updateStoplight('translationCompletenessStoplight', window.translationCompletenessDevMissing, window.translationCompletenessProdMissing);
 		updateStoplight('assetIntegrityStoplight', window.assetIntegrityDevIssues, window.assetIntegrityProdIssues);
 		updateStoplight('configValidationStoplight', window.configValidationDevIssues, window.configValidationProdIssues);
-		// GitHub issues stoplight logic: P0 issues = fail, P1 only = warn, none = ok
+
 		let githubStatus = null;
 		if (window.githubIssuesP0 !== undefined && window.githubIssuesP1 !== undefined) {
 			if (window.githubIssuesP0 > 0) {
-				githubStatus = 'fail'; // Any P0 issues = fail
+				githubStatus = 'fail';
 			} else if (window.githubIssuesP1 > 0) {
-				githubStatus = 'warn'; // P1 only = warn (launchable)
+				githubStatus = 'warn';
 			} else {
-				githubStatus = 'ok'; // No P0 or P1 = ok (squeaky clean)
+				githubStatus = 'ok';
 			}
 		}
 		updateStoplight('githubIssuesStoplight', githubStatus, null);
-
-		const fixBtn = document.getElementById('visualFixBtn');
-		if (fixBtn) {
-			fixBtn.addEventListener('click', async () => {
-				const prev = fixBtn.textContent;
-				fixBtn.disabled = true; fixBtn.textContent = 'Fixing…';
-				try {
-					const res = await fetch(`/api/visual-fix?env=dev&prefix=visual/&limit=200`, { method: 'POST' });
-					if (res.ok) {
-						const data = await res.json();
-						const top = Array.isArray(data.topReasons) && data.topReasons.length ? ('\nTop reasons: ' + data.topReasons.map(r=>`${r.reason} (${r.count})`).join(', ')) : '';
-						alert(`WEBP created: ${data.created}\nFailed: ${data.failed}\nRemaining (est): ${data.remainingEstimate}${top}`);
-						await refreshVisualAudit();
-					} else {
-						alert('Fix failed: API error');
-					}
-				} catch (e) {
-					alert('Fix failed: ' + (e && e.message ? e.message : 'unknown error'));
-				} finally {
-					fixBtn.disabled = false; fixBtn.textContent = prev;
-				}
-			});
-		}
-
-		const fixBtnProd = document.getElementById('visualFixBtnProd');
-		if (fixBtnProd) {
-			fixBtnProd.addEventListener('click', async () => {
-				const prev = fixBtnProd.textContent;
-				fixBtnProd.disabled = true; fixBtnProd.textContent = 'Fixing…';
-				try {
-					const res = await fetch(`/api/visual-fix?env=prod&prefix=visual/&limit=200`, { method: 'POST' });
-					if (res.ok) {
-						const data = await res.json();
-						const top = Array.isArray(data.topReasons) && data.topReasons.length ? ('\nTop reasons: ' + data.topReasons.map(r=>`${r.reason} (${r.count})`).join(', ')) : '';
-						alert(`(prod) WEBP created: ${data.created}\nFailed: ${data.failed}\nRemaining (est): ${data.remainingEstimate}${top}`);
-						await refreshVisualAuditProd();
-					} else {
-						alert('Fix failed (prod): API error');
-					}
-				} catch (e) {
-					alert('Fix failed (prod): ' + (e && e.message ? e.message : 'unknown error'));
-				} finally {
-					fixBtnProd.disabled = false; fixBtnProd.textContent = prev;
-				}
-			});
-		}
 		}
 		
 		// Initial load
-		await loadReportData();
+		await loadReportData().catch(err => console.error('loadReportData failed', err));
 	})();
 	</script>
 </body>
