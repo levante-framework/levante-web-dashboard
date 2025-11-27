@@ -1,33 +1,13 @@
-<!--
-  Temporary README for the extracted web dashboard code.
-  Feel free to replace/expand once this folder is promoted to its own repo.
--->
+# GADM Processing Scripts
 
-# Levante Web Dashboard (extracted copy)
+Automated pipeline for downloading, processing, and uploading GADM shapefiles for 10 countries.
 
-This directory is a straight copy of the existing `web-dashboard/` tree so it can
-be promoted to a standalone repository (e.g. `levante-framework/levante-web-dashboard`)
-without touching the original code that still lives in this monorepo.
+## Location
+`~/levante/levante-web-dashboard/scripts/gadm-processing/`
 
-## Contents
+## Quick Start
+1. Run `bash scripts/gadm-processing/setup.sh` to generate the helper scripts.
+2. Execute `bash scripts/gadm-processing/run_all.sh` to download shapefiles, extract the highest available level, build normalized snippets, generate the config, and optionally upload to GCS.
+3. Update `config/gadm-bucket-files.json` so each country points at `maps/gadm/<CODE>/levelN/gadm41_<CODE>_<N>.zip` (and `snippets/gadm_<CODE>_snippets.json` if you uploaded snippets) before deploying.
 
-- `public/` – `audio-approval.html`, `partner-audio-dashboard.html`, Pitwall HTML, assets.
-- `api/` – Vercel serverless functions (Crowdin auth, audio listing, etc.).
-- `scripts/`, `package.json`, `vercel.json`, `.vercel/project.json`, etc.
-
-Everything is identical to the source `web-dashboard/` directory, including the
-Vercel project configuration. When you are ready to publish a dedicated repo:
-
-1. `cd levante-web-dashboard`
-2. `git init && git add . && git commit -m "Initial import of web dashboard"`
-3. `git remote add origin git@github.com:levante-framework/levante-web-dashboard.git`
-4. `git push -u origin main` (or whichever branch you prefer)
-
-After pushing, you can point the existing Vercel project to the new repo (or keep
-using `vercel --prod` from this directory—the `.vercel/project.json` already
-references the current project).
-
-> **Note:** The original `web-dashboard/` folder remains untouched in this repo
-> “just in case,” per the request.
-
-
+For debugging look at the generated log files in `scripts/gadm-processing` and rerun any individual step (download/process/build/upload) as needed.
