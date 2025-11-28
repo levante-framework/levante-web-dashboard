@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locate Me Gallery</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      padding: 24px;
+      color: #27272a;
+    }
+    header {
+      max-width: 1400px;
+      margin: 0 auto 32px;
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #e4e4e7;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #27272a;
+    }
+    header p {
+      color: #71717a;
+      font-size: 14px;
+    }
+    .stats {
+      display: flex;
+      gap: 24px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #e4e4e7;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #71717a;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #27272a;
+    }
+    .gallery {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+      gap: 24px;
+    }
+    .gallery-item {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #e4e4e7;
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .gallery-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .gallery-item img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .gallery-item-info {
+      padding: 12px 16px;
+      font-size: 12px;
+      color: #71717a;
+      border-top: 1px solid #e4e4e7;
+    }
+    .gallery-item-info strong {
+      color: #27272a;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      padding: 40px;
+      overflow-y: auto;
+    }
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .modal-content img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #27272a;
+    }
+    .filters {
+      max-width: 1400px;
+      margin: 0 auto 24px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #e4e4e7;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover {
+      background: #fafafa;
+    }
+    .filter-btn.active {
+      background: #da3d16;
+      color: white;
+      border-color: #da3d16;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📍 Locate Me Gallery</h1>
+    <p>Visual results from 100 GPS points processed through the Locate-Me workflow</p>
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label">Total Images</div>
+        <div class="stat-value" id="totalCount">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Countries</div>
+        <div class="stat-value">US, CO, CA, DE</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Generated</div>
+        <div class="stat-value" id="generatedDate">-</div>
+      </div>
+    </div>
+  </header>
+  
+  <div class="filters">
+    <button class="filter-btn active" data-country="all">All Countries</button>
+    <button class="filter-btn" data-country="US">United States</button>
+    <button class="filter-btn" data-country="CO">Colombia</button>
+    <button class="filter-btn" data-country="CA">Canada</button>
+    <button class="filter-btn" data-country="DE">Germany</button>
+  </div>
+  
+  <div class="gallery" id="gallery"></div>
+  
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-content">
+      <img id="modalImage" src="" alt="">
+    </div>
+  </div>
+  
+  <script>
+    let galleryData = null;
+    let currentFilter = 'all';
+    
+    async function loadGallery() {
+      try {
+        const response = await fetch('./gallery-data.json');
+        galleryData = await response.json();
+        
+        document.getElementById('totalCount').textContent = galleryData.total;
+        document.getElementById('generatedDate').textContent = new Date(galleryData.generated).toLocaleDateString();
+        
+        renderGallery();
+      } catch (error) {
+        console.error('Failed to load gallery data:', error);
+        document.getElementById('gallery').innerHTML = '<p style="text-align:center;padding:40px;color:#71717a;">Failed to load gallery data. Make sure gallery-data.json exists.</p>';
+      }
+    }
+    
+    function renderGallery() {
+      const gallery = document.getElementById('gallery');
+      const filtered = currentFilter === 'all' 
+        ? galleryData.results 
+        : galleryData.results.filter(r => r.point.country === currentFilter);
+      
+      gallery.innerHTML = filtered.map(result => {
+        const { point } = result;
+        const imagePath = `./images/${point.id}.png`;
+        const cities = result.geocode.results.slice(0, 2).map(r => r.name).join(', ');
+        
+        return `
+          <div class="gallery-item" onclick="openModal('${imagePath}')">
+            <img src="${imagePath}" alt="${point.id}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27600%27 height=%27300%27%3E%3Crect fill=%27%23f3f4f6%27 width=%27600%27 height=%27300%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 fill=%27%239ca3af%27 font-family=%27sans-serif%27 font-size=%2714%27%3EImage not found%3C/text%3E%3C/svg%3E'">
+            <div class="gallery-item-info">
+              <strong>${point.id}</strong> · ${point.country} · ${cities}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    function openModal(imagePath) {
+      const modal = document.getElementById('modal');
+      const modalImage = document.getElementById('modalImage');
+      modalImage.src = imagePath;
+      modal.classList.add('active');
+    }
+    
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+    }
+    
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.country;
+        renderGallery();
+      });
+    });
+    
+    // Close modal on background click
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if (e.target.id === 'modal') {
+        closeModal();
+      }
+    });
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    });
+    
+    loadGallery();
+  </script>
+</body>
+</html>
+
