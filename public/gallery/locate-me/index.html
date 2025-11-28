@@ -207,7 +207,11 @@
         const response = await fetch('./gallery-data.json');
         galleryData = await response.json();
         
-        document.getElementById('totalCount').textContent = galleryData.total;
+        // Count only results with polygons
+        const resultsWithPolygons = galleryData.results.filter(result => {
+          return result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+        });
+        document.getElementById('totalCount').textContent = resultsWithPolygons.length;
         document.getElementById('generatedDate').textContent = new Date(galleryData.generated).toLocaleDateString();
         
         renderGallery();
@@ -219,24 +223,43 @@
     
     function renderGallery() {
       const gallery = document.getElementById('gallery');
-      const filtered = currentFilter === 'all' 
-        ? galleryData.results 
-        : galleryData.results.filter(r => r.point.country === currentFilter);
       
-      gallery.innerHTML = filtered.map(result => {
-        const { point } = result;
-        const imagePath = `./images/${point.id}.png`;
-        const cities = result.geocode.results.slice(0, 2).map(r => r.name).join(', ');
-        
-        return `
-          <div class="gallery-item" onclick="openModal('${imagePath}')">
-            <img src="${imagePath}" alt="${point.id}" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27600%27 height=%27300%27%3E%3Crect fill=%27%23f3f4f6%27 width=%27600%27 height=%27300%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 fill=%27%239ca3af%27 font-family=%27sans-serif%27 font-size=%2714%27%3EImage not found%3C/text%3E%3C/svg%3E'">
-            <div class="gallery-item-info">
-              <strong>${point.id}</strong> · ${point.country} · ${cities}
-            </div>
-          </div>
-        `;
-      }).join('');
+      if (!galleryData || !galleryData.results) {
+        gallery.innerHTML = '<p style="text-align:center;padding:40px;color:#71717a;">No gallery data available.</p>';
+        return;
+      }
+      
+      // Filter to only show results with polygons
+      const resultsWithPolygons = galleryData.results.filter(result => {
+        const hasPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+        return hasPolygon;
+      });
+      
+      console.log(`Total results: ${galleryData.results.length}, With polygons: ${resultsWithPolygons.length}`);
+      
+      const filtered = currentFilter === 'all' 
+        ? resultsWithPolygons 
+        : resultsWithPolygons.filter(r => r.point.country === currentFilter);
+      
+      console.log(`Rendering ${filtered.length} items after filter: ${currentFilter}`);
+      
+      // Only render items that have valid polygons
+      gallery.innerHTML = filtered.length > 0 
+        ? filtered.map(result => {
+            const { point } = result;
+            const imagePath = `./images/${point.id}.png`;
+            const cities = result.geocode.results.slice(0, 2).map(r => r.name).join(', ');
+            
+            return `
+              <div class="gallery-item" onclick="openModal('${imagePath}')">
+                <img src="${imagePath}" alt="${point.id}" loading="lazy" onerror="console.error('Failed to load image:', '${imagePath}'); this.parentElement.remove();">
+                <div class="gallery-item-info">
+                  <strong>${point.id}</strong> · ${point.country} · ${cities}
+                </div>
+              </div>
+            `;
+          }).join('')
+        : '<p style="text-align:center;padding:40px;color:#71717a;">No images with polygons found.</p>';
     }
     
     function openModal(imagePath) {
