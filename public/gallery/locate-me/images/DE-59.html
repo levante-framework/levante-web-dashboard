@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Locate Me - DE-59</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+      padding: 20px;
+      width: 1200px;
+      margin: 0 auto;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 300px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #e4e4e7;
+    }
+    .card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #27272a;
+      margin-bottom: 8px;
+    }
+    .card .location {
+      color: #71717a;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .card .distance {
+      color: #da3d16;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .card .details {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #71717a;
+    }
+    .map-container {
+      flex: 1;
+      height: 400px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #e4e4e7;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .info {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #e4e4e7;
+      font-size: 12px;
+      color: #71717a;
+    }
+    .info strong {
+      color: #27272a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="cards">
+      
+        <div class="card">
+          <h3>📍 Nearest</h3>
+          <div class="location">Esens</div>
+          <div class="distance">7.2 km away</div>
+          <div class="details">
+            06, DE
+             · Pop: 6,856
+          </div>
+        </div>
+      
+        <div class="card">
+          <h3>📍 Second</h3>
+          <div class="location">Hage</div>
+          <div class="distance">19.8 km away</div>
+          <div class="details">
+            06, DE
+             · Pop: 5,848
+          </div>
+        </div>
+      
+    </div>
+    <div class="map-container">
+      <div id="map"></div>
+    </div>
+  </div>
+  <div class="info">
+    <strong>GPS Point:</strong> 53.696685, 7.538906 
+    <strong>· Country:</strong> DE
+    <strong>· ID:</strong> DE-59
+  </div>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const point = {"id":"DE-59","country":"DE","lat":53.69668522069025,"lon":7.538906096530631};
+    const polygons = {"type":"FeatureCollection","features":[]};
+    
+    // Initialize map centered on GPS point
+    const map = L.map('map').setView([point.lat, point.lon], 12);
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+    
+    // Add GPS point marker
+    L.circleMarker([point.lat, point.lon], {
+      radius: 8,
+      fillColor: '#da3d16',
+      color: '#fff',
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.8
+    }).addTo(map).bindPopup('GPS Location');
+    
+    // Add circle around GPS point (150km radius)
+    L.circle([point.lat, point.lon], {
+      radius: 150000,
+      color: '#da3d16',
+      fillColor: '#da3d16',
+      fillOpacity: 0.1,
+      weight: 2,
+      dashArray: '5, 5'
+    }).addTo(map);
+    
+    // Add polygons
+    polygons.features.forEach((feature, idx) => {
+      const color = idx === 0 ? '#2563eb' : '#22c55e';
+      L.geoJSON(feature, {
+        style: {
+          color: color,
+          weight: 3,
+          opacity: 0.8,
+          fillColor: color,
+          fillOpacity: 0.2
+        }
+      }).addTo(map).bindPopup(feature.properties.name + ' (' + formatDistance(feature.properties.distance) + ')');
+    });
+    
+    // Fit map to show all features
+    const group = new L.featureGroup([
+      L.marker([point.lat, point.lon]),
+      ...polygons.features.map(f => L.geoJSON(f))
+    ]);
+    map.fitBounds(group.getBounds().pad(0.1));
+    
+    function formatDistance(km) {
+      if (km < 1) return (km * 1000).toFixed(0) + ' m';
+      return km.toFixed(1) + ' km';
+    }
+  </script>
+</body>
+</html>
