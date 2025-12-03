@@ -1,7 +1,13 @@
-[]
-
-
-
+[
+  {
+    "timestamp": "2025-11-28T20:45:42.976Z",
+    "latitude": 37.424,
+    "longitude": -122.166,
+    "resultCount": 2,
+    "nearestCity": "Menlo Park",
+    "nearestDistanceKm": 0.5
+  }
+]
 
 
 

@@ -309,6 +309,14 @@ createApp({
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(this.inlineMapInstance);
 
+        // Add scale control
+        L.control.scale({
+          metric: true,
+          imperial: false,
+          position: 'bottomleft',
+          maxWidth: 200
+        }).addTo(this.inlineMapInstance);
+
         this.inlineMapLayers = L.layerGroup().addTo(this.inlineMapInstance);
 
         const coords = [];
@@ -347,6 +355,49 @@ createApp({
         }
 
         await this.drawRegionPolygons(this.results);
+
+        // Fetch and display admin area polygon for GPS point (red polygon)
+        if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon) && this.results.length > 0) {
+          // Use the country from the first result
+          const country = this.results[0].country;
+          try {
+            const adminParams = new URLSearchParams({
+              lat: gpsLat.toString(),
+              lon: gpsLon.toString(),
+              country: country
+            });
+            const adminResponse = await fetch(`/api/gadm-polygon?${adminParams.toString()}`);
+            if (adminResponse.ok) {
+              const adminPayload = await adminResponse.json();
+              if (adminPayload?.feature) {
+                const adminLayer = L.geoJSON(adminPayload.feature, {
+                  style: {
+                    color: '#dc2626',
+                    weight: 4,
+                    opacity: 1.0,
+                    fillColor: '#dc2626',
+                    fillOpacity: 0.25
+                  }
+                }).addTo(this.inlineMapLayers);
+                
+                // Add popup with admin area name
+                const adminName = adminPayload.feature.properties?.name || 
+                                 adminPayload.feature.properties?.tags?.name || 
+                                 'Administrative Area';
+                adminLayer.bindPopup(`<strong>${adminName}</strong><br>Admin Level: ${adminPayload.adminLevel || 'N/A'}`);
+                
+                // Include admin area bounds in fitBounds calculation
+                const adminBounds = adminLayer.getBounds();
+                if (adminBounds.isValid()) {
+                  coords.push([adminBounds.getSouth(), adminBounds.getWest()]);
+                  coords.push([adminBounds.getNorth(), adminBounds.getEast()]);
+                }
+              }
+            }
+          } catch (adminError) {
+            console.warn('Failed to load admin area polygon:', adminError);
+          }
+        }
 
         if (coords.length > 1) {
           this.inlineMapInstance.fitBounds(coords, { padding: [32, 32] });
