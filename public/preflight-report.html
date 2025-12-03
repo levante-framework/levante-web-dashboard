@@ -94,6 +94,7 @@
 <table aria-label="Pre-Release Readiness table" class="table" id="reportTable">
 <thead>
 <tr>
+<th rowspan="2" class="select-col"><input type="checkbox" id="languageSelectAll" aria-label="Select all languages" /></th>
 <th rowspan="2">Language</th>
 <th rowspan="2">Code</th>
 <th colspan="4" style="text-align: center; background: #f8f9fa;">Dev Environment</th>
@@ -120,6 +121,7 @@
 			- Dashboard badges: <span class="badge ok">exact</span> = locale file exists, <span class="badge warn">base</span> = only base language file exists, <span class="badge err">missing</span> = no locale file found
 			- Audio badges: <span class="badge ok">present</span> = audio folder exists, <span class="badge err">missing</span> = audio folder not found
 		</div>
+<div class="small language-selection-note" id="languageSelectionNotice">Selections persist between sessions. Refresh after changing selections to re-run the analysis.</div>
 </div>
 <div class="section" id="visualAuditsSection">
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
