@@ -115,11 +115,10 @@
 <div class="footer" style="margin: 16px 0;">
 		Color legend: <span class="badge ok">100%</span> <span class="badge warn">&gt; 0%</span> <span class="badge err">0%</span>
 <div class="small" style="margin-top:6px;">
-			- <span class="badge ok">yes</span>: exact locale file exists in levante-dashboard (e.g., de-CH)
-			- <span class="badge warn">base</span>: only base language file exists (e.g., de)
-			- <span class="badge err">missing</span>: neither exact nor base locale file exists
-			- Surveys %: percentage of survey JSONs that include the locale (or base for fallback; English counts implicit defaults)
 			- Item Bank: coverage of translations in item-bank-translations.csv from GCS buckets (NT = Not Translated)
+			- Surveys %: percentage of survey JSONs that include the locale (or base for fallback; English counts implicit defaults)
+			- Dashboard badges: <span class="badge ok">exact</span> = locale file exists, <span class="badge warn">base</span> = only base language file exists, <span class="badge err">missing</span> = no locale file found
+			- Audio badges: <span class="badge ok">present</span> = audio folder exists, <span class="badge err">missing</span> = audio folder not found
 		</div>
 </div>
 <div class="section" id="visualAuditsSection">
@@ -3382,15 +3381,15 @@
 					${devUntranslated > 0 ? '<span class="info-icon" title="Click to view untranslated items">ℹ️</span>' : ''}
 				</td>
 				<td class="svcell">${devSv.checked === 0 ? '<span class="badge warn">n/a</span>' : badge(devSv.exact + devSv.withBase, devSv.checked)} <span class="small">(${devSv.exact}/${devSv.checked}, base ${devSv.withBase})</span></td>
-				<td>${devDs.exactMatch ? '<span class="badge ok">exact</span>' : (devDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')} <span class="small">(${devDs.exactMatch ? 'exact match' : (devDs.baseMatch ? 'base fallback' : 'not found')})</span></td>
-				<td>${devAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'} <span class="small">(${devAu.present ? 'folder exists' : 'folder not found'})</span></td>
+				<td>${devDs.exactMatch ? '<span class="badge ok">exact</span>' : (devDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')}</td>
+				<td>${devAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'}</td>
 				<td class="bucket-cell" data-lang="${lang}" data-env="prod">
 					${badge(prodBucket.exact, prodBucket.total)} <span class=\"small\">(${prodBucket.exact}/${prodBucket.total}; NT ${prodUntranslated})</span>
 					${prodUntranslated > 0 ? '<span class="info-icon" title="Click to view untranslated items">ℹ️</span>' : ''}
 				</td>
 				<td class="svcell">${prodSv.checked === 0 ? '<span class="badge warn">n/a</span>' : badge(prodSv.exact + prodSv.withBase, prodSv.checked)} <span class="small">(${prodSv.exact}/${prodSv.checked}, base ${prodSv.withBase})</span></td>
-				<td>${prodDs.exactMatch ? '<span class="badge ok">exact</span>' : (prodDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')} <span class="small">(${prodDs.exactMatch ? 'exact match' : (prodDs.baseMatch ? 'base fallback' : 'not found')})</span></td>
-				<td>${prodAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'} <span class="small">(${prodAu.present ? 'folder exists' : 'folder not found'})</span></td>
+				<td>${prodDs.exactMatch ? '<span class="badge ok">exact</span>' : (prodDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')}</td>
+				<td>${prodAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'}</td>
 			`;
 			const svCell = tr.querySelector('.svcell');
 			if (svCell) {
