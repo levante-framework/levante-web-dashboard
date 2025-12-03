@@ -17,7 +17,8 @@
     "deploy-dev": "vercel --yes",
     "deploy-bat": "deploy.bat",
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
-    "geocoder:build": "node scripts/geocoder/build-geocoder.js"
+    "geocoder:build": "node scripts/geocoder/build-geocoder.js",
+    "deploy:prod": "node scripts/deploy-prod.js"
   },
   "keywords": [
     "audio",
