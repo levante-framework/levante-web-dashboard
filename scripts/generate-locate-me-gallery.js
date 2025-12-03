@@ -109,10 +109,40 @@ async function processPoint(point, index, total) {
       }
     }
     
+    // Step 3: Get administrative area polygon for the GPS point itself
+    console.log(`  [${point.id}] Starting admin area query...`);
+    let adminArea = null;
+    try {
+      const countryCodeMap = {
+        'US': 'usa', 'CA': 'canada', 'CO': 'colombia', 'DE': 'germany',
+        'IN': 'india', 'AR': 'argentina', 'NL': 'netherlands',
+        'GH': 'ghana', 'CH': 'switzerland', 'GB': 'scotland'
+      };
+      const countryCode = countryCodeMap[point.country] || point.country.toLowerCase();
+      const adminUrl = `${BASE_URL}/api/gadm-polygon?country=${countryCode}&lat=${point.lat}&lon=${point.lon}`;
+      const adminData = await fetchJSON(adminUrl);
+      if (adminData.feature) {
+        const name = adminData.feature.properties?.name || 
+                    adminData.feature.properties?.tags?.name || 
+                    adminData.feature.properties?.tags?.['name:en'] || 'Unknown';
+        const population = adminData.feature.properties?.population || 
+                          adminData.feature.properties?.tags?.population || null;
+        adminArea = {
+          polygon: adminData.feature,
+          adminLevel: adminData.adminLevel,
+          name: name,
+          population: population ? parseInt(population, 10) : null
+        };
+      }
+    } catch (err) {
+      console.warn(`  [${point.id}] Admin area error: ${err.message}`);
+    }
+    
     return {
       point,
       geocode: geocodeData,
       polygons,
+      adminArea: adminArea || null,
       metrics: geocodeData.metrics || null
     };
   } catch (error) {

@@ -39,6 +39,7 @@
     "shapefile": "^0.6.6",
     "sharp": "^0.33.2",
     "unzipper": "^0.10.11",
+    "vercel": "^48.12.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
