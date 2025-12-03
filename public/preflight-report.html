@@ -2201,8 +2201,7 @@
 				
 				const response = await fetch('https://raw.githubusercontent.com/levante-framework/levante_translations/main/translation_text/item_bank_translations.csv');
 				const csvText = await response.text();
-				const lines = csvText.split('
-');
+				const lines = csvText.split('\n');
 				const headers = lines[0].split(',');
 				
 				let languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
@@ -2278,8 +2277,7 @@
 				
 				const response = await fetch('https://raw.githubusercontent.com/levante-framework/levante_translations/main/translation_text/item_bank_translations.csv');
 				const csvText = await response.text();
-				const lines = csvText.split('
-');
+				const lines = csvText.split('\n');
 				const headers = lines[0].split(',');
 				
 				let languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
