@@ -570,6 +570,21 @@
 			return languageCodes.slice();
 		}
 
+		function getSelectedLanguageList(fallbackList = []) {
+			if (selectedLanguageSet.size) {
+				return Array.from(new Set(Array.from(selectedLanguageSet)));
+			}
+			return Array.from(new Set(fallbackList.slice()));
+		}
+
+		function buildCoverageUrl(env, fallbackList = []) {
+			const langList = getSelectedLanguageList(fallbackList).filter(Boolean);
+			if (!langList.length) {
+				return `./audio-coverage.html?env=${env}`;
+			}
+			return `./audio-coverage.html?env=${env}&langs=${encodeURIComponent(langList.join(','))}`;
+		}
+
 		// Update stoplight button based on comparison
 		function updateStoplight(buttonId, devValue, prodValue) {
 			const btn = document.getElementById(buttonId);
@@ -1407,7 +1422,7 @@
 		const languageCodes = headers.filter(h => !knownNonLang.has(h) && /^[a-z]{2}(-[A-Z]{2})?$/.test(h));
 		if (!languageCodes.includes('en')) languageCodes.unshift('en');
 		cachedLanguageCodes = languageCodes.slice();
-		const storedSelection = await loadStoredLanguageSelection(languageCodes);
+		var storedSelection = await loadStoredLanguageSelection(languageCodes);
 		selectedLanguageSet = new Set(storedSelection);
 		if (selectedLanguageSet.size === 0) {
 			selectedLanguageSet = new Set(languageCodes);
@@ -1801,11 +1816,13 @@
 				const data = await res.json();
 				document.getElementById('audioBucket').textContent = data.bucket || 'levante-assets-dev';
 				const languages = Array.isArray(data.languages) ? data.languages : [];
-				const selectionList = activeSet ? Array.from(activeSet) : languages.slice();
 				const filteredLanguages = activeSet ? languages.filter(lang => activeSet.has(lang)) : languages;
+				const displayLanguages = filteredLanguages.length ? filteredLanguages : languages;
 				const totalLanguages = filteredLanguages.length;
-				const coverageLangParam = selectionList.length ? `&langs=${encodeURIComponent(selectionList.join(','))}` : '';
-				const selectionNote = activeSet ? ` (showing ${filteredLanguages.length} of ${selectionList.length} selected)` : '';
+				const selectionSnapshot = getSelectedLanguageList(displayLanguages);
+				const selectionNote = selectedLanguageSet.size
+					? ` (showing ${totalLanguages || displayLanguages.length}/${selectionSnapshot.length} selected)`
+					: '';
 				
 				// Get audio clip approval status
 				let approvalStatus = '';
@@ -1853,25 +1870,28 @@
 				summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span>${selectionNote} · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
 				const detailsLink = document.getElementById('audioDetails');
 				const coverageBtn = document.getElementById('audioCoverageBtn');
-				const showControls = (selectionList.length > 0) || (filteredLanguages.length > 0);
-				if (showControls) {
-					if (detailsLink) detailsLink.style.display = '';
-					if (coverageBtn) coverageBtn.style.display = '';
-					const listForDetails = filteredLanguages.length ? filteredLanguages : (selectionList.length ? selectionList : languages);
-					if (detailsLink) {
+				const showControls = displayLanguages.length > 0 || selectedLanguageSet.size > 0;
+				if (detailsLink) {
+					if (showControls) {
+						detailsLink.style.display = '';
+						const listForDetails = displayLanguages.length ? displayLanguages : selectionSnapshot;
 						detailsLink.onclick = () => {
 							alert(listForDetails.length ? 'Available languages:\n- ' + listForDetails.join('\n- ') : 'No selected languages found in this bucket.');
 						};
+					} else {
+						detailsLink.style.display = 'none';
 					}
-					if (coverageBtn) {
+				}
+				if (coverageBtn) {
+					if (showControls) {
+						coverageBtn.style.display = '';
 						coverageBtn.onclick = () => {
-							const target = `./audio-coverage.html?env=dev${coverageLangParam}`;
+							const target = buildCoverageUrl('dev', displayLanguages);
 							window.open(target, '_blank');
 						};
+					} else {
+						coverageBtn.style.display = 'none';
 					}
-				} else {
-					if (detailsLink) detailsLink.style.display = 'none';
-					if (coverageBtn) coverageBtn.style.display = 'none';
 				}
 				
 				// Store language count for stoplight comparison
@@ -1891,11 +1911,13 @@
 				const data = await res.json();
 				const bucketEl = document.getElementById('audioBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
 				const languages = Array.isArray(data.languages) ? data.languages : [];
-				const selectionList = activeSet ? Array.from(activeSet) : languages.slice();
 				const filteredLanguages = activeSet ? languages.filter(lang => activeSet.has(lang)) : languages;
+				const displayLanguages = filteredLanguages.length ? filteredLanguages : languages;
 				const totalLanguages = filteredLanguages.length;
-				const coverageLangParam = selectionList.length ? `&langs=${encodeURIComponent(selectionList.join(','))}` : '';
-				const selectionNote = activeSet ? ` (showing ${filteredLanguages.length} of ${selectionList.length} selected)` : '';
+				const selectionSnapshot = getSelectedLanguageList(displayLanguages);
+				const selectionNote = selectedLanguageSet.size
+					? ` (showing ${totalLanguages || displayLanguages.length}/${selectionSnapshot.length} selected)`
+					: '';
 				
 				// Get audio clip approval status for prod
 				let approvalStatus = '';
@@ -1928,25 +1950,28 @@
 				if (summary) summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span>${selectionNote} · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
 				const detailsLink = document.getElementById('audioDetailsProd');
 				const coverageBtn = document.getElementById('audioCoverageBtnProd');
-				const showControls = (selectionList.length > 0) || (filteredLanguages.length > 0);
-				if (showControls) {
-					if (detailsLink) detailsLink.style.display = '';
-					const listForDetails = filteredLanguages.length ? filteredLanguages : (selectionList.length ? selectionList : languages);
-					if (detailsLink) {
+				const showControls = displayLanguages.length > 0 || selectedLanguageSet.size > 0;
+				if (detailsLink) {
+					if (showControls) {
+						detailsLink.style.display = '';
+						const listForDetails = displayLanguages.length ? displayLanguages : selectionSnapshot;
 						detailsLink.onclick = () => {
 							alert(listForDetails.length ? 'Available languages:\n- ' + listForDetails.join('\n- ') : 'No selected languages found in this bucket.');
 						};
+					} else {
+						detailsLink.style.display = 'none';
 					}
-					if (coverageBtn) {
+				}
+				if (coverageBtn) {
+					if (showControls) {
 						coverageBtn.style.display = '';
 						coverageBtn.onclick = () => {
-							const target = `./audio-coverage.html?env=prod${coverageLangParam}`;
+							const target = buildCoverageUrl('prod', displayLanguages);
 							window.open(target, '_blank');
 						};
+					} else {
+						coverageBtn.style.display = 'none';
 					}
-				} else {
-					if (detailsLink) detailsLink.style.display = 'none';
-					if (coverageBtn) coverageBtn.style.display = 'none';
 				}
 				
 				// Store language count for stoplight comparison

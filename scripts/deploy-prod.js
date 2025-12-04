@@ -1,16 +1,52 @@
 #!/usr/bin/env node
 
+/**
+ * Deploy helper used by:
+ *   npm run deploy:test  → create a fresh preview + (optional) staging alias
+ *   npm run deploy:prod  → promote the cached preview to all production aliases
+ */
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
 const PREVIEW_FILE = path.join('.vercel', 'latest-preview-url.txt');
 const STAGING_ALIAS = process.env.VERCEL_STAGING_ALIAS || '';
-const PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-web-dashboard.vercel.app';
+const PRIMARY_PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-web-dashboard.vercel.app';
+const LEGACY_PROD_ALIASES = (process.env.VERCEL_PROD_ALIASES
+  ? process.env.VERCEL_PROD_ALIASES.split(',').map(alias => alias.trim()).filter(Boolean)
+  : [
+      'audio-dashboard-levante.vercel.app',
+      'levante-audio-dashboard.vercel.app',
+      'levante-pitwall.vercel.app',
+      'levante-partner-tools.vercel.app',
+    ]
+);
+
+function resolveVercelBin() {
+  if (process.env.VERCEL_BIN) return process.env.VERCEL_BIN;
+
+  const appData = process.env.APPDATA;
+  if (appData) {
+    const candidate = path.join(appData, 'npm', 'vercel');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  const userProfile = process.env.USERPROFILE;
+  if (userProfile) {
+    const candidate = path.join(userProfile, 'AppData', 'Roaming', 'npm', 'vercel');
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
+  return 'vercel';
+}
+
+const VERCEL_BIN = resolveVercelBin();
+console.log(`ℹ️ Using Vercel CLI binary: ${VERCEL_BIN}`);
 
 const args = process.argv.slice(2);
 const promoteMode = args.includes('--promote') || args.includes('--alias');
-const fromArg = args.find(arg => arg.startsWith('--from=')) || '';
+const fromArg = args.find(arg => arg.startsWith('--from='));
 const overrideDeploymentUrl = fromArg ? fromArg.split('=').slice(1).join('=') : '';
 
 function run(cmd, opts = {}) {
@@ -40,8 +76,8 @@ function parseDeploymentUrl(output) {
 }
 
 function createPreviewDeployment() {
-  console.log('🚀 Running `vercel --confirm`…');
-  const output = run('vercel --confirm', { capture: true });
+  console.log(`🚀 Running \`${VERCEL_BIN} --confirm\`…`);
+  const output = run(`${VERCEL_BIN} --confirm`, { capture: true });
   process.stdout.write(output);
   const url = parseDeploymentUrl(output);
   if (!url) {
@@ -67,13 +103,36 @@ function aliasDeployment(url, alias) {
   if (!alias) return false;
   console.log(`🔗 Setting alias ${alias} → ${url}`);
   try {
-    run(`vercel alias set ${url} ${alias} --yes`);
+    run(`${VERCEL_BIN} alias set ${url} ${alias}`);
     console.log('   Alias updated successfully.');
     return true;
   } catch (error) {
     console.warn(`⚠️ Failed to set alias ${alias}: ${error.message || error}`);
     return false;
   }
+}
+
+function promoteDeployment(deploymentUrl) {
+  const aliasSet = new Set([PRIMARY_PROD_ALIAS, ...LEGACY_PROD_ALIASES.filter(Boolean)]);
+  if (!aliasSet.size) {
+    console.error('❌ No production aliases configured. Set VERCEL_PROD_ALIAS or VERCEL_PROD_ALIASES.');
+    process.exit(1);
+  }
+
+  console.log(`🔁 Promoting ${deploymentUrl} to ${aliasSet.size} production alias(es)…`);
+  let failures = 0;
+  aliasSet.forEach(alias => {
+    const success = aliasDeployment(deploymentUrl, alias);
+    if (!success) failures += 1;
+  });
+
+  if (failures > 0) {
+    console.error(`❌ Failed to update ${failures} production alias(es).`);
+    process.exit(1);
+  }
+
+  console.log('\n✅ Production aliases updated:');
+  aliasSet.forEach(alias => console.log(`   ${alias} now serves ${deploymentUrl}`));
 }
 
 function main() {
@@ -86,7 +145,7 @@ function main() {
     }
     writePreviewUrl(deploymentUrl);
 
-    const staged = aliasDeployment(deploymentUrl, STAGING_ALIAS);
+    const staged = STAGING_ALIAS ? aliasDeployment(deploymentUrl, STAGING_ALIAS) : false;
 
     console.log('\n✅ Preview deployment ready:');
     console.log(`   ${deploymentUrl}`);
@@ -107,21 +166,8 @@ function main() {
     process.exit(1);
   }
 
-  const targetAlias = PROD_ALIAS;
-  if (!targetAlias) {
-    console.error('❌ Set VERCEL_PROD_ALIAS before promoting to production.');
-    process.exit(1);
-  }
-
-  console.log(`🔁 Promoting ${deploymentUrl} → ${targetAlias}…`);
-  const success = aliasDeployment(deploymentUrl, targetAlias);
-  if (!success) {
-    console.error('❌ Failed to update the production alias.');
-    process.exit(1);
-  }
-
-  console.log('\n✅ Production alias updated.');
-  console.log(`   ${targetAlias} now serves ${deploymentUrl}`);
+  promoteDeployment(deploymentUrl);
 }
 
 main();
+
