@@ -14,11 +14,12 @@
     "test": "npm run test:ts",
     "predeploy": "node scripts/fix-existing-tasks.js",
     "deploy": "node scripts/deploy-and-alias.js",
+    "deploy:test": "node scripts/deploy-prod.js",
+    "deploy:prod": "node scripts/deploy-prod.js --promote",
     "deploy-dev": "vercel --yes",
     "deploy-bat": "deploy.bat",
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
-    "geocoder:build": "node scripts/geocoder/build-geocoder.js",
-    "deploy:prod": "node scripts/deploy-prod.js"
+    "geocoder:build": "node scripts/geocoder/build-geocoder.js"
   },
   "keywords": [
     "audio",

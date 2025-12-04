@@ -570,7 +570,6 @@
 			return languageCodes.slice();
 		}
 
-		
 		// Update stoplight button based on comparison
 		function updateStoplight(buttonId, devValue, prodValue) {
 			const btn = document.getElementById(buttonId);
@@ -1794,14 +1793,19 @@
 		}
 
 		// Audio assets audit (dev) + View Coverage
-		async function refreshAudioAudit() {
+		async function refreshAudioAudit(activeLanguages = []) {
+			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			try {
 				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-dev`, { cache: 'no-cache' });
 				if (!res.ok) { document.getElementById('audioSummary').textContent = 'Audio audit unavailable (API error)'; return; }
 				const data = await res.json();
 				document.getElementById('audioBucket').textContent = data.bucket || 'levante-assets-dev';
 				const languages = Array.isArray(data.languages) ? data.languages : [];
-				const totalLanguages = languages.length;
+				const selectionList = activeSet ? Array.from(activeSet) : languages.slice();
+				const filteredLanguages = activeSet ? languages.filter(lang => activeSet.has(lang)) : languages;
+				const totalLanguages = filteredLanguages.length;
+				const coverageLangParam = selectionList.length ? `&langs=${encodeURIComponent(selectionList.join(','))}` : '';
+				const selectionNote = activeSet ? ` (showing ${filteredLanguages.length} of ${selectionList.length} selected)` : '';
 				
 				// Get audio clip approval status
 				let approvalStatus = '';
@@ -1846,17 +1850,28 @@
 				}
 				
 				const summary = document.getElementById('audioSummary');
-				summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span> · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
+				summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span>${selectionNote} · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
 				const detailsLink = document.getElementById('audioDetails');
 				const coverageBtn = document.getElementById('audioCoverageBtn');
-				if (totalLanguages > 0) {
-					detailsLink.style.display = '';
-					coverageBtn.style.display = '';
-					detailsLink.onclick = () => { alert('Available languages:\n- ' + languages.join('\n- ')); };
-					coverageBtn.onclick = () => { window.open('./audio-coverage.html?env=dev', '_blank'); };
+				const showControls = (selectionList.length > 0) || (filteredLanguages.length > 0);
+				if (showControls) {
+					if (detailsLink) detailsLink.style.display = '';
+					if (coverageBtn) coverageBtn.style.display = '';
+					const listForDetails = filteredLanguages.length ? filteredLanguages : (selectionList.length ? selectionList : languages);
+					if (detailsLink) {
+						detailsLink.onclick = () => {
+							alert(listForDetails.length ? 'Available languages:\n- ' + listForDetails.join('\n- ') : 'No selected languages found in this bucket.');
+						};
+					}
+					if (coverageBtn) {
+						coverageBtn.onclick = () => {
+							const target = `./audio-coverage.html?env=dev${coverageLangParam}`;
+							window.open(target, '_blank');
+						};
+					}
 				} else {
-					detailsLink.style.display = 'none';
-					coverageBtn.style.display = 'none';
+					if (detailsLink) detailsLink.style.display = 'none';
+					if (coverageBtn) coverageBtn.style.display = 'none';
 				}
 				
 				// Store language count for stoplight comparison
@@ -1868,14 +1883,19 @@
 		}
 
 		// Audio assets audit (prod) + View Coverage
-		async function refreshAudioAuditProd() {
+		async function refreshAudioAuditProd(activeLanguages = []) {
+			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			try {
 				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-prod`, { cache: 'no-cache' });
 				if (!res.ok) { const el = document.getElementById('audioSummaryProd'); if (el) el.textContent = 'Audio audit (prod) unavailable (API error)'; return; }
 				const data = await res.json();
 				const bucketEl = document.getElementById('audioBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
 				const languages = Array.isArray(data.languages) ? data.languages : [];
-				const totalLanguages = languages.length;
+				const selectionList = activeSet ? Array.from(activeSet) : languages.slice();
+				const filteredLanguages = activeSet ? languages.filter(lang => activeSet.has(lang)) : languages;
+				const totalLanguages = filteredLanguages.length;
+				const coverageLangParam = selectionList.length ? `&langs=${encodeURIComponent(selectionList.join(','))}` : '';
+				const selectionNote = activeSet ? ` (showing ${filteredLanguages.length} of ${selectionList.length} selected)` : '';
 				
 				// Get audio clip approval status for prod
 				let approvalStatus = '';
@@ -1905,14 +1925,25 @@
 				}
 				
 				const summary = document.getElementById('audioSummaryProd');
-				if (summary) summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span> · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
+				if (summary) summary.innerHTML = `Languages: <span class="code">${totalLanguages}</span>${selectionNote} · Available: <span class="badge ${totalLanguages > 0 ? 'ok' : 'err'}">${totalLanguages}</span>${approvalStatus}`;
 				const detailsLink = document.getElementById('audioDetailsProd');
 				const coverageBtn = document.getElementById('audioCoverageBtnProd');
-				if (totalLanguages > 0) {
+				const showControls = (selectionList.length > 0) || (filteredLanguages.length > 0);
+				if (showControls) {
 					if (detailsLink) detailsLink.style.display = '';
-					if (coverageBtn) coverageBtn.style.display = '';
-					if (detailsLink) detailsLink.onclick = () => { alert('Available languages:\n- ' + languages.join('\n- ')); };
-					if (coverageBtn) coverageBtn.onclick = () => { window.open('./audio-coverage.html?env=prod', '_blank'); };
+					const listForDetails = filteredLanguages.length ? filteredLanguages : (selectionList.length ? selectionList : languages);
+					if (detailsLink) {
+						detailsLink.onclick = () => {
+							alert(listForDetails.length ? 'Available languages:\n- ' + listForDetails.join('\n- ') : 'No selected languages found in this bucket.');
+						};
+					}
+					if (coverageBtn) {
+						coverageBtn.style.display = '';
+						coverageBtn.onclick = () => {
+							const target = `./audio-coverage.html?env=prod${coverageLangParam}`;
+							window.open(target, '_blank');
+						};
+					}
 				} else {
 					if (detailsLink) detailsLink.style.display = 'none';
 					if (coverageBtn) coverageBtn.style.display = 'none';
@@ -2438,7 +2469,7 @@
 			const detailsEl = document.getElementById('translationCompletenessDetailsProd');
 			const validateBtn = document.getElementById('translationCompletenessValidateBtnProd');
 			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
-						
+			
 			try {
 				summaryEl.textContent = 'Analyzing translation completeness...';
 				
@@ -3549,13 +3580,16 @@
 					<td class="select-col"></td>
 					<td>${languageDisplayName(lang)}</td>
 					<td><span class="code">${lang}</span></td>
-					<td colspan="${LANGUAGE_DATA_COLUMN_SPAN}" class="language-selection-placeholder">Not selected. Refresh after checking this language to include it in the analysis.</td>
+					<td colspan="${LANGUAGE_DATA_COLUMN_SPAN}" class="language-selection-placeholder">
+						Not selected. Refresh after checking this language to include it in the analysis.
+					</td>
 				`;
 				tr.querySelector('.select-col').appendChild(checkbox);
 				tbody.appendChild(tr);
 				continue;
 			}
 
+			// Get data for both dev and prod environments
 			const [devData, prodData] = await Promise.all([
 				Promise.all([
 					bucketStats(lang, 'dev'),
@@ -3570,13 +3604,15 @@
 					audioStats(lang, 'prod')
 				])
 			]);
-
+			
 			const [devBucket, devDs, devSv, devAu] = devData;
 			const [prodBucket, prodDs, prodSv, prodAu] = prodData;
-
+			
+			// Compute breakdowns for bucket stats (A = approved/present, NT = not translated)
 			const devUntranslated = devBucket.untranslated || 0;
+			
 			const prodUntranslated = prodBucket.untranslated || 0;
-
+			
 			tr.innerHTML = `
 				<td class="select-col"></td>
 				<td>${languageDisplayName(lang)}</td>
@@ -3609,19 +3645,20 @@
 				infoBtn.style.color = '#0d6efd';
 				infoBtn.textContent = 'ℹ️';
 				const details = devSv.details || [];
-			infoBtn.addEventListener('click', () => {
-				const ok = details.filter(x => x.hasExact || x.hasBase).map(x => x.file);
-				const missing = details.filter(x => !x.hasExact && !x.hasBase).map(x => x.file);
-				const baseLang = toBase(lang);
-				const langInfo = lang === baseLang ? `Language: ${lang}` : `Language: ${lang} (base: ${baseLang})`;
-				alert(`${langInfo}\n\nTranslated (or base):\n- ` + (ok.join('\n- ') || 'None') + '\n\nMissing:\n- ' + (missing.join('\n- ') || 'None'));
-			});
-			svCell.appendChild(infoBtn);
+				infoBtn.addEventListener('click', () => {
+					const ok = details.filter(x => x.hasExact || x.hasBase).map(x => x.file);
+					const missing = details.filter(x => !x.hasExact && !x.hasBase).map(x => x.file);
+					const baseLang = toBase(lang);
+					const langInfo = lang === baseLang ? `Language: ${lang}` : `Language: ${lang} (base: ${baseLang})`;
+					alert(`${langInfo}\n\nTranslated (or base):\n- ` + (ok.join('\n- ') || 'None') + '\n\nMissing:\n- ' + (missing.join('\n- ') || 'None'));
+				});
+				svCell.appendChild(infoBtn);
 			}
 			tbody.appendChild(tr);
 		}
 
 		updateSelectAllState();
+		
 		// Add event listeners for info icons in Item Bank cells
 		document.querySelectorAll('#reportTable .info-icon').forEach(icon => {
 			icon.addEventListener('click', function() {
@@ -3667,8 +3704,8 @@
 
 		await refreshVisualAudit();
 		await refreshVisualAuditProd();
-		await refreshAudioAudit();
-		await refreshAudioAuditProd();
+		await refreshAudioAudit(activeLanguageList);
+		await refreshAudioAuditProd(activeLanguageList);
 		await refreshCoreTasksAudit();
 		await refreshCoreTasksAuditProd();
 		await refreshCorpusAudit();

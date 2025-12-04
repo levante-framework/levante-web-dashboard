@@ -140,6 +140,13 @@
 <script>
     // Bucket selection helpers
     let currentSource = 'bucket'; // 'bucket' or 'repo'
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedLangs = parseRequestedLangs(urlParams.get('langs'));
+
+    function parseRequestedLangs(value) {
+      if (!value) return null;
+      return value.split(',').map(lang => lang.trim()).filter(Boolean);
+    }
 
     function getSelectedBucket(){
       const el = document.getElementById('bucketInput');
@@ -149,7 +156,6 @@
 
     // Check URL parameters for environment selection
     function initializeFromUrlParams() {
-      const urlParams = new URLSearchParams(window.location.search);
       const env = urlParams.get('env');
       if (env === 'prod') {
         document.getElementById('useProd').click();
@@ -405,9 +411,16 @@
         console.warn('Failed to parse languages from CSV:', e.message);
       }
 
-      const langCodes = Array.from(new Set([...(configCodes||[]), ...(bucketCodes||[]), ...(csvCodes||[])]));
+      let langCodes = Array.from(new Set([...(configCodes||[]), ...(bucketCodes||[]), ...(csvCodes||[])]));
       if (langCodes.length === 0) {
         langCodes.push('en','es-CO','de','fr-CA','nl');
+      }
+
+      if (requestedLangs && requestedLangs.length) {
+        const requestedSet = new Set(requestedLangs);
+        const filtered = langCodes.filter(code => requestedSet.has(code));
+        const missingRequested = requestedLangs.filter(code => !filtered.includes(code));
+        langCodes = filtered.concat(missingRequested);
       }
 
       const ids = await getAllItemIds();
@@ -441,8 +454,12 @@
       const total = allItems.length;
       let processed = 0;
       const updateSummary = (okCount, errCount, noTagCount = 0) => {
+        const filterChip = requestedLangs && requestedLangs.length
+          ? `<span class="chip ok">Selected: ${requestedLangs.length}</span>`
+          : '';
         document.getElementById('summary').innerHTML =
           `<span class="chip ok">Languages: ${langCodes.length}</span>`+
+          filterChip +
           `<span class="chip ok">Progress: ${processed}/${total}</span>`+
           `<span class="chip ok">Files scanned: ${okCount}</span>`+
           `<span class="chip missing">Missing/Errors: ${errCount}</span>`+
