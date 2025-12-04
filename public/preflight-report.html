@@ -2349,10 +2349,11 @@
 		}
 
 		// Translation Completeness Audit Functions
-		async function refreshTranslationCompletenessAudit() {
+		async function refreshTranslationCompletenessAudit(activeLanguages = []) {
 			const summaryEl = document.getElementById('translationCompletenessSummary');
 			const detailsEl = document.getElementById('translationCompletenessDetails');
 			const validateBtn = document.getElementById('translationCompletenessValidateBtn');
+			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			
 			try {
 				summaryEl.textContent = 'Analyzing translation completeness...';
@@ -2364,7 +2365,16 @@
 				const headers = lines[0].split(',');
 				
 				// Find language columns (excluding item_id, labels, context, isHidden)
-				const languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				let languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				if (activeSet) {
+					languageColumns = languageColumns.filter(lang => activeSet.has(lang));
+				}
+				if (languageColumns.length === 0) {
+					summaryEl.textContent = 'No languages selected for translation completeness.';
+					detailsEl.style.display = 'none';
+					validateBtn.style.display = 'none';
+					return;
+				}
 				const totalItems = lines.length - 1; // Exclude header
 				
 				let missingTranslations = 0;
@@ -2423,10 +2433,11 @@
 			}
 		}
 
-		async function refreshTranslationCompletenessAuditProd() {
+		async function refreshTranslationCompletenessAuditProd(activeLanguages = []) {
 			const summaryEl = document.getElementById('translationCompletenessSummaryProd');
 			const detailsEl = document.getElementById('translationCompletenessDetailsProd');
 			const validateBtn = document.getElementById('translationCompletenessValidateBtnProd');
+			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			
 			try {
 				summaryEl.textContent = 'Analyzing translation completeness...';
@@ -2438,7 +2449,16 @@
 				const lines = csvText.split('\n');
 				const headers = lines[0].split(',');
 				
-				const languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				let languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				if (activeSet) {
+					languageColumns = languageColumns.filter(lang => activeSet.has(lang));
+				}
+				if (languageColumns.length === 0) {
+					summaryEl.textContent = 'No languages selected for translation completeness.';
+					detailsEl.style.display = 'none';
+					validateBtn.style.display = 'none';
+					return;
+				}
 				const totalItems = lines.length - 1;
 				
 				let missingTranslations = 0;
@@ -3504,10 +3524,38 @@
 			alert(`Configuration Validation:\n\nTotal checks: ${checks.length}\nValid: ${checks.filter(c => c.status === 'valid').length}\nWarnings: ${warningCount}\nErrors: ${errorCount}\n\nThis validation checks environment variables, API keys, database connections, and file permissions.`);
 		}
 
-		// Build table rows with bounded concurrency
+		// Build table rows with selectable checkboxes
 		const tbody = document.querySelector('#reportTable tbody');
+		if (tbody) tbody.innerHTML = '';
+		languageCheckboxMap.clear();
+		if (!selectedLanguageSet.size) {
+			selectedLanguageSet = new Set(languageCodes);
+		}
+		const activeLanguageSet = new Set(selectedLanguageSet);
+
 		for (const lang of languageCodes) {
-			// Get data for both dev and prod environments
+			const tr = document.createElement('tr');
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.className = 'language-checkbox';
+			checkbox.dataset.lang = lang;
+			const isSelected = activeLanguageSet.has(lang);
+			checkbox.checked = isSelected;
+			bindLanguageCheckbox(lang, checkbox);
+
+			if (!isSelected) {
+				tr.classList.add('language-row-inactive');
+				tr.innerHTML = `
+					<td class="select-col"></td>
+					<td>${languageDisplayName(lang)}</td>
+					<td><span class="code">${lang}</span></td>
+					<td colspan="${LANGUAGE_DATA_COLUMN_SPAN}" class="language-selection-placeholder">Not selected. Refresh after checking this language to include it in the analysis.</td>
+				`;
+				tr.querySelector('.select-col').appendChild(checkbox);
+				tbody.appendChild(tr);
+				continue;
+			}
+
 			const [devData, prodData] = await Promise.all([
 				Promise.all([
 					bucketStats(lang, 'dev'),
@@ -3522,36 +3570,34 @@
 					audioStats(lang, 'prod')
 				])
 			]);
-			
+
 			const [devBucket, devDs, devSv, devAu] = devData;
 			const [prodBucket, prodDs, prodSv, prodAu] = prodData;
-			
-			// Compute breakdowns for bucket stats (A = approved/present, NT = not translated)
-			const devApproved = devBucket.exact || 0;
+
 			const devUntranslated = devBucket.untranslated || 0;
-			
-			const prodApproved = prodBucket.exact || 0;
 			const prodUntranslated = prodBucket.untranslated || 0;
-			
-			const tr = document.createElement('tr');
+
 			tr.innerHTML = `
+				<td class="select-col"></td>
 				<td>${languageDisplayName(lang)}</td>
 				<td><span class="code">${lang}</span></td>
 				<td class="bucket-cell" data-lang="${lang}" data-env="dev">
-					${badge(devBucket.exact, devBucket.total)} <span class=\"small\">(${devBucket.exact}/${devBucket.total}; NT ${devUntranslated})</span>
+					${badge(devBucket.exact, devBucket.total)} <span class="small">(${devBucket.exact}/${devBucket.total}; NT ${devUntranslated})</span>
 					${devUntranslated > 0 ? '<span class="info-icon" title="Click to view untranslated items">ℹ️</span>' : ''}
 				</td>
 				<td class="svcell">${devSv.checked === 0 ? '<span class="badge warn">n/a</span>' : badge(devSv.exact + devSv.withBase, devSv.checked)} <span class="small">(${devSv.exact}/${devSv.checked}, base ${devSv.withBase})</span></td>
 				<td>${devDs.exactMatch ? '<span class="badge ok">exact</span>' : (devDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')}</td>
 				<td>${devAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'}</td>
 				<td class="bucket-cell" data-lang="${lang}" data-env="prod">
-					${badge(prodBucket.exact, prodBucket.total)} <span class=\"small\">(${prodBucket.exact}/${prodBucket.total}; NT ${prodUntranslated})</span>
+					${badge(prodBucket.exact, prodBucket.total)} <span class="small">(${prodBucket.exact}/${prodBucket.total}; NT ${prodUntranslated})</span>
 					${prodUntranslated > 0 ? '<span class="info-icon" title="Click to view untranslated items">ℹ️</span>' : ''}
 				</td>
 				<td class="svcell">${prodSv.checked === 0 ? '<span class="badge warn">n/a</span>' : badge(prodSv.exact + prodSv.withBase, prodSv.checked)} <span class="small">(${prodSv.exact}/${prodSv.checked}, base ${prodSv.withBase})</span></td>
 				<td>${prodDs.exactMatch ? '<span class="badge ok">exact</span>' : (prodDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')}</td>
 				<td>${prodAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'}</td>
 			`;
+			tr.querySelector('.select-col').appendChild(checkbox);
+
 			const svCell = tr.querySelector('.svcell');
 			if (svCell) {
 				const infoBtn = document.createElement('button');
@@ -3563,18 +3609,19 @@
 				infoBtn.style.color = '#0d6efd';
 				infoBtn.textContent = 'ℹ️';
 				const details = devSv.details || [];
-				infoBtn.addEventListener('click', () => {
-					const ok = details.filter(x => x.hasExact || x.hasBase).map(x => x.file);
-					const missing = details.filter(x => !x.hasExact && !x.hasBase).map(x => x.file);
-					const baseLang = toBase(lang);
-					const langInfo = lang === baseLang ? `Language: ${lang}` : `Language: ${lang} (base: ${baseLang})`;
-					alert(`${langInfo}\n\nTranslated (or base):\n- ` + (ok.join('\n- ') || 'None') + '\n\nMissing:\n- ' + (missing.join('\n- ') || 'None'));
-				});
-				svCell.appendChild(infoBtn);
+			infoBtn.addEventListener('click', () => {
+				const ok = details.filter(x => x.hasExact || x.hasBase).map(x => x.file);
+				const missing = details.filter(x => !x.hasExact && !x.hasBase).map(x => x.file);
+				const baseLang = toBase(lang);
+				const langInfo = lang === baseLang ? `Language: ${lang}` : `Language: ${lang} (base: ${baseLang})`;
+				alert(`${langInfo}\n\nTranslated (or base):\n- ` + (ok.join('\n- ') || 'None') + '\n\nMissing:\n- ' + (missing.join('\n- ') || 'None'));
+			});
+			svCell.appendChild(infoBtn);
 			}
 			tbody.appendChild(tr);
 		}
-		
+
+		updateSelectAllState();
 		// Add event listeners for info icons in Item Bank cells
 		document.querySelectorAll('#reportTable .info-icon').forEach(icon => {
 			icon.addEventListener('click', function() {
@@ -3584,7 +3631,6 @@
 				showBucketUntranslatedModal(lang, env);
 			});
 		});
-		updateSelectAllState();
 		
 		// Build Crowdin table
 		const crowdinTbody = document.querySelector('#crowdinTable tbody');
