@@ -1410,10 +1410,6 @@
 		cachedLanguageCodes = languageCodes.slice();
 		const storedSelection = await loadStoredLanguageSelection(languageCodes);
 		selectedLanguageSet = new Set(storedSelection);
-		const activeLanguageList = Array.from(selectedLanguageSet);
-		cachedLanguageCodes = languageCodes.slice();
-		const storedSelection = await loadStoredLanguageSelection(languageCodes);
-		selectedLanguageSet = new Set(storedSelection);
 		if (selectedLanguageSet.size === 0) {
 			selectedLanguageSet = new Set(languageCodes);
 		}
