@@ -28,9 +28,18 @@
     .code { background: rgba(3, 12, 28, 0.8); padding: 4px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; }
     .table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: 0 26px 60px rgba(2, 6, 23, 0.5); }
     .table th, .table td { border: 1px solid rgba(56, 189, 248, 0.18) !important; padding: 12px 16px !important; font-size: 0.9rem !important; text-align: left; }
+    .table .select-col { width: 42px; text-align: center !important; padding: 0 8px !important; }
     .table thead th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%) !important; color: #03101f !important; text-transform: uppercase; letter-spacing: 0.08em; position: sticky; top: 0; z-index: 2; }
     .table td { background: rgba(7, 13, 24, 0.9) !important; color: #f1f5f9 !important; }
     .table tr:hover td { background: rgba(255, 123, 0, 0.12) !important; }
+    .language-row-inactive { opacity: 0.55; }
+    .language-selection-placeholder { font-style: italic; color: #94a3b8; text-align: left; }
+    .language-selection-note { margin-top: 6px; font-size: 0.85rem; color: #94a3b8; }
+    .language-checkbox { cursor: pointer; }
+    .table .select-col { width: 36px; text-align: center !important; padding: 0 8px !important; }
+    .language-checkbox { width: 16px; height: 16px; cursor: pointer; }
+    .language-row-inactive { opacity: 0.6; }
+    .language-selection-placeholder { font-style: italic; color: #94a3b8; text-align: left; }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
     .badge.ok { background: rgba(34, 197, 94, 0.18); color: #bbf7d0; }
     .badge.warn { background: rgba(255, 159, 64, 0.22); color: #ffedd5; }
@@ -68,6 +77,7 @@
     #bucketInfoTable table { background: transparent !important; }
     #bucketInfoTable table thead th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%) !important; color: #03101f !important; }
     #bucketInfoTable table td { background: rgba(7, 13, 24, 0.9) !important; color: #f1f5f9 !important; border: 1px solid rgba(56, 189, 248, 0.18) !important; }
+    .language-selection-note { margin-top: 4px; color: #cbd5e1; font-style: italic; }
     @media (max-width: 768px) {
         .preflight-header { padding: 28px; }
         .preflight-header h1 { font-size: 2rem; }
@@ -417,6 +427,284 @@
 					btn.className = 'stoplight loading';
 				}
 			});
+		}
+
+		// Language selection state for translations table
+		const LANGUAGE_SELECTION_API = '/api/preflight-language-selection';
+		const LANGUAGE_SELECTION_LOCAL_KEY = 'preflightLanguageSelection';
+		const LANGUAGE_DATA_COLUMN_SPAN = 8;
+		const languageCheckboxMap = new Map();
+		let selectedLanguageSet = new Set();
+		let cachedLanguageCodes = [];
+		let selectionSaveTimeout = null;
+		const selectAllCheckbox = document.getElementById('languageSelectAll');
+		const selectionNoticeEl = document.getElementById('languageSelectionNotice');
+
+		if (selectAllCheckbox) {
+			selectAllCheckbox.disabled = true;
+			selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+		}
+
+		setSelectionNotice('Selections persist between sessions. Refresh after changing selections to re-run the analysis.');
+
+		function setSelectionNotice(message) {
+			if (selectionNoticeEl) {
+				selectionNoticeEl.textContent = message;
+			}
+		}
+
+		function updateSelectAllState() {
+			if (!selectAllCheckbox || cachedLanguageCodes.length === 0) return;
+			const total = cachedLanguageCodes.length;
+			const selected = selectedLanguageSet.size;
+			selectAllCheckbox.disabled = false;
+
+			if (selected === 0) {
+				selectAllCheckbox.checked = false;
+				selectAllCheckbox.indeterminate = false;
+			} else if (selected === total) {
+				selectAllCheckbox.checked = true;
+				selectAllCheckbox.indeterminate = false;
+			} else {
+				selectAllCheckbox.checked = false;
+				selectAllCheckbox.indeterminate = true;
+			}
+		}
+
+		function handleSelectAllChange(event) {
+			if (!cachedLanguageCodes.length) {
+				event.target.checked = false;
+				event.target.indeterminate = false;
+				return;
+			}
+			const shouldSelect = event.target.checked || event.target.indeterminate;
+			if (shouldSelect) {
+				selectedLanguageSet = new Set(cachedLanguageCodes);
+				languageCheckboxMap.forEach(cb => cb.checked = true);
+			} else {
+				selectedLanguageSet.clear();
+				languageCheckboxMap.forEach(cb => cb.checked = false);
+			}
+			updateSelectAllState();
+			onLanguageSelectionChanged();
+		}
+
+		function bindLanguageCheckbox(lang, checkbox) {
+			if (!checkbox) return;
+			languageCheckboxMap.set(lang, checkbox);
+			checkbox.addEventListener('change', () => {
+				handleLanguageCheckboxChange(lang, checkbox.checked);
+			});
+		}
+
+		function handleLanguageCheckboxChange(lang, isChecked) {
+			if (isChecked) {
+				selectedLanguageSet.add(lang);
+			} else {
+				selectedLanguageSet.delete(lang);
+			}
+			updateSelectAllState();
+			onLanguageSelectionChanged();
+		}
+
+		function onLanguageSelectionChanged() {
+			setSelectionNotice('Selections saved. Refresh to re-run analysis with the updated languages.');
+			persistLanguageSelection();
+		}
+
+		function persistLanguageSelection() {
+			const orderedSelection = cachedLanguageCodes.filter(code => selectedLanguageSet.has(code));
+			try {
+				window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(orderedSelection));
+			} catch (error) {
+				console.warn('Unable to persist selection locally:', error.message);
+			}
+
+			if (selectionSaveTimeout) clearTimeout(selectionSaveTimeout);
+			selectionSaveTimeout = setTimeout(async () => {
+				try {
+					await fetch(LANGUAGE_SELECTION_API, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ languages: orderedSelection })
+					});
+				} catch (error) {
+					console.warn('Failed to persist selection to bucket:', error.message);
+				}
+			}, 800);
+		}
+
+		async function loadStoredLanguageSelection(languageCodes) {
+			let stored = null;
+			try {
+				const res = await fetch(`${LANGUAGE_SELECTION_API}?t=${Date.now()}`, { cache: 'no-cache' });
+				if (res.ok) {
+					const data = await res.json();
+					if (Array.isArray(data.languages) && data.languages.length) {
+						stored = data.languages;
+						try {
+							window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(stored));
+						} catch (error) {
+							console.warn('Unable to cache selection locally:', error.message);
+						}
+					}
+				}
+			} catch (error) {
+				console.warn('Failed to fetch language selection from bucket:', error.message);
+			}
+
+			if (!stored) {
+				try {
+					const local = window.localStorage.getItem(LANGUAGE_SELECTION_LOCAL_KEY);
+					if (local) {
+						const parsed = JSON.parse(local);
+						if (Array.isArray(parsed) && parsed.length) stored = parsed;
+					}
+				} catch (error) {
+					console.warn('Failed to read local language selection:', error.message);
+				}
+			}
+
+			const valid = (stored || []).filter(code => languageCodes.includes(code));
+			if (valid.length > 0) return valid;
+			return languageCodes.slice();
+		}
+
+		
+		const LANGUAGE_SELECTION_API = '/api/preflight-language-selection';
+		const LANGUAGE_SELECTION_LOCAL_KEY = 'preflightLanguageSelection';
+		const LANGUAGE_DATA_COLUMN_SPAN = 8;
+		const languageCheckboxMap = new Map();
+		let selectedLanguageSet = new Set();
+		let cachedLanguageCodes = [];
+		let selectionSaveTimeout = null;
+		const selectAllCheckbox = document.getElementById('languageSelectAll');
+		const selectionNoticeEl = document.getElementById('languageSelectionNotice');
+		
+		if (selectAllCheckbox) {
+			selectAllCheckbox.disabled = true;
+			selectAllCheckbox.addEventListener('change', handleSelectAllChange);
+		}
+		setSelectionNotice('Selections persist between sessions. Refresh after changing selections to re-run the analysis.');
+		
+		function setSelectionNotice(message) {
+			if (selectionNoticeEl) {
+				selectionNoticeEl.textContent = message;
+			}
+		}
+		
+		function updateSelectAllState() {
+			if (!selectAllCheckbox || cachedLanguageCodes.length === 0) return;
+			const total = cachedLanguageCodes.length;
+			const selected = selectedLanguageSet.size;
+			selectAllCheckbox.disabled = false;
+			if (selected === 0) {
+				selectAllCheckbox.checked = false;
+				selectAllCheckbox.indeterminate = false;
+			} else if (selected === total) {
+				selectAllCheckbox.checked = true;
+				selectAllCheckbox.indeterminate = false;
+			} else {
+				selectAllCheckbox.checked = false;
+				selectAllCheckbox.indeterminate = true;
+			}
+		}
+		
+		function handleSelectAllChange(event) {
+			if (!cachedLanguageCodes.length) {
+				event.target.checked = false;
+				event.target.indeterminate = false;
+				return;
+			}
+			const shouldSelect = event.target.checked || event.target.indeterminate;
+			if (shouldSelect) {
+				selectedLanguageSet = new Set(cachedLanguageCodes);
+				languageCheckboxMap.forEach(cb => cb.checked = true);
+			} else {
+				selectedLanguageSet.clear();
+				languageCheckboxMap.forEach(cb => cb.checked = false);
+			}
+			updateSelectAllState();
+			onLanguageSelectionChanged();
+		}
+		
+		function bindLanguageCheckbox(lang, checkbox) {
+			if (!checkbox) return;
+			languageCheckboxMap.set(lang, checkbox);
+			checkbox.addEventListener('change', () => {
+				handleLanguageCheckboxChange(lang, checkbox.checked);
+			});
+		}
+		
+		function handleLanguageCheckboxChange(lang, isChecked) {
+			if (isChecked) {
+				selectedLanguageSet.add(lang);
+			} else {
+				selectedLanguageSet.delete(lang);
+			}
+			updateSelectAllState();
+			onLanguageSelectionChanged();
+		}
+		
+		function onLanguageSelectionChanged() {
+			setSelectionNotice('Selections saved. Refresh to re-run analysis with the updated languages.');
+			persistLanguageSelection();
+		}
+		
+		function persistLanguageSelection() {
+			const orderedSelection = cachedLanguageCodes.filter(code => selectedLanguageSet.has(code));
+			try {
+				window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(orderedSelection));
+			} catch (error) {
+				console.warn('Unable to persist selection locally:', error.message);
+			}
+			if (selectionSaveTimeout) clearTimeout(selectionSaveTimeout);
+			selectionSaveTimeout = setTimeout(async () => {
+				try {
+					await fetch(LANGUAGE_SELECTION_API, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ languages: orderedSelection })
+					});
+				} catch (error) {
+					console.warn('Failed to persist selection to bucket:', error.message);
+				}
+			}, 800);
+		}
+		
+		async function loadStoredLanguageSelection(languageCodes) {
+			let stored = null;
+			try {
+				const res = await fetch(`${LANGUAGE_SELECTION_API}?t=${Date.now()}`, { cache: 'no-cache' });
+				if (res.ok) {
+					const data = await res.json();
+					if (Array.isArray(data.languages)) {
+						stored = data.languages;
+						try {
+							window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(stored));
+						} catch (error) {
+							console.warn('Unable to cache selection locally:', error.message);
+						}
+					}
+				}
+			} catch (error) {
+				console.warn('Failed to fetch language selection from bucket:', error.message);
+			}
+			if (!Array.isArray(stored)) {
+				try {
+					const local = window.localStorage.getItem(LANGUAGE_SELECTION_LOCAL_KEY);
+					if (local) {
+						const parsed = JSON.parse(local);
+						if (Array.isArray(parsed)) stored = parsed;
+					}
+				} catch (error) {
+					console.warn('Failed to read local language selection:', error.message);
+				}
+			}
+			const hasStored = Array.isArray(stored);
+			const valid = hasStored ? stored.filter(code => languageCodes.includes(code)) : [];
+			if (hasStored) return valid;
+			return languageCodes.slice();
 		}
 		
 		// Update stoplight button based on comparison
@@ -1255,6 +1543,17 @@
 		const knownNonLang = new Set(['item_id','identifier','labels','task','context','en']);
 		const languageCodes = headers.filter(h => !knownNonLang.has(h) && /^[a-z]{2}(-[A-Z]{2})?$/.test(h));
 		if (!languageCodes.includes('en')) languageCodes.unshift('en');
+		cachedLanguageCodes = languageCodes.slice();
+		const storedSelection = await loadStoredLanguageSelection(languageCodes);
+		selectedLanguageSet = new Set(storedSelection);
+		const activeLanguageList = Array.from(selectedLanguageSet);
+		cachedLanguageCodes = languageCodes.slice();
+		const storedSelection = await loadStoredLanguageSelection(languageCodes);
+		selectedLanguageSet = new Set(storedSelection);
+		if (selectedLanguageSet.size === 0) {
+			selectedLanguageSet = new Set(languageCodes);
+		}
+		const activeLanguageList = Array.from(selectedLanguageSet);
 
 		function toBase(lang) { return lang.includes('-') ? lang.split('-')[0] : lang; }
 		function pct(n, d) { return d ? Math.round((n / d) * 10000)/100 : 0; }
@@ -2190,32 +2489,23 @@
 		}
 
 		// Translation Completeness Audit Functions
-		async function refreshTranslationCompletenessAudit(activeLanguages = []) {
+		async function refreshTranslationCompletenessAudit() {
 			const summaryEl = document.getElementById('translationCompletenessSummary');
 			const detailsEl = document.getElementById('translationCompletenessDetails');
 			const validateBtn = document.getElementById('translationCompletenessValidateBtn');
-			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			
 			try {
 				summaryEl.textContent = 'Analyzing translation completeness...';
 				
+				// Get current translations from the repository
 				const response = await fetch('https://raw.githubusercontent.com/levante-framework/levante_translations/main/translation_text/item_bank_translations.csv');
 				const csvText = await response.text();
 				const lines = csvText.split('\n');
 				const headers = lines[0].split(',');
 				
-				let languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
-				if (activeSet) {
-					languageColumns = languageColumns.filter(lang => activeSet.has(lang));
-				}
-				if (languageColumns.length === 0) {
-					summaryEl.textContent = 'No languages selected for translation completeness.';
-					detailsEl.style.display = 'none';
-					validateBtn.style.display = 'none';
-					window.translationCompletenessDevMissing = null;
-					return;
-				}
-				const totalItems = lines.length - 1;
+				// Find language columns (excluding item_id, labels, context, isHidden)
+				const languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
+				const totalItems = lines.length - 1; // Exclude header
 				
 				let missingTranslations = 0;
 				const missingDetails = [];
@@ -2240,57 +2530,55 @@
 						
 						if (itemMissing > 0) {
 							missingTranslations += itemMissing;
-							missingDetails.push({ itemId, missing: itemMissing, languages: itemMissingLangs });
+							missingDetails.push({
+								itemId,
+								missing: itemMissing,
+								languages: itemMissingLangs
+							});
 						}
-					}
-				}
+			}
+		}
+		
+		const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
+		
+		// Choose icon based on completeness level
+		const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
+		const statusText = completeness >= 100 ? 'complete' : 'incomplete';
+		
+		summaryEl.innerHTML = `${icon} <strong>${completeness}%</strong> ${statusText} (${missingTranslations} missing translations across ${languageColumns.length} languages)`;
+		
+		if (missingTranslations > 0) {
+			detailsEl.style.display = 'inline';
+			detailsEl.onclick = () => showTranslationCompletenessDetails(missingDetails, languageColumns);
+		}
+		
+		validateBtn.style.display = 'inline-block';
+		validateBtn.onclick = () => validateTranslationCompleteness(missingDetails);
+		
+		// Store for stoplight comparison
+		window.translationCompletenessDevMissing = missingTranslations;
 				
-				const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
-				const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
-				const statusText = completeness >= 100 ? 'complete' : 'incomplete';
-				
-				summaryEl.innerHTML = `${icon} <strong>${completeness}%</strong> ${statusText} (${missingTranslations} missing translations across ${languageColumns.length} languages)`;
-				
-				if (missingTranslations > 0) {
-					detailsEl.style.display = 'inline';
-					detailsEl.onclick = () => showTranslationCompletenessDetails(missingDetails, languageColumns);
-				}
-				
-				validateBtn.style.display = 'inline-block';
-				validateBtn.onclick = () => validateTranslationCompleteness(missingDetails);
-				
-				window.translationCompletenessDevMissing = missingTranslations;
-			
 			} catch (error) {
 				summaryEl.textContent = `❌ Error: ${error.message}`;
 			}
 		}
 
-		async function refreshTranslationCompletenessAuditProd(activeLanguages = []) {
+		async function refreshTranslationCompletenessAuditProd() {
 			const summaryEl = document.getElementById('translationCompletenessSummaryProd');
 			const detailsEl = document.getElementById('translationCompletenessDetailsProd');
 			const validateBtn = document.getElementById('translationCompletenessValidateBtnProd');
-			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			
 			try {
 				summaryEl.textContent = 'Analyzing translation completeness...';
 				
+				// For prod, we'll use the same logic but could check against a different source
+				// For now, using the same repository source
 				const response = await fetch('https://raw.githubusercontent.com/levante-framework/levante_translations/main/translation_text/item_bank_translations.csv');
 				const csvText = await response.text();
 				const lines = csvText.split('\n');
 				const headers = lines[0].split(',');
 				
-				let languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
-				if (activeSet) {
-					languageColumns = languageColumns.filter(lang => activeSet.has(lang));
-				}
-				if (languageColumns.length === 0) {
-					summaryEl.textContent = 'No languages selected for translation completeness.';
-					detailsEl.style.display = 'none';
-					validateBtn.style.display = 'none';
-					window.translationCompletenessProdMissing = null;
-					return;
-				}
+				const languageColumns = headers.filter(h => h && !['item_id', 'labels', 'context', 'isHidden'].includes(h));
 				const totalItems = lines.length - 1;
 				
 				let missingTranslations = 0;
@@ -2316,32 +2604,83 @@
 						
 						if (itemMissing > 0) {
 							missingTranslations += itemMissing;
-							missingDetails.push({ itemId, missing: itemMissing, languages: itemMissingLangs });
-						}
+							missingDetails.push({
+								itemId,
+								missing: itemMissing,
+								languages: itemMissingLangs
+							});
 					}
 				}
-				
-				const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
-				const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
-				const statusText = completeness >= 100 ? 'complete' : 'incomplete';
-				
-				summaryEl.innerHTML = `${icon} <strong>${completeness}%</strong> ${statusText} (${missingTranslations} missing translations across ${languageColumns.length} languages)`;
-				
-				if (missingTranslations > 0) {
-					detailsEl.style.display = 'inline';
-					detailsEl.onclick = () => showTranslationCompletenessDetails(missingDetails, languageColumns);
-				}
-				
-				validateBtn.style.display = 'inline-block';
-				validateBtn.onclick = () => validateTranslationCompleteness(missingDetails);
-				
-				window.translationCompletenessProdMissing = missingTranslations;
+			}
 			
+			const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
+			
+			// Choose icon based on completeness level
+			const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
+			const statusText = completeness >= 100 ? 'complete' : 'incomplete';
+			
+			summaryEl.innerHTML = `${icon} <strong>${completeness}%</strong> ${statusText} (${missingTranslations} missing translations across ${languageColumns.length} languages)`;
+			
+			if (missingTranslations > 0) {
+				detailsEl.style.display = 'inline';
+				detailsEl.onclick = () => showTranslationCompletenessDetails(missingDetails, languageColumns);
+			}
+			
+			validateBtn.style.display = 'inline-block';
+			validateBtn.onclick = () => validateTranslationCompleteness(missingDetails);
+			
+			// Store for stoplight comparison
+			window.translationCompletenessProdMissing = missingTranslations;
+				
 			} catch (error) {
 				summaryEl.textContent = `❌ Error: ${error.message}`;
 			}
 		}
 
+		function showTranslationCompletenessDetails(missingDetails, languageColumns) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = 'Translation Completeness Details';
+			
+			const sortedDetails = missingDetails.sort((a, b) => b.missing - a.missing);
+			const topMissing = sortedDetails.slice(0, 20);
+			
+			body.innerHTML = `
+				<div class="diff-section">
+					<h4>Summary</h4>
+					<p>Total missing translations: <strong>${missingDetails.reduce((sum, item) => sum + item.missing, 0)}</strong></p>
+					<p>Items with missing translations: <strong>${missingDetails.length}</strong></p>
+					<p>Available languages: <strong>${languageColumns.length}</strong></p>
+				</div>
+				<div class="diff-section">
+					<h4>Items with Most Missing Translations (Top 20)</h4>
+					<div style="max-height: 300px; overflow-y: auto;">
+						${topMissing.map(item => `
+							<div style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px;">
+								<strong>${item.itemId}</strong> - Missing ${item.missing} translations
+								<div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+									Languages: ${item.languages.join(', ')}
+								</div>
+							</div>
+						`).join('')}
+					</div>
+				</div>
+				<div class="diff-section">
+					<h4>Recommendation</h4>
+					<p>Review items with missing translations and prioritize completion for core functionality. Consider implementing automated translation validation in your CI/CD pipeline.</p>
+				</div>
+			`;
+			
+			modal.style.display = 'block';
+		}
+
+		function validateTranslationCompleteness(missingDetails) {
+			alert(`Translation Completeness Validation:\n\nTotal missing translations: ${missingDetails.reduce((sum, item) => sum + item.missing, 0)}\nItems needing attention: ${missingDetails.length}\n\nThis validation checks for empty or missing translation values across all supported languages.`);
+		}
+
+		// Asset Integrity Audit Functions
 		async function refreshAssetIntegrityAudit() {
 			const summaryEl = document.getElementById('assetIntegritySummary');
 			const detailsEl = document.getElementById('assetIntegrityDetails');
@@ -3305,40 +3644,10 @@
 			alert(`Configuration Validation:\n\nTotal checks: ${checks.length}\nValid: ${checks.filter(c => c.status === 'valid').length}\nWarnings: ${warningCount}\nErrors: ${errorCount}\n\nThis validation checks environment variables, API keys, database connections, and file permissions.`);
 		}
 
-		// Build table rows with selectable checkboxes
+		// Build table rows with bounded concurrency
 		const tbody = document.querySelector('#reportTable tbody');
-		if (tbody) tbody.innerHTML = '';
-		languageCheckboxMap.clear();
-		if (!selectedLanguageSet.size) {
-			selectedLanguageSet = new Set(languageCodes);
-		}
-		const activeLanguageSet = new Set(selectedLanguageSet);
 		for (const lang of languageCodes) {
-			const tr = document.createElement('tr');
-			const checkbox = document.createElement('input');
-			checkbox.type = 'checkbox';
-			checkbox.className = 'language-checkbox';
-			checkbox.dataset.lang = lang;
-			const checkboxCell = document.createElement('td');
-			checkboxCell.classList.add('select-col');
-			checkboxCell.appendChild(checkbox);
-			bindLanguageCheckbox(lang, checkbox);
-			const isSelected = activeLanguageSet.has(lang);
-			checkbox.checked = isSelected;
-			if (!isSelected) {
-				tr.classList.add('language-row-inactive');
-				const langCell = document.createElement('td');
-				langCell.textContent = languageDisplayName(lang);
-				const codeCell = document.createElement('td');
-				codeCell.innerHTML = `<span class="code">${lang}</span>`;
-				const placeholderCell = document.createElement('td');
-				placeholderCell.colSpan = LANGUAGE_DATA_COLUMN_SPAN;
-				placeholderCell.className = 'language-selection-placeholder';
-				placeholderCell.textContent = 'Not selected. Refresh after checking this language to include it in the analysis.';
-				tr.append(checkboxCell, langCell, codeCell, placeholderCell);
-				tbody.appendChild(tr);
-				continue;
-			}
+			// Get data for both dev and prod environments
 			const [devData, prodData] = await Promise.all([
 				Promise.all([
 					bucketStats(lang, 'dev'),
@@ -3353,10 +3662,18 @@
 					audioStats(lang, 'prod')
 				])
 			]);
+			
 			const [devBucket, devDs, devSv, devAu] = devData;
 			const [prodBucket, prodDs, prodSv, prodAu] = prodData;
+			
+			// Compute breakdowns for bucket stats (A = approved/present, NT = not translated)
+			const devApproved = devBucket.exact || 0;
 			const devUntranslated = devBucket.untranslated || 0;
+			
+			const prodApproved = prodBucket.exact || 0;
 			const prodUntranslated = prodBucket.untranslated || 0;
+			
+			const tr = document.createElement('tr');
 			tr.innerHTML = `
 				<td>${languageDisplayName(lang)}</td>
 				<td><span class="code">${lang}</span></td>
@@ -3375,7 +3692,6 @@
 				<td>${prodDs.exactMatch ? '<span class="badge ok">exact</span>' : (prodDs.baseMatch ? '<span class="badge warn">base</span>' : '<span class="badge err">missing</span>')}</td>
 				<td>${prodAu.present ? '<span class="badge ok">present</span>' : '<span class="badge err">missing</span>'}</td>
 			`;
-			tr.insertBefore(checkboxCell, tr.firstChild);
 			const svCell = tr.querySelector('.svcell');
 			if (svCell) {
 				const infoBtn = document.createElement('button');
@@ -3398,7 +3714,7 @@
 			}
 			tbody.appendChild(tr);
 		}
-		updateSelectAllState();
+		
 		// Add event listeners for info icons in Item Bank cells
 		document.querySelectorAll('#reportTable .info-icon').forEach(icon => {
 			icon.addEventListener('click', function() {
@@ -3408,37 +3724,31 @@
 				showBucketUntranslatedModal(lang, env);
 			});
 		});
+		updateSelectAllState();
 		
 		// Build Crowdin table
-const crowdinTbody = document.querySelector('#crowdinTable tbody');
-for (const lang of languageCodes) {
-	const isSelected = selectedLanguageSet.has(lang);
-	if (!isSelected) {
-		const crowdinTr = document.createElement('tr');
-		crowdinTr.innerHTML = `
-			<td>${languageDisplayName(lang)}</td>
-			<td><span class="code">${lang}</span></td>
-			<td class="language-selection-placeholder">Not selected. Refresh after checking this language to include it in the analysis.</td>
-		`;
-		crowdinTbody.appendChild(crowdinTr);
-		continue;
-	}
-	const crowdinData = await itembankStats(lang, 'dev');
-	const approved = crowdinData.exact || 0;
-	const translated = crowdinData.withBase || 0;
-	const unapproved = Math.max(0, translated - approved);
-	const untranslated = Math.max(0, (crowdinData.total || 0) - translated);
-	const crowdinTr = document.createElement('tr');
-	crowdinTr.innerHTML = `
-		<td>${languageDisplayName(lang)}</td>
-		<td><span class="code">${lang}</span></td>
-		<td class="crowdin-cell" data-lang="${lang}" data-env="dev">
-			${badge(crowdinData.exact, crowdinData.total)} <span class=\"small\">(${crowdinData.exact}/${crowdinData.total}; UA ${unapproved}, NT ${untranslated})</span>
-			${crowdinData.total > 0 && (crowdinData.exact / crowdinData.total) < 1 ? '<span class="warning-icon" title="Click to view untranslated items">⚠️</span>' : ''}
-		</td>
-	`;
-	crowdinTbody.appendChild(crowdinTr);
-}
+		const crowdinTbody = document.querySelector('#crowdinTable tbody');
+		for (const lang of languageCodes) {
+			const crowdinData = await itembankStats(lang, 'dev');
+			
+			// Compute breakdowns for Crowdin stats
+			const approved = crowdinData.exact || 0;
+			const translated = crowdinData.withBase || 0;
+			const unapproved = Math.max(0, translated - approved);
+			const untranslated = Math.max(0, (crowdinData.total || 0) - translated);
+			
+			const crowdinTr = document.createElement('tr');
+			crowdinTr.innerHTML = `
+				<td>${languageDisplayName(lang)}</td>
+				<td><span class="code">${lang}</span></td>
+				<td class="crowdin-cell" data-lang="${lang}" data-env="dev">
+					${badge(crowdinData.exact, crowdinData.total)} <span class=\"small\">(${crowdinData.exact}/${crowdinData.total}; UA ${unapproved}, NT ${untranslated})</span>
+					${crowdinData.total > 0 && (crowdinData.exact / crowdinData.total) < 1 ? '<span class="warning-icon" title="Click to view untranslated items">⚠️</span>' : ''}
+				</td>
+			`;
+			crowdinTbody.appendChild(crowdinTr);
+		}
+		
 		// Add event listeners for warning icons in Crowdin table
 		document.querySelectorAll('#crowdinTable .warning-icon').forEach(icon => {
 			icon.addEventListener('click', function() {
@@ -3465,6 +3775,8 @@ for (const lang of languageCodes) {
 		await refreshConfigValidationAuditProd();
 		await refreshGitHubIssuesAudit();
 		await refreshBucketInfo();
+		
+		setSelectionNotice('Selections persist between sessions. Refresh after changing selections to re-run the analysis.');
 		
 		updateStoplight('visualStoplight', window.visualDevMissing, window.visualProdMissing);
 		updateStoplight('audioStoplight', window.audioDevLanguages, window.audioProdLanguages);
