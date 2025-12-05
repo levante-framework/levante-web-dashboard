@@ -12,6 +12,17 @@ const COVERAGE_SUMMARY_PREFIX = process.env.AUDIO_COVERAGE_SUMMARY_PREFIX || 'pi
 
 let storageClient = null;
 
+function resolveGithubToken() {
+  return (
+    process.env.GITHUB_TOKEN ||
+    process.env.github_token ||
+    process.env.GH_TOKEN ||
+    process.env.GITHUB_AUTH_TOKEN ||
+    process.env.NEXT_PUBLIC_GITHUB_TOKEN ||
+    ''
+  );
+}
+
 function getStorageClient() {
   if (storageClient !== null) return storageClient;
   const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -172,9 +183,9 @@ async function countVisualPending() {
 }
 
 async function fetchGithubIssueSummary() {
-  const token = process.env.GITHUB_TOKEN;
+  const token = resolveGithubToken();
   if (!token) {
-    return { p0: 0, p1: 0, message: 'Missing GITHUB_TOKEN' };
+    return { p0: 0, p1: 0, message: 'Missing GitHub token. Add GITHUB_TOKEN (Preview + Production) in Vercel project settings.' };
   }
 
   const headers = {

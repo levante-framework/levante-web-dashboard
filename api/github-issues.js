@@ -3,6 +3,17 @@
  * Returns issues from the levante-framework project board
  */
 
+function resolveGithubToken() {
+    return (
+        process.env.GITHUB_TOKEN ||
+        process.env.github_token ||
+        process.env.GH_TOKEN ||
+        process.env.GITHUB_AUTH_TOKEN ||
+        process.env.NEXT_PUBLIC_GITHUB_TOKEN ||
+        ''
+    );
+}
+
 export default async function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -22,7 +33,7 @@ export default async function handler(req, res) {
     try {
         // GitHub API configuration
         const GITHUB_API_BASE = 'https://api.github.com';
-        const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+        const GITHUB_TOKEN = resolveGithubToken();
         
         console.log('GitHub token available:', !!GITHUB_TOKEN);
         
@@ -44,7 +55,7 @@ export default async function handler(req, res) {
                 closed: 0,
                 issues: [],
                 source: 'none',
-                message: 'GitHub Projects API requires authentication. Please add a GITHUB_TOKEN environment variable.'
+                message: 'GitHub Projects API requires authentication. Add GITHUB_TOKEN (Preview + Production) in Vercel project settings.'
             });
         }
 
