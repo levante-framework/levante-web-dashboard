@@ -591,6 +591,20 @@
 				btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
 				return;
 			}
+
+			// Translation completeness ready when dev missing < prod
+			const translationAdvantage = (
+				buttonId === 'translationCompletenessStoplight' &&
+				typeof devValue === 'number' &&
+				typeof prodValue === 'number' &&
+				devValue < prodValue
+			);
+			if (translationAdvantage) {
+				btn.textContent = 'Ready to go';
+				btn.className = 'stoplight go';
+				btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+				return;
+			}
 			
 			// Check if values match
 			if (devValue === prodValue) {
