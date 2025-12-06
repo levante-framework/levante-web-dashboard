@@ -597,7 +597,7 @@
 				buttonId === 'translationCompletenessStoplight' &&
 				typeof devValue === 'number' &&
 				typeof prodValue === 'number' &&
-				devValue < prodValue
+				devValue <= prodValue
 			);
 			if (translationAdvantage) {
 				btn.textContent = 'Ready to go';
