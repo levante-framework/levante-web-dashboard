@@ -411,6 +411,7 @@
 		const LANGUAGE_SELECTION_API = '/api/preflight-language-selection';
 		const LANGUAGE_SELECTION_LOCAL_KEY = 'preflightLanguageSelection';
 		const LANGUAGE_DATA_COLUMN_SPAN = 8;
+		const MAX_FILE_LIST_ITEMS = 200;
 		const languageCheckboxMap = new Map();
 		let selectedLanguageSet = new Set();
 		let cachedLanguageCodes = [];
@@ -634,6 +635,34 @@
 				// Add click handler for diff buttons
 				btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
 			}
+		}
+		
+		function showFileListModal(titleText, files) {
+			const modal = document.getElementById('diffModal');
+			const title = document.getElementById('diffModalTitle');
+			const body = document.getElementById('diffModalBody');
+			
+			title.textContent = `${titleText} — File List`;
+			body.innerHTML = '<div style="padding: 16px; text-align:center;">Gathering file details…</div>';
+			modal.style.display = 'block';
+			
+			requestAnimationFrame(() => {
+				const total = files.length;
+				const limited = files.slice(0, MAX_FILE_LIST_ITEMS);
+				const remainder = Math.max(0, total - limited.length);
+				const listHtml = limited.map(file => `<li style="margin:2px 0;"><span class="code" style="font-size:12px;">${file}</span></li>`).join('');
+				
+				body.innerHTML = `
+					<div class="diff-section">
+						<p>Total files: <strong>${total}</strong></p>
+						<div style="max-height:320px; overflow-y:auto; background:#0f172a; border-radius:6px; border:1px solid rgba(148,163,184,0.3); padding:12px;">
+							<ol style="padding-left:16px; margin:0;">${listHtml}</ol>
+						</div>
+						${remainder > 0 ? `<p style="margin-top:8px;">…and ${remainder} more not shown to keep things snappy.</p>` : ''}
+						<p style="font-size:12px; color:#94a3b8; margin-top:12px;">Tip: Use the bucket explorer for the full list if needed.</p>
+					</div>
+				`;
+			});
 		}
 		
 		// Show diff modal with detailed comparison
@@ -1903,11 +1932,7 @@
 				if (files.length > 0) {
 					detailsLink.style.display = '';
 					validateBtn.style.display = '';
-					detailsLink.onclick = () => { 
-						const fileList = files.slice(0, 50).join('\n- ');
-						const moreText = files.length > 50 ? `\n... and ${files.length - 50} more items` : '';
-						alert(`Corpus items (${files.length} total):\n- ${fileList}${moreText}`); 
-					};
+					detailsLink.onclick = () => showFileListModal('Core Tasks (Dev)', files);
 					validateBtn.onclick = () => { validateCoreTasks('dev'); };
 				} else {
 					detailsLink.style.display = 'none';
@@ -1945,11 +1970,7 @@
 				if (files.length > 0) {
 					if (detailsLink) detailsLink.style.display = '';
 					if (validateBtn) validateBtn.style.display = '';
-					if (detailsLink) detailsLink.onclick = () => { 
-						const fileList = files.slice(0, 50).join('\n- ');
-						const moreText = files.length > 50 ? `\n... and ${files.length - 50} more items` : '';
-						alert(`Corpus items (${files.length} total):\n- ${fileList}${moreText}`); 
-					};
+					if (detailsLink) detailsLink.onclick = () => showFileListModal('Core Tasks (Prod)', files);
 					if (validateBtn) validateBtn.onclick = () => { validateCoreTasks('prod'); };
 				} else {
 					if (detailsLink) detailsLink.style.display = 'none';
