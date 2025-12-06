@@ -569,10 +569,12 @@
 			if (!btn) return;
 			
 			btn.style.display = 'inline-block';
+			const devNum = typeof devValue === 'string' ? Number(devValue) : devValue;
+			const prodNum = typeof prodValue === 'string' ? Number(prodValue) : prodValue;
 			
 			// Check if either value is empty/null/undefined
-			if (devValue === null || devValue === undefined || devValue === '' || 
-				prodValue === null || prodValue === undefined || prodValue === '') {
+			if (devNum === null || devNum === undefined || devNum === '' || Number.isNaN(devNum) ||
+				prodNum === null || prodNum === undefined || prodNum === '' || Number.isNaN(prodNum)) {
 				btn.textContent = 'Fail';
 				btn.className = 'stoplight fail';
 				return;
@@ -581,9 +583,9 @@
 			// Special case: core tasks are "Ready" when dev already exceeds prod
 			const coreTasksAdvantage = (
 				buttonId === 'coreTasksStoplight' &&
-				typeof devValue === 'number' &&
-				typeof prodValue === 'number' &&
-				devValue > prodValue
+				typeof devNum === 'number' &&
+				typeof prodNum === 'number' &&
+				devNum > prodNum
 			);
 			if (coreTasksAdvantage) {
 				btn.textContent = 'Ready to go';
@@ -595,9 +597,9 @@
 			// Translation completeness ready when dev missing < prod
 			const translationAdvantage = (
 				buttonId === 'translationCompletenessStoplight' &&
-				typeof devValue === 'number' &&
-				typeof prodValue === 'number' &&
-				devValue <= prodValue
+				typeof devNum === 'number' &&
+				typeof prodNum === 'number' &&
+				devNum <= prodNum
 			);
 			if (translationAdvantage) {
 				btn.textContent = 'Ready to go';
@@ -607,7 +609,7 @@
 			}
 			
 			// Check if values match
-			if (devValue === prodValue) {
+			if (devNum === prodNum) {
 				// Special case: if both environments have the same problem, show "Needs fixing"
 				// For Translation Completeness: both have missing translations
 				// For Asset Integrity: both have issues
