@@ -1,58 +1,65 @@
 #!/usr/bin/env node
 
-/**
- * Generate Locate Me Gallery
- * 
- * Generates 100 GPS points from US, Colombia, Canada, and Germany,
- * processes them through the Locate-Me workflow, and creates an image gallery.
- */
-
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-// Country bounding boxes (approximate)
-const COUNTRIES = {
-  US: { lat: [24.5, 49.5], lon: [-125.0, -66.0], count: 125 },
-  CO: { lat: [-4.2, 12.5], lon: [-79.0, -66.9], count: 125 },
-  CA: { lat: [41.7, 83.1], lon: [-141.0, -52.6], count: 125 },
-  DE: { lat: [47.3, 55.1], lon: [5.9, 15.0], count: 125 }
-};
+const MAX_DISTANCE_KM = 20; // Filter out results where nearest city is > 20km
 
 const BASE_URL = process.env.BASE_URL || 'https://levante-audio-dashboard.vercel.app';
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me');
 const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');
+const SEED_FILE = path.join(OUTPUT_DIR, 'seed-points.json');
+
+const ALLOWED_COUNTRY_SLUGS = new Set([
+  'scotland',
+  'usa',
+  'canada',
+  'colombia',
+  'india',
+  'argentina',
+  'netherlands',
+  'ghana',
+  'switzerland',
+  'germany'
+]);
+
+const COUNTRY_SLUG_MAP = {
+  US: 'usa',
+  USA: 'usa',
+  'UNITED STATES': 'usa',
+  'UNITED STATES OF AMERICA': 'usa',
+  CA: 'canada',
+  CANADA: 'canada',
+  CO: 'colombia',
+  COL: 'colombia',
+  COLOMBIA: 'colombia',
+  DE: 'germany',
+  GER: 'germany',
+  DEU: 'germany',
+  GERMANY: 'germany',
+  'FEDERAL REPUBLIC OF GERMANY': 'germany',
+  NL: 'netherlands',
+  NLD: 'netherlands',
+  NETHERLANDS: 'netherlands',
+  'THE NETHERLANDS': 'netherlands',
+  SCOTLAND: 'scotland',
+  GB: 'scotland',
+  UK: 'scotland',
+  GH: 'ghana',
+  GHANA: 'ghana',
+  AR: 'argentina',
+  ARGENTINA: 'argentina',
+  IN: 'india',
+  INDIA: 'india',
+  CH: 'switzerland',
+  CHE: 'switzerland',
+  SWITZERLAND: 'switzerland'
+};
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
-
-function randomInRange(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
-function generateGPSPoints() {
-  const points = [];
-  
-  for (const [countryCode, config] of Object.entries(COUNTRIES)) {
-    for (let i = 0; i < config.count; i++) {
-      points.push({
-        id: `${countryCode}-${i + 1}`,
-        country: countryCode,
-        lat: randomInRange(config.lat[0], config.lat[1]),
-        lon: randomInRange(config.lon[0], config.lon[1])
-      });
-    }
-  }
-  
-  // Shuffle the points
-  for (let i = points.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [points[i], points[j]] = [points[j], points[i]];
-  }
-  
-  return points;
 }
 
 function fetchJSON(url) {
@@ -75,16 +82,77 @@ function fetchJSON(url) {
   });
 }
 
+function mapCountrySlug(value) {
+  if (!value) return null;
+  const raw = value.toString().trim();
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (ALLOWED_COUNTRY_SLUGS.has(lower)) {
+    return lower;
+  }
+  const upper = raw.toUpperCase();
+  const slug = COUNTRY_SLUG_MAP[upper];
+  if (slug && ALLOWED_COUNTRY_SLUGS.has(slug)) {
+    return slug;
+  }
+  return null;
+}
+
+function loadSeedPoints() {
+  if (!fs.existsSync(SEED_FILE)) {
+    throw new Error(`Seed point file not found: ${SEED_FILE}`);
+  }
+  const payload = JSON.parse(fs.readFileSync(SEED_FILE, 'utf8'));
+  const rawPoints = Array.isArray(payload) ? payload : payload.points;
+  if (!rawPoints || !rawPoints.length) {
+    throw new Error(`Seed file ${SEED_FILE} does not contain any points.`);
+  }
+
+  const normalized = rawPoints
+    .map((point, idx) => {
+      const slug = mapCountrySlug(point.country);
+      if (!slug) {
+        console.warn(`⚠️  Skipping seed point ${point.id || idx} (unsupported country ${point.country})`);
+        return null;
+      }
+      if (typeof point.lat !== 'number' || typeof point.lon !== 'number') {
+        console.warn(`⚠️  Skipping seed point ${point.id || idx} (invalid coordinates)`);
+        return null;
+      }
+      return {
+        id: point.id || `seed-${idx + 1}`,
+        label: point.label || point.id || `Seed ${idx + 1}`,
+        country: point.country,
+        slug,
+        lat: point.lat,
+        lon: point.lon
+      };
+    })
+    .filter(Boolean);
+
+  if (!normalized.length) {
+    throw new Error('No usable seed points after filtering. Please update seed-points.json.');
+  }
+  return normalized;
+}
+
 async function processPoint(point, index, total) {
   console.log(`[${index + 1}/${total}] Processing ${point.id} (${point.country})...`);
   
   try {
-    // Step 1: Reverse geocode
-    const geocodeUrl = `${BASE_URL}/api/reverse-geocode?lat=${point.lat}&lon=${point.lon}&limit=2&maxDistanceKm=150`;
+    // Step 1: Reverse geocode with 20km limit
+    const geocodeUrl = `${BASE_URL}/api/reverse-geocode?lat=${point.lat}&lon=${point.lon}&limit=2&maxDistanceKm=${MAX_DISTANCE_KM}`;
     const geocodeData = await fetchJSON(geocodeUrl);
     
     if (!geocodeData.results || geocodeData.results.length === 0) {
-      console.warn(`  ⚠️  No results for ${point.id}`);
+      console.warn(`  ⚠️  No results within ${MAX_DISTANCE_KM}km for ${point.id}`);
+      return null;
+    }
+    
+    // Filter: nearest location must be <= 20km
+    const nearestDistance = geocodeData.results[0]?.distanceKm;
+    if (nearestDistance === undefined || nearestDistance > MAX_DISTANCE_KM) {
+      console.warn(`  ⚠️  Nearest location (${nearestDistance?.toFixed(1)}km) exceeds ${MAX_DISTANCE_KM}km for ${point.id}`);
       return null;
     }
     
@@ -94,7 +162,12 @@ async function processPoint(point, index, total) {
     const polygons = [];
     for (const result of results) {
       try {
-        const polygonUrl = `${BASE_URL}/api/gadm-polygon?country=${result.country}&lat=${result.lat}&lon=${result.lon}`;
+        const polygonSlug = mapCountrySlug(result.country);
+        if (!polygonSlug) {
+          console.warn(`  ⚠️  Skipping polygon for ${result.name} (${result.country}) - unsupported country`);
+          continue;
+        }
+        const polygonUrl = `${BASE_URL}/api/gadm-polygon?country=${polygonSlug}&lat=${result.lat}&lon=${result.lon}`;
         const polygonData = await fetchJSON(polygonUrl);
         polygons.push({
           city: result,
@@ -113,38 +186,52 @@ async function processPoint(point, index, total) {
     console.log(`  [${point.id}] Starting admin area query...`);
     let adminArea = null;
     try {
-      const countryCodeMap = {
-        'US': 'usa', 'CA': 'canada', 'CO': 'colombia', 'DE': 'germany',
-        'IN': 'india', 'AR': 'argentina', 'NL': 'netherlands',
-        'GH': 'ghana', 'CH': 'switzerland', 'GB': 'scotland'
-      };
-      const countryCode = countryCodeMap[point.country] || point.country.toLowerCase();
-      const adminUrl = `${BASE_URL}/api/gadm-polygon?country=${countryCode}&lat=${point.lat}&lon=${point.lon}`;
+      const adminSlug = point.slug || mapCountrySlug(point.country);
+      if (!adminSlug) {
+        console.warn(`  ⚠️  Seed point ${point.id} uses unsupported country ${point.country}`);
+        return null;
+      }
+      const adminUrl = `${BASE_URL}/api/gadm-polygon?country=${adminSlug}&lat=${point.lat}&lon=${point.lon}`;
+      console.log(`  [${point.id}] Querying admin area: ${adminUrl}`);
       const adminData = await fetchJSON(adminUrl);
+      console.log(`  [${point.id}] Admin response received. Error: ${adminData.error || 'none'}, Has feature: ${!!adminData.feature}`);
       if (adminData.feature) {
+        // Extract name from various possible locations
         const name = adminData.feature.properties?.name || 
                     adminData.feature.properties?.tags?.name || 
-                    adminData.feature.properties?.tags?.['name:en'] || 'Unknown';
+                    adminData.feature.properties?.tags?.['name:en'] ||
+                    'Unknown';
+        // Extract population
         const population = adminData.feature.properties?.population || 
-                          adminData.feature.properties?.tags?.population || null;
+                          adminData.feature.properties?.tags?.population ||
+                          adminData.feature.properties?.tags?.['population:date'] ||
+                          null;
         adminArea = {
           polygon: adminData.feature,
           adminLevel: adminData.adminLevel,
           name: name,
           population: population ? parseInt(population, 10) : null
         };
+        console.log(`  [${point.id}] ✓ Admin area found: ${name} (level ${adminData.adminLevel})`);
+      } else {
+        console.log(`  [${point.id}] ⚠️  No feature in admin area response`);
       }
+      console.log(`  [${point.id}] Admin area after query:`, adminArea ? `SET (${adminArea.name})` : 'NULL');
     } catch (err) {
-      console.warn(`  [${point.id}] Admin area error: ${err.message}`);
+      console.warn(`  [${point.id}] ⚠️  Exception getting admin area: ${err.message}`);
+      console.warn(`  [${point.id}] Error stack:`, err.stack?.substring(0, 200));
     }
     
-    return {
+    console.log(`  [${point.id}] Final adminArea value before return:`, adminArea ? `SET (${adminArea.name})` : (adminArea === null ? 'NULL' : 'UNDEFINED'));
+    const result = {
       point,
       geocode: geocodeData,
       polygons,
-      adminArea: adminArea || null,
+      adminArea: adminArea || null,  // Explicitly set to null if undefined
       metrics: geocodeData.metrics || null
     };
+    console.log(`  [${point.id}] Returning result. Keys:`, Object.keys(result), `adminArea in result:`, 'adminArea' in result, `value:`, result.adminArea ? 'SET' : (result.adminArea === null ? 'NULL' : 'UNDEFINED'));
+    return result;
   } catch (error) {
     console.error(`  ❌ Error processing ${point.id}: ${error.message}`);
     return null;
@@ -155,11 +242,8 @@ async function main() {
   console.log('🎯 Generating Locate Me Gallery');
   console.log(`Base URL: ${BASE_URL}`);
   console.log(`Output directory: ${OUTPUT_DIR}\n`);
-  
-  // Generate GPS points
-  console.log('📍 Generating 100 GPS points...');
-  const points = generateGPSPoints();
-  console.log(`   Generated ${points.length} points\n`);
+  const points = loadSeedPoints();
+  console.log(`📍 Loaded ${points.length} curated GPS points from seed file\n`);
   
   // Process each point
   console.log('🔄 Processing points through Locate-Me workflow...\n');
