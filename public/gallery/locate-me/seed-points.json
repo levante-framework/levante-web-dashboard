@@ -1,0 +1,83 @@
+{
+  "generated": "2025-12-06",
+  "points": [
+    {
+      "id": "US-sf",
+      "label": "San Francisco, CA",
+      "country": "US",
+      "lat": 37.7749,
+      "lon": -122.4194
+    },
+    {
+      "id": "US-portland",
+      "label": "Portland, OR",
+      "country": "US",
+      "lat": 45.5231,
+      "lon": -122.6765
+    },
+    {
+      "id": "US-miami",
+      "label": "Miami, FL",
+      "country": "US",
+      "lat": 25.7617,
+      "lon": -80.1918
+    },
+    {
+      "id": "CA-vancouver",
+      "label": "Vancouver, BC",
+      "country": "CA",
+      "lat": 49.2827,
+      "lon": -123.1207
+    },
+    {
+      "id": "CA-toronto",
+      "label": "Toronto, ON",
+      "country": "CA",
+      "lat": 43.6532,
+      "lon": -79.3832
+    },
+    {
+      "id": "CO-bogota",
+      "label": "Bogotá",
+      "country": "CO",
+      "lat": 4.711,
+      "lon": -74.0721
+    },
+    {
+      "id": "CO-medellin",
+      "label": "Medellín",
+      "country": "CO",
+      "lat": 6.2518,
+      "lon": -75.5636
+    },
+    {
+      "id": "CO-cartagena",
+      "label": "Cartagena",
+      "country": "CO",
+      "lat": 10.391,
+      "lon": -75.4794
+    },
+    {
+      "id": "DE-berlin",
+      "label": "Berlin",
+      "country": "DE",
+      "lat": 52.52,
+      "lon": 13.405
+    },
+    {
+      "id": "DE-munich",
+      "label": "Munich",
+      "country": "DE",
+      "lat": 48.1374,
+      "lon": 11.5755
+    },
+    {
+      "id": "DE-cologne",
+      "label": "Cologne",
+      "country": "DE",
+      "lat": 50.9375,
+      "lon": 6.9603
+    }
+  ]
+}
+

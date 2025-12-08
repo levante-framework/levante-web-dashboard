@@ -11,76 +11,37 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
-const puppeteer = require('puppeteer');
+const sharp = require('sharp');
+
+// Load environment variables from .env file if it exists
+// Use process.cwd() to find .env in project root
+console.log('[DEBUG] About to load dotenv...');
+try {
+  const dotenv = require('dotenv');
+  // Load from project root (where script is run from)
+  const envPath = path.join(process.cwd(), '.env');
+  console.log('[DEBUG] Loading .env from:', envPath);
+  const result = dotenv.config({ path: envPath });
+  console.log('[DEBUG] dotenv result:', result.parsed ? 'SUCCESS' : 'FAILED', result.error ? result.error.message : '');
+  if (result.error) {
+    console.warn('[dotenv] Error loading .env:', result.error.message);
+  } else if (result.parsed && process.env.MAPBOX_ACCESS_TOKEN) {
+    console.log(`[dotenv] Loaded MAPBOX_ACCESS_TOKEN from .env`);
+  } else {
+    console.warn('[dotenv] Token not found in parsed result');
+  }
+  console.log('[DEBUG] Token after dotenv:', process.env.MAPBOX_ACCESS_TOKEN ? 'FOUND' : 'NOT FOUND');
+} catch (e) {
+  // dotenv not installed or .env file doesn't exist - that's okay
+  console.warn('[dotenv] Failed to load:', e.message);
+}
 
 const DATA_FILE = path.join(process.cwd(), 'public', 'gallery', 'locate-me', 'gallery-data.json');
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me', 'images');
-const HTML_TEMPLATE = path.join(process.cwd(), 'scripts', 'gallery-image-template.html');
-
-loadEnvFile(path.join(process.cwd(), '.env'));
-
-let cachedMapboxToken = null;
-const MAPBOX_STYLE_INPUT = process.env.MAPBOX_STYLE_ID || "";
-const MAPBOX_STYLE_REFERENCE = MAPBOX_STYLE_INPUT && MAPBOX_STYLE_INPUT.includes('/')
-  ? MAPBOX_STYLE_INPUT
-  : null;
-
-if (MAPBOX_STYLE_INPUT && !MAPBOX_STYLE_REFERENCE) {
-  console.warn('[Mapbox] MAPBOX_STYLE_ID must include "username/styleId". Value ignored:', MAPBOX_STYLE_INPUT);
-}
-
-const USE_EXTERNAL_STYLE = Boolean(MAPBOX_STYLE_REFERENCE);
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
-
-function loadEnvFile(envPath) {
-  try {
-    if (!fs.existsSync(envPath)) {
-      return;
-    }
-    const contents = fs.readFileSync(envPath, 'utf8');
-    contents.split(/\r?\n/).forEach(line => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) {
-        return;
-      }
-      const separatorIndex = trimmed.indexOf('=');
-      if (separatorIndex === -1) {
-        return;
-      }
-      const key = trimmed.slice(0, separatorIndex).trim();
-      let value = trimmed.slice(separatorIndex + 1).trim();
-      if (!key || key.startsWith('#')) {
-        return;
-      }
-      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        value = value.slice(1, -1);
-      }
-      if (process.env[key] === undefined) {
-        process.env[key] = value;
-      }
-    });
-    console.log(`Loaded environment variables from ${path.basename(envPath)}`);
-  } catch (error) {
-    console.warn(`⚠️ Unable to load ${envPath}: ${error.message}`);
-  }
-}
-
-function getMapboxToken() {
-  if (cachedMapboxToken) {
-    return cachedMapboxToken;
-  }
-  const token = (process.env.MAPBOX_ACCESS_TOKEN || '').trim();
-  if (!token) {
-    console.error('❌ MAPBOX_ACCESS_TOKEN not set. Add it to your shell or to a .env file next to this script.');
-    console.error('   Example entry: MAPBOX_ACCESS_TOKEN=pk.xxxxxx');
-    process.exit(1);
-  }
-  cachedMapboxToken = token;
-  return cachedMapboxToken;
 }
 
 function formatDistance(km) {
@@ -103,87 +64,453 @@ function calculateZoomForWidth(lat, widthKm) {
   return Math.round(zoom * 10) / 10;
 }
 
-// Simplify polygon coordinates using Douglas-Peucker algorithm
+// Douglas-Peucker algorithm for polygon simplification
 function simplifyPolygon(geometry, tolerance = 0.0001) {
   if (!geometry || !geometry.coordinates) return geometry;
-  
-  function simplifyRing(ring, tolerance) {
-    if (ring.length <= 2) return ring;
+
+  // Helper function for uniform sampling - non-recursive
+  const uniformSample = (ring, maxPoints = 20) => {
+    if (!ring || ring.length <= maxPoints) return ring;
+    const step = Math.max(1, Math.floor(ring.length / maxPoints));
+    const sampled = [];
+    for (let i = 0; i < ring.length - 1; i += step) {
+      sampled.push(ring[i]);
+    }
+    const lastPt = ring[ring.length - 1];
+    if (sampled.length === 0 || 
+        Math.abs(sampled[sampled.length - 1][0] - lastPt[0]) > 0.000001 ||
+        Math.abs(sampled[sampled.length - 1][1] - lastPt[1]) > 0.000001) {
+      sampled.push(lastPt);
+    }
+    const firstPt = sampled[0];
+    const finalLast = sampled[sampled.length - 1];
+    if (Math.abs(firstPt[0] - finalLast[0]) > 0.000001 || Math.abs(firstPt[1] - finalLast[1]) > 0.000001) {
+      sampled.push([firstPt[0], firstPt[1]]);
+    }
+    return sampled.length >= 4 ? sampled : ring;
+  };
+
+  const simplifyRing = (ring, maxDepth = 5, depth = 0) => {
+    // For rings > 100 points, skip Douglas-Peucker entirely - use uniform sampling immediately
+    if (ring && ring.length > 100) {
+      return uniformSample(ring, 20);
+    }
     
-    let maxDist = 0;
-    let maxIndex = 0;
-    const start = ring[0];
-    const end = ring[ring.length - 1];
+    // For rings > 50 points at any depth, use uniform sampling
+    if (ring && ring.length > 50 && depth > 0) {
+      return uniformSample(ring, 20);
+    }
     
-    for (let i = 1; i < ring.length - 1; i++) {
-      const point = ring[i];
-      const dist = pointToLineDistance(point, start, end);
-      if (dist > maxDist) {
-        maxDist = dist;
-        maxIndex = i;
+    // Prevent infinite recursion - use uniform sampling immediately (suppress warning)
+    if (depth > maxDepth) {
+      return uniformSample(ring, 20);
+    }
+    
+    // For any ring at depth > 2, use uniform sampling
+    if (depth > 2) {
+      return uniformSample(ring, 20);
+    }
+    
+    // Ensure ring has at least 4 points (needed for valid Polygon)
+    if (!ring || ring.length < 4) return ring;
+    
+    // Validate and clean coordinates first
+    const cleanedRing = ring.filter(coord => {
+      if (!Array.isArray(coord) || coord.length < 2) return false;
+      const [lon, lat] = coord;
+      return typeof lon === 'number' && typeof lat === 'number' &&
+             isFinite(lon) && isFinite(lat) &&
+             lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+    });
+    
+    if (cleanedRing.length < 4) return ring; // Can't simplify if too few valid points
+    
+    // Ensure ring is closed (first and last point match) - use tolerance for comparison
+    const first = cleanedRing[0];
+    const last = cleanedRing[cleanedRing.length - 1];
+    const lonDiff = Math.abs(first[0] - last[0]);
+    const latDiff = Math.abs(first[1] - last[1]);
+    const isClosed = lonDiff < 0.000001 && latDiff < 0.000001;
+    const workingRing = isClosed ? cleanedRing : [...cleanedRing, first];
+    
+    // For very high tolerance (>= 0.1), use uniform sampling instead of Douglas-Peucker
+    if (tolerance >= 0.1) {
+      // Use uniform sampling with fewer points for high tolerance
+      const maxPoints = tolerance >= 1.0 ? 20 : (tolerance >= 0.5 ? 25 : 30);
+      return uniformSample(workingRing, maxPoints);
+    }
+    
+    // For rings > 50 points, skip Douglas-Peucker and use uniform sampling
+    if (workingRing.length > 50) {
+      return uniformSample(workingRing, 20);
+    }
+    
+    // If ring is already minimal, return as-is (but ensure closed)
+    if (workingRing.length <= 4) {
+      const firstPt = workingRing[0];
+      const lastPt = workingRing[workingRing.length - 1];
+      const closed = (Math.abs(firstPt[0] - lastPt[0]) < 0.000001 && Math.abs(firstPt[1] - lastPt[1]) < 0.000001)
+        ? workingRing 
+        : [...workingRing.slice(0, -1), firstPt];
+      return closed;
+    }
+    
+    let maxDistance = 0;
+    let index = 0;
+    const start = workingRing[0];
+    const end = workingRing[workingRing.length - 1];
+
+    for (let i = 1; i < workingRing.length - 1; i++) {
+      const d = pointToLineDistance(workingRing[i], start, end);
+      if (d > maxDistance) {
+        maxDistance = d;
+        index = i;
       }
     }
-    
-    if (maxDist > tolerance) {
-      const left = simplifyRing(ring.slice(0, maxIndex + 1), tolerance);
-      const right = simplifyRing(ring.slice(maxIndex), tolerance);
-      return [...left.slice(0, -1), ...right];
+
+    if (maxDistance > tolerance) {
+      // Ensure slices are actually smaller to prevent infinite recursion
+      const slice1 = workingRing.slice(0, index + 1);
+      const slice2 = workingRing.slice(index);
+      
+      // Safety check: if slices aren't getting smaller, use uniform sampling
+      if (slice1.length >= workingRing.length || slice2.length >= workingRing.length) {
+        return uniformSample(workingRing, 20);
+      }
+      
+      // Safety check: if ring is still very large after slicing, use uniform sampling
+      if (slice1.length > 100 || slice2.length > 100 || workingRing.length > 150) {
+        return uniformSample(workingRing, 20);
+      }
+      
+      // Additional safety: if we're already deep in recursion, use uniform sampling
+      if (depth > 1) {
+        return uniformSample(workingRing, 20);
+      }
+      
+      const rec1 = simplifyRing(slice1, maxDepth, depth + 1);
+      const rec2 = simplifyRing(slice2, maxDepth, depth + 1);
+      // Merge: remove duplicate point at junction
+      const simplified = [...rec1.slice(0, -1), ...rec2];
+      // Ensure closed and at least 4 points
+      const firstPt = simplified[0];
+      const lastPt = simplified[simplified.length - 1];
+      const closed = (Math.abs(firstPt[0] - lastPt[0]) < 0.000001 && Math.abs(firstPt[1] - lastPt[1]) < 0.000001)
+        ? simplified 
+        : [...simplified, firstPt];
+      return closed.length >= 4 ? closed : ring;
     } else {
-      return [start, end];
+      // Keep at least 4 points (start, 2 points, close)
+      const minimal = [workingRing[0], workingRing[1], workingRing[workingRing.length - 2], workingRing[workingRing.length - 1]];
+      // Ensure closed
+      const firstPt = minimal[0];
+      const lastPt = minimal[minimal.length - 1];
+      return (Math.abs(firstPt[0] - lastPt[0]) < 0.000001 && Math.abs(firstPt[1] - lastPt[1]) < 0.000001)
+        ? minimal 
+        : [...minimal, firstPt];
     }
-  }
-  
-  function pointToLineDistance(point, lineStart, lineEnd) {
-    const [x0, y0] = point;
-    const [x1, y1] = lineStart;
-    const [x2, y2] = lineEnd;
-    
-    const A = x0 - x1;
-    const B = y0 - y1;
+  };
+
+  const pointToLineDistance = (point, lineStart, lineEnd) => {
+    const x = point[0];
+    const y = point[1];
+    const x1 = lineStart[0];
+    const y1 = lineStart[1];
+    const x2 = lineEnd[0];
+    const y2 = lineEnd[1];
+
+    const A = x - x1;
+    const B = y - y1;
     const C = x2 - x1;
     const D = y2 - y1;
-    
+
     const dot = A * C + B * D;
-    const lenSq = C * C + D * D;
-    let param = lenSq !== 0 ? dot / lenSq : -1;
-    
+    const len_sq = C * C + D * D;
+    let param = -1;
+    if (len_sq !== 0) {
+      param = dot / len_sq;
+    }
+
     let xx, yy;
     if (param < 0) {
-      xx = x1; yy = y1;
+      xx = x1;
+      yy = y1;
     } else if (param > 1) {
-      xx = x2; yy = y2;
+      xx = x2;
+      yy = y2;
     } else {
       xx = x1 + param * C;
       yy = y1 + param * D;
     }
-    
-    const dx = x0 - xx;
-    const dy = y0 - yy;
+
+    const dx = x - xx;
+    const dy = y - yy;
     return Math.sqrt(dx * dx + dy * dy);
-  }
-  
+  };
+
   if (geometry.type === 'Polygon') {
+    const simplified = geometry.coordinates.map(ring => simplifyRing(ring, 5, 0));
+    // Validate: ensure all rings have at least 4 points and are closed
+    const validRings = simplified.filter(ring => {
+      if (!ring || ring.length < 4) return false;
+      // Ensure ring is closed
+      const first = ring[0];
+      const last = ring[ring.length - 1];
+      if (first[0] !== last[0] || first[1] !== last[1]) return false;
+      // Validate all coordinates
+      return ring.every(coord => {
+        if (!Array.isArray(coord) || coord.length < 2) return false;
+        const [lon, lat] = coord;
+        return typeof lon === 'number' && typeof lat === 'number' &&
+               isFinite(lon) && isFinite(lat) &&
+               lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+      });
+    });
+    if (validRings.length === 0) {
+      // Return original if simplification made it invalid
+      return geometry;
+    }
     return {
-      ...geometry,
-      coordinates: geometry.coordinates.map(ring => simplifyRing(ring, tolerance))
+      type: 'Polygon',
+      coordinates: validRings
     };
   } else if (geometry.type === 'MultiPolygon') {
+    const simplified = geometry.coordinates.map(poly => poly.map(ring => simplifyRing(ring, 5, 0)));
+    // Validate: ensure all polygons have at least one valid ring
+    const validPolygons = simplified.filter(poly => {
+      if (!poly || poly.length === 0) return false;
+      return poly.some(ring => {
+        if (!ring || ring.length < 4) return false;
+        // Ensure ring is closed - allow small floating point differences
+        const first = ring[0];
+        const last = ring[ring.length - 1];
+        const lonDiff = Math.abs(first[0] - last[0]);
+        const latDiff = Math.abs(first[1] - last[1]);
+        if (lonDiff > 0.000001 || latDiff > 0.000001) return false; // Allow tiny floating point differences
+        // Validate coordinates
+        return ring.every(coord => {
+          if (!Array.isArray(coord) || coord.length < 2) return false;
+          const [lon, lat] = coord;
+          return typeof lon === 'number' && typeof lat === 'number' &&
+                 isFinite(lon) && isFinite(lat) &&
+                 lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+        });
+      });
+    });
+    if (validPolygons.length === 0) {
+      // Return original if simplification made it invalid
+      return geometry;
+    }
     return {
-      ...geometry,
-      coordinates: geometry.coordinates.map(polygon =>
-        polygon.map(ring => simplifyRing(ring, tolerance))
-      )
+      type: 'MultiPolygon',
+      coordinates: validPolygons
     };
+  }
+  return geometry;
+}
+
+// Fix common polygon geometry issues
+function fixPolygonGeometry(geometry) {
+  if (!geometry || !geometry.coordinates) return geometry;
+  
+  const fixRing = (ring) => {
+    if (!Array.isArray(ring) || ring.length < 3) return ring;
+    
+    // Filter invalid coordinates
+    const valid = ring.filter(coord => {
+      if (!Array.isArray(coord) || coord.length < 2) return false;
+      const [lon, lat] = coord;
+      return typeof lon === 'number' && typeof lat === 'number' &&
+             isFinite(lon) && isFinite(lat) &&
+             lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+    });
+    
+    if (valid.length < 4) return ring; // Need at least 4 points for valid polygon
+    
+    // Ensure ring is closed - check with tolerance for floating point precision
+    const first = valid[0];
+    const last = valid[valid.length - 1];
+    const lonDiff = Math.abs(first[0] - last[0]);
+    const latDiff = Math.abs(first[1] - last[1]);
+    if (lonDiff > 0.000001 || latDiff > 0.000001) {
+      return [...valid, first];
+    }
+    return valid;
+  };
+  
+  if (geometry.type === 'Polygon') {
+    const fixed = geometry.coordinates.map(fixRing).filter(ring => ring && ring.length >= 4);
+    if (fixed.length === 0) return geometry;
+    return { type: 'Polygon', coordinates: fixed };
+  }
+  
+  if (geometry.type === 'MultiPolygon') {
+    const fixed = geometry.coordinates.map(poly => 
+      poly.map(fixRing).filter(ring => ring && ring.length >= 4)
+    ).filter(poly => poly.length > 0);
+    if (fixed.length === 0) return geometry;
+    return { type: 'MultiPolygon', coordinates: fixed };
   }
   
   return geometry;
 }
 
-function buildGeoJSONOverlay(point, polygons, adminArea, options = {}) {
-  const {
-    includePolygons = true,
-    includeAdminArea = true
-  } = options;
+// Validate GeoJSON feature with comprehensive checks
+function isValidGeoJSONFeature(feature) {
+  if (!feature || !feature.geometry) return false;
+  const geom = feature.geometry;
+  
+  // Check for valid geometry type
+  const validTypes = ['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon'];
+  if (!geom.type || !validTypes.includes(geom.type)) return false;
+  
+  if (!geom.coordinates || !Array.isArray(geom.coordinates)) return false;
+  
+  if (geom.type === 'Polygon') {
+    if (geom.coordinates.length === 0) return false;
+    // Check each ring
+    for (const ring of geom.coordinates) {
+      if (!Array.isArray(ring) || ring.length < 4) return false;
+      // Check that coordinates are valid numbers
+      for (const coord of ring) {
+        if (!Array.isArray(coord) || coord.length < 2) return false;
+        const [lon, lat] = coord;
+        if (typeof lon !== 'number' || typeof lat !== 'number' || 
+            !isFinite(lon) || !isFinite(lat) ||
+            lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+          return false;
+        }
+      }
+      // Check that first and last coordinates match (closed ring) - allow small floating point differences
+      const first = ring[0];
+      const last = ring[ring.length - 1];
+      const lonDiff = Math.abs(first[0] - last[0]);
+      const latDiff = Math.abs(first[1] - last[1]);
+      if (lonDiff > 0.000001 || latDiff > 0.000001) return false; // Allow tiny floating point differences
+    }
+    return true;
+  }
+  
+  if (geom.type === 'MultiPolygon') {
+    if (geom.coordinates.length === 0) return false;
+    for (const poly of geom.coordinates) {
+      if (!Array.isArray(poly) || poly.length === 0) return false;
+      for (const ring of poly) {
+        if (!Array.isArray(ring) || ring.length < 4) return false;
+        // Validate coordinates
+        for (const coord of ring) {
+          if (!Array.isArray(coord) || coord.length < 2) return false;
+          const [lon, lat] = coord;
+          if (typeof lon !== 'number' || typeof lat !== 'number' || 
+              !isFinite(lon) || !isFinite(lat) ||
+              lon < -180 || lon > 180 || lat < -90 || lat > 90) {
+            return false;
+          }
+        }
+        // Check closed ring - allow small floating point differences
+        const first = ring[0];
+        const last = ring[ring.length - 1];
+        const lonDiff = Math.abs(first[0] - last[0]);
+        const latDiff = Math.abs(first[1] - last[1]);
+        if (lonDiff > 0.000001 || latDiff > 0.000001) return false; // Allow tiny floating point differences
+      }
+    }
+    return true;
+  }
+  
+  // Point - validate coordinates
+  if (geom.type === 'Point') {
+    if (!Array.isArray(geom.coordinates) || geom.coordinates.length < 2) return false;
+    const [lon, lat] = geom.coordinates;
+    return typeof lon === 'number' && typeof lat === 'number' && 
+           isFinite(lon) && isFinite(lat) &&
+           lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+  }
+  
+  // LineString - validate coordinates
+  if (geom.type === 'LineString') {
+    if (!Array.isArray(geom.coordinates) || geom.coordinates.length < 2) return false;
+    return geom.coordinates.every(coord => {
+      if (!Array.isArray(coord) || coord.length < 2) return false;
+      const [lon, lat] = coord;
+      return typeof lon === 'number' && typeof lat === 'number' && 
+             isFinite(lon) && isFinite(lat) &&
+             lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90;
+    });
+  }
+  
+  // Other types - basic validation
+  return true;
+}
+
+function geometryToBoundingBoxPolygon(geometry) {
+  if (!geometry || !geometry.coordinates) return null;
+
+  const collectPoints = coords => {
+    if (!coords) return [];
+    if (typeof coords[0] === 'number') {
+      const [lon, lat] = coords;
+      if (isFinite(lon) && isFinite(lat)) {
+        return [[lon, lat]];
+      }
+      return [];
+    }
+    return coords.flatMap(collectPoints);
+  };
+
+  const points = collectPoints(geometry.coordinates);
+  if (!points.length) return null;
+
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const [lon, lat] of points) {
+    minLon = Math.min(minLon, lon);
+    maxLon = Math.max(maxLon, lon);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  }
+
+  if (!isFinite(minLon) || !isFinite(maxLon) || !isFinite(minLat) || !isFinite(maxLat)) {
+    return null;
+  }
+
+  // Expand bbox slightly so zero-width polygons still render
+  const padding = 0.001;
+  minLon -= padding;
+  maxLon += padding;
+  minLat -= padding;
+  maxLat += padding;
+
+  const ring = [
+    [minLon, minLat],
+    [maxLon, minLat],
+    [maxLon, maxLat],
+    [minLon, maxLat],
+    [minLon, minLat]
+  ];
+  return { type: 'Polygon', coordinates: [ring] };
+}
+
+function createBoundingBoxFeature(geometry, stroke, fillOpacity) {
+  if (!geometry) return null;
+  const bboxPolygon = geometryToBoundingBoxPolygon(geometry);
+  if (!bboxPolygon) return null;
+  return {
+    type: 'Feature',
+    geometry: bboxPolygon,
+    properties: {
+      stroke,
+      'stroke-width': 2,
+      'stroke-opacity': 0.9,
+      fill: stroke,
+      'fill-opacity': fillOpacity
+    }
+  };
+}
+
+function buildGeoJSONOverlay(point, polygons, adminArea) {
   const features = [];
   
   // GPS point marker
@@ -193,657 +520,549 @@ function buildGeoJSONOverlay(point, polygons, adminArea, options = {}) {
     properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
   });
   
-  // 2-mile circle (approximate as polygon)
+  // 2-mile circle (approximate as polygon) - reduced to 32 points to save space
   const radiusKm = 1.60934;
   const points = [];
-  for (let i = 0; i < 64; i++) {
-    const angle = (i / 64) * 2 * Math.PI;
+  const circlePoints = 32; // Reduced from 64 to save URL space
+  for (let i = 0; i < circlePoints; i++) {
+    const angle = (i / circlePoints) * 2 * Math.PI;
     const latOffset = (radiusKm / 111.0) * Math.cos(angle);
     const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
     points.push([point.lon + lonOffset, point.lat + latOffset]);
   }
-  points.push(points[0]);
+  // Ensure circle is closed (first and last point match)
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
+    points.push([firstPoint[0], firstPoint[1]]);
+  }
+  
+  // Always include the circle - it's generated correctly
   features.push({
     type: 'Feature',
     geometry: { type: 'Polygon', coordinates: [points] },
     properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
   });
+  console.log(`    Added 2-mile circle with ${points.length} points`);
   
-  // Add city polygons
-  if (includePolygons && polygons && polygons.length > 0) {
-    polygons.forEach((p, idx) => {
-      if (p.polygon && p.polygon.geometry) {
-        const color = idx === 0 ? '#2563eb' : '#22c55e';
-        features.push({
-          type: 'Feature',
-          geometry: simplifyPolygon(p.polygon.geometry, 0.0001),
-          properties: { stroke: color, 'stroke-width': 4, fill: color, 'fill-opacity': 0.3 }
-        });
+  // Add scale bar (10km scale bar in bottom-left corner)
+  // Calculate 10km in degrees at this latitude
+  const scaleKm = 10;
+  const latDegrees = scaleKm / 111.0;
+  const lonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
+  
+  // Position scale bar in bottom-left (offset from center)
+  const scaleLat = point.lat - 0.15; // Move down
+  const scaleLon = point.lon - 0.15; // Move left
+  
+  // Scale bar line (horizontal)
+  const scaleBar = {
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: [
+        [scaleLon, scaleLat],
+        [scaleLon + lonDegrees, scaleLat]
+      ]
+    },
+    properties: {
+      stroke: '#000000',
+      'stroke-width': 4,
+      'stroke-opacity': 0.8
+    }
+  };
+  features.push(scaleBar);
+  
+  // Scale bar endpoints (vertical ticks)
+  const tickLength = 0.005; // Small tick length
+  features.push({
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: [
+        [scaleLon, scaleLat - tickLength],
+        [scaleLon, scaleLat + tickLength]
+      ]
+    },
+    properties: {
+      stroke: '#000000',
+      'stroke-width': 4,
+      'stroke-opacity': 0.8
+    }
+  });
+  features.push({
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: [
+        [scaleLon + lonDegrees, scaleLat - tickLength],
+        [scaleLon + lonDegrees, scaleLat + tickLength]
+      ]
+    },
+    properties: {
+      stroke: '#000000',
+      'stroke-width': 4,
+      'stroke-opacity': 0.8
+    }
+  });
+  
+  // Add city bounding boxes (keep just first two to minimize URL size)
+  if (Array.isArray(polygons) && polygons.length > 0) {
+    polygons.slice(0, 2).forEach((p, idx) => {
+      const geometry = p?.polygon?.geometry;
+      if (!geometry) return;
+      const fixedGeometry = fixPolygonGeometry(geometry);
+      const bboxFeature = createBoundingBoxFeature(
+        fixedGeometry,
+        idx === 0 ? '#2563eb' : '#22c55e',
+        0.08
+      );
+      if (bboxFeature) {
+        features.push(bboxFeature);
+        console.log(`    Added city bounding box ${idx + 1} for ${point.id || 'unknown'}`);
+      } else {
+        console.warn(`    Skipping city polygon ${idx + 1} for ${point.id || 'unknown'} (unable to derive bounding box)`);
       }
     });
   }
   
-  // Admin area polygon
-  if (includeAdminArea && adminArea && adminArea.polygon && adminArea.polygon.geometry) {
-    features.push({
-      type: 'Feature',
-      geometry: simplifyPolygon(adminArea.polygon.geometry, 0.0001),
-      properties: { stroke: '#dc2626', 'stroke-width': 4, fill: '#dc2626', 'fill-opacity': 0.25 }
-    });
+  // Admin area bounding box
+  if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
+    const fixedGeometry = fixPolygonGeometry(adminArea.polygon.geometry);
+    const bboxFeature = createBoundingBoxFeature(fixedGeometry, '#dc2626', 0.12);
+    if (bboxFeature) {
+      features.push(bboxFeature);
+      console.log(`    Added admin bounding box for ${point.id || 'unknown'}`);
+    } else {
+      console.warn(`    Skipping admin area for ${point.id || 'unknown'} (unable to derive bounding box)`);
+    }
   }
+  
+  console.log(`    Total features in overlay: ${features.length} (Point: 1, Circle: 1, Boxes: ${features.length - 2})`);
   
   return { type: 'FeatureCollection', features };
 }
 
 function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token) {
   return new Promise((resolve, reject) => {
+    // Declare url at the very top to avoid temporal dead zone issues
+    // Initialize to undefined explicitly
+    let url = undefined;
+    
     const zoom = calculateZoomForWidth(point.lat, 40);
-    const overlayOptions = USE_EXTERNAL_STYLE
-      ? { includePolygons: false, includeAdminArea: false }
-      : {};
-    const overlay = buildGeoJSONOverlay(point, polygons, adminArea, overlayOptions);
-    const overlayJson = JSON.stringify(overlay);
-    const overlayEncoded = encodeURIComponent(overlayJson);
-
-    if (!token) {
-      const errorMsg = 'Mapbox token required. Set MAPBOX_ACCESS_TOKEN environment variable.';
-      console.error(`    ❌ ${errorMsg}`);
-      reject(new Error(errorMsg));
-      return;
-    }
-
+    
+    // Build overlay
+    let overlay = buildGeoJSONOverlay(point, polygons, adminArea);
+    let overlayJson = JSON.stringify(overlay);
+    let overlayEncoded = encodeURIComponent(overlayJson);
+    
+    // Log debug info
     const polygonCount = overlay.features.filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon').length;
-    if (USE_EXTERNAL_STYLE) {
-      console.log(`    Building inline overlay: ${overlay.features.length} lightweight features (polygons served via Mapbox style)`);
-    } else {
-      console.log(`    Building overlay: ${overlay.features.length} features (${polygonCount} polygons)`);
-    }
-
-    function pipeResponse(res) {
-      const file = fs.createWriteStream(outputPath);
-      res.pipe(file);
-      file.on('finish', () => { file.close(); resolve(); });
-      file.on('error', reject);
-    }
-
-    if (USE_EXTERNAL_STYLE) {
-      const overlaySegment = overlay.features.length ? `geojson(${overlayEncoded})/` : '';
-      const url = `https://api.mapbox.com/styles/v1/${MAPBOX_STYLE_REFERENCE}/static/${overlaySegment}${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
-
-      https.get(url, res => {
-        if (res.statusCode === 200) {
-          pipeResponse(res);
-        } else {
-          let errorBody = '';
-          res.on('data', chunk => errorBody += chunk);
-          res.on('end', () => {
-            const errorMsg = errorBody.substring(0, 200);
-            console.error(`    ❌ Mapbox style API ${res.statusCode}: ${errorMsg}`);
-            reject(new Error(`Mapbox style API ${res.statusCode}: ${errorMsg}`));
-          });
-        }
-      }).on('error', reject);
-
-      return;
-    }
-
-    // Try progressively simpler tolerances if URL is too long
-    let finalOverlay = overlay;
-    let finalEncoded = overlayEncoded;
-    let tolerance = 0.0001;
-    const maxAttempts = 5;
-    let simpleFallbackAttempted = false;
-
-    function requestSimpleMap() {
-      if (simpleFallbackAttempted) return;
-      simpleFallbackAttempted = true;
-      const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
-      console.warn('    ⚠️ Falling back to simple map without overlays');
-      https.get(simpleUrl, res => handleResponse(res, { isSimple: true }))
-        .on('error', reject);
-    }
-
-    function handleResponse(res, { isSimple = false } = {}) {
+    const pointCount = overlay.features.filter(f => f.geometry.type === 'Point').length;
+    console.log(`    Building overlay: ${overlay.features.length} features (${pointCount} points, ${polygonCount} polygons)`);
+    
+    // Debug: log what features we have
+    overlay.features.forEach((f, idx) => {
+      console.log(`      Feature ${idx + 1}: ${f.geometry.type}${f.properties ? ` (${Object.keys(f.properties).join(', ')})` : ''}`);
+    });
+    
+    let isFallbackRequest = false;
+    
+    function handleResponse(res) {
       if (res.statusCode === 200) {
-        pipeResponse(res);
+        const file = fs.createWriteStream(outputPath);
+        res.pipe(file);
+        file.on('finish', () => {
+          file.close();
+          resolve();
+        });
+        file.on('error', reject);
+      } else if (res.statusCode === 422 && !isFallbackRequest) {
+        // Invalid GeoJSON - fall back to simple map without overlays (only once)
+        let errorBody = '';
+        res.on('data', chunk => {
+          errorBody += chunk;
+        });
+        res.on('end', () => {
+          console.warn(`    Invalid GeoJSON detected (422), trying minimal overlay (point + circle only)`);
+          isFallbackRequest = true;
+          // Try minimal overlay (just point + circle)
+          // Generate circle points
+          const radiusKm = 1.60934;
+          const circlePoints = [];
+          for (let i = 0; i < 64; i++) {
+            const angle = (i / 64) * 2 * Math.PI;
+            const latOffset = (radiusKm / 111.0) * Math.cos(angle);
+            const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+            circlePoints.push([point.lon + lonOffset, point.lat + latOffset]);
+          }
+          circlePoints.push(circlePoints[0]); // Close circle
+          
+          const minimalOverlay = {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
+                properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
+              },
+              {
+                type: 'Feature',
+                geometry: { type: 'Polygon', coordinates: [circlePoints] },
+                properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+              }
+            ]
+          };
+          const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
+          const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+          
+          if (minimalUrl.length <= 8000) {
+            console.log(`    Using minimal overlay (point + circle) - URL length: ${minimalUrl.length}`);
+            https.get(minimalUrl, handleResponse);
+          } else {
+            console.warn(`    Minimal overlay also too long, falling back to simple map`);
+            const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+            https.get(simpleUrl, handleResponse);
+          }
+        });
       } else {
         let errorBody = '';
-        res.on('data', chunk => errorBody += chunk);
+        res.on('data', chunk => {
+          errorBody += chunk;
+        });
         res.on('end', () => {
-          if (!isSimple && res.statusCode === 422 && !simpleFallbackAttempted) {
-            console.warn('    ⚠️ Mapbox API 422 (Invalid GeoJSON). Retrying without overlays.');
-            requestSimpleMap();
-            return;
-          }
           const errorMsg = errorBody.substring(0, 200);
-          console.error(`    ❌ Mapbox API ${res.statusCode}: ${errorMsg}`);
-          reject(new Error(`Mapbox API ${res.statusCode}: ${errorMsg}`));
+          const fullErrorMsg = 'Mapbox API ' + res.statusCode + ': ' + errorMsg;
+          console.error('    Mapbox API error:', res.statusCode, errorMsg);
+          reject(new Error(fullErrorMsg));
         });
       }
     }
+    
+    if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
+      url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+      
+      // Increased URL length limit - Chrome supports up to 2MB, but we'll use 32KB for safety
+      // Mapbox Static Images API should handle this, but if it fails we'll fall back
+      const MAX_URL_LENGTH = 32000;
+      let simplificationAttempts = 0;
+      // More gradual tolerance progression to preserve shape better
+      // Start with very small tolerance and increase gradually
+      const toleranceSteps = [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0];
+      let currentTolerance = toleranceSteps[0];
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${finalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+      while (url && url.length > MAX_URL_LENGTH && simplificationAttempts < toleranceSteps.length) {
+        simplificationAttempts++;
+        currentTolerance = toleranceSteps[simplificationAttempts - 1];
+        console.warn(`    URL too long (${url.length} chars). Attempting simplification with tolerance: ${currentTolerance}`);
 
-      if (url.length <= 8000) {
-        // URL is acceptable, use it
-        if (attempt > 0) {
-          console.log(`    ✅ Simplified polygons (tolerance: ${tolerance.toFixed(6)}) to fit URL (${url.length} chars)`);
-        }
-        https.get(url, res => handleResponse(res));
-        return;
-      }
-
-      // URL too long, simplify more aggressively
-      if (attempt < maxAttempts - 1) {
-        tolerance *= 2; // Increase tolerance (simplify more)
-        const simplifiedFeatures = finalOverlay.features.map(f => {
-          if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
-            return {
-              ...f,
-              geometry: simplifyPolygon(f.geometry, tolerance)
-            };
+        const simplifiedFeatures = overlay.features.map(feature => {
+          if (feature.geometry && (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon')) {
+            // Simplify and fix geometry
+            let simplified = simplifyPolygon(feature.geometry, currentTolerance);
+            simplified = fixPolygonGeometry(simplified); // Fix any issues introduced by simplification
+            return { ...feature, geometry: simplified };
           }
-          return f;
-        });
-        finalOverlay = { type: 'FeatureCollection', features: simplifiedFeatures };
-        finalEncoded = encodeURIComponent(JSON.stringify(finalOverlay));
+          return feature;
+        }).filter(isValidGeoJSONFeature); // Filter out invalid features
+        
+        if (simplifiedFeatures.length === 0) {
+          console.warn(`    All features became invalid after simplification, skipping simplification`);
+          break; // Stop simplification attempts
+        }
+        
+        overlay = { type: 'FeatureCollection', features: simplifiedFeatures };
+        overlayJson = JSON.stringify(overlay);
+        overlayEncoded = encodeURIComponent(overlayJson);
+        url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
       }
-    }
 
-    // If still too long after all attempts, use simple map
-    console.warn(`    ⚠️ URL still too long after simplification (${finalEncoded.length} chars), using simple map without overlays`);
-    requestSimpleMap();
+      if (url && url.length > MAX_URL_LENGTH) {
+        console.warn(`    URL still too long after simplification (${url.length} chars), trying minimal overlay (point + circle + scale)`);
+        // Try minimal overlay with just point, circle, and scale bar
+        const radiusKm = 1.60934;
+        const circlePoints = [];
+        for (let i = 0; i < 64; i++) {
+          const angle = (i / 64) * 2 * Math.PI;
+          const latOffset = (radiusKm / 111.0) * Math.cos(angle);
+          const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+          circlePoints.push([point.lon + lonOffset, point.lat + latOffset]);
+        }
+        circlePoints.push(circlePoints[0]);
+        
+        // Scale bar
+        const scaleKm = 10;
+        const scaleLatDegrees = scaleKm / 111.0;
+        const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
+        const scaleLat = point.lat - 0.15;
+        const scaleLon = point.lon - 0.15;
+        const tickLength = 0.005;
+        
+        const minimalOverlay = {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
+              properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
+            },
+            {
+              type: 'Feature',
+              geometry: { type: 'Polygon', coordinates: [circlePoints] },
+              properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+            },
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
+              },
+              properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+            },
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
+              },
+              properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+            },
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
+              },
+              properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+            }
+          ]
+        };
+        const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
+        const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+        
+        if (minimalUrl.length <= 8000) {
+          console.log(`    Using minimal overlay (point + circle + scale) - URL length: ${minimalUrl.length}`);
+          https.get(minimalUrl, handleResponse);
+        } else {
+          console.warn(`    Minimal overlay also too long (${minimalUrl.length} chars), using simple map without overlays`);
+          const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+          https.get(simpleUrl, handleResponse);
+        }
+      } else {
+        // Validate all features before sending
+        const invalidFeatures = overlay.features.filter(f => !isValidGeoJSONFeature(f));
+        if (invalidFeatures.length > 0) {
+          console.warn(`    Found ${invalidFeatures.length} invalid features, filtering them out`);
+          overlay.features = overlay.features.filter(f => isValidGeoJSONFeature(f));
+          overlayJson = JSON.stringify(overlay);
+          overlayEncoded = encodeURIComponent(overlayJson);
+          url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+        }
+        
+        // Final validation before sending
+        if (overlay.features.length === 0) {
+          console.warn(`    No valid features remaining, trying minimal overlay (point + circle + scale)`);
+          // Build minimal overlay with point, circle, and scale
+          const radiusKm = 1.60934;
+          const circlePoints = [];
+          for (let i = 0; i < 64; i++) {
+            const angle = (i / 64) * 2 * Math.PI;
+            const latOffset = (radiusKm / 111.0) * Math.cos(angle);
+            const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+            circlePoints.push([point.lon + lonOffset, point.lat + latOffset]);
+          }
+          circlePoints.push(circlePoints[0]);
+          
+          const scaleKm = 10;
+          const scaleLatDegrees = scaleKm / 111.0;
+          const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
+          const scaleLat = point.lat - 0.15;
+          const scaleLon = point.lon - 0.15;
+          const tickLength = 0.005;
+          
+          const minimalOverlay = {
+            type: 'FeatureCollection',
+            features: [
+              {
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
+                properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
+              },
+              {
+                type: 'Feature',
+                geometry: { type: 'Polygon', coordinates: [circlePoints] },
+                properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+              },
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
+                },
+                properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+              },
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
+                },
+                properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+              },
+              {
+                type: 'Feature',
+                geometry: {
+                  type: 'LineString',
+                  coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
+                },
+                properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+              }
+            ]
+          };
+          const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
+          const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+          
+          if (minimalUrl.length <= 8000) {
+            console.log(`    Using minimal overlay - URL length: ${minimalUrl.length}`);
+            https.get(minimalUrl, handleResponse);
+          } else {
+            console.warn(`    Minimal overlay too long, using simple map without overlays`);
+            const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+            https.get(simpleUrl, handleResponse);
+          }
+        } else {
+          try {
+            const testJson = JSON.parse(overlayJson);
+            if (!testJson.type || testJson.type !== 'FeatureCollection' || !Array.isArray(testJson.features) || testJson.features.length === 0) {
+              throw new Error('Invalid FeatureCollection structure');
+            }
+            // If validation passes, send the request
+            if (url) {
+              https.get(url, handleResponse);
+            } else {
+              reject(new Error('URL not initialized'));
+            }
+          } catch (validationError) {
+            console.warn(`    GeoJSON validation failed: ${validationError.message}, trying minimal overlay`);
+            // Build minimal overlay with point, circle, and scale
+            const radiusKm = 1.60934;
+            const circlePoints = [];
+            for (let i = 0; i < 64; i++) {
+              const angle = (i / 64) * 2 * Math.PI;
+              const latOffset = (radiusKm / 111.0) * Math.cos(angle);
+              const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+              circlePoints.push([point.lon + lonOffset, point.lat + latOffset]);
+            }
+            circlePoints.push(circlePoints[0]);
+            
+            const scaleKm = 10;
+            const scaleLatDegrees = scaleKm / 111.0;
+            const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
+            const scaleLat = point.lat - 0.15;
+            const scaleLon = point.lon - 0.15;
+            const tickLength = 0.005;
+            
+            const minimalOverlay = {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
+                  properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
+                },
+                {
+                  type: 'Feature',
+                  geometry: { type: 'Polygon', coordinates: [circlePoints] },
+                  properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+                },
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
+                  },
+                  properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                },
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
+                  },
+                  properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                },
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
+                  },
+                  properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                }
+              ]
+            };
+            const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
+            const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+            
+            if (minimalUrl.length <= 8000) {
+              console.log(`    Using minimal overlay - URL length: ${minimalUrl.length}`);
+              https.get(minimalUrl, handleResponse);
+            } else {
+              console.warn(`    Minimal overlay too long, using simple map without overlays`);
+              const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+              https.get(simpleUrl, handleResponse);
+            }
+          }
+        }
+      }
+    } else {
+      const errorMsg = 'Mapbox token required. Set MAPBOX_ACCESS_TOKEN environment variable.';
+      console.error(`    Error: ${errorMsg}`);
+      reject(new Error(errorMsg));
+    }
   });
 }
-function createHTML(data) {
-  const { point, geocode, polygons, adminArea } = data;
-  const results = geocode.results.slice(0, 2);
-  
-  // Build polygon GeoJSON for map (nearest cities)
-  const polygonFeatures = polygons
-    .filter(p => p.polygon)
-    .map((p, idx) => ({
-      type: 'Feature',
-      properties: {
-        name: p.city.name,
-        distance: p.city.distanceKm,
-        index: idx
-      },
-      geometry: p.polygon.geometry
-    }));
-  
-  const polygonGeoJSON = {
-    type: 'FeatureCollection',
-    features: polygonFeatures
-  };
-  
-  // Admin area polygon (red) - smallest administrative area containing GPS point
-  const adminAreaGeoJSON = adminArea && adminArea.polygon ? {
-    type: 'Feature',
-    properties: {
-      name: adminArea.name,
-      adminLevel: adminArea.adminLevel,
-      population: adminArea.population
-    },
-    geometry: adminArea.polygon.geometry
-  } : null;
-  
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Locate Me - ${point.id}</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: Inter, system-ui, -apple-system, sans-serif;
-      background: #fafafa;
-      padding: 20px;
-      width: 1200px;
-      margin: 0 auto;
-    }
-    .container {
-      display: flex;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    .cards {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: 300px;
-    }
-    .card {
-      background: white;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border: 1px solid #e4e4e7;
-    }
-    .card.admin-area {
-      border-left: 4px solid #dc2626;
-    }
-    .card h3 {
-      font-size: 18px;
-      font-weight: 600;
-      color: #27272a;
-      margin-bottom: 8px;
-    }
-    .card .location {
-      color: #71717a;
-      font-size: 14px;
-      margin-bottom: 8px;
-    }
-    .card .distance {
-      color: #da3d16;
-      font-weight: 600;
-      font-size: 16px;
-    }
-    .card .details {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #71717a;
-    }
-    .map-container {
-      flex: 1;
-      height: 400px;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border: 1px solid #e4e4e7;
-    }
-            #map {
-              width: 100%;
-              height: 100%;
-            }
-            /* Ensure scale control is visible */
-            .leaflet-control-scale {
-              background: rgba(255, 255, 255, 0.95) !important;
-              border: 2px solid #000 !important;
-              border-top: none !important;
-              border-radius: 4px !important;
-              padding: 5px 10px !important;
-              font-weight: bold !important;
-              box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
-              color: #000 !important;
-              z-index: 1000 !important;
-            }
-            .leaflet-control-scale-line {
-              border: 2px solid #000 !important;
-              border-top: none !important;
-              background: rgba(255, 255, 255, 0.95) !important;
-              color: #000 !important;
-              font-weight: bold !important;
-            }
-    .info {
-      background: white;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border: 1px solid #e4e4e7;
-      font-size: 12px;
-      color: #71717a;
-    }
-    .info strong {
-      color: #27272a;
-    }
-    /* Ensure scale control is visible */
-    .leaflet-control-scale {
-      background: rgba(255, 255, 255, 0.95) !important;
-      border: 2px solid #000 !important;
-      border-top: none !important;
-      border-radius: 4px !important;
-      padding: 5px 10px !important;
-      font-weight: bold !important;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
-      color: #000 !important;
-      z-index: 1000 !important;
-    }
-    .leaflet-control-scale-line {
-      border: 2px solid #000 !important;
-      border-top: none !important;
-      background: rgba(255, 255, 255, 0.95) !important;
-      color: #000 !important;
-      font-weight: bold !important;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="cards">
-      ${adminArea ? `
-        <div class="card admin-area">
-          <h3>🗺️ Administrative Area</h3>
-          <div class="location">${adminArea.name}</div>
-          <div class="details">
-            Admin Level: ${adminArea.adminLevel}
-            ${adminArea.population ? ` · Pop: ${adminArea.population.toLocaleString()}` : ''}
-          </div>
-        </div>
-      ` : ''}
-      ${results.map((result, idx) => `
-        <div class="card">
-          <h3>${idx === 0 ? '📍 Nearest' : '📍 Second'}</h3>
-          <div class="location">${result.name}</div>
-          <div class="distance">${formatDistance(result.distanceKm)} away</div>
-          <div class="details">
-            ${result.admin1 ? `${result.admin1}, ` : ''}${result.country}
-            ${result.population ? ` · Pop: ${result.population.toLocaleString()}` : ''}
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="map-container">
-      <div id="map"></div>
-    </div>
-  </div>
-  <div class="info">
-    <strong>GPS Point:</strong> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)} 
-    <strong>· Country:</strong> ${point.country}
-    <strong>· ID:</strong> ${point.id}
-  </div>
-  
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    function formatDistanceKm(km) {
-      if (km < 1) return (km * 1000).toFixed(0) + ' m';
-      return km.toFixed(1) + ' km';
-    }
-    
-    const point = ${JSON.stringify(point)};
-    const polygons = ${JSON.stringify(polygonGeoJSON)};
-    const adminAreaPolygon = ${adminAreaGeoJSON ? JSON.stringify(adminAreaGeoJSON) : 'null'};
-    
-    // Initialize map - will fit bounds after adding features
-    const map = L.map('map').setView([point.lat, point.lon], 10);
-    
-    // Add tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
-      maxZoom: 19
-    }).addTo(map);
-    
-    // Add scale control with better visibility
-    L.control.scale({
-      metric: true,
-      imperial: false,
-      position: 'bottomleft',
-      maxWidth: 200
-    }).addTo(map);
-    
-    // Wait for map to be ready
-    map.whenReady(function() {
-      // Add GPS point marker
-      const marker = L.circleMarker([point.lat, point.lon], {
-        radius: 8,
-        fillColor: '#da3d16',
-        color: '#fff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-      }).addTo(map).bindPopup('GPS Location');
-      
-      // Add blue 2-mile diameter circle (1 mile radius = 1609.34 meters)
-      const twoMileCircle = L.circle([point.lat, point.lon], {
-        radius: 1609.34,
-        color: '#2563eb',
-        fillColor: '#2563eb',
-        fillOpacity: 0.15,
-        weight: 3,
-        dashArray: '8, 4'
-      }).addTo(map).bindPopup('2-mile radius');
-      
-      // Add circle around GPS point (20km radius to match filter)
-      const circle = L.circle([point.lat, point.lon], {
-        radius: 20000,
-        color: '#da3d16',
-        fillColor: '#da3d16',
-        fillOpacity: 0.1,
-        weight: 2,
-        dashArray: '5, 5'
-      }).addTo(map);
-      
-      // Add administrative area polygon (red) - smallest admin area containing GPS point
-      let adminAreaLayer = null;
-      if (adminAreaPolygon && adminAreaPolygon.geometry) {
-        try {
-          adminAreaLayer = L.geoJSON(adminAreaPolygon, {
-            style: {
-              color: '#dc2626',
-              weight: 4,
-              opacity: 1.0,
-              fillColor: '#dc2626',
-              fillOpacity: 0.25
-            }
-          }).addTo(map);
-          
-          if (adminAreaPolygon.properties && adminAreaPolygon.properties.name) {
-            adminAreaLayer.bindPopup(adminAreaPolygon.properties.name + ' (Admin Area)');
-          }
-          console.log('Added admin area polygon:', adminAreaPolygon.properties?.name || 'unknown');
-        } catch (e) {
-          console.error('Failed to add admin area polygon:', e);
-        }
-      }
-      
-      // Add polygons with more visible styling
-      const polygonLayers = [];
-      let polygonCount = 0;
-      
-      polygons.features.forEach((feature, idx) => {
-        if (!feature || !feature.geometry) {
-          console.warn('Skipping feature without geometry:', idx);
-          return;
-        }
-        const color = idx === 0 ? '#2563eb' : '#22c55e';
-        try {
-          const layer = L.geoJSON(feature, {
-            style: {
-              color: color,
-              weight: 4,  // Thicker lines for visibility
-              opacity: 1.0,  // Full opacity
-              fillColor: color,
-              fillOpacity: 0.3  // More visible fill
-            }
-          }).addTo(map);
-          
-          // Add popup if we have name
-          if (feature.properties && feature.properties.name) {
-            layer.bindPopup(feature.properties.name + ' (' + formatDistanceKm(feature.properties.distance) + ')');
-          }
-          
-          polygonLayers.push(layer);
-          polygonCount++;
-          console.log('Added polygon', idx, 'for', feature.properties?.name || 'unknown');
-        } catch (e) {
-          console.error('Failed to add polygon:', e, feature);
-        }
-      });
-      
-      console.log('Total polygons added:', polygonCount, 'out of', polygons.features.length);
-      
-      // Wait for layers to be added and rendered, then calculate bounds
-      setTimeout(function() {
-      // Set view to show exactly 40km across (20km radius from center)
-      setTimeout(function() {
-        // Calculate bounds for 40km width (20km radius)
-        // At the equator, 1 degree latitude ≈ 111km, so 20km ≈ 0.18 degrees
-        // Longitude varies by latitude: 1 degree ≈ 111km * cos(latitude)
-        const lat = point.lat;
-        const lon = point.lon;
-        const radiusKm = 20; // 20km radius = 40km width
-        
-        // Approximate degrees for latitude (constant)
-        const latDegrees = radiusKm / 111.0;
-        
-        // Approximate degrees for longitude (varies by latitude)
-        const lonDegrees = radiusKm / (111.0 * Math.cos(lat * Math.PI / 180));
-        
-        // Create bounds centered on GPS point with 40km width
-        const bounds = L.latLngBounds(
-          [lat - latDegrees, lon - lonDegrees], // Southwest
-          [lat + latDegrees, lon + lonDegrees]  // Northeast
-        );
-        
-        // Fit map to show exactly 40km across
-        map.fitBounds(bounds, {
-          padding: [20, 20], // Small padding
-          maxZoom: 12,        // Don't zoom in too close
-          minZoom: 8          // Don't zoom out too far
-        });
-        
-        console.log('Set view to 40km width centered on', lat.toFixed(4), lon.toFixed(4));
-            const validLayers = [];
-            for (let i = 0; i < polygonLayers.length; i++) {
-              try {
-                const layer = polygonLayers[i];
-                const b = layer.getBounds();
-                if (b && b.isValid() && !b.isFlat()) {
-                  const sw = b.getSouthWest();
-                  const ne = b.getNorthEast();
-                  const latSpan = Math.abs(ne.lat - sw.lat);
-                  const lonSpan = Math.abs(ne.lng - sw.lng);
-                  console.log('Polygon', i, 'bounds:', latSpan.toFixed(4), 'x', lonSpan.toFixed(4));
-                  
-                  // Be less strict - allow larger polygons (cities can be big)
-                  // Only filter out truly invalid or tiny bounds
-                  if (latSpan > 0.00001 && lonSpan > 0.00001 && latSpan < 50 && lonSpan < 50) {
-                    validLayers.push(layer);
-                  } else {
-                    console.warn('Filtered out polygon', i, 'due to bounds:', latSpan, lonSpan);
-                  }
-                } else {
-                  console.warn('Polygon', i, 'has invalid bounds');
-                }
-              } catch (e) {
-                console.error('Error getting bounds for polygon', i, ':', e);
-              }
-            }
-            
-            console.log('Valid layers:', validLayers.length);
-            
-            if (validLayers.length > 0) {
-              // Create a group with marker, 2-mile circle, admin area, and all valid polygons
-              const allFeatures = [marker, twoMileCircle];
-              if (adminAreaLayer) allFeatures.push(adminAreaLayer);
-              allFeatures.push(...validLayers);
-              const group = L.featureGroup(allFeatures);
-              
-              try {
-                const bounds = group.getBounds();
-                console.log('Group bounds:', bounds.isValid() ? 'valid' : 'invalid');
-                
-                if (bounds && bounds.isValid() && !bounds.isFlat()) {
-                  const sw = bounds.getSouthWest();
-                  const ne = bounds.getNorthEast();
-                  const latSpan = Math.abs(ne.lat - sw.lat);
-                  const lonSpan = Math.abs(ne.lng - sw.lng);
-                  
-                  console.log('Fitting bounds with span:', latSpan.toFixed(4), 'x', lonSpan.toFixed(4));
-                  
-                  // Ensure bounds are reasonable
-                  if (latSpan > 0.00001 && lonSpan > 0.00001) {
-                    // Fit bounds with generous padding to ensure polygons are visible
-                    map.fitBounds(bounds.pad(0.5), { 
-                      maxZoom: 16,  // Allow closer zoom
-                      minZoom: 8,   // Allow wider view
-                      padding: [60, 60]  // Even more padding
-                    });
-                    boundsSet = true;
-                    console.log('Bounds set successfully');
-                  } else {
-                    console.warn('Bounds span too small:', latSpan, lonSpan);
-                  }
-                } else {
-                  console.warn('Group bounds invalid or flat');
-                }
-              } catch (e) {
-                console.error('Error fitting bounds:', e);
-              }
-            } else {
-              console.warn('No valid layers found, falling back to circle');
-            }
-          } else {
-            console.log('No polygons to display');
-          }
-          
-          // If no polygons or bounds failed, zoom to show the circles nicely
-          if (!boundsSet) {
-            console.log('Using circle fallback');
-            try {
-              // Prefer showing the 2-mile circle
-              const circleBounds = twoMileCircle.getBounds();
-              if (circleBounds && circleBounds.isValid()) {
-                // Fit to 2-mile circle with padding
-                map.fitBounds(circleBounds.pad(0.3), { 
-                  maxZoom: 13,
-                  minZoom: 9
-                });
-              } else {
-                // Fallback to 20km circle
-                const fallbackBounds = circle.getBounds();
-                if (fallbackBounds && fallbackBounds.isValid()) {
-                  map.fitBounds(fallbackBounds.pad(0.3), { 
-                    maxZoom: 13,
-                    minZoom: 9
-                  });
-                } else {
-                  // Last resort: set a reasonable zoom level centered on point
-                  map.setView([point.lat, point.lon], 11);
-                }
-              }
-            } catch (e) {
-              console.error('Circle fallback error:', e);
-              // Fallback: set view directly
-              map.setView([point.lat, point.lon], 11);
-            }
-          }
-        } catch (e) {
-          console.error('Bounds calculation error:', e);
-          // Fallback on any error - ensure we at least show the point
-          map.setView([point.lat, point.lon], 11);
-        }
-        
-        // Signal that map is ready after bounds are set
-        // Give extra time for tiles and polygons to render
-        setTimeout(function() {
-          console.log('Map ready signal sent');
-          window.mapReady = true;
-        }, 1000);
-      });
-    });
-  </script>
-</body>
-</html>`;
-}
 
-async function generateImage(data, index, total, mapboxTokenOverride) {
+async function generateImage(data, index, total) {
   const { point, polygons = [], adminArea } = data;
+  // Get token from main scope (passed via closure) or process.env
+  const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+  
+  if (!mapboxToken) {
+    console.error(`    Error: MAPBOX_ACCESS_TOKEN not set. Skipping ${point.id}`);
+    console.error(`    Debug: process.env keys: ${Object.keys(process.env).filter(k => k.includes('MAPBOX')).join(', ') || 'none'}`);
+    return;
+  }
+  
   const imageFile = path.join(OUTPUT_DIR, `${point.id}.png`);
-  const mapboxToken = mapboxTokenOverride || getMapboxToken();
+  
+  console.log(`[${index + 1}/${total}] Generating ${point.id}.png...`);
+  
   try {
-    console.log(`  [${index + 1}/${total}] Downloading map for ${point.id}...`);
     await downloadMapboxStaticImage(point, polygons, adminArea, imageFile, mapboxToken);
-    console.log(`[${index + 1}/${total}] ✅ Generated ${point.id}.png`);
+    console.log(`[${index + 1}/${total}] Generated ${point.id}.png`);
   } catch (error) {
-    console.error(`  ❌ Error generating ${point.id}:`, error.message);
-    throw error;
+    console.error(`[${index + 1}/${total}] Failed to generate ${point.id}.png:`, error.message);
   }
 }
 
 async function main() {
-  console.log('📸 Generating Gallery Images\n');
+  console.log('Generating Gallery Images\n');
+  
+  // Check for token early - must be exported in shell environment
+  const token = process.env.MAPBOX_ACCESS_TOKEN;
+  if (!token) {
+    console.error('❌ ERROR: MAPBOX_ACCESS_TOKEN not found in environment');
+    console.error('   The token must be exported in your shell before running this script');
+    console.error('   Try: export MAPBOX_ACCESS_TOKEN=your_token_here');
+    console.error('   Or: MAPBOX_ACCESS_TOKEN=your_token_here node scripts/generate-gallery-images.js\n');
+    process.exit(1);
+  } else {
+    console.log(`✅ MAPBOX_ACCESS_TOKEN found (${token.substring(0, 10)}...)\n`);
+  }
   
   if (!fs.existsSync(DATA_FILE)) {
-    console.error(`❌ Data file not found: ${DATA_FILE}`);
+    console.error(`Error: Data file not found: ${DATA_FILE}`);
     console.error('   Run "node scripts/generate-locate-me-gallery.js" first');
     process.exit(1);
   }
@@ -861,13 +1080,11 @@ async function main() {
   console.log(`Filtered out: ${allResults.length - resultsWithPolygons.length} results without polygons\n`);
   console.log(`Processing ${resultsWithPolygons.length} results with polygons...\n`);
   
-  const mapboxToken = getMapboxToken();
-  
   for (let i = 0; i < resultsWithPolygons.length; i++) {
-    await generateImage(resultsWithPolygons[i], i, resultsWithPolygons.length, mapboxToken);
+    await generateImage(resultsWithPolygons[i], i, resultsWithPolygons.length);
   }
   
-  console.log(`\n✅ Generated ${resultsWithPolygons.length} images in ${OUTPUT_DIR}`);
+  console.log(`\nGenerated ${resultsWithPolygons.length} images in ${OUTPUT_DIR}`);
   console.log(`\n📄 Next step: Open public/gallery/locate-me/index.html to view the gallery`);
 }
 
@@ -875,5 +1092,4 @@ if (require.main === module) {
   main().catch(console.error);
 }
 
-module.exports = { generateImage, createHTML };
-
+module.exports = { generateImage };
