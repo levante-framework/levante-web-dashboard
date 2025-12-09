@@ -512,51 +512,58 @@ function createBoundingBoxFeature(geometry, stroke, fillOpacity) {
 
 function buildGeoJSONOverlay(point, polygons, adminArea) {
   const features = [];
-  
+
   // GPS point marker
   features.push({
     type: 'Feature',
     geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
     properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
   });
-  
-  // 2-mile circle (approximate as polygon) - reduced to 32 points to save space
-  const radiusKm = 1.60934;
-  const points = [];
-  const circlePoints = 32; // Reduced from 64 to save URL space
-  for (let i = 0; i < circlePoints; i++) {
-    const angle = (i / circlePoints) * 2 * Math.PI;
-    const latOffset = (radiusKm / 111.0) * Math.cos(angle);
-    const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
-    points.push([point.lon + lonOffset, point.lat + latOffset]);
+
+  // 2-mile circle
+  const twoMileKm = 1.60934;
+  const twoMilePoints = 48;
+  const twoMileRing = [];
+  for (let i = 0; i < twoMilePoints; i++) {
+    const angle = (i / twoMilePoints) * 2 * Math.PI;
+    const latOffset = (twoMileKm / 111.0) * Math.cos(angle);
+    const lonOffset = (twoMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+    twoMileRing.push([point.lon + lonOffset, point.lat + latOffset]);
   }
-  // Ensure circle is closed (first and last point match)
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
-  if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
-    points.push([firstPoint[0], firstPoint[1]]);
-  }
-  
-  // Always include the circle - it's generated correctly
+  twoMileRing.push(twoMileRing[0]);
   features.push({
     type: 'Feature',
-    geometry: { type: 'Polygon', coordinates: [points] },
-    properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+    geometry: { type: 'Polygon', coordinates: [twoMileRing] },
+    properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.12 }
   });
-  console.log(`    Added 2-mile circle with ${points.length} points`);
-  
-  // Add scale bar (10km scale bar in bottom-left corner)
-  // Calculate 10km in degrees at this latitude
+  console.log(`    Added 2-mile circle with ${twoMileRing.length} points`);
+
+  // 10-mile circle
+  const tenMileKm = 16.0934;
+  const tenMilePoints = 64;
+  const tenMileRing = [];
+  for (let i = 0; i < tenMilePoints; i++) {
+    const angle = (i / tenMilePoints) * 2 * Math.PI;
+    const latOffset = (tenMileKm / 111.0) * Math.cos(angle);
+    const lonOffset = (tenMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+    tenMileRing.push([point.lon + lonOffset, point.lat + latOffset]);
+  }
+  tenMileRing.push(tenMileRing[0]);
+  features.push({
+    type: 'Feature',
+    geometry: { type: 'Polygon', coordinates: [tenMileRing] },
+    properties: { stroke: '#0ea5e9', 'stroke-width': 2, fill: '#0ea5e9', 'fill-opacity': 0.08 }
+  });
+  console.log(`    Added 10-mile circle with ${tenMileRing.length} points`);
+
+  // Scale bar (10km) in bottom-left
   const scaleKm = 10;
   const latDegrees = scaleKm / 111.0;
   const lonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-  
-  // Position scale bar in bottom-left (offset from center)
-  const scaleLat = point.lat - 0.15; // Move down
-  const scaleLon = point.lon - 0.15; // Move left
-  
-  // Scale bar line (horizontal)
-  const scaleBar = {
+  const scaleLat = point.lat - 0.15;
+  const scaleLon = point.lon - 0.15;
+
+  features.push({
     type: 'Feature',
     geometry: {
       type: 'LineString',
@@ -565,16 +572,9 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon + lonDegrees, scaleLat]
       ]
     },
-    properties: {
-      stroke: '#000000',
-      'stroke-width': 4,
-      'stroke-opacity': 0.8
-    }
-  };
-  features.push(scaleBar);
-  
-  // Scale bar endpoints (vertical ticks)
-  const tickLength = 0.005; // Small tick length
+    properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+  });
+  const tickLength = 0.005;
   features.push({
     type: 'Feature',
     geometry: {
@@ -584,11 +584,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon, scaleLat + tickLength]
       ]
     },
-    properties: {
-      stroke: '#000000',
-      'stroke-width': 4,
-      'stroke-opacity': 0.8
-    }
+    properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
   });
   features.push({
     type: 'Feature',
@@ -599,47 +595,11 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon + lonDegrees, scaleLat + tickLength]
       ]
     },
-    properties: {
-      stroke: '#000000',
-      'stroke-width': 4,
-      'stroke-opacity': 0.8
-    }
+    properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
   });
-  
-  // Add city bounding boxes (keep just first two to minimize URL size)
-  if (Array.isArray(polygons) && polygons.length > 0) {
-    polygons.slice(0, 2).forEach((p, idx) => {
-      const geometry = p?.polygon?.geometry;
-      if (!geometry) return;
-      const fixedGeometry = fixPolygonGeometry(geometry);
-      const bboxFeature = createBoundingBoxFeature(
-        fixedGeometry,
-        idx === 0 ? '#2563eb' : '#22c55e',
-        0.08
-      );
-      if (bboxFeature) {
-        features.push(bboxFeature);
-        console.log(`    Added city bounding box ${idx + 1} for ${point.id || 'unknown'}`);
-      } else {
-        console.warn(`    Skipping city polygon ${idx + 1} for ${point.id || 'unknown'} (unable to derive bounding box)`);
-      }
-    });
-  }
-  
-  // Admin area bounding box
-  if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
-    const fixedGeometry = fixPolygonGeometry(adminArea.polygon.geometry);
-    const bboxFeature = createBoundingBoxFeature(fixedGeometry, '#dc2626', 0.12);
-    if (bboxFeature) {
-      features.push(bboxFeature);
-      console.log(`    Added admin bounding box for ${point.id || 'unknown'}`);
-    } else {
-      console.warn(`    Skipping admin area for ${point.id || 'unknown'} (unable to derive bounding box)`);
-    }
-  }
-  
-  console.log(`    Total features in overlay: ${features.length} (Point: 1, Circle: 1, Boxes: ${features.length - 2})`);
-  
+
+  console.log(`    Total features in overlay: ${features.length} (Point + circles + scale)`);
+
   return { type: 'FeatureCollection', features };
 }
 
@@ -668,16 +628,21 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
     
     let isFallbackRequest = false;
     
-    function handleResponse(res) {
-      if (res.statusCode === 200) {
-        const file = fs.createWriteStream(outputPath);
-        res.pipe(file);
-        file.on('finish', () => {
-          file.close();
+  function handleResponse(res) {
+    if (res.statusCode === 200) {
+      const chunks = [];
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', async () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          await sharp(buffer).webp({ quality: 85 }).toFile(outputPath);
           resolve();
-        });
-        file.on('error', reject);
-      } else if (res.statusCode === 422 && !isFallbackRequest) {
+        } catch (err) {
+          reject(err);
+        }
+      });
+      res.on('error', reject);
+    } else if (res.statusCode === 422 && !isFallbackRequest) {
         // Invalid GeoJSON - fall back to simple map without overlays (only once)
         let errorBody = '';
         res.on('data', chunk => {
@@ -1034,15 +999,15 @@ async function generateImage(data, index, total) {
     return;
   }
   
-  const imageFile = path.join(OUTPUT_DIR, `${point.id}.png`);
+  const imageFile = path.join(OUTPUT_DIR, `${point.id}.webp`);
   
-  console.log(`[${index + 1}/${total}] Generating ${point.id}.png...`);
+  console.log(`[${index + 1}/${total}] Generating ${point.id}.webp...`);
   
   try {
     await downloadMapboxStaticImage(point, polygons, adminArea, imageFile, mapboxToken);
-    console.log(`[${index + 1}/${total}] Generated ${point.id}.png`);
+    console.log(`[${index + 1}/${total}] Generated ${point.id}.webp`);
   } catch (error) {
-    console.error(`[${index + 1}/${total}] Failed to generate ${point.id}.png:`, error.message);
+    console.error(`[${index + 1}/${total}] Failed to generate ${point.id}.webp:`, error.message);
   }
 }
 
@@ -1093,3 +1058,4 @@ if (require.main === module) {
 }
 
 module.exports = { generateImage };
+
