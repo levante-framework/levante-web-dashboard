@@ -510,6 +510,85 @@ function createBoundingBoxFeature(geometry, stroke, fillOpacity) {
   };
 }
 
+
+// Round coordinates to 3 decimals to shrink URL size
+function roundCoord(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
+// Compute bbox of Polygon/MultiPolygon
+function bboxFromGeometry(geometry) {
+  if (!geometry || !geometry.coordinates) return null;
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  const walk = (coords) => {
+    if (typeof coords[0] === 'number') {
+      const [lon, lat] = coords;
+      if (typeof lon === 'number' && typeof lat === 'number') {
+        minLon = Math.min(minLon, lon);
+        maxLon = Math.max(maxLon, lon);
+        minLat = Math.min(minLat, lat);
+        maxLat = Math.max(maxLat, lat);
+      }
+    } else if (Array.isArray(coords)) {
+      coords.forEach(walk);
+    }
+  };
+  walk(geometry.coordinates);
+  if (!isFinite(minLon) || !isFinite(maxLon) || !isFinite(minLat) || !isFinite(maxLat)) return null;
+  return { minLon, minLat, maxLon, maxLat };
+}
+
+// Create an octagon around a bbox
+function octagonFromBBox(bbox) {
+  if (!bbox) return null;
+  const cx = (bbox.minLon + bbox.maxLon) / 2;
+  const cy = (bbox.minLat + bbox.maxLat) / 2;
+  const rx = Math.max((bbox.maxLon - bbox.minLon) / 2, 0.01);
+  const ry = Math.max((bbox.maxLat - bbox.minLat) / 2, 0.01);
+  const points = [];
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * 2 * Math.PI;
+    points.push([roundCoord(cx + rx * Math.cos(ang)), roundCoord(cy + ry * Math.sin(ang))]);
+  }
+  points.push(points[0]);
+  return { type: 'Polygon', coordinates: [points] };
+}
+
+
+
+// Simplify polygon/multipolygon to a single outline with limited vertices
+function simplifyToOutline(geometry, maxPoints = 20) {
+  if (!geometry || !geometry.coordinates) return null;
+  const fixed = fixPolygonGeometry(geometry);
+  if (!fixed || !fixed.coordinates) return null;
+
+  const downsampleRing = (ring) => {
+    if (!Array.isArray(ring) || ring.length < 4) return null;
+    const step = Math.max(1, Math.floor(ring.length / maxPoints));
+    const sampled = [];
+    for (let i = 0; i < ring.length; i += step) sampled.push(ring[i]);
+    const first = sampled[0];
+    const last = sampled[sampled.length - 1];
+    if (first && last && (first[0] !== last[0] || first[1] !== last[1])) sampled.push(first);
+    return sampled.length >= 4 ? sampled : null;
+  };
+
+  if (fixed.type === 'Polygon') {
+    const ring = downsampleRing(fixed.coordinates[0]);
+    if (!ring) return null;
+    return { type: 'Polygon', coordinates: [ring] };
+  }
+
+  if (fixed.type === 'MultiPolygon') {
+    const rings = fixed.coordinates.map(poly => poly && poly[0] ? downsampleRing(poly[0]) : null).filter(Boolean);
+    if (!rings.length) return null;
+    const largest = rings.reduce((a, b) => (b.length > a.length ? b : a), rings[0]);
+    return { type: 'Polygon', coordinates: [largest] };
+  }
+
+  return null;
+}
+
 function buildGeoJSONOverlay(point, polygons, adminArea) {
   const features = [];
 
@@ -522,39 +601,39 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
 
   // 2-mile circle
   const twoMileKm = 1.60934;
-  const twoMilePoints = 48;
+  const twoMilePoints = 24;
   const twoMileRing = [];
   for (let i = 0; i < twoMilePoints; i++) {
     const angle = (i / twoMilePoints) * 2 * Math.PI;
     const latOffset = (twoMileKm / 111.0) * Math.cos(angle);
     const lonOffset = (twoMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
-    twoMileRing.push([point.lon + lonOffset, point.lat + latOffset]);
+    twoMileRing.push([roundCoord(point.lon + lonOffset), roundCoord(point.lat + latOffset)]);
   }
   twoMileRing.push(twoMileRing[0]);
   features.push({
     type: 'Feature',
     geometry: { type: 'Polygon', coordinates: [twoMileRing] },
-    properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.12 }
+    properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.12 }
   });
   console.log(`    Added 2-mile circle with ${twoMileRing.length} points`);
 
-  // 10-mile circle
-  const tenMileKm = 16.0934;
-  const tenMilePoints = 64;
-  const tenMileRing = [];
-  for (let i = 0; i < tenMilePoints; i++) {
-    const angle = (i / tenMilePoints) * 2 * Math.PI;
-    const latOffset = (tenMileKm / 111.0) * Math.cos(angle);
-    const lonOffset = (tenMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
-    tenMileRing.push([point.lon + lonOffset, point.lat + latOffset]);
+  // Outer circle: 5-mile radius, half the resolution to shrink payload
+  const fiveMileKm = 8.0467;
+  const fiveMilePoints = 32;
+  const fiveMileRing = [];
+  for (let i = 0; i < fiveMilePoints; i++) {
+    const angle = (i / fiveMilePoints) * 2 * Math.PI;
+    const latOffset = (fiveMileKm / 111.0) * Math.cos(angle);
+    const lonOffset = (fiveMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+    fiveMileRing.push([roundCoord(point.lon + lonOffset), roundCoord(point.lat + latOffset)]);
   }
-  tenMileRing.push(tenMileRing[0]);
+  fiveMileRing.push(fiveMileRing[0]);
   features.push({
     type: 'Feature',
-    geometry: { type: 'Polygon', coordinates: [tenMileRing] },
-    properties: { stroke: '#0ea5e9', 'stroke-width': 2, fill: '#0ea5e9', 'fill-opacity': 0.08 }
+    geometry: { type: 'Polygon', coordinates: [fiveMileRing] },
+    properties: { stroke: '#16a34a', 'stroke-width': 2, fill: '#16a34a', 'fill-opacity': 0.08 }
   });
-  console.log(`    Added 10-mile circle with ${tenMileRing.length} points`);
+  console.log(`    Added 5-mile circle with ${fiveMileRing.length} points`);
 
   // Scale bar (10km) in bottom-left
   const scaleKm = 10;
@@ -598,114 +677,155 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
     properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
   });
 
-  console.log(`    Total features in overlay: ${features.length} (Point + circles + scale)`);
+  // Add octagon outlines from source polygons (very small payload)
+  if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
+    const bbox = bboxFromGeometry(adminArea.polygon.geometry);
+    const oct = octagonFromBBox(bbox);
+    if (oct) {
+      features.push({
+        type: 'Feature',
+        geometry: oct,
+        properties: { stroke: '#dc2626', 'stroke-width': 3, fill: 'none', 'fill-opacity': 0 }
+      });
+    }
+  }
+  if (Array.isArray(polygons) && polygons.length > 0) {
+    const bbox = bboxFromGeometry(polygons[0]?.polygon?.geometry);
+    const oct = octagonFromBBox(bbox);
+    if (oct) {
+      features.push({
+        type: 'Feature',
+        geometry: oct,
+        properties: { stroke: '#2563eb', 'stroke-width': 3, fill: 'none', 'fill-opacity': 0 }
+      });
+    }
+  }
+
+  console.log(`    Total features in overlay: ${features.length} (Point + circles + scale + octagons)`);
 
   return { type: 'FeatureCollection', features };
 }
 
 function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token) {
   return new Promise((resolve, reject) => {
-    // Declare url at the very top to avoid temporal dead zone issues
-    // Initialize to undefined explicitly
     let url = undefined;
-    
-    const zoom = calculateZoomForWidth(point.lat, 40);
-    
+    const zoom = calculateZoomForWidth(point.lat, 16.0934); // ~10 miles width
+
     // Build overlay
     let overlay = buildGeoJSONOverlay(point, polygons, adminArea);
     let overlayJson = JSON.stringify(overlay);
     let overlayEncoded = encodeURIComponent(overlayJson);
-    
-    // Log debug info
+
     const polygonCount = overlay.features.filter(f => f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon').length;
     const pointCount = overlay.features.filter(f => f.geometry.type === 'Point').length;
     console.log(`    Building overlay: ${overlay.features.length} features (${pointCount} points, ${polygonCount} polygons)`);
-    
-    // Debug: log what features we have
     overlay.features.forEach((f, idx) => {
       console.log(`      Feature ${idx + 1}: ${f.geometry.type}${f.properties ? ` (${Object.keys(f.properties).join(', ')})` : ''}`);
     });
-    
+
     let isFallbackRequest = false;
-    
-  function handleResponse(res) {
-    if (res.statusCode === 200) {
-      const chunks = [];
-      res.on('data', chunk => chunks.push(chunk));
-      res.on('end', async () => {
-        try {
-          const buffer = Buffer.concat(chunks);
-          await sharp(buffer).webp({ quality: 85 }).toFile(outputPath);
-          resolve();
-        } catch (err) {
-          reject(err);
-        }
-      });
-      res.on('error', reject);
-    } else if (res.statusCode === 422 && !isFallbackRequest) {
-        // Invalid GeoJSON - fall back to simple map without overlays (only once)
-        let errorBody = '';
-        res.on('data', chunk => {
-          errorBody += chunk;
-        });
-        res.on('end', () => {
-          console.warn(`    Invalid GeoJSON detected (422), trying minimal overlay (point + circle only)`);
-          isFallbackRequest = true;
-          // Try minimal overlay (just point + circle)
-          // Generate circle points
-          const radiusKm = 1.60934;
-          const circlePoints = [];
-          for (let i = 0; i < 64; i++) {
-            const angle = (i / 64) * 2 * Math.PI;
-            const latOffset = (radiusKm / 111.0) * Math.cos(angle);
-            const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
-            circlePoints.push([point.lon + lonOffset, point.lat + latOffset]);
+
+    const requestMinimalOverlay = () => {
+      if (isFallbackRequest) return;
+      isFallbackRequest = true;
+
+      const radiusKm = 1.60934;
+      const minimalCirclePoints = 24;
+      const circlePoints = [];
+      for (let i = 0; i < minimalCirclePoints; i++) {
+        const angle = (i / minimalCirclePoints) * 2 * Math.PI;
+        const latOffset = (radiusKm / 111.0) * Math.cos(angle);
+        const lonOffset = (radiusKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+        circlePoints.push([roundCoord(point.lon + lonOffset), roundCoord(point.lat + latOffset)]);
+      }
+      circlePoints.push(circlePoints[0]);
+
+      const minimalOverlay = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
+            properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
+          },
+          {
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: [circlePoints] },
+            properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.15 }
           }
-          circlePoints.push(circlePoints[0]); // Close circle
-          
-          const minimalOverlay = {
-            type: 'FeatureCollection',
-            features: [
-              {
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
-                properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
-              },
-              {
-                type: 'Feature',
-                geometry: { type: 'Polygon', coordinates: [circlePoints] },
-                properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
-              }
-            ]
-          };
-          const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
-          const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
-          
-          if (minimalUrl.length <= 8000) {
-            console.log(`    Using minimal overlay (point + circle) - URL length: ${minimalUrl.length}`);
-            https.get(minimalUrl, handleResponse);
-          } else {
-            console.warn(`    Minimal overlay also too long, falling back to simple map`);
-            const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
-            https.get(simpleUrl, handleResponse);
+        ]
+      };
+      const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
+      const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
+
+      if (minimalUrl.length <= 8000) {
+        console.log(`    Using minimal overlay (point + circle) - URL length: ${minimalUrl.length}`);
+        https.get(minimalUrl, handleResponse);
+      } else {
+        console.warn(`    Minimal overlay also too long, falling back to simple map`);
+        const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
+        https.get(simpleUrl, handleResponse);
+      }
+    };
+
+    function handleResponse(res) {
+      if (res.statusCode === 200) {
+        const chunks = [];
+        res.on('data', chunk => chunks.push(chunk));
+        res.on('end', async () => {
+          try {
+            const buffer = Buffer.concat(chunks);
+            const cityName = (polygons && polygons[0] && polygons[0].city && polygons[0].city.name) ? polygons[0].city.name : 'City outline';
+            const adminName = (adminArea && adminArea.name) ? adminArea.name : 'Admin outline';
+            const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+            const scaleLabel = '10 km';
+            const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 14px; fill: #111827; }
+  </style>
+  <rect x="12" y="12" width="236" height="196" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
+  <text x="50" y="46">GPS point</text>
+  <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.3" stroke="#22c55e" stroke-width="2" />
+  <text x="50" y="76">2-mile circle</text>
+  <rect x="24" y="92" width="18" height="18" fill="#16a34a" fill-opacity="0.25" stroke="#16a34a" stroke-width="2" />
+  <text x="50" y="106">5-mile circle</text>
+  <rect x="24" y="122" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
+  <text x="50" y="136">Admin: ${escapeXml(adminName)}</text>
+  <rect x="24" y="152" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
+  <text x="50" y="166">City: ${escapeXml(cityName)}</text>
+  <rect x="24" y="182" width="40" height="6" fill="#000000" fill-opacity="0.85" />
+  <text x="70" y="188">Scale (${scaleLabel})</text>
+</svg>`);
+            await sharp(buffer)
+              .composite([{ input: legendSvg, left: 20, top: 20 }])
+              .webp({ quality: 85 })
+              .toFile(outputPath);
+            resolve();
+          } catch (err) {
+            reject(err);
           }
         });
+        res.on('error', reject);
       } else {
         let errorBody = '';
         res.on('data', chunk => {
           errorBody += chunk;
         });
         res.on('end', () => {
+          if (!isFallbackRequest) {
+            console.warn(`    Non-200 response (${res.statusCode}), attempting minimal overlay once`);
+            return requestMinimalOverlay();
+          }
           const errorMsg = errorBody.substring(0, 200);
-          const fullErrorMsg = 'Mapbox API ' + res.statusCode + ': ' + errorMsg;
           console.error('    Mapbox API error:', res.statusCode, errorMsg);
-          reject(new Error(fullErrorMsg));
+          reject(new Error('Mapbox API ' + res.statusCode + ': ' + errorMsg));
         });
       }
     }
-    
-    if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
-      url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+
+if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
+      url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
       
       // Increased URL length limit - Chrome supports up to 2MB, but we'll use 32KB for safety
       // Mapbox Static Images API should handle this, but if it fails we'll fall back
@@ -739,7 +859,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
         overlay = { type: 'FeatureCollection', features: simplifiedFeatures };
         overlayJson = JSON.stringify(overlay);
         overlayEncoded = encodeURIComponent(overlayJson);
-        url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+        url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
       }
 
       if (url && url.length > MAX_URL_LENGTH) {
@@ -774,7 +894,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
             {
               type: 'Feature',
               geometry: { type: 'Polygon', coordinates: [circlePoints] },
-              properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+              properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.15 }
             },
             {
               type: 'Feature',
@@ -803,14 +923,14 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
           ]
         };
         const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
-        const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+        const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
         
         if (minimalUrl.length <= 8000) {
           console.log(`    Using minimal overlay (point + circle + scale) - URL length: ${minimalUrl.length}`);
           https.get(minimalUrl, handleResponse);
         } else {
           console.warn(`    Minimal overlay also too long (${minimalUrl.length} chars), using simple map without overlays`);
-          const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+          const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
           https.get(simpleUrl, handleResponse);
         }
       } else {
@@ -821,7 +941,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
           overlay.features = overlay.features.filter(f => isValidGeoJSONFeature(f));
           overlayJson = JSON.stringify(overlay);
           overlayEncoded = encodeURIComponent(overlayJson);
-          url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+          url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${overlayEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
         }
         
         // Final validation before sending
@@ -856,7 +976,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
               {
                 type: 'Feature',
                 geometry: { type: 'Polygon', coordinates: [circlePoints] },
-                properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+                properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.15 }
               },
               {
                 type: 'Feature',
@@ -885,14 +1005,14 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
             ]
           };
           const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
-          const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+          const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
           
           if (minimalUrl.length <= 8000) {
             console.log(`    Using minimal overlay - URL length: ${minimalUrl.length}`);
             https.get(minimalUrl, handleResponse);
           } else {
             console.warn(`    Minimal overlay too long, using simple map without overlays`);
-            const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+            const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
             https.get(simpleUrl, handleResponse);
           }
         } else {
@@ -938,7 +1058,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
                 {
                   type: 'Feature',
                   geometry: { type: 'Polygon', coordinates: [circlePoints] },
-                  properties: { stroke: '#2563eb', 'stroke-width': 3, fill: '#2563eb', 'fill-opacity': 0.15 }
+                  properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.15 }
                 },
                 {
                   type: 'Feature',
@@ -967,14 +1087,14 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
               ]
             };
             const minimalEncoded = encodeURIComponent(JSON.stringify(minimalOverlay));
-            const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+            const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
             
             if (minimalUrl.length <= 8000) {
               console.log(`    Using minimal overlay - URL length: ${minimalUrl.length}`);
               https.get(minimalUrl, handleResponse);
             } else {
               console.warn(`    Minimal overlay too long, using simple map without overlays`);
-              const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x500@2x?access_token=${token}`;
+              const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
               https.get(simpleUrl, handleResponse);
             }
           }

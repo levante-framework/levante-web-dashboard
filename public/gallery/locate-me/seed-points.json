@@ -38,14 +38,14 @@
     },
     {
       "id": "CO-bogota",
-      "label": "Bogotá",
+      "label": "Bogot\u00e1",
       "country": "CO",
       "lat": 4.711,
       "lon": -74.0721
     },
     {
       "id": "CO-medellin",
-      "label": "Medellín",
+      "label": "Medell\u00edn",
       "country": "CO",
       "lat": 6.2518,
       "lon": -75.5636
@@ -77,7 +77,174 @@
       "country": "DE",
       "lat": 50.9375,
       "lon": 6.9603
+    },
+    {
+      "id": "US-nyc",
+      "label": "New York, NY",
+      "country": "US",
+      "lat": 40.7128,
+      "lon": -74.006
+    },
+    {
+      "id": "US-chicago",
+      "label": "Chicago, IL",
+      "country": "US",
+      "lat": 41.8781,
+      "lon": -87.6298
+    },
+    {
+      "id": "CA-montreal",
+      "label": "Montreal, QC",
+      "country": "CA",
+      "lat": 45.5017,
+      "lon": -73.5673
+    },
+    {
+      "id": "CA-calgary",
+      "label": "Calgary, AB",
+      "country": "CA",
+      "lat": 51.0447,
+      "lon": -114.0719
+    },
+    {
+      "id": "CO-cali",
+      "label": "Cali",
+      "country": "CO",
+      "lat": 3.4516,
+      "lon": -76.532
+    },
+    {
+      "id": "DE-hamburg",
+      "label": "Hamburg",
+      "country": "DE",
+      "lat": 53.5511,
+      "lon": 9.9937
+    },
+    {
+      "id": "GB-edinburgh",
+      "label": "Edinburgh",
+      "country": "GB",
+      "lat": 55.9533,
+      "lon": -3.1883
+    },
+    {
+      "id": "GB-glasgow",
+      "label": "Glasgow",
+      "country": "GB",
+      "lat": 55.8642,
+      "lon": -4.2518
+    },
+    {
+      "id": "GB-aberdeen",
+      "label": "Aberdeen",
+      "country": "GB",
+      "lat": 57.1497,
+      "lon": -2.0943
+    },
+    {
+      "id": "IN-delhi",
+      "label": "Delhi",
+      "country": "IN",
+      "lat": 28.6139,
+      "lon": 77.209
+    },
+    {
+      "id": "IN-mumbai",
+      "label": "Mumbai",
+      "country": "IN",
+      "lat": 19.076,
+      "lon": 72.8777
+    },
+    {
+      "id": "IN-bengaluru",
+      "label": "Bengaluru",
+      "country": "IN",
+      "lat": 12.9716,
+      "lon": 77.5946
+    },
+    {
+      "id": "AR-buenos-aires",
+      "label": "Buenos Aires",
+      "country": "AR",
+      "lat": -34.6037,
+      "lon": -58.3816
+    },
+    {
+      "id": "AR-cordoba",
+      "label": "C\u00f3rdoba",
+      "country": "AR",
+      "lat": -31.4201,
+      "lon": -64.1888
+    },
+    {
+      "id": "AR-rosario",
+      "label": "Rosario",
+      "country": "AR",
+      "lat": -32.9587,
+      "lon": -60.6939
+    },
+    {
+      "id": "NL-amsterdam",
+      "label": "Amsterdam",
+      "country": "NL",
+      "lat": 52.3676,
+      "lon": 4.9041
+    },
+    {
+      "id": "NL-rotterdam",
+      "label": "Rotterdam",
+      "country": "NL",
+      "lat": 51.9244,
+      "lon": 4.4777
+    },
+    {
+      "id": "NL-utrecht",
+      "label": "Utrecht",
+      "country": "NL",
+      "lat": 52.0907,
+      "lon": 5.1214
+    },
+    {
+      "id": "GH-accra",
+      "label": "Accra",
+      "country": "GH",
+      "lat": 5.6037,
+      "lon": -0.187
+    },
+    {
+      "id": "GH-kumasi",
+      "label": "Kumasi",
+      "country": "GH",
+      "lat": 6.692,
+      "lon": -1.571
+    },
+    {
+      "id": "GH-takoradi",
+      "label": "Takoradi",
+      "country": "GH",
+      "lat": 4.8845,
+      "lon": -1.7554
+    },
+    {
+      "id": "CH-zurich",
+      "label": "Zurich",
+      "country": "CH",
+      "lat": 47.3769,
+      "lon": 8.5417
+    },
+    {
+      "id": "CH-geneva",
+      "label": "Geneva",
+      "country": "CH",
+      "lat": 46.2044,
+      "lon": 6.1432
+    },
+    {
+      "id": "CH-basel",
+      "label": "Basel",
+      "country": "CH",
+      "lat": 47.5596,
+      "lon": 7.5886
     }
   ]
 }
-
