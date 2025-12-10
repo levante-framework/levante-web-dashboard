@@ -164,7 +164,7 @@
 <body>
   <header>
     <h1>📍 Locate Me Gallery</h1>
-    <p>Visual results from 100 GPS points processed through the Locate-Me workflow</p>
+    <p id="subtitle">Visual results from the Locate-Me workflow</p>
     <div class="stats">
       <div class="stat">
         <div class="stat-label">Total Images</div>
@@ -172,7 +172,7 @@
       </div>
       <div class="stat">
         <div class="stat-label">Countries</div>
-        <div class="stat-value">US, CO, CA, DE</div>
+        <div class="stat-value" id="countryList">-</div>
       </div>
       <div class="stat">
         <div class="stat-label">Generated</div>
@@ -181,13 +181,7 @@
     </div>
   </header>
   
-  <div class="filters">
-    <button class="filter-btn active" data-country="all">All Countries</button>
-    <button class="filter-btn" data-country="US">United States</button>
-    <button class="filter-btn" data-country="CO">Colombia</button>
-    <button class="filter-btn" data-country="CA">Canada</button>
-    <button class="filter-btn" data-country="DE">Germany</button>
-  </div>
+  <div class="filters" id="filters"></div>
   
   <div class="gallery" id="gallery"></div>
   
@@ -201,18 +195,44 @@
   <script>
     let galleryData = null;
     let currentFilter = 'all';
+    let countries = [];
+    
+    function buildFilters(countryList) {
+      const filtersEl = document.getElementById('filters');
+      filtersEl.innerHTML = '';
+      const addBtn = (label, code, active = false) => {
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn' + (active ? ' active' : '');
+        btn.dataset.country = code;
+        btn.textContent = label;
+        filtersEl.appendChild(btn);
+      };
+      addBtn('All Countries', 'all', true);
+      countryList.forEach(code => addBtn(code, code));
+      filtersEl.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          filtersEl.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.country;
+          renderGallery();
+        });
+      });
+    }
     
     async function loadGallery() {
       try {
         const response = await fetch('./gallery-data.json');
         galleryData = await response.json();
         
-        // Count only results with polygons
         const resultsWithPolygons = galleryData.results.filter(result => {
           return result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
         });
         document.getElementById('totalCount').textContent = resultsWithPolygons.length;
         document.getElementById('generatedDate').textContent = new Date(galleryData.generated).toLocaleDateString();
+        countries = Array.from(new Set(resultsWithPolygons.map(r => r.point.country)));
+        document.getElementById('countryList').textContent = countries.join(', ');
+        document.getElementById('subtitle').textContent = `Visual results from ${resultsWithPolygons.length} GPS points processed through the Locate-Me workflow`;
+        buildFilters(countries);
         
         renderGallery();
       } catch (error) {
@@ -229,25 +249,19 @@
         return;
       }
       
-      // Filter to only show results with polygons
       const resultsWithPolygons = galleryData.results.filter(result => {
         const hasPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
         return hasPolygon;
       });
       
-      console.log(`Total results: ${galleryData.results.length}, With polygons: ${resultsWithPolygons.length}`);
-      
       const filtered = currentFilter === 'all' 
         ? resultsWithPolygons 
         : resultsWithPolygons.filter(r => r.point.country === currentFilter);
       
-      console.log(`Rendering ${filtered.length} items after filter: ${currentFilter}`);
-      
-      // Only render items that have valid polygons
       gallery.innerHTML = filtered.length > 0 
         ? filtered.map(result => {
             const { point } = result;
-            const imagePath = `./images/${point.id}.png`;
+            const imagePath = `./images/${point.id}.webp`;
             const cities = result.geocode.results.slice(0, 2).map(r => r.name).join(', ');
             
             return `
