@@ -678,17 +678,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
   });
 
   // Add octagon outlines from source polygons (very small payload)
-  if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
-    const bbox = bboxFromGeometry(adminArea.polygon.geometry);
-    const oct = octagonFromBBox(bbox);
-    if (oct) {
-      features.push({
-        type: 'Feature',
-        geometry: oct,
-        properties: { stroke: '#dc2626', 'stroke-width': 3, fill: 'none', 'fill-opacity': 0 }
-      });
-    }
-  }
+  // Draw city first, then admin on top to avoid overlap hiding the admin outline
   if (Array.isArray(polygons) && polygons.length > 0) {
     const bbox = bboxFromGeometry(polygons[0]?.polygon?.geometry);
     const oct = octagonFromBBox(bbox);
@@ -697,6 +687,17 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         type: 'Feature',
         geometry: oct,
         properties: { stroke: '#2563eb', 'stroke-width': 3, fill: 'none', 'fill-opacity': 0 }
+      });
+    }
+  }
+  if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
+    const bbox = bboxFromGeometry(adminArea.polygon.geometry);
+    const oct = octagonFromBBox(bbox);
+    if (oct) {
+      features.push({
+        type: 'Feature',
+        geometry: oct,
+        properties: { stroke: '#dc2626', 'stroke-width': 4, fill: 'none', 'fill-opacity': 0 }
       });
     }
   }
