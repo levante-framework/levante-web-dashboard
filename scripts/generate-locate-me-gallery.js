@@ -5,6 +5,10 @@ const path = require('path');
 const https = require('https');
 
 const MAX_DISTANCE_KM = 20; // Filter out results where nearest city is > 20km
+// Throttling / retry tuning for Overpass-backed endpoints
+const MAX_RETRIES = 4;
+const BASE_DELAY_MS = 800; // base backoff; jitter is added
+const CACHE_FILE = path.join(process.cwd(), 'data', 'gallery', 'overpass-cache.json');
 
 const BASE_URL = process.env.BASE_URL || 'https://levante-audio-dashboard.vercel.app';
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me');
@@ -62,6 +66,41 @@ if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
+// Simple on-disk cache to avoid re-hitting Overpass-backed endpoints when rerunning
+function ensureCacheDir() {
+  const dir = path.dirname(CACHE_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+ensureCacheDir();
+let cache = {};
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    cache = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+  }
+} catch (err) {
+  console.warn(`⚠️  Failed to read cache ${CACHE_FILE}: ${err.message}`);
+  cache = {};
+}
+
+function saveCache() {
+  try {
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+  } catch (err) {
+    console.warn(`⚠️  Failed to write cache ${CACHE_FILE}: ${err.message}`);
+  }
+}
+
+function cacheKey(url) {
+  return url;
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function fetchJSON(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
@@ -80,6 +119,40 @@ function fetchJSON(url) {
       });
     }).on('error', reject);
   });
+}
+
+async function fetchJSONWithRetry(url, label) {
+  const key = cacheKey(url);
+  if (cache[key]) {
+    return cache[key];
+  }
+
+  let attempt = 0;
+  while (attempt <= MAX_RETRIES) {
+    try {
+      const result = await fetchJSON(url);
+      cache[key] = result;
+      saveCache();
+      return result;
+    } catch (err) {
+      attempt += 1;
+      const isRetryable =
+        /HTTP 429/.test(err.message) ||
+        /HTTP 5\d{2}/.test(err.message) ||
+        /ECONNRESET/.test(err.message) ||
+        /ETIMEDOUT/.test(err.message);
+
+      if (!isRetryable || attempt > MAX_RETRIES) {
+        throw err;
+      }
+
+      const backoff = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      const jitter = Math.floor(Math.random() * 200);
+      const sleep = backoff + jitter;
+      console.warn(`  ⚠️  ${label}: attempt ${attempt} failed (${err.message}). Retrying in ${sleep}ms...`);
+      await delay(sleep);
+    }
+  }
 }
 
 function mapCountrySlug(value) {
@@ -142,7 +215,7 @@ async function processPoint(point, index, total) {
   try {
     // Step 1: Reverse geocode with 20km limit
     const geocodeUrl = `${BASE_URL}/api/reverse-geocode?lat=${point.lat}&lon=${point.lon}&limit=2&maxDistanceKm=${MAX_DISTANCE_KM}`;
-    const geocodeData = await fetchJSON(geocodeUrl);
+    const geocodeData = await fetchJSONWithRetry(geocodeUrl, `Geocode ${point.id}`);
     
     if (!geocodeData.results || geocodeData.results.length === 0) {
       console.warn(`  ⚠️  No results within ${MAX_DISTANCE_KM}km for ${point.id}`);
@@ -168,7 +241,7 @@ async function processPoint(point, index, total) {
           continue;
         }
         const polygonUrl = `${BASE_URL}/api/gadm-polygon?country=${polygonSlug}&lat=${result.lat}&lon=${result.lon}`;
-        const polygonData = await fetchJSON(polygonUrl);
+        const polygonData = await fetchJSONWithRetry(polygonUrl, `Polygon ${result.name || result.id || point.id}`);
         polygons.push({
           city: result,
           polygon: polygonData.feature
@@ -193,7 +266,7 @@ async function processPoint(point, index, total) {
       }
       const adminUrl = `${BASE_URL}/api/gadm-polygon?country=${adminSlug}&lat=${point.lat}&lon=${point.lon}`;
       console.log(`  [${point.id}] Querying admin area: ${adminUrl}`);
-      const adminData = await fetchJSON(adminUrl);
+      const adminData = await fetchJSONWithRetry(adminUrl, `Admin ${point.id}`);
       console.log(`  [${point.id}] Admin response received. Error: ${adminData.error || 'none'}, Has feature: ${!!adminData.feature}`);
       if (adminData.feature) {
         // Extract name from various possible locations
@@ -257,7 +330,7 @@ async function main() {
     
     // Small delay to avoid rate limiting
     if (i < points.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
   
