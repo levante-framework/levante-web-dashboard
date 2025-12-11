@@ -789,7 +789,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.3" stroke="#22c55e" stroke-width="2" />
   <text x="50" y="76">2-mile circle</text>
   <rect x="24" y="92" width="18" height="18" fill="#16a34a" fill-opacity="0.25" stroke="#16a34a" stroke-width="2" />
-  <text x="50" y="106">5-mile circle</text>
+  <text x="50" y="106">10-mile circle</text>
   <rect x="24" y="122" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
   <text x="50" y="136">Admin: ${escapeXml(adminName)}</text>
   <rect x="24" y="152" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
