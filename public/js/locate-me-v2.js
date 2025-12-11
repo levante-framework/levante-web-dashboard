@@ -5,6 +5,16 @@ const LEAFLET_SOURCES = [
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
 ];
 
+// When running static on localhost, use the deployed API; otherwise use relative.
+const API_BASE = (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost')
+  ? 'https://levante-web-dashboard.vercel.app'
+  : '';
+
+function apiUrl(path) {
+  return `${API_BASE}${path}`;
+}
+
+
 createApp({
   data() {
     return {
@@ -104,7 +114,7 @@ createApp({
         lon: result.lon
       });
       try {
-        const response = await fetch(`/api/gadm-polygon?${params.toString()}`);
+        const response = await fetch(apiUrl(`/api/gadm-polygon?${params.toString()}`));
         if (!response.ok) {
           return null;
         }
@@ -160,7 +170,7 @@ createApp({
               limit: '2',
               maxDistanceKm: '150'
             });
-            const response = await fetch(`/api/reverse-geocode?${query.toString()}`);
+            const response = await fetch(apiUrl(`/api/reverse-geocode?${query.toString()}`));
             if (!response.ok) {
               const errorPayload = await response.json().catch(() => ({ error: 'Unknown error' }));
               throw new Error(errorPayload?.message || errorPayload?.error || 'Unknown error');
@@ -223,7 +233,7 @@ createApp({
         return this.logEntries;
       }
       try {
-        const res = await fetch('/api/location-log');
+        const res = await fetch(apiUrl('/api/location-log'));
         if (!res.ok) {
           console.warn('Location log API returned:', res.status);
           this.logEntries = [];
@@ -366,7 +376,7 @@ createApp({
               lon: gpsLon.toString(),
               country: country
             });
-            const adminResponse = await fetch(`/api/gadm-polygon?${adminParams.toString()}`);
+            const adminResponse = await fetch(apiUrl(`/api/gadm-polygon?${adminParams.toString()}`));
             if (adminResponse.ok) {
               const adminPayload = await adminResponse.json();
               if (adminPayload?.feature) {
