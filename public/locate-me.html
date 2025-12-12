@@ -895,7 +895,7 @@
                         <div class="form-row" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:12px;">
                             <div style="flex:1;">
                                 <label class="form-label">Region / State</label>
-                                <select class="form-input" v-model="selectedState" @change="fetchCitiesForState">
+                                <select class="form-input" v-model="selectedState" @change="updateCitiesForState">
                                     <option value="">Select a region</option>
                                     <option v-for="state in whereStates" :key="state" :value="state">{{ state }}</option>
                                 </select>
