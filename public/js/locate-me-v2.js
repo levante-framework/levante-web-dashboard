@@ -27,16 +27,6 @@ createApp({
       showRawLogModal: false,
       showViewLogModal: false,
       showMapModal: false,
-      showWhereModal: false,
-      whereLoading: false,
-      whereError: null,
-      whereCountry: null,
-      whereStates: [],
-      whereCities: [],
-      whereCoordinates: null,
-      selectedState: '',
-      cityQuery: '',
-      whereResult: null,
       logFileContent: '',
       logEntries: [],
       mapInstance: null,
@@ -85,12 +75,6 @@ createApp({
     },
     latestWeather() {
       return this.logEntries.find((entry) => entry.weather) || null;
-    },
-    filteredCities() {
-      if (!this.whereCities || !this.whereCities.length) return [];
-      const q = this.cityQuery.trim().toLowerCase();
-      if (!q) return this.whereCities.slice(0, 10);
-      return this.whereCities.filter((c) => c.toLowerCase().includes(q)).slice(0, 10);
     }
   },
   methods: {
@@ -107,119 +91,6 @@ createApp({
         return date.toLocaleString();
       } catch {
         return isoString;
-      }
-    },
-    resetWhereModalState() {
-      this.whereLoading = false;
-      this.whereError = null;
-      this.whereCountry = null;
-      this.whereStates = [];
-      this.whereCities = [];
-      this.whereCoordinates = null;
-      this.selectedState = '';
-      this.cityQuery = '';
-      this.whereResult = null;
-    },
-    async openWhereAmI() {
-      this.resetWhereModalState();
-      await this.detectWhereAmI();
-    },
-    closeWhereModal() {
-      this.showWhereModal = false;
-    },
-    async detectWhereAmI() {
-      if (!navigator.geolocation) {
-        this.whereError = 'Geolocation is not supported by this browser.';
-        this.showWhereModal = true;
-        return;
-      }
-      this.whereLoading = true;
-      this.whereError = null;
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          this.whereCoordinates = { lat: latitude, lon: longitude };
-          try {
-            const query = new URLSearchParams({
-              lat: latitude.toString(),
-              lon: longitude.toString(),
-              limit: '2',
-              maxDistanceKm: '150'
-            });
-            const response = await fetch(apiUrl(`/api/reverse-geocode?${query.toString()}`));
-            if (!response.ok) {
-              const errPayload = await response.json().catch(() => ({}));
-              throw new Error(errPayload?.message || errPayload?.error || 'Reverse geocode failed');
-            }
-            const payload = await response.json();
-            const best = (payload.results && payload.results[0]) || null;
-            if (!best) throw new Error('No nearby location found.');
-            this.whereCountry = best.country || 'Unknown';
-            this.whereResult = best;
-            this.showWhereModal = true;
-            await this.fetchStatesForCountry(this.whereCountry);
-            if (best.admin1 && this.whereStates.includes(best.admin1)) {
-              this.selectedState = best.admin1;
-              await this.fetchCitiesForState();
-            }
-          } catch (err) {
-            this.whereError = err.message;
-            this.showWhereModal = true;
-          } finally {
-            this.whereLoading = false;
-          }
-        },
-        (geoError) => {
-          this.whereLoading = false;
-          this.whereError =
-            geoError.code === geoError.PERMISSION_DENIED
-              ? 'Location permission denied.'
-              : geoError.code === geoError.POSITION_UNAVAILABLE
-              ? 'Position unavailable.'
-              : geoError.code === geoError.TIMEOUT
-              ? 'Location request timed out.'
-              : 'Location request failed.';
-          this.showWhereModal = true;
-        },
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-      );
-    },
-    async fetchStatesForCountry(country) {
-      this.whereStates = [];
-      if (!country) return;
-      try {
-        const res = await fetch('https://countriesnow.space/api/v0.1/countries/states', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ country })
-        });
-        const data = await res.json();
-        if (data?.data?.states?.length) {
-          this.whereStates = data.data.states.map((s) => s.name).filter(Boolean).sort();
-        } else {
-          this.whereError = 'No regions found for this country.';
-        }
-      } catch (err) {
-        this.whereError = `Failed to load regions: ${err.message}`;
-      }
-    },
-    async fetchCitiesForState() {
-      this.whereCities = [];
-      if (!this.whereCountry || !this.selectedState) return;
-      try {
-        const res = await fetch('https://countriesnow.space/api/v0.1/countries/state/cities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ country: this.whereCountry, state: this.selectedState })
-        });
-        const data = await res.json();
-        if (Array.isArray(data?.data)) {
-          this.whereCities = data.data.filter(Boolean).sort();
-        } else {
-          this.whereError = 'No cities found for this region.';
-        }
-      } catch (err) {
-        this.whereError = `Failed to load cities: ${err.message}`;
       }
     },
     normalizeGadmKey(name, admin1, country) {
