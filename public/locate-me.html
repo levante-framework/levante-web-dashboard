@@ -656,6 +656,11 @@
                     <span v-if="!whereLoading">Where I Am</span>
                     <span v-else>Checking…</span>
                 </button>
+                <button class="btn btn-secondary" :disabled="whereLoading" @click="openWhereAmI">
+                    <i class="fas fa-compass"></i>
+                    <span v-if="!whereLoading">Where I Am</span>
+                    <span v-else>Checking…</span>
+                </button>
                 <button class="btn btn-secondary" @click="showLogFile">
                     <i class="fas fa-file-code"></i>
                     Show Log
