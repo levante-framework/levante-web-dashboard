@@ -27,6 +27,17 @@ createApp({
       showRawLogModal: false,
       showViewLogModal: false,
       showMapModal: false,
+      showWhereModal: false,
+      whereLoading: false,
+      whereError: null,
+      whereCountry: null,
+      whereStates: [],
+      whereCities: [],
+      whereCoordinates: null,
+      whereResults: [],
+      selectedState: '',
+      cityQuery: '',
+      whereResult: null,
       logFileContent: '',
       logEntries: [],
       mapInstance: null,
@@ -92,6 +103,103 @@ createApp({
       } catch {
         return isoString;
       }
+    },
+    resetWhereModalState() {
+      this.whereLoading = false;
+      this.whereError = null;
+      this.whereCountry = null;
+      this.whereStates = [];
+      this.whereCities = [];
+      this.whereCoordinates = null;
+      this.whereResults = [];
+      this.selectedState = '';
+      this.cityQuery = '';
+      this.whereResult = null;
+    },
+    openWhereAmI() {
+      this.resetWhereModalState();
+      this.showWhereModal = true;
+      this.whereLoading = true;
+      this.detectWhereAmI();
+    },
+    closeWhereModal() {
+      this.showWhereModal = false;
+    },
+    updateCitiesForState() {
+      if (!this.whereResults.length) {
+        this.whereCities = [];
+        return;
+      }
+      if (!this.selectedState) {
+        this.whereCities = this.whereResults.map((r) => r.name).filter(Boolean);
+        return;
+      }
+      this.whereCities = this.whereResults
+        .filter((r) => r.admin1 === this.selectedState)
+        .map((r) => r.name)
+        .filter(Boolean);
+    },
+    async detectWhereAmI() {
+      if (!navigator.geolocation) {
+        this.whereError = 'Geolocation is not supported by this browser.';
+        this.whereLoading = false;
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          this.whereCoordinates = { lat: latitude, lon: longitude };
+          try {
+            const query = new URLSearchParams({
+              lat: latitude.toString(),
+              lon: longitude.toString(),
+              limit: '2',
+              maxDistanceKm: '150'
+            });
+            const response = await fetch(apiUrl(`/api/reverse-geocode?${query.toString()}`));
+            if (!response.ok) {
+              const errPayload = await response.json().catch(() => ({}));
+              throw new Error(errPayload?.message || errPayload?.error || 'Reverse geocode failed');
+            }
+            const payload = await response.json();
+            const best = (payload.results && payload.results[0]) || null;
+            if (!best) {
+              throw new Error('No nearby location found.');
+            }
+            this.whereCountry = best.country || 'Unknown';
+            this.whereResult = best;
+            this.whereResults = payload.results || [];
+            this.whereStates = Array.from(
+              new Set((payload.results || []).map((r) => r.admin1).filter(Boolean))
+            );
+            if (best.admin1 && this.whereStates.includes(best.admin1)) {
+              this.selectedState = best.admin1;
+            } else if (this.whereStates.length) {
+              this.selectedState = this.whereStates[0];
+            } else {
+              this.selectedState = '';
+            }
+            this.updateCitiesForState();
+          } catch (err) {
+            this.whereError = err.message;
+          } finally {
+            this.whereLoading = false;
+          }
+        },
+        (geoError) => {
+          this.whereLoading = false;
+          this.whereError =
+            geoError.code === geoError.PERMISSION_DENIED
+              ? 'Location permission denied.'
+              : geoError.code === geoError.POSITION_UNAVAILABLE
+              ? 'Position unavailable.'
+              : geoError.code === geoError.TIMEOUT
+              ? 'Location request timed out.'
+              : 'Location request failed.';
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      );
     },
     normalizeGadmKey(name, admin1, country) {
       return [name, admin1, country]
