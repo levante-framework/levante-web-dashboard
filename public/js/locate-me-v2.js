@@ -33,6 +33,7 @@ createApp({
       whereCountry: null,
       whereStates: [],
       whereCities: [],
+      whereCityRecords: [],
       whereCoordinates: null,
       whereResults: [],
       selectedState: '',
@@ -97,6 +98,17 @@ createApp({
       const q = this.cityQuery.trim().toLowerCase();
       if (!q) return this.whereCities.slice(0, 10);
       return this.whereCities.filter((c) => c.toLowerCase().includes(q)).slice(0, 10);
+    },
+    selectedCityDetail() {
+      if (!this.whereCityRecords || !this.whereCityRecords.length) return null;
+      const q = this.cityQuery.trim().toLowerCase();
+      if (!q) return null;
+      const inState = this.whereCityRecords.filter(
+        (r) => !this.selectedState || r.admin1 === this.selectedState
+      );
+      const exact = inState.find((r) => (r.name || '').toLowerCase() === q);
+      if (exact) return exact;
+      return inState.find((r) => (r.name || '').toLowerCase().includes(q)) || null;
     }
   },
   methods: {
@@ -119,8 +131,10 @@ createApp({
       this.whereLoading = false;
       this.whereError = null;
       this.whereCountry = null;
+      this.selectedCountry = '';
       this.whereStates = [];
       this.whereCities = [];
+      this.whereCityRecords = [];
       this.whereCoordinates = null;
       this.whereResults = [];
       this.selectedState = '';
@@ -137,16 +151,83 @@ createApp({
     closeWhereModal() {
       this.showWhereModal = false;
     },
+    setCitiesFromRecords(records = []) {
+      this.whereCityRecords = records || [];
+      this.whereCities = this.whereCityRecords.map((r) => r.name).filter(Boolean);
+    },
+    async fetchGeoMetadata(params = {}) {
+      const query = new URLSearchParams(params);
+      const res = await fetch(apiUrl(`/api/geocoder-metadata?${query.toString()}`));
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload?.message || payload?.error || 'Metadata fetch failed');
+      }
+      return res.json();
+    },
+    async loadCountries(force = false) {
+      if (this.countryOptions.length && !force) return this.countryOptions;
+      this.countriesLoading = true;
+      try {
+        const data = await this.fetchGeoMetadata();
+        this.countryOptions = data.countries || [];
+      } catch (err) {
+        console.warn('Failed to load countries', err);
+      } finally {
+        this.countriesLoading = false;
+      }
+      return this.countryOptions;
+    },
+    async loadStates(country) {
+      this.whereStates = [];
+      this.statesLoading = true;
+      try {
+        if (!country) return [];
+        const data = await this.fetchGeoMetadata({ country });
+        this.whereStates = data.states || [];
+        return this.whereStates;
+      } catch (err) {
+        console.warn('Failed to load states', err);
+        return [];
+      } finally {
+        this.statesLoading = false;
+      }
+    },
+    async loadCities(country, admin1) {
+      this.setCitiesFromRecords([]);
+      this.citiesLoading = true;
+      try {
+        if (!country) return [];
+        const data = await this.fetchGeoMetadata({ country, admin1: admin1 || '' });
+        const cities = data.cities || [];
+        this.setCitiesFromRecords(cities);
+        return cities;
+      } catch (err) {
+        console.warn('Failed to load cities', err);
+        return [];
+      } finally {
+        this.citiesLoading = false;
+      }
+    },
+    async handleCountryChange() {
+      await this.loadStates(this.selectedCountry);
+      this.selectedState = this.whereStates[0] || '';
+      await this.loadCities(this.selectedCountry, this.selectedState);
+      this.cityQuery = '';
+    },
+    async handleStateChange() {
+      await this.loadCities(this.selectedCountry, this.selectedState);
+      this.cityQuery = '';
+    },
     updateCitiesForState() {
-      if (!this.whereResults.length) {
+      if (!this.whereCityRecords.length) {
         this.whereCities = [];
         return;
       }
       if (!this.selectedState) {
-        this.whereCities = this.whereResults.map((r) => r.name).filter(Boolean);
+        this.whereCities = this.whereCityRecords.map((r) => r.name).filter(Boolean);
         return;
       }
-      this.whereCities = this.whereResults
+      this.whereCities = this.whereCityRecords
         .filter((r) => r.admin1 === this.selectedState)
         .map((r) => r.name)
         .filter(Boolean);
@@ -182,12 +263,9 @@ createApp({
             if (!best) {
               throw new Error('No nearby location found.');
             }
-            this.whereCountry = best.country || 'Unknown';
-            this.whereResult = best;
-            this.whereResults = payload.results || [];
-            this.whereStates = Array.from(
-              new Set((payload.results || []).map((r) => r.admin1).filter(Boolean))
-            );
+            await this.loadCountries();
+            this.selectedCountry = best.country || '';
+            await this.loadStates(this.selectedCountry);
             if (best.admin1 && this.whereStates.includes(best.admin1)) {
               this.selectedState = best.admin1;
             } else if (this.whereStates.length) {
@@ -195,7 +273,13 @@ createApp({
             } else {
               this.selectedState = '';
             }
+            await this.loadCities(this.selectedCountry, this.selectedState);
+            this.cityQuery = best.name || '';
             this.updateCitiesForState();
+
+            this.whereCountry = best.country || 'Unknown';
+            this.whereResult = best;
+            this.whereResults = payload.results || [];
           } catch (err) {
             console.error('[WhereAmI] lookup failed', err);
             this.whereError = err.message;
@@ -652,6 +736,7 @@ createApp({
     }
   },
   mounted() {
+    this.loadCountries();
     this.refreshMetrics();
     this.fetchLogEntries();
   }
