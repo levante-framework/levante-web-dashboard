@@ -656,11 +656,6 @@
                     <span v-if="!whereLoading">Where I Am</span>
                     <span v-else>Checking…</span>
                 </button>
-                <button class="btn btn-secondary" :disabled="whereLoading" @click="openWhereAmI">
-                    <i class="fas fa-compass"></i>
-                    <span v-if="!whereLoading">Where I Am</span>
-                    <span v-else>Checking…</span>
-                </button>
                 <button class="btn btn-secondary" @click="showLogFile">
                     <i class="fas fa-file-code"></i>
                     Show Log
@@ -870,6 +865,7 @@
                     </template>
                 </div>
             </div>
+        </div>
 
         <!-- Where Am I Modal -->
         <div v-if="showWhereModal" class="modal-overlay" @click.self="closeWhereModal">
@@ -921,13 +917,12 @@
                 </div>
             </div>
         </div>
-    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="./vendor/vue/vue.global.prod.js?v=2.1.2"></script>
     <script src="./vendor/leaflet/leaflet.js?v=2.1.2"></script>
-    <script src="./js/locate-me-v2.js?v=2.1.2"></script>
+    <script src="./js/locate-me-v2.js?v=2.1.4"></script>
     <footer style="text-align: center; margin-top: 40px; color: #a1a1aa; font-size: 0.8rem;">
-        Levante Locate Me · v2.1.2
+        Levante Locate Me · v2.1.4
     </footer>
 </body>
 </html>
