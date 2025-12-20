@@ -167,6 +167,22 @@
       color: white;
       border-color: rgba(255, 255, 255, 0.2);
     }
+.legend {
+  max-width: 1400px;
+  margin: 0 auto 16px;
+  display: none;
+  gap: 10px;
+  align-items: center;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+.legend .swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(0, 160, 222, 0.6);
+}
   </style>
 </head>
 <body>
@@ -188,6 +204,10 @@
       </div>
     </div>
   </header>
+  <div class="legend" id="legend">
+    <div class="swatch"></div>
+    <span>City/Admin boundary (shown when polygon data is available)</span>
+  </div>
   
   <div class="filters" id="filters"></div>
   
@@ -242,6 +262,9 @@
         document.getElementById('subtitle').textContent = `Visual results from ${resultsWithPolygons.length} GPS points processed through the Locate-Me workflow`;
         buildFilters(countries);
         
+        const legendEl = document.getElementById('legend');
+        legendEl.style.display = resultsWithPolygons.length ? 'flex' : 'none';
+        
         renderGallery();
       } catch (error) {
         console.error('Failed to load gallery data:', error);
@@ -271,12 +294,14 @@
             const { point } = result;
             const imagePath = `./images/${point.id}.webp`;
             const cities = result.geocode.results.slice(0, 2).map(r => r.name).join(', ');
+            const hasPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+            const boundaryNote = hasPolygon ? '' : ' · no boundary data';
             
             return `
               <div class="gallery-item" onclick="openModal('${imagePath}')">
                 <img src="${imagePath}" alt="${point.id}" loading="lazy" onerror="console.error('Failed to load image:', '${imagePath}'); this.parentElement.remove();">
                 <div class="gallery-item-info">
-                  <strong>${point.id}</strong> · ${point.country} · ${cities}
+                  <strong>${point.id}</strong> · ${point.country} · ${cities}${boundaryNote}
                 </div>
               </div>
             `;
