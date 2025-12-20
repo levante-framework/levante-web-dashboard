@@ -782,12 +782,51 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
         res.on('end', async () => {
           try {
             const buffer = Buffer.concat(chunks);
-            const cityName = (polygons && polygons[0] && polygons[0].city && polygons[0].city.name) ? polygons[0].city.name : 'City outline';
+            const cityName = (polygons && polygons[0] && polygons[0].city && polygons[0].city.name)
+              ? (() => {
+                  const nm = polygons[0].city.name;
+                  const km = polygons[0].city.distanceKm;
+                  return (typeof km === 'number' && isFinite(km)) ? `${nm} (${km.toFixed(1)} km)` : nm;
+                })()
+              : 'City candidate';
             const adminName = (adminArea && adminArea.name) ? adminArea.name : 'Admin outline';
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-                        const scaleCaptionSvg = Buffer.from(`<svg width="220" height="60" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg">
+
+            // Place "10 km" caption adjacent to the scale bar.
+            const tileSize = 512;
+            const mapW = 2400; // 1200x900@2x
+            const mapH = 1800;
+            const project = (lon, lat, z) => {
+              const scale = tileSize * Math.pow(2, z);
+              const x = ((lon + 180) / 360) * scale;
+              const latRad = (lat * Math.PI) / 180;
+              const y = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
+              return [x, y];
+            };
+            const centerPx = project(point.lon, point.lat, zoom);
+            const toScreen = (lon, lat) => {
+              const px = project(lon, lat, zoom);
+              return [px[0] - centerPx[0] + mapW / 2, px[1] - centerPx[1] + mapH / 2];
+            };
+            // Must match buildGeoJSONOverlay scale-bar placement.
+            const scaleKm = 10;
+            const lonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
+            const padFactor = 1.25;
+            const padLat = (8.0467 / 111.0) * padFactor;
+            const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
+            const scaleLat = point.lat - padLat;
+            const scaleLon = point.lon - padLon;
+            const midLon = scaleLon + lonDegrees / 2;
+            const midLat = scaleLat;
+            const [sx, sy] = toScreen(midLon, midLat);
+            const captionW = 220;
+            const captionH = 60;
+            const captionLeft = Math.max(10, Math.min(mapW - captionW - 10, Math.round(sx - captionW / 2)));
+            const captionTop = Math.max(10, Math.min(mapH - captionH - 10, Math.round(sy - captionH - 10)));
+
+            const scaleCaptionSvg = Buffer.from(`<svg width="${captionW}" height="${captionH}" viewBox="0 0 ${captionW} ${captionH}" xmlns="http://www.w3.org/2000/svg">
   <style>text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 18px; fill: #111827; font-weight: 600; }</style>
-  <rect x="0" y="0" width="220" height="60" rx="10" ry="10" fill="white" fill-opacity="0.72" stroke="#e5e7eb" stroke-width="1"/>
+  <rect x="0" y="0" width="${captionW}" height="${captionH}" rx="10" ry="10" fill="white" fill-opacity="0.72" stroke="#e5e7eb" stroke-width="1"/>
   <text x="18" y="38">10 km</text>
 </svg>`);
             const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
@@ -804,12 +843,12 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
   <rect x="24" y="122" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
   <text x="50" y="136">Admin: ${escapeXml(adminName)}</text>
   <rect x="24" y="152" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
-  <text x="50" y="166">City: ${escapeXml(cityName)}</text>
+  <text x="50" y="166">Nearest: ${escapeXml(cityName)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
                 { input: legendSvg, left: 20, top: 20 },
-                { input: scaleCaptionSvg, left: 70, top: 1690 }
+                { input: scaleCaptionSvg, left: captionLeft, top: captionTop }
               ])
               .webp({ quality: 85 })
               .toFile(outputPath);
