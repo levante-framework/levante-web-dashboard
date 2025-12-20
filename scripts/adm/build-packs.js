@@ -129,7 +129,7 @@ async function main() {
   const argv = yargs(hideBin(process.argv))
     .option('countries', { type: 'string', default: DEFAULT_COUNTRIES.join(',') })
     .option('maxPoints', { type: 'number', default: 250 })
-    .option('precision', { type: 'number', default: 5 })
+    .option('precision', { type: 'number', default: 3 })
     .parse();
 
   const list = String(argv.countries)
