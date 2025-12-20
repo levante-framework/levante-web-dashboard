@@ -657,7 +657,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon + lonDegrees, scaleLat]
       ]
     },
-    properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+    properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
   });
   const tickLength = 0.005;
   features.push({
@@ -669,7 +669,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon, scaleLat + tickLength]
       ]
     },
-    properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+    properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
   });
   features.push({
     type: 'Feature',
@@ -680,7 +680,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon + lonDegrees, scaleLat + tickLength]
       ]
     },
-    properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+    properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
   });
 
   // Add octagon outlines from source polygons (very small payload)
@@ -785,7 +785,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
             const cityName = (polygons && polygons[0] && polygons[0].city && polygons[0].city.name) ? polygons[0].city.name : 'City outline';
             const adminName = (adminArea && adminArea.name) ? adminArea.name : 'Admin outline';
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-            const scaleLabel = '10 km';
+                        const scaleCaptionSvg = Buffer.from(`<svg width="220" height="60" viewBox="0 0 220 60" xmlns="http://www.w3.org/2000/svg">
+  <style>text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 18px; fill: #111827; font-weight: 600; }</style>
+  <rect x="0" y="0" width="220" height="60" rx="10" ry="10" fill="white" fill-opacity="0.72" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="18" y="38">10 km</text>
+</svg>`);
             const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 14px; fill: #111827; }
@@ -801,11 +805,12 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
   <text x="50" y="136">Admin: ${escapeXml(adminName)}</text>
   <rect x="24" y="152" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
   <text x="50" y="166">City: ${escapeXml(cityName)}</text>
-  <rect x="24" y="182" width="40" height="6" fill="#000000" fill-opacity="0.85" />
-  <text x="70" y="188">Scale (${scaleLabel})</text>
 </svg>`);
             await sharp(buffer)
-              .composite([{ input: legendSvg, left: 20, top: 20 }])
+              .composite([
+                { input: legendSvg, left: 20, top: 20 },
+                { input: scaleCaptionSvg, left: 70, top: 1690 }
+              ])
               .webp({ quality: 85 })
               .toFile(outputPath);
             resolve();
@@ -912,7 +917,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                 type: 'LineString',
                 coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
               },
-              properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+              properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
             },
             {
               type: 'Feature',
@@ -920,7 +925,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                 type: 'LineString',
                 coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
               },
-              properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+              properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
             },
             {
               type: 'Feature',
@@ -928,7 +933,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                 type: 'LineString',
                 coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
               },
-              properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+              properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
             }
           ]
         };
@@ -994,7 +999,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                   type: 'LineString',
                   coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
                 },
-                properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
               },
               {
                 type: 'Feature',
@@ -1002,7 +1007,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                   type: 'LineString',
                   coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
                 },
-                properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
               },
               {
                 type: 'Feature',
@@ -1010,7 +1015,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                   type: 'LineString',
                   coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
                 },
-                properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
               }
             ]
           };
@@ -1076,7 +1081,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                     type: 'LineString',
                     coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
                   },
-                  properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                  properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
                 },
                 {
                   type: 'Feature',
@@ -1084,7 +1089,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                     type: 'LineString',
                     coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
                   },
-                  properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                  properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
                 },
                 {
                   type: 'Feature',
@@ -1092,7 +1097,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                     type: 'LineString',
                     coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
                   },
-                  properties: { stroke: '#000000', 'stroke-width': 4, 'stroke-opacity': 0.8 }
+                  properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
                 }
               ]
             };
