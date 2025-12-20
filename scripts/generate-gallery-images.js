@@ -657,7 +657,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon + lonDegrees, scaleLat]
       ]
     },
-    properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+    properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
   });
   const tickLength = 0.005;
   features.push({
@@ -669,7 +669,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon, scaleLat + tickLength]
       ]
     },
-    properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+    properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
   });
   features.push({
     type: 'Feature',
@@ -680,7 +680,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
         [scaleLon + lonDegrees, scaleLat + tickLength]
       ]
     },
-    properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+    properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
   });
 
   // Add octagon outlines from source polygons (very small payload)
@@ -917,7 +917,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                 type: 'LineString',
                 coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
               },
-              properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+              properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
             },
             {
               type: 'Feature',
@@ -925,7 +925,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                 type: 'LineString',
                 coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
               },
-              properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+              properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
             },
             {
               type: 'Feature',
@@ -933,7 +933,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                 type: 'LineString',
                 coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
               },
-              properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+              properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
             }
           ]
         };
@@ -976,8 +976,11 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
           const scaleKm = 10;
           const scaleLatDegrees = scaleKm / 111.0;
           const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-          const scaleLat = point.lat - 0.15;
-          const scaleLon = point.lon - 0.15;
+          const padFactor = 1.25;
+          const padLat = (8.0467 / 111.0) * padFactor;
+          const scaleLat = point.lat - padLat;
+          const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
+          const scaleLon = point.lon - padLon;
           const tickLength = 0.005;
           
           const minimalOverlay = {
@@ -999,7 +1002,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                   type: 'LineString',
                   coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
                 },
-                properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+                properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
               },
               {
                 type: 'Feature',
@@ -1007,7 +1010,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                   type: 'LineString',
                   coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
                 },
-                properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+                properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
               },
               {
                 type: 'Feature',
@@ -1015,7 +1018,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                   type: 'LineString',
                   coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
                 },
-                properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+                properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
               }
             ]
           };
@@ -1058,8 +1061,11 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
             const scaleKm = 10;
             const scaleLatDegrees = scaleKm / 111.0;
             const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-            const scaleLat = point.lat - 0.15;
-            const scaleLon = point.lon - 0.15;
+            const padFactor = 1.25;
+          const padLat = (8.0467 / 111.0) * padFactor;
+          const scaleLat = point.lat - padLat;
+          const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
+          const scaleLon = point.lon - padLon;
             const tickLength = 0.005;
             
             const minimalOverlay = {
@@ -1081,7 +1087,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                     type: 'LineString',
                     coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
                   },
-                  properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+                  properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
                 },
                 {
                   type: 'Feature',
@@ -1089,7 +1095,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                     type: 'LineString',
                     coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
                   },
-                  properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+                  properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
                 },
                 {
                   type: 'Feature',
@@ -1097,7 +1103,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
                     type: 'LineString',
                     coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
                   },
-                  properties: { stroke: '#000000', 'stroke-width': 2, 'stroke-opacity': 0.7 }
+                  properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
                 }
               ]
             };
