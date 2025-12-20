@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Locate Me Gallery</title>
+  <title>Locate Me Gallery · Levante</title>
+  <link rel="icon" type="image/svg+xml" href="/audio-favicon.svg">
   <style>
     * {
       margin: 0;
@@ -12,28 +13,31 @@
     }
     body {
       font-family: Inter, system-ui, -apple-system, sans-serif;
-      background: #fafafa;
-      padding: 24px;
-      color: #27272a;
+      background: radial-gradient(circle at 20% 20%, rgba(255, 111, 0, 0.22), rgba(15, 23, 42, 0.94)), #020617;
+      padding: 32px 20px 48px;
+      color: #e2e8f0;
     }
     header {
       max-width: 1400px;
       margin: 0 auto 32px;
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border: 1px solid #e4e4e7;
+      background: linear-gradient(135deg, rgba(255, 111, 0, 0.95), rgba(255, 146, 43, 0.9));
+      padding: 28px;
+      border-radius: 20px;
+      box-shadow: 0 22px 48px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
     header h1 {
-      font-size: 28px;
+      font-size: 30px;
       font-weight: 700;
-      margin-bottom: 8px;
-      color: #27272a;
+      margin-bottom: 6px;
+      color: #0b1220;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
     header p {
-      color: #71717a;
-      font-size: 14px;
+      color: rgba(3, 7, 18, 0.9);
+      font-size: 15px;
+      font-weight: 600;
     }
     .stats {
       display: flex;
@@ -64,17 +68,17 @@
       gap: 24px;
     }
     .gallery-item {
-      background: white;
-      border-radius: 12px;
+      background: rgba(7, 15, 28, 0.95);
+      border-radius: 14px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      border: 1px solid #e4e4e7;
+      box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
+      border: 1px solid rgba(0, 160, 222, 0.25);
       transition: transform 0.2s, box-shadow 0.2s;
       cursor: pointer;
     }
     .gallery-item:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      box-shadow: 0 26px 52px rgba(0,0,0,0.55);
     }
     .gallery-item img {
       width: 100%;
@@ -84,11 +88,12 @@
     .gallery-item-info {
       padding: 12px 16px;
       font-size: 12px;
-      color: #71717a;
-      border-top: 1px solid #e4e4e7;
+      color: #cbd5e1;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.55);
     }
     .gallery-item-info strong {
-      color: #27272a;
+      color: #e2e8f0;
     }
     .modal {
       display: none;
@@ -110,9 +115,10 @@
     .modal-content {
       max-width: 90%;
       max-height: 90%;
-      background: white;
-      border-radius: 12px;
+      background: #0b1220;
+      border-radius: 14px;
       overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
     }
     .modal-content img {
       width: 100%;
@@ -123,7 +129,7 @@
       position: absolute;
       top: 20px;
       right: 20px;
-      background: white;
+      background: rgba(255, 255, 255, 0.9);
       border: none;
       width: 40px;
       height: 40px;
@@ -144,20 +150,22 @@
     }
     .filter-btn {
       padding: 8px 16px;
-      border: 1px solid #e4e4e7;
-      background: white;
-      border-radius: 6px;
+      border: 1px solid rgba(0, 160, 222, 0.28);
+      background: rgba(7, 15, 28, 0.9);
+      color: #e2e8f0;
+      border-radius: 999px;
       cursor: pointer;
       font-size: 14px;
       transition: all 0.2s;
     }
     .filter-btn:hover {
-      background: #fafafa;
+      background: rgba(0, 160, 222, 0.25);
+      color: #ffffff;
     }
     .filter-btn.active {
-      background: #da3d16;
+      background: linear-gradient(135deg, #ff6f00, #ff9d2d);
       color: white;
-      border-color: #da3d16;
+      border-color: rgba(255, 255, 255, 0.2);
     }
   </style>
 </head>
