@@ -18,7 +18,7 @@ const SEED_FILE = path.join(OUTPUT_DIR, 'seed-points.json');
 const GEOCODER_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
 const GEOCODER_PATH_GZ = `${GEOCODER_PATH}.gz`;
 const MAX_LOCALITY_CANDIDATES = 6000; // cap per-country locality sample to stay compact
-
+const ADM_PACK_DIR = path.join(process.cwd(), 'public', 'adm-packs');
 
 const ALLOWED_COUNTRY_SLUGS = new Set([
   'scotland',
@@ -206,6 +206,113 @@ function nearestLocality(lat, lon, country) {
 }
 
 // Simple on-disk cache to avoid re-hitting Overpass-backed endpoints when rerunning
+
+// --- ADM pack helpers (local polygons; no GPS sent remotely) ---
+const admPackCache = new Map();
+
+function pointInRing(pt, ring) {
+  const [px, py] = pt;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersect = (yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-12) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygon(pt, geom) {
+  if (!geom) return false;
+  const type = geom.type;
+  const polys =
+    type === 'Polygon'
+      ? [geom.coordinates]
+      : type === 'MultiPolygon'
+      ? geom.coordinates
+      : [];
+  if (!polys.length) return false;
+  for (const poly of polys) {
+    if (!poly || !poly.length) continue;
+    const [outer, ...holes] = poly;
+    if (!outer || !outer.length) continue;
+    if (!pointInRing(pt, outer)) continue;
+    let inHole = false;
+    for (const hole of holes) {
+      if (hole && hole.length && pointInRing(pt, hole)) {
+        inHole = true;
+        break;
+      }
+    }
+    if (!inHole) return true;
+  }
+  return false;
+}
+
+function polygonArea(geom) {
+  const ringArea = (ring = []) => {
+    let sum = 0;
+    for (let i = 0, len = ring.length; i < len; i++) {
+      const [x1, y1] = ring[i];
+      const [x2, y2] = ring[(i + 1) % len];
+      sum += x1 * y2 - x2 * y1;
+    }
+    return Math.abs(sum / 2);
+  };
+  if (!geom) return Infinity;
+  const type = geom.type;
+  const polys =
+    type === 'Polygon'
+      ? [geom.coordinates]
+      : type === 'MultiPolygon'
+      ? geom.coordinates
+      : [];
+  let total = 0;
+  for (const poly of polys) {
+    if (!poly || !poly.length) continue;
+    const [outer, ...holes] = poly;
+    total += ringArea(outer || []);
+    for (const hole of holes) {
+      total -= ringArea(hole || []);
+    }
+  }
+  return total || Infinity;
+}
+
+function loadAdmPack(countryCode) {
+  const code = (countryCode || '').toLowerCase();
+  if (!code) return null;
+  if (admPackCache.has(code)) return admPackCache.get(code);
+  const filePath = path.join(ADM_PACK_DIR, `${code}.json`);
+  if (!fs.existsSync(filePath)) {
+    admPackCache.set(code, null);
+    return null;
+  }
+  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  admPackCache.set(code, data);
+  return data;
+}
+
+function lookupAdmPolygon(countryCode, lat, lon) {
+  const pack = loadAdmPack(countryCode);
+  if (!pack || !pack.features) return null;
+  const pt = [lon, lat];
+  let best = null;
+  let bestArea = Infinity;
+  for (const feature of pack.features) {
+    if (!feature?.geometry) continue;
+    if (pointInPolygon(pt, feature.geometry)) {
+      const area = polygonArea(feature.geometry);
+      if (area < bestArea) {
+        bestArea = area;
+        best = feature;
+      }
+    }
+  }
+  return best;
+}
+
+// Simple on-disk cache to avoid re-hitting Overpass-backed endpoints when rerunning
 function ensureCacheDir() {
   const dir = path.dirname(CACHE_FILE);
   if (!fs.existsSync(dir)) {
@@ -381,68 +488,38 @@ async function processPoint(point, index, total) {
     
     const results = geocodeData.results.slice(0, 2);
     
-    // Step 2: Get polygons for each result
+    // Step 2: Get polygons for each result using local ADM pack
     const polygons = [];
     for (const result of results) {
       try {
-        const polygonSlug = mapCountrySlug(result.country);
-        if (!polygonSlug) {
-          console.warn(`  ⚠️  Skipping polygon for ${result.name} (${result.country}) - unsupported country`);
-          continue;
-        }
-        const polygonUrl = `${BASE_URL}/api/gadm-polygon?country=${polygonSlug}&lat=${result.lat}&lon=${result.lon}`;
-        const polygonData = await fetchJSONWithRetry(polygonUrl, `Polygon ${result.name || result.id || point.id}`);
-        polygons.push({
-          city: result,
-          polygon: polygonData.feature
-        });
+        const poly = lookupAdmPolygon(result.country, result.lat, result.lon);
+        polygons.push({ city: result, polygon: poly });
       } catch (err) {
         console.warn(`  ⚠️  Failed to get polygon for ${result.name}: ${err.message}`);
-        polygons.push({
-          city: result,
-          polygon: null
-        });
+        polygons.push({ city: result, polygon: null });
       }
     }
     
-    // Step 3: Get administrative area polygon for the GPS point itself
-    console.log(`  [${point.id}] Starting admin area query...`);
+    // Step 3: Get administrative area polygon for the GPS point itself (local pack)
+    console.log(`  [${point.id}] Starting admin area lookup (local pack)...`);
     let adminArea = null;
     try {
-      const adminSlug = point.slug || mapCountrySlug(point.country);
-      if (!adminSlug) {
-        console.warn(`  ⚠️  Seed point ${point.id} uses unsupported country ${point.country}`);
-        return null;
-      }
-      const adminUrl = `${BASE_URL}/api/gadm-polygon?country=${adminSlug}&lat=${point.lat}&lon=${point.lon}`;
-      console.log(`  [${point.id}] Querying admin area: ${adminUrl}`);
-      const adminData = await fetchJSONWithRetry(adminUrl, `Admin ${point.id}`);
-      console.log(`  [${point.id}] Admin response received. Error: ${adminData.error || 'none'}, Has feature: ${!!adminData.feature}`);
-      if (adminData.feature) {
-        // Extract name from various possible locations
-        const name = adminData.feature.properties?.name || 
-                    adminData.feature.properties?.tags?.name || 
-                    adminData.feature.properties?.tags?.['name:en'] ||
-                    'Unknown';
-        // Extract population
-        const population = adminData.feature.properties?.population || 
-                          adminData.feature.properties?.tags?.population ||
-                          adminData.feature.properties?.tags?.['population:date'] ||
-                          null;
+      const poly = lookupAdmPolygon(point.country, point.lat, point.lon);
+      if (poly) {
+        const name = poly.properties?.name || poly.properties?.tags?.name || poly.properties?.tags?.['name:en'] || 'Unknown';
+        const population = poly.properties?.population || poly.properties?.tags?.population || null;
         adminArea = {
-          polygon: adminData.feature,
-          adminLevel: adminData.adminLevel,
-          name: name,
+          polygon: poly,
+          adminLevel: poly.properties?.admin_level || null,
+          name,
           population: population ? parseInt(population, 10) : null
         };
-        console.log(`  [${point.id}] ✓ Admin area found: ${name} (level ${adminData.adminLevel})`);
+        console.log(`  [${point.id}] ✓ Admin area found: ${name}`);
       } else {
-        console.log(`  [${point.id}] ⚠️  No feature in admin area response`);
+        console.log(`  [${point.id}] ⚠️  No admin polygon in local pack`);
       }
-      console.log(`  [${point.id}] Admin area after query:`, adminArea ? `SET (${adminArea.name})` : 'NULL');
     } catch (err) {
       console.warn(`  [${point.id}] ⚠️  Exception getting admin area: ${err.message}`);
-      console.warn(`  [${point.id}] Error stack:`, err.stack?.substring(0, 200));
     }
     
     console.log(`  [${point.id}] Final adminArea value before return:`, adminArea ? `SET (${adminArea.name})` : (adminArea === null ? 'NULL' : 'UNDEFINED'));

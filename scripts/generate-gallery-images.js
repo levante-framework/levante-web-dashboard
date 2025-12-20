@@ -59,8 +59,11 @@ function formatBytes(bytes) {
 
 // Mapbox Static Images API helpers
 function calculateZoomForWidth(lat, widthKm) {
-  const degrees = widthKm / 111.0;
-  const zoom = Math.log2(360 / degrees);
+  // Convert widthKm to longitudinal degrees at the given latitude.
+  // (Longitude degrees shrink by cos(latitude).)
+  const cos = Math.cos((lat * Math.PI) / 180) || 1e-12;
+  const degreesLon = widthKm / (111.0 * cos);
+  const zoom = Math.log2(360 / degreesLon);
   return Math.round(zoom * 10) / 10;
 }
 
@@ -69,7 +72,7 @@ function simplifyPolygon(geometry, tolerance = 0.0001) {
   if (!geometry || !geometry.coordinates) return geometry;
 
   // Helper function for uniform sampling - non-recursive
-  const uniformSample = (ring, maxPoints = 20) => {
+  const uniformSample = (ring, maxPoints = 32) => {
     if (!ring || ring.length <= maxPoints) return ring;
     const step = Math.max(1, Math.floor(ring.length / maxPoints));
     const sampled = [];
@@ -546,8 +549,8 @@ function octagonFromBBox(bbox) {
   const rx = Math.max((bbox.maxLon - bbox.minLon) / 2, 0.01);
   const ry = Math.max((bbox.maxLat - bbox.minLat) / 2, 0.01);
   const points = [];
-  for (let i = 0; i < 8; i++) {
-    const ang = (i / 8) * 2 * Math.PI;
+  for (let i = 0; i < 32; i++) {
+    const ang = (i / 32) * 2 * Math.PI;
     points.push([roundCoord(cx + rx * Math.cos(ang)), roundCoord(cy + ry * Math.sin(ang))]);
   }
   points.push(points[0]);
@@ -557,7 +560,7 @@ function octagonFromBBox(bbox) {
 
 
 // Simplify polygon/multipolygon to a single outline with limited vertices
-function simplifyToOutline(geometry, maxPoints = 20) {
+function simplifyToOutline(geometry, maxPoints = 32) {
   if (!geometry || !geometry.coordinates) return null;
   const fixed = fixPolygonGeometry(geometry);
   if (!fixed || !fixed.coordinates) return null;
@@ -639,8 +642,11 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
   const scaleKm = 10;
   const latDegrees = scaleKm / 111.0;
   const lonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-  const scaleLat = point.lat - 0.15;
-  const scaleLon = point.lon - 0.15;
+  const padFactor = 1.25;
+  const padLat = (8.0467 / 111.0) * padFactor;
+  const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
+  const scaleLat = point.lat - padLat;
+  const scaleLon = point.lon - padLon;
 
   features.push({
     type: 'Feature',
@@ -680,23 +686,23 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
   // Add octagon outlines from source polygons (very small payload)
   // Draw city first, then admin on top to avoid overlap hiding the admin outline
   if (Array.isArray(polygons) && polygons.length > 0) {
-    const bbox = bboxFromGeometry(polygons[0]?.polygon?.geometry);
-    const oct = octagonFromBBox(bbox);
-    if (oct) {
+    const outline = simplifyToOutline(polygons[0]?.polygon?.geometry, 32);
+    const geom = outline || octagonFromBBox(bboxFromGeometry(polygons[0]?.polygon?.geometry));
+    if (geom) {
       features.push({
         type: 'Feature',
-        geometry: oct,
+        geometry: geom,
         properties: { stroke: '#2563eb', 'stroke-width': 3, fill: 'none', 'fill-opacity': 0 }
       });
     }
   }
   if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
-    const bbox = bboxFromGeometry(adminArea.polygon.geometry);
-    const oct = octagonFromBBox(bbox);
-    if (oct) {
+    const outline = simplifyToOutline(adminArea.polygon.geometry, 32);
+    const geom = outline || octagonFromBBox(bboxFromGeometry(adminArea.polygon.geometry));
+    if (geom) {
       features.push({
         type: 'Feature',
-        geometry: oct,
+        geometry: geom,
         properties: { stroke: '#dc2626', 'stroke-width': 4, fill: 'none', 'fill-opacity': 0 }
       });
     }
@@ -880,8 +886,11 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
         const scaleKm = 10;
         const scaleLatDegrees = scaleKm / 111.0;
         const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-        const scaleLat = point.lat - 0.15;
-        const scaleLon = point.lon - 0.15;
+        const padFactor = 1.25;
+        const padLat = (8.0467 / 111.0) * padFactor;
+        const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
+        const scaleLat = point.lat - padLat;
+        const scaleLon = point.lon - padLon;
         const tickLength = 0.005;
         
         const minimalOverlay = {
