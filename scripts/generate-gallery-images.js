@@ -1357,11 +1357,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     <text x="${Math.round(labelX + labelW/2)}" y="${Math.round(labelY + labelH/2) + 5}" text-anchor="middle">${escapeXml(labelText)}</text>
   </g>
 </svg>`);
-            const legendSvg = Buffer.from(`<svg width="780" height="900" viewBox="0 0 260 322" xmlns="http://www.w3.org/2000/svg">
+            const legendSvg = Buffer.from(`<svg width="780" height="820" viewBox="0 0 260 276" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 11px; fill: #111827; }
   </style>
-  <rect x="12" y="12" width="236" height="298" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="12" y="12" width="236" height="252" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.26" stroke="#16a34a" stroke-width="2" />

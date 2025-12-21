@@ -136,6 +136,21 @@
       "lon": -87.7581
     },
     {
+      "id": "US-harbor-springs-lakeshore-2999",
+      "label": "2999 N Lakeshore Dr (approx), Harbor Springs, MI",
+      "country": "US",
+      "lat": 45.4317,
+      "lon": -84.9920,
+      "allowFar": true
+    },
+    {
+      "id": "US-minneapolis-pillsbury-3944",
+      "label": "3944 Pillsbury Ave S, Minneapolis, MN",
+      "country": "US",
+      "lat": 44.9315,
+      "lon": -93.2815
+    },
+    {
       "id": "US-stanford",
       "label": "Stanford University (campus center), CA",
       "country": "US",
