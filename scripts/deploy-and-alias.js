@@ -18,7 +18,10 @@ function run(command) {
   try {
     console.log('🚀 Deploying to Vercel (production)...');
     await run('node scripts/apply-version.js');
-    const { stdout: deployOut } = await run('npx -y vercel --prod --yes');
+    // Avoid pulling large optional binaries during the Vercel build (keeps serverless bundles under size limits).
+    const { stdout: deployOut } = await run(
+      'npx -y vercel --prod --yes -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1'
+    );
     process.stdout.write(deployOut);
 
     // Try to extract the production deployment URL from the CLI output
