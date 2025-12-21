@@ -1,33 +1,51 @@
 #!/usr/bin/env node
 /**
- * Build offline ADM2 packs for client-side lookup.
+ * Build offline ADM packs for client-side lookup.
  *
- * Downloads GeoBoundaries ADM2 GeoJSON and writes a minimized pack to:
- *   public/adm-packs/<iso2>.json
+ * Produces per-country, per-level files:
+ *   public/adm-packs/<iso2>/adm1.json.gz
+ *   public/adm-packs/<iso2>/adm2.json.gz
  *
- * Minification strategy (to keep packs small enough for on-device caching):
- * - Keep only essential properties (name, iso, id)
- * - Round coordinates (default precision=5)
+ * (Optional) also writes uncompressed JSON if --writeJson is set.
+ *
+ * Minification strategy:
+ * - Keep only essential properties (name, iso2, id)
+ * - Round coordinates (default precision=3)
  * - Downsample each ring to a max vertex count (default maxPoints=250)
  *
  * Usage:
  *   node scripts/adm/build-packs.js --countries=CO,DE,US
- *   node scripts/adm/build-packs.js --countries=CO --maxPoints=300 --precision=5
+ *   node scripts/adm/build-packs.js --countries=CO --maxPoints=300 --precision=3
  */
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const fetch = require('node-fetch');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 
 const DEFAULT_COUNTRIES = ['CO', 'DE', 'US'];
-const ISO3_MAP = { CO: 'COL', DE: 'DEU', US: 'USA', NL: 'NLD', CA: 'CAN', GB: 'GBR', IN: 'IND', AR: 'ARG', GH: 'GHA', CH: 'CHE' };
+const LEVELS = ['ADM1', 'ADM2'];
+
+const ISO3_MAP = {
+  CO: 'COL',
+  DE: 'DEU',
+  US: 'USA',
+  NL: 'NLD',
+  CA: 'CAN',
+  GB: 'GBR',
+  IN: 'IND',
+  AR: 'ARG',
+  GH: 'GHA',
+  CH: 'CHE'
+};
+
 const DEST_DIR = path.join(process.cwd(), 'public', 'adm-packs');
 
-function metaUrl(iso2) {
+function metaUrl(iso2, level) {
   const iso3 = ISO3_MAP[iso2.toUpperCase()] || iso2.toUpperCase();
-  return `https://www.geoboundaries.org/api/current/gbOpen/${iso3}/ADM2`;
+  return `https://www.geoboundaries.org/api/current/gbOpen/${iso3}/${level}`;
 }
 
 async function downloadJson(url) {
@@ -46,20 +64,33 @@ function roundCoord(value, precision) {
 
 function downsampleRing(ring, maxPoints, precision) {
   if (!Array.isArray(ring) || ring.length < 4) return ring;
+
   const cleaned = ring
     .filter((c) => Array.isArray(c) && c.length >= 2)
     .map(([lon, lat]) => [Number(lon), Number(lat)])
-    .filter(([lon, lat]) => Number.isFinite(lon) && Number.isFinite(lat) && lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90);
+    .filter(
+      ([lon, lat]) =>
+        Number.isFinite(lon) &&
+        Number.isFinite(lat) &&
+        lon >= -180 &&
+        lon <= 180 &&
+        lat >= -90 &&
+        lat <= 90
+    );
 
   if (cleaned.length < 4) return ring;
 
   const first = cleaned[0];
   const last = cleaned[cleaned.length - 1];
-  const isClosed = Math.abs(first[0] - last[0]) < 1e-12 && Math.abs(first[1] - last[1]) < 1e-12;
+  const isClosed =
+    Math.abs(first[0] - last[0]) < 1e-12 && Math.abs(first[1] - last[1]) < 1e-12;
   const working = isClosed ? cleaned : [...cleaned, first];
 
+  const finalize = (coords) =>
+    coords.map(([lon, lat]) => [roundCoord(lon, precision), roundCoord(lat, precision)]);
+
   if (working.length <= maxPoints) {
-    return working.map(([lon, lat]) => [roundCoord(lon, precision), roundCoord(lat, precision)]);
+    return finalize(working);
   }
 
   const step = Math.max(1, Math.floor(working.length / maxPoints));
@@ -72,18 +103,24 @@ function downsampleRing(ring, maxPoints, precision) {
   const l = sampled[sampled.length - 1];
   if (f && l && (f[0] !== l[0] || f[1] !== l[1])) sampled.push([f[0], f[1]]);
 
-  return sampled.map(([lon, lat]) => [roundCoord(lon, precision), roundCoord(lat, precision)]);
+  return finalize(sampled);
 }
 
 function simplifyGeometry(geom, maxPoints, precision) {
   if (!geom || !geom.type || !geom.coordinates) return geom;
   if (geom.type === 'Polygon') {
-    const rings = (geom.coordinates || []).map((r) => downsampleRing(r, maxPoints, precision)).filter((r) => Array.isArray(r) && r.length >= 4);
+    const rings = (geom.coordinates || [])
+      .map((r) => downsampleRing(r, maxPoints, precision))
+      .filter((r) => Array.isArray(r) && r.length >= 4);
     return { type: 'Polygon', coordinates: rings };
   }
   if (geom.type === 'MultiPolygon') {
     const polys = (geom.coordinates || [])
-      .map((poly) => (poly || []).map((r) => downsampleRing(r, maxPoints, precision)).filter((r) => Array.isArray(r) && r.length >= 4))
+      .map((poly) =>
+        (poly || [])
+          .map((r) => downsampleRing(r, maxPoints, precision))
+          .filter((r) => Array.isArray(r) && r.length >= 4)
+      )
       .filter((poly) => Array.isArray(poly) && poly.length);
     return { type: 'MultiPolygon', coordinates: polys };
   }
@@ -103,26 +140,52 @@ function minimizeFeature(feature, iso2, maxPoints, precision) {
   };
 }
 
-async function fetchAndSave(country, { maxPoints, precision }) {
+function writePackFiles({ country, level, payload, writeJson }) {
+  const code = country.toLowerCase();
+  const levelName = level.toLowerCase(); // adm1 / adm2
+  const dir = path.join(DEST_DIR, code);
+  fs.mkdirSync(dir, { recursive: true });
+
+  const jsonStr = JSON.stringify(payload);
+  const gz = zlib.gzipSync(Buffer.from(jsonStr), { level: 9 });
+
+  const gzPath = path.join(dir, `${levelName}.json.gz`);
+  fs.writeFileSync(gzPath, gz);
+
+  if (writeJson) {
+    const jsonPath = path.join(dir, `${levelName}.json`);
+    fs.writeFileSync(jsonPath, jsonStr);
+  }
+
+  console.log(`💾 Saved ${country}/${level}: ${gz.length} bytes gz`);
+}
+
+async function fetchAndSaveCountry(country, { maxPoints, precision, writeJson }) {
   const code = country.toUpperCase();
-  console.log(`🌐 Fetching metadata for ${code}...`);
-  const meta = await downloadJson(metaUrl(code));
-  const gjUrl = meta?.gjDownloadURL;
-  if (!gjUrl) throw new Error(`No gjDownloadURL for ${code}`);
+  for (const level of LEVELS) {
+    console.log(`🌐 Fetching metadata for ${code} ${level}...`);
+    const meta = await downloadJson(metaUrl(code, level));
+    const gjUrl = meta?.gjDownloadURL;
+    if (!gjUrl) throw new Error(`No gjDownloadURL for ${code} ${level}`);
 
-  console.log(`⬇️  Downloading GeoJSON for ${code}...`);
-  const geo = await downloadJson(gjUrl);
-  if (!geo?.features) throw new Error(`No features for ${code}`);
+    console.log(`⬇️  Downloading GeoJSON for ${code} ${level}...`);
+    const geo = await downloadJson(gjUrl);
+    if (!geo?.features) throw new Error(`No features for ${code} ${level}`);
 
-  console.log(`🧹 Minimizing ${geo.features.length} features (maxPoints=${maxPoints}, precision=${precision})...`);
-  const features = geo.features
-    .map((f) => minimizeFeature(f, code, maxPoints, precision))
-    .filter(Boolean);
+    console.log(
+      `🧹 Minimizing ${geo.features.length} features (maxPoints=${maxPoints}, precision=${precision})...`
+    );
+    const features = geo.features
+      .map((f) => minimizeFeature(f, code, maxPoints, precision))
+      .filter(Boolean);
 
-  fs.mkdirSync(DEST_DIR, { recursive: true });
-  const outPath = path.join(DEST_DIR, `${code.toLowerCase()}.json`);
-  fs.writeFileSync(outPath, JSON.stringify({ type: 'FeatureCollection', features }));
-  console.log(`💾 Saved ${features.length} features to ${outPath}`);
+    writePackFiles({
+      country: code,
+      level,
+      payload: { type: 'FeatureCollection', features },
+      writeJson
+    });
+  }
 }
 
 async function main() {
@@ -130,6 +193,7 @@ async function main() {
     .option('countries', { type: 'string', default: DEFAULT_COUNTRIES.join(',') })
     .option('maxPoints', { type: 'number', default: 250 })
     .option('precision', { type: 'number', default: 3 })
+    .option('writeJson', { type: 'boolean', default: false })
     .parse();
 
   const list = String(argv.countries)
@@ -139,7 +203,11 @@ async function main() {
 
   for (const country of list) {
     try {
-      await fetchAndSave(country, { maxPoints: argv.maxPoints, precision: argv.precision });
+      await fetchAndSaveCountry(country, {
+        maxPoints: argv.maxPoints,
+        precision: argv.precision,
+        writeJson: argv.writeJson
+      });
     } catch (err) {
       console.error(`❌ Failed for ${country}: ${err.message}`);
     }

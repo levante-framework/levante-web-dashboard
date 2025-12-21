@@ -51,7 +51,9 @@ createApp({
       leafletPromise: null,
       inlineMapInstance: null,
       inlineMapLayers: null,
-      gadmPolygonCache: {}
+      gadmPolygonCache: {},
+      admPackCache: {},
+      admPolygon: null,
     };
   },
   computed: {
@@ -307,35 +309,138 @@ createApp({
         .map((part) => (part || '').toString().trim().toLowerCase())
         .join('|');
     },
+    async loadAdmPack(country) {
+      const code = (country || '').trim().toLowerCase();
+      if (!code) return null;
+      if (this.admPackCache[code] !== undefined) return this.admPackCache[code];
+      try {
+        const fetchGzJson = async (url) => {
+          const res = await fetch(url, { cache: 'force-cache' });
+          if (!res.ok) throw new Error(`pack missing (${res.status})`);
+          const buf = await res.arrayBuffer();
+          if (typeof DecompressionStream === 'undefined') {
+            throw new Error('DecompressionStream not supported in this browser');
+          }
+          const ds = new DecompressionStream('gzip');
+          const stream = new Response(new Blob([buf]).stream().pipeThrough(ds));
+          return stream.json();
+        };
+
+        const [adm1, adm2] = await Promise.all([
+          fetchGzJson(`/adm-packs/${code}/adm1.json.gz`),
+          fetchGzJson(`/adm-packs/${code}/adm2.json.gz`)
+        ]);
+
+        const bundle = { adm1, adm2 };
+        this.admPackCache[code] = bundle;
+        return bundle;
+      } catch (err) {
+        console.warn('ADM pack load failed', code, err.message);
+        this.admPackCache[code] = null;
+        return null;
+      }
+    },
+    pointInRing(pt, ring) {
+      const [px, py] = pt;
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i];
+        const [xj, yj] = ring[j];
+        const intersect = (yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-12) + xi;
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    },
+    pointInPolygon(pt, geom) {
+      if (!geom) return false;
+      const type = geom.type;
+      const polygons =
+        type === 'Polygon'
+          ? [geom.coordinates]
+          : type === 'MultiPolygon'
+          ? geom.coordinates
+          : [];
+      if (!polygons.length) return false;
+      for (const poly of polygons) {
+        if (!poly || !poly.length) continue;
+        const [outer, ...holes] = poly;
+        if (!outer || !outer.length) continue;
+        if (!this.pointInRing(pt, outer)) continue;
+        let inHole = false;
+        for (const hole of holes) {
+          if (hole && hole.length && this.pointInRing(pt, hole)) {
+            inHole = true;
+            break;
+          }
+        }
+        if (!inHole) return true;
+      }
+      return false;
+    },
+    polygonArea(geom) {
+      const ringArea = (ring = []) => {
+        let sum = 0;
+        for (let i = 0, len = ring.length; i < len; i++) {
+          const [x1, y1] = ring[i];
+          const [x2, y2] = ring[(i + 1) % len];
+          sum += x1 * y2 - x2 * y1;
+        }
+        return Math.abs(sum / 2);
+      };
+      if (!geom) return Infinity;
+      const type = geom.type;
+      const polys =
+        type === 'Polygon'
+          ? [geom.coordinates]
+          : type === 'MultiPolygon'
+          ? geom.coordinates
+          : [];
+      let total = 0;
+      for (const poly of polys) {
+        if (!poly || !poly.length) continue;
+        const [outer, ...holes] = poly;
+        total += ringArea(outer || []);
+        for (const hole of holes) {
+          total -= ringArea(hole || []);
+        }
+      }
+      return total || Infinity;
+    },
+    async fetchAdmPolygonFromPack(country, level, lat, lon) {
+      const packBundle = await this.loadAdmPack(country);
+      const pack =
+        packBundle && level === 'adm1'
+          ? packBundle.adm1
+          : packBundle && level === 'adm2'
+          ? packBundle.adm2
+          : null;
+      if (!pack || !pack.features) return null;
+      const pt = [lon, lat];
+      let best = null;
+      let bestArea = Infinity;
+      for (const feature of pack.features) {
+        if (!feature?.geometry) continue;
+        if (this.pointInPolygon(pt, feature.geometry)) {
+          const area = this.polygonArea(feature.geometry);
+          if (area < bestArea) {
+            bestArea = area;
+            best = feature;
+          }
+        }
+      }
+      return best;
+    },
     async fetchGadmPolygon(result) {
       if (!result || !result.country || !result.lat || !result.lon) {
         return null;
       }
-      const cacheKey = this.normalizeGadmKey(result.name, result.admin1, result.country);
-      if (this.gadmPolygonCache[cacheKey]) {
+      const cacheKey = this.normalizeGadmKey('adm2', result.admin1, result.country);
+      if (this.gadmPolygonCache[cacheKey] !== undefined) {
         return this.gadmPolygonCache[cacheKey];
       }
-      const params = new URLSearchParams({
-        name: result.name || '',
-        admin1: result.admin1 || '',
-        country: result.country,
-        lat: result.lat,
-        lon: result.lon
-      });
-      try {
-        const response = await fetch(apiUrl(`/api/gadm-polygon?${params.toString()}`));
-        if (!response.ok) {
-          return null;
-        }
-        const payload = await response.json();
-        if (payload?.feature) {
-          this.gadmPolygonCache[cacheKey] = payload.feature;
-          return payload.feature;
-        }
-      } catch (error) {
-        console.warn('Failed to load GADM polygon', error);
-      }
-      return null;
+      const feature = await this.fetchAdmPolygonFromPack(result.country, 'adm2', result.lat, result.lon);
+      this.gadmPolygonCache[cacheKey] = feature || null;
+      return feature || null;
     },
     async drawRegionPolygons(results = []) {
       if (!results.length || !this.inlineMapLayers) {
@@ -401,8 +506,19 @@ createApp({
               const best = this.results[0];
               const parts = [best.name, best.admin1, best.country].filter(Boolean);
               this.status = `Found: ${parts.join(', ')}`;
+              // Local ADM2/3 lookup from on-device pack; raw GPS stays local
+              try {
+                this.admPolygon = {
+                  adm1: await this.fetchAdmPolygonFromPack(best.country, 'adm1', latitude, longitude),
+                  adm2: await this.fetchAdmPolygonFromPack(best.country, 'adm2', latitude, longitude)
+                };
+              } catch (admErr) {
+                console.warn('ADM pack lookup failed', admErr);
+                this.admPolygon = null;
+              }
             } else {
               this.status = 'No city found';
+              this.admPolygon = null;
             }
 
             // Refresh logs so modals show the most recent entry
@@ -573,48 +689,48 @@ createApp({
           coords.push([gpsLat, gpsLon]);
         }
 
-        await this.drawRegionPolygons(this.results);
-
-        // Fetch and display admin area polygon for GPS point (red polygon)
-        if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon) && this.results.length > 0) {
-          // Use the country from the first result
-          const country = this.results[0].country;
-          try {
-            const adminParams = new URLSearchParams({
-              lat: gpsLat.toString(),
-              lon: gpsLon.toString(),
-              country: country
-            });
-            const adminResponse = await fetch(apiUrl(`/api/gadm-polygon?${adminParams.toString()}`));
-            if (adminResponse.ok) {
-              const adminPayload = await adminResponse.json();
-              if (adminPayload?.feature) {
-                const adminLayer = L.geoJSON(adminPayload.feature, {
-                  style: {
-                    color: '#dc2626',
-                    weight: 4,
-                    opacity: 1.0,
-                    fillColor: '#dc2626',
-                    fillOpacity: 0.25
-                  }
-                }).addTo(this.inlineMapLayers);
-                
-                // Add popup with admin area name
-                const adminName = adminPayload.feature.properties?.name || 
-                                 adminPayload.feature.properties?.tags?.name || 
-                                 'Administrative Area';
-                adminLayer.bindPopup(`<strong>${adminName}</strong><br>Admin Level: ${adminPayload.adminLevel || 'N/A'}`);
-                
-                // Include admin area bounds in fitBounds calculation
-                const adminBounds = adminLayer.getBounds();
-                if (adminBounds.isValid()) {
-                  coords.push([adminBounds.getSouth(), adminBounds.getWest()]);
-                  coords.push([adminBounds.getNorth(), adminBounds.getEast()]);
-                }
+        // Draw boundaries based on local packs:
+        // - Blue: ADM2 containing the GPS point ("City") (more precise)
+        // - Red:  ADM1 containing the GPS point ("Admin") (broader)
+        if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon) && this.admPolygon) {
+          const adm2 = this.admPolygon.adm2 || null;
+          if (adm2) {
+            const layer = L.geoJSON(adm2, {
+              style: {
+                color: '#2563eb',
+                weight: 3,
+                opacity: 1.0,
+                fillColor: '#2563eb',
+                fillOpacity: 0.10
               }
+            }).addTo(this.inlineMapLayers);
+            const name = adm2.properties?.name || 'ADM2';
+            layer.bindPopup(`<strong>${name}</strong><br>ADM2 (local)`);
+            const b = layer.getBounds();
+            if (b.isValid()) {
+              coords.push([b.getSouth(), b.getWest()]);
+              coords.push([b.getNorth(), b.getEast()]);
             }
-          } catch (adminError) {
-            console.warn('Failed to load admin area polygon:', adminError);
+          }
+
+          const adm1 = this.admPolygon.adm1 || null;
+          if (adm1) {
+            const layer = L.geoJSON(adm1, {
+              style: {
+                color: '#dc2626',
+                weight: 3,
+                opacity: 1.0,
+                fillColor: '#dc2626',
+                fillOpacity: 0.06
+              }
+            }).addTo(this.inlineMapLayers);
+            const name = adm1.properties?.name || 'ADM1';
+            layer.bindPopup(`<strong>${name}</strong><br>ADM1 (local)`);
+            const b = layer.getBounds();
+            if (b.isValid()) {
+              coords.push([b.getSouth(), b.getWest()]);
+              coords.push([b.getNorth(), b.getEast()]);
+            }
           }
         }
 
