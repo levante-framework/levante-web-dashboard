@@ -1,4 +1,14 @@
-# GADM-driven Locate Me flow
+# Legacy: GADM-driven Locate Me flow
+
+This document describes the **older server-driven** boundary lookup (`/api/gadm-polygon`) that used GADM shapefiles.
+
+As of the current Locate-Me v2 work, the primary flow is **client/offline**:
+- On-device city lookup from `data/geocoder/cities.min.json.gz`
+- On-device boundary lookup from `public/adm-packs/**`
+- Gallery boundaries rendered via Mapbox Static Images + Sharp overlays
+
+See the current canonical doc:
+- `docs/locate-me/README.md`
 
 ## Data sources
 
