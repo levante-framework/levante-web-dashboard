@@ -13,19 +13,19 @@ Web dashboard application for managing Levante audio content, translations, and 
 
 The Locate Me feature (`public/locate-me.html`) allows users to discover their nearest cities using GPS coordinates and displays administrative boundaries on an interactive map.
 
+**Current deep-dive documentation:** see `docs/locate-me/README.md`.
+
 ### How It Works
 
-1. **Reverse Geocoding** (`/api/reverse-geocode`)
-   - Uses GPS coordinates to find the nearest cities
-   - Implements optimized brute-force search with bounding-box pre-filtering
-   - Prioritizes cities in the same administrative region
-   - Data source: `data/geocoder/cities.min.json.gz`
+1. **On-device reverse geocoding**
+   - Uses a compact GeoNames-derived dataset (`data/geocoder/cities.min.json.gz`) loaded in the browser.
 
-2. **Polygon Lookup** (`/api/gadm-polygon`)
-   - Retrieves administrative boundaries from OpenStreetMap via Overpass API
-   - Supports admin levels 6-10 (counties, cities, towns, neighborhoods)
-   - Falls back to nearby cities when only county boundaries are available
-   - Caches responses for 5 minutes
+2. **On-device admin boundary lookup**
+   - Uses offline gzipped packs in `public/adm-packs/**` (GeoBoundaries gbOpen).
+   - For the US, prefers “place/city” boundaries in `public/adm-packs/us/adm3-place/**` with tract fallback.
+
+3. **Weather (privacy-preserving)**
+   - Uses Open‑Meteo with a coarse query point (e.g., ADM2 bbox center) and caching.
 
 ### Supported Countries
 
