@@ -79,6 +79,13 @@
       "lon": 6.9603
     },
     {
+      "id": "DE-trier",
+      "label": "Trier, Germany",
+      "country": "DE",
+      "lat": 49.7557,
+      "lon": 6.6394
+    },
+    {
       "id": "US-nyc",
       "label": "New York, NY",
       "country": "US",
@@ -91,6 +98,42 @@
       "country": "US",
       "lat": 41.8781,
       "lon": -87.6298
+    },
+    {
+      "id": "US-soldotna",
+      "label": "Soldotna, AK",
+      "country": "US",
+      "lat": 60.4878,
+      "lon": -151.0583
+    },
+    {
+      "id": "US-billings",
+      "label": "Billings, MT",
+      "country": "US",
+      "lat": 45.7833,
+      "lon": -108.5007
+    },
+    {
+      "id": "US-terlingua",
+      "label": "Terlingua, TX",
+      "country": "US",
+      "lat": 29.3216,
+      "lon": -103.6160,
+      "allowFar": true
+    },
+    {
+      "id": "US-austin",
+      "label": "Austin, TX",
+      "country": "US",
+      "lat": 30.2672,
+      "lon": -97.7431
+    },
+    {
+      "id": "US-glencoe-il",
+      "label": "Glencoe, IL",
+      "country": "US",
+      "lat": 42.1350,
+      "lon": -87.7581
     },
     {
       "id": "US-stanford",
