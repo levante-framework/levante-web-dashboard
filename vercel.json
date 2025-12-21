@@ -29,10 +29,12 @@
       "maxDuration": 30
     },
     "api/list-validation-files.js": {
-      "maxDuration": 10
+      "maxDuration": 10,
+      "excludeFiles": "data/{tiger,geonames,geocoder}/**"
     },
     "api/get-validation-file.js": {
-      "maxDuration": 10
+      "maxDuration": 10,
+      "excludeFiles": "data/{tiger,geonames,geocoder}/**"
     },
     "api/save-audio.js": {
       "maxDuration": 60
@@ -60,7 +62,8 @@
       "includeFiles": "data/geocoder/cities.min.json.gz"
     },
     "api/location-log.js": {
-      "maxDuration": 10
+      "maxDuration": 10,
+      "excludeFiles": "data/{tiger,geonames,geocoder}/**"
     }
   },
   "rewrites": [
