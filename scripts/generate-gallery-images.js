@@ -13,27 +13,13 @@ const path = require('path');
 const https = require('https');
 const sharp = require('sharp');
 
-// Load environment variables from .env file if it exists
-// Use process.cwd() to find .env in project root
-console.log('[DEBUG] About to load dotenv...');
+// Load environment variables from .env file if it exists (do not log secrets)
 try {
   const dotenv = require('dotenv');
-  // Load from project root (where script is run from)
   const envPath = path.join(process.cwd(), '.env');
-  console.log('[DEBUG] Loading .env from:', envPath);
-  const result = dotenv.config({ path: envPath });
-  console.log('[DEBUG] dotenv result:', result.parsed ? 'SUCCESS' : 'FAILED', result.error ? result.error.message : '');
-  if (result.error) {
-    console.warn('[dotenv] Error loading .env:', result.error.message);
-  } else if (result.parsed && process.env.MAPBOX_ACCESS_TOKEN) {
-    console.log(`[dotenv] Loaded MAPBOX_ACCESS_TOKEN from .env`);
-  } else {
-    console.warn('[dotenv] Token not found in parsed result');
-  }
-  console.log('[DEBUG] Token after dotenv:', process.env.MAPBOX_ACCESS_TOKEN ? 'FOUND' : 'NOT FOUND');
+  dotenv.config({ path: envPath });
 } catch (e) {
   // dotenv not installed or .env file doesn't exist - that's okay
-  console.warn('[dotenv] Failed to load:', e.message);
 }
 
 const DATA_FILE = path.join(process.cwd(), 'public', 'gallery', 'locate-me', 'gallery-data.json');
@@ -638,60 +624,28 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
   });
   console.log(`    Added 5-mile circle with ${fiveMileRing.length} points`);
 
-  // Scale bar (10km) in bottom-left
-  const scaleKm = 10;
-  const latDegrees = scaleKm / 111.0;
-  const lonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-  const padFactor = 1.25;
-  const padLat = (8.0467 / 111.0) * padFactor;
-  const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
-  const scaleLat = point.lat - padLat;
-  const scaleLon = point.lon - padLon;
-
-  features.push({
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [scaleLon, scaleLat],
-        [scaleLon + lonDegrees, scaleLat]
-      ]
-    },
-    properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
-  });
-  const tickLength = 0.005;
-  features.push({
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [scaleLon, scaleLat - tickLength],
-        [scaleLon, scaleLat + tickLength]
-      ]
-    },
-    properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
-  });
-  features.push({
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [scaleLon + lonDegrees, scaleLat - tickLength],
-        [scaleLon + lonDegrees, scaleLat + tickLength]
-      ]
-    },
-    properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
-  });
-
-  // Add octagon outlines from source polygons (very small payload)
-  // Red = Local; Blue = Regional (ADM2). If both are identical (fallback), draw red thicker/softer and blue on top.
+  // Add outline overlays from source polygons (very small payload)
+  // Red = Local; Blue = Regional (ADM2). If boundaries are identical/similar, make red more visible.
   const redGeomSrc = adminArea?.polygon?.geometry || null;
   const blueGeomSrc = cityArea?.polygon?.geometry || (Array.isArray(polygons) ? polygons[0]?.polygon?.geometry : null);
 
   const sameLevel = (adminArea?.adminLevel && cityArea?.adminLevel && adminArea.adminLevel === cityArea.adminLevel);
-  const redStroke = sameLevel ? 6 : 4;
-  const redOpacity = sameLevel ? 0.55 : 0.85;
+  const normName = (s) => (s || '').toString().trim().toLowerCase();
+  const redName = normName(adminArea?.name || adminArea?.polygon?.properties?.name);
+  const blueName = normName(
+    cityArea?.name ||
+      cityArea?.polygon?.properties?.name ||
+      (Array.isArray(polygons) ? polygons[0]?.polygon?.properties?.name : '')
+  );
+  // Some GeoBoundaries countries repeat the same named boundary across multiple admin levels
+  // (e.g., Aberdeen City appears at ADM2 and ADM3). When that happens, outlines can overlap
+  // and the red local line becomes hard to see.
+  const sameName = !!(redName && blueName && redName === blueName);
+
+  const redStroke = sameLevel ? 6 : sameName ? 9 : 4;
+  const redOpacity = sameLevel ? 0.55 : sameName ? 0.95 : 0.85;
   const blueStroke = 3;
+  const blueOpacity = sameName ? 0.90 : 1.0;
 
   if (redGeomSrc) {
     const outline = simplifyToOutline(redGeomSrc, 32);
@@ -712,12 +666,12 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
       features.push({
         type: 'Feature',
         geometry: geom,
-        properties: { stroke: '#2563eb', 'stroke-width': blueStroke, 'stroke-opacity': 1.0, fill: 'none', 'fill-opacity': 0 }
+        properties: { stroke: '#2563eb', 'stroke-width': blueStroke, 'stroke-opacity': blueOpacity, fill: 'none', 'fill-opacity': 0 }
       });
     }
   }
 
-  console.log(`    Total features in overlay: ${features.length} (Point + circles + scale + octagons)`);
+  console.log(`    Total features in overlay: ${features.length} (Point + circles + outlines)`);
 
   return { type: 'FeatureCollection', features };
 }
@@ -806,65 +760,53 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const cityLevel = cityArea?.adminLevel || null;
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
-            // Place "10 km" caption adjacent to the scale bar.
+            // Draw a pixel-space scale bar + label as ONE attached overlay (bottom-left).
+            // This avoids any projection mismatch where the label "floats" away from the bar.
             const mapW = 2400; // 1200x900@2x
             const mapH = 1800;
 
-            // Mapbox static projection can behave like 512px tiles (modern) or 256px tiles depending on style.
-            // To avoid "floating" labels, compute both and pick the one that lands in the expected bottom-left region.
-            const projectFactory = (tileSize) => (lon, lat, z) => {
-              const scale = tileSize * Math.pow(2, z);
-              const x = ((lon + 180) / 360) * scale;
-              const latRad = (lat * Math.PI) / 180;
-              const y =
-                ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
-              return [x, y];
-            };
+            const SCALE_KM = 10;
+            const meters = SCALE_KM * 1000;
+            const latRad = (point.lat * Math.PI) / 180;
 
-            const makeToScreen = (tileSize) => {
-              const project = projectFactory(tileSize);
-              const centerPx = project(point.lon, point.lat, zoom);
-              return (lon, lat) => {
-                const px = project(lon, lat, zoom);
-                return [px[0] - centerPx[0] + mapW / 2, px[1] - centerPx[1] + mapH / 2];
-              };
-            };
-            // Must match buildGeoJSONOverlay scale-bar placement.
-            const scaleKm = 10;
-            const lonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-            const padFactor = 1.25;
-            const padLat = (8.0467 / 111.0) * padFactor;
-            const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
-            const scaleLat = point.lat - padLat;
-            const scaleLon = point.lon - padLon;
-            const midLon = scaleLon + lonDegrees / 2;
-            const midLat = scaleLat;
-            const candidateScreens = [512, 256].map((ts) => {
-              const toScreen = makeToScreen(ts);
-              const [sx, sy] = toScreen(midLon, midLat);
-              const inFrame = sx >= 0 && sx <= mapW && sy >= 0 && sy <= mapH;
-              const inBottomLeft = sx < mapW * 0.5 && sy > mapH * 0.5;
-              return { tileSize: ts, sx, sy, score: (inFrame ? 0 : 1e9) + (inBottomLeft ? 0 : 1e6) + Math.abs(sx) + Math.abs(mapH - sy) };
+            // meters-per-pixel at zoom depends on whether the style behaves like 256px or 512px tiles.
+            const mPerPx256 = (156543.03392 * Math.cos(latRad)) / Math.pow(2, zoom);
+            const mPerPx512 = (78271.51696 * Math.cos(latRad)) / Math.pow(2, zoom);
+            const pxLen256 = meters / (mPerPx256 || 1e-9);
+            const pxLen512 = meters / (mPerPx512 || 1e-9);
+
+            const pick = (px) => ({
+              px,
+              // prefer a visually reasonable bar length
+              score: (px < 80 ? (80 - px) : 0) + (px > 260 ? (px - 260) : 0) + Math.abs(px - 160) * 0.25
             });
-            candidateScreens.sort((a, b) => a.score - b.score);
-            const { sx, sy } = candidateScreens[0];
-            // Put "10 km" directly on the scale bar (small pill centered on the line)
-            const captionW = 86;
-            const captionH = 26;
-            const captionLeft = Math.max(6, Math.min(mapW - captionW - 6, Math.round(sx - captionW / 2)));
-            const captionTop = Math.max(6, Math.min(mapH - captionH - 6, Math.round(sy - captionH / 2)));
+            const chosen = [pick(pxLen512), pick(pxLen256)].sort((a, b) => a.score - b.score)[0];
+            const barPx = Math.max(70, Math.min(300, Math.round(chosen.px)));
 
-            const scaleCaptionSvg = Buffer.from(`<svg width="${captionW}" height="${captionH}" viewBox="0 0 ${captionW} ${captionH}" xmlns="http://www.w3.org/2000/svg">
+            const scaleOverlayW = barPx + 50;
+            const scaleOverlayH = 64;
+            const barX1 = 20;
+            const barX2 = barX1 + barPx;
+            const barY = 40;
+            const tickH = 10;
+
+            const labelText = `${SCALE_KM} km`;
+            const labelW = 76;
+            const labelH = 26;
+            const labelX = Math.round((barX1 + barX2) / 2 - labelW / 2);
+            const labelY = 10;
+
+            const scaleOverlaySvg = Buffer.from(`<svg width="${scaleOverlayW}" height="${scaleOverlayH}" viewBox="0 0 ${scaleOverlayW} ${scaleOverlayH}" xmlns="http://www.w3.org/2000/svg">
   <style>
-    text {
-      font-family: 'Inter', 'Helvetica', 'Arial', sans-serif;
-      font-size: 14px;
-      fill: #111827;
-      font-weight: 600;
-    }
+    text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 14px; fill: #111827; font-weight: 700; }
   </style>
-  <rect x="0" y="0" width="${captionW}" height="${captionH}" rx="8" ry="8" fill="white" fill-opacity="0.82" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="${Math.round(captionW / 2)}" y="${Math.round(captionH / 2) + 5}" text-anchor="middle">10 km</text>
+  <g>
+    <line x1="${barX1}" y1="${barY}" x2="${barX2}" y2="${barY}" stroke="#111827" stroke-width="3" stroke-opacity="0.8" />
+    <line x1="${barX1}" y1="${barY - tickH/2}" x2="${barX1}" y2="${barY + tickH/2}" stroke="#111827" stroke-width="3" stroke-opacity="0.8" />
+    <line x1="${barX2}" y1="${barY - tickH/2}" x2="${barX2}" y2="${barY + tickH/2}" stroke="#111827" stroke-width="3" stroke-opacity="0.8" />
+    <rect x="${labelX}" y="${labelY}" width="${labelW}" height="${labelH}" rx="8" ry="8" fill="white" fill-opacity="0.86" stroke="#e5e7eb" stroke-width="1"/>
+    <text x="${Math.round(labelX + labelW/2)}" y="${Math.round(labelY + labelH/2) + 5}" text-anchor="middle">${escapeXml(labelText)}</text>
+  </g>
 </svg>`);
             const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 242" xmlns="http://www.w3.org/2000/svg">
   <style>
@@ -886,7 +828,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             await sharp(buffer)
               .composite([
                 { input: legendSvg, left: 20, top: 20 },
-                { input: scaleCaptionSvg, left: captionLeft, top: captionTop }
+                { input: scaleOverlaySvg, left: 20, top: mapH - scaleOverlayH - 20 }
               ])
               .webp({ quality: 85 })
               .toFile(outputPath);
@@ -964,17 +906,6 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
         }
         circlePoints.push(circlePoints[0]);
         
-        // Scale bar
-        const scaleKm = 10;
-        const scaleLatDegrees = scaleKm / 111.0;
-        const scaleLonDegrees = scaleKm / (111.0 * Math.cos(point.lat * Math.PI / 180));
-        const padFactor = 1.25;
-        const padLat = (8.0467 / 111.0) * padFactor;
-        const padLon = (8.0467 / (111.0 * Math.cos(point.lat * Math.PI / 180))) * padFactor;
-        const scaleLat = point.lat - padLat;
-        const scaleLon = point.lon - padLon;
-        const tickLength = 0.005;
-        
         const minimalOverlay = {
           type: 'FeatureCollection',
           features: [
@@ -987,30 +918,6 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
               type: 'Feature',
               geometry: { type: 'Polygon', coordinates: [circlePoints] },
               properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.15 }
-            },
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [[scaleLon, scaleLat], [scaleLon + scaleLonDegrees, scaleLat]]
-              },
-              properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
-            },
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [[scaleLon, scaleLat - tickLength], [scaleLon, scaleLat + tickLength]]
-              },
-              properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
-            },
-            {
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [[scaleLon + scaleLonDegrees, scaleLat - tickLength], [scaleLon + scaleLonDegrees, scaleLat + tickLength]]
-              },
-              properties: { stroke: '#111827', 'stroke-width': 1, 'stroke-opacity': 0.65 }
             }
           ]
         };
@@ -1018,7 +925,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
         const minimalUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/geojson(${minimalEncoded})/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
         
         if (minimalUrl.length <= 8000) {
-          console.log(`    Using minimal overlay (point + circle + scale) - URL length: ${minimalUrl.length}`);
+          console.log(`    Using minimal overlay (point + circle) - URL length: ${minimalUrl.length}`);
           https.get(minimalUrl, handleResponse);
         } else {
           console.warn(`    Minimal overlay also too long (${minimalUrl.length} chars), using simple map without overlays`);
@@ -1213,7 +1120,6 @@ async function generateImage(data, index, total) {
   
   if (!mapboxToken) {
     console.error(`    Error: MAPBOX_ACCESS_TOKEN not set. Skipping ${point.id}`);
-    console.error(`    Debug: process.env keys: ${Object.keys(process.env).filter(k => k.includes('MAPBOX')).join(', ') || 'none'}`);
     return;
   }
   
@@ -1231,6 +1137,23 @@ async function generateImage(data, index, total) {
 
 async function main() {
   console.log('Generating Gallery Images\n');
+
+  // Optional: only generate specific point ids (comma-separated), e.g.
+  //   node scripts/generate-gallery-images.js --only=GB-aberdeen
+  //   node scripts/generate-gallery-images.js --only GB-aberdeen,GB-glasgow
+  const argv = process.argv.slice(2);
+  const onlyIdx = argv.findIndex((a) => a === '--only');
+  const onlyArg =
+    argv.find((a) => a.startsWith('--only='))?.slice('--only='.length) ||
+    (onlyIdx >= 0 ? argv[onlyIdx + 1] : null);
+  const onlyIds = (onlyArg || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const onlySet = new Set(onlyIds.map((s) => s.toLowerCase()));
+  if (onlySet.size) {
+    console.log(`🔎 Only generating: ${Array.from(onlySet).join(', ')}`);
+  }
   
   // Check for token early - must be exported in shell environment
   const token = process.env.MAPBOX_ACCESS_TOKEN;
@@ -1241,7 +1164,7 @@ async function main() {
     console.error('   Or: MAPBOX_ACCESS_TOKEN=your_token_here node scripts/generate-gallery-images.js\n');
     process.exit(1);
   } else {
-    console.log(`✅ MAPBOX_ACCESS_TOKEN found (${token.substring(0, 10)}...)\n`);
+    console.log(`✅ MAPBOX_ACCESS_TOKEN found\n`);
   }
   
   if (!fs.existsSync(DATA_FILE)) {
@@ -1260,17 +1183,28 @@ async function main() {
     const legacy = result?.polygons && result.polygons.some((p) => p?.polygon?.geometry);
     return Boolean(hasCity || hasAdmin || legacy);
   });
+
+  const filtered = onlySet.size
+    ? resultsWithPolygons.filter((r) => {
+        const id = (r?.point?.id || '').toString().toLowerCase();
+        return id && onlySet.has(id);
+      })
+    : resultsWithPolygons;
   
   console.log(`Total results: ${allResults.length}`);
   console.log(`Results with polygons: ${resultsWithPolygons.length}`);
   console.log(`Filtered out: ${allResults.length - resultsWithPolygons.length} results without polygons\n`);
-  console.log(`Processing ${resultsWithPolygons.length} results with polygons...\n`);
-  
-  for (let i = 0; i < resultsWithPolygons.length; i++) {
-    await generateImage(resultsWithPolygons[i], i, resultsWithPolygons.length);
+  if (onlySet.size) {
+    console.log(`Processing ${filtered.length} (filtered) results...\n`);
+  } else {
+    console.log(`Processing ${resultsWithPolygons.length} results with polygons...\n`);
   }
   
-  console.log(`\nGenerated ${resultsWithPolygons.length} images in ${OUTPUT_DIR}`);
+  for (let i = 0; i < filtered.length; i++) {
+    await generateImage(filtered[i], i, filtered.length);
+  }
+  
+  console.log(`\nGenerated ${filtered.length} images in ${OUTPUT_DIR}`);
   console.log(`\n📄 Next step: Open public/gallery/locate-me/index.html to view the gallery`);
 }
 
