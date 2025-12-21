@@ -292,7 +292,8 @@
       gallery.innerHTML = filtered.length > 0 
         ? filtered.map(result => {
             const { point } = result;
-            const imagePath = `./images/${point.id}.webp`;
+            const cacheBuster = encodeURIComponent((galleryData && galleryData.generated) ? galleryData.generated : '');
+            const imagePath = `./images/${point.id}.webp${cacheBuster ? `?v=${cacheBuster}` : ''}`;
             const cities = result.geocode.results.slice(0, 2).map(r => r.name).join(', ');
             const hasPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
             const boundaryNote = hasPolygon ? '' : ' · no boundary data';

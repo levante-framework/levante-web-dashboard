@@ -21,12 +21,15 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const fetch = require('node-fetch');
-const yargs = require('yargs/yargs');
-const { hideBin } = require('yargs/helpers');
+const fetch = globalThis.fetch;
+
+if (typeof fetch !== 'function') {
+  throw new Error('This script requires Node.js with global fetch (Node 18+).');
+}
 
 const DEFAULT_COUNTRIES = ['CO', 'DE', 'US'];
-const LEVELS = ['ADM1', 'ADM2'];
+// Note: ADM5 can be extremely large for some countries (e.g., India). We exclude it by default.
+const LEVELS = ['ADM1', 'ADM2', 'ADM3', 'ADM4'];
 
 const ISO3_MAP = {
   CO: 'COL',
@@ -48,13 +51,33 @@ function metaUrl(iso2, level) {
   return `https://www.geoboundaries.org/api/current/gbOpen/${iso3}/${level}`;
 }
 
-async function downloadJson(url) {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status} ${text}`);
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function downloadJson(url, label = 'download') {
+  const maxRetries = 4;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status} ${text}`);
+      }
+      // Use arrayBuffer + JSON.parse to avoid some streaming edge-cases.
+      const buf = await res.arrayBuffer();
+      return JSON.parse(Buffer.from(buf).toString('utf8'));
+    } catch (err) {
+      const msg = err?.message || String(err);
+      const retryable = /fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket/i.test(msg);
+      if (!retryable || attempt === maxRetries) {
+        throw new Error(`${label}: ${msg}`);
+      }
+      const backoff = 800 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 250);
+      console.warn(`  ⚠️  ${label}: attempt ${attempt} failed (${msg}). Retrying in ${backoff}ms...`);
+      await sleep(backoff);
+    }
   }
-  return res.json();
 }
 
 function roundCoord(value, precision) {
@@ -163,40 +186,60 @@ function writePackFiles({ country, level, payload, writeJson }) {
 async function fetchAndSaveCountry(country, { maxPoints, precision, writeJson }) {
   const code = country.toUpperCase();
   for (const level of LEVELS) {
-    console.log(`🌐 Fetching metadata for ${code} ${level}...`);
-    const meta = await downloadJson(metaUrl(code, level));
-    const gjUrl = meta?.gjDownloadURL;
-    if (!gjUrl) throw new Error(`No gjDownloadURL for ${code} ${level}`);
+    try {
+      console.log(`🌐 Fetching metadata for ${code} ${level}...`);
+      const meta = await downloadJson(metaUrl(code, level));
+      const gjUrl = meta?.simplifiedGeometryGeoJSON || meta?.gjDownloadURL;
+      if (!gjUrl) throw new Error(`No GeoJSON download URL for ${code} ${level}`);
+      if (meta?.simplifiedGeometryGeoJSON) {
+        console.log(`   ↳ using simplifiedGeometryGeoJSON`);
+      }
 
-    console.log(`⬇️  Downloading GeoJSON for ${code} ${level}...`);
-    const geo = await downloadJson(gjUrl);
-    if (!geo?.features) throw new Error(`No features for ${code} ${level}`);
+      console.log(`⬇️  Downloading GeoJSON for ${code} ${level}...`);
+      const geo = await downloadJson(gjUrl);
+      if (!geo?.features) throw new Error(`No features for ${code} ${level}`);
 
-    console.log(
-      `🧹 Minimizing ${geo.features.length} features (maxPoints=${maxPoints}, precision=${precision})...`
-    );
-    const features = geo.features
-      .map((f) => minimizeFeature(f, code, maxPoints, precision))
-      .filter(Boolean);
+      console.log(
+        `🧹 Minimizing ${geo.features.length} features (maxPoints=${maxPoints}, precision=${precision})...`
+      );
+      const features = geo.features
+        .map((f) => minimizeFeature(f, code, maxPoints, precision))
+        .filter(Boolean);
 
-    writePackFiles({
-      country: code,
-      level,
-      payload: { type: 'FeatureCollection', features },
-      writeJson
-    });
+      writePackFiles({
+        country: code,
+        level,
+        payload: { type: 'FeatureCollection', features },
+        writeJson
+      });
+    } catch (err) {
+      // Many countries do not have ADM3+ in GeoBoundaries. Treat as optional.
+      const upper = String(level).toUpperCase();
+      const isOptional = /^ADM[3-9]$/.test(upper);
+      const msg = err?.message || String(err);
+      if (isOptional && /HTTP 404/i.test(msg)) {
+        console.warn(`  ⚠️  ${code} ${level} unavailable (404). Skipping.`);
+        continue;
+      }
+      throw err;
+    }
   }
 }
 
 async function main() {
-  const argv = yargs(hideBin(process.argv))
-    .option('countries', { type: 'string', default: DEFAULT_COUNTRIES.join(',') })
-    .option('maxPoints', { type: 'number', default: 250 })
-    .option('precision', { type: 'number', default: 3 })
-    .option('writeJson', { type: 'boolean', default: false })
-    .parse();
+  const arg = (name) => {
+    const prefix = `--${name}=`;
+    const hit = process.argv.find((a) => a.startsWith(prefix));
+    return hit ? hit.slice(prefix.length) : null;
+  };
+  const hasFlag = (name) => process.argv.includes(`--${name}`);
 
-  const list = String(argv.countries)
+  const countriesArg = arg('countries');
+  const maxPointsArg = arg('maxPoints');
+  const precisionArg = arg('precision');
+  const writeJson = hasFlag('writeJson');
+
+  const list = String(countriesArg || DEFAULT_COUNTRIES.join(','))
     .split(',')
     .map((c) => c.trim())
     .filter(Boolean);
@@ -204,9 +247,9 @@ async function main() {
   for (const country of list) {
     try {
       await fetchAndSaveCountry(country, {
-        maxPoints: argv.maxPoints,
-        precision: argv.precision,
-        writeJson: argv.writeJson
+        maxPoints: maxPointsArg != null ? Number(maxPointsArg) : 250,
+        precision: precisionArg != null ? Number(precisionArg) : 3,
+        writeJson
       });
     } catch (err) {
       console.error(`❌ Failed for ${country}: ${err.message}`);

@@ -3,3 +3,5 @@ node_modules/
 data/geonames/
 data/geonames_cities5000.zip
 .env
+
+data/tiger/
