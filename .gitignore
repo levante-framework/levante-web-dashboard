@@ -6,3 +6,4 @@ data/geonames_cities5000.zip
 
 data/tiger/
 .env*.local
+data/gallery/weather-cache.json
