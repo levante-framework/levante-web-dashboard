@@ -93,6 +93,27 @@
       "lon": -87.6298
     },
     {
+      "id": "US-stanford",
+      "label": "Stanford University (campus center), CA",
+      "country": "US",
+      "lat": 37.4275,
+      "lon": -122.1697
+    },
+    {
+      "id": "US-palo-alto",
+      "label": "Palo Alto, CA",
+      "country": "US",
+      "lat": 37.4419,
+      "lon": -122.143
+    },
+    {
+      "id": "US-portola-valley",
+      "label": "Portola Valley, CA",
+      "country": "US",
+      "lat": 37.3841,
+      "lon": -122.2352
+    },
+    {
       "id": "CA-montreal",
       "label": "Montreal, QC",
       "country": "CA",
