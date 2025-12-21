@@ -887,31 +887,9 @@ createApp({
         }
 
         // Draw boundaries based on local packs:
-        // - Blue: ADM2 containing the GPS point ("City") (more precise)
-        // - Red:  ADM1 containing the GPS point ("Admin") (broader)
+        // - Blue: Regional (ADM2)
+        // - Red:  Local (ADM3 if available, otherwise ADM2 fallback)
         if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon) && this.admPolygon) {
-          // Red = Local (ADM3 if available, otherwise ADM2 fallback)
-          const local = this.admPolygon.local || null;
-          if (local) {
-            const isFallback = !!(this.admPolygon.adm2 && local === this.admPolygon.adm2);
-            const layer = L.geoJSON(local, {
-              style: {
-                color: '#dc2626',
-                weight: isFallback ? 6 : 4,
-                opacity: isFallback ? 0.55 : 0.85,
-                fillColor: '#dc2626',
-                fillOpacity: 0.08
-              }
-            }).addTo(this.inlineMapLayers);
-            const name = local.properties?.name || 'Local';
-            layer.bindPopup(`<strong>${name}</strong><br>Local boundary`);
-            const b = layer.getBounds();
-            if (b.isValid()) {
-              coords.push([b.getSouth(), b.getWest()]);
-              coords.push([b.getNorth(), b.getEast()]);
-            }
-          }
-
           // Blue = Regional (ADM2)
           const adm2 = this.admPolygon.adm2 || null;
           if (adm2) {
@@ -926,6 +904,29 @@ createApp({
             }).addTo(this.inlineMapLayers);
             const name = adm2.properties?.name || 'ADM2';
             layer.bindPopup(`<strong>${name}</strong><br>Regional (ADM2)`);
+            const b = layer.getBounds();
+            if (b.isValid()) {
+              coords.push([b.getSouth(), b.getWest()]);
+              coords.push([b.getNorth(), b.getEast()]);
+            }
+          }
+
+          // Red = Local (ADM3 if available, otherwise ADM2 fallback)
+          // Draw after blue so it can't be visually hidden when boundaries overlap.
+          const local = this.admPolygon.local || null;
+          if (local) {
+            const isFallback = !!(this.admPolygon.adm2 && local === this.admPolygon.adm2);
+            const layer = L.geoJSON(local, {
+              style: {
+                color: '#dc2626',
+                weight: isFallback ? 6 : 4,
+                opacity: isFallback ? 0.55 : 0.9,
+                fillColor: '#dc2626',
+                fillOpacity: 0.08
+              }
+            }).addTo(this.inlineMapLayers);
+            const name = local.properties?.name || 'Local';
+            layer.bindPopup(`<strong>${name}</strong><br>Local boundary`);
             const b = layer.getBounds();
             if (b.isValid()) {
               coords.push([b.getSouth(), b.getWest()]);
