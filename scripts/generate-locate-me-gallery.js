@@ -5,7 +5,7 @@ const path = require('path');
 const https = require('https');
 const zlib = require('zlib');
 
-const MAX_DISTANCE_KM = 20; // Filter out results where nearest city is > 20km
+const MAX_DISTANCE_KM = 20; // Filter out results where nearest city is > 20km (unless seed point has allowFar=true)
 // Throttling / retry tuning for Overpass-backed endpoints
 const MAX_RETRIES = 4;
 const BASE_DELAY_MS = 800; // base backoff; jitter is added
@@ -580,7 +580,8 @@ function loadSeedPoints() {
         country: point.country,
         slug,
         lat: point.lat,
-        lon: point.lon
+        lon: point.lon,
+        allowFar: !!point.allowFar
       };
     })
     .filter(Boolean);
@@ -617,19 +618,20 @@ async function processPoint(point, index, total) {
 
     // Step 1: On-device reverse geocode (no network)
     const lookupStart = process.hrtime.bigint();
+    const maxDistanceKm = point.allowFar ? 500 : MAX_DISTANCE_KM;
     const results = coarseCountry
-      ? nearestLocalities(point.lat, point.lon, coarseCountry, 2, MAX_DISTANCE_KM)
+      ? nearestLocalities(point.lat, point.lon, coarseCountry, 2, maxDistanceKm)
       : [];
     const lookupMs = Number((process.hrtime.bigint() - lookupStart) / 1000000n);
 
     if (!results.length) {
-      console.warn(`  ⚠️  No results within ${MAX_DISTANCE_KM}km for ${point.id}`);
+      console.warn(`  ⚠️  No results within ${maxDistanceKm}km for ${point.id}${point.allowFar ? ' (allowFar)' : ''}`);
       return null;
     }
 
-    // Filter: nearest location must be <= MAX_DISTANCE_KM
+    // Filter: nearest location must be <= MAX_DISTANCE_KM (unless allowFar)
     const nearestDistance = results[0]?.distanceKm;
-    if (nearestDistance === undefined || nearestDistance > MAX_DISTANCE_KM) {
+    if (!point.allowFar && (nearestDistance === undefined || nearestDistance > MAX_DISTANCE_KM)) {
       console.warn(
         `  ⚠️  Nearest location (${nearestDistance?.toFixed(1)}km) exceeds ${MAX_DISTANCE_KM}km for ${point.id}`
       );
