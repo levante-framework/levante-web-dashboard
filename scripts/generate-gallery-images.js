@@ -17,7 +17,8 @@ const sharp = require('sharp');
 try {
   const dotenv = require('dotenv');
   const envPath = path.join(process.cwd(), '.env');
-  dotenv.config({ path: envPath });
+  // override=true ensures reruns in the same shell pick up updated .env values.
+  dotenv.config({ path: envPath, override: true, quiet: true });
 } catch (e) {
   // dotenv not installed or .env file doesn't exist - that's okay
 }
@@ -41,6 +42,82 @@ function formatBytes(bytes) {
   if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(1)} MB`;
   if (bytes >= 1e3) return `${(bytes / 1e3).toFixed(1)} KB`;
   return `${bytes} B`;
+}
+
+function validateMapboxStaticImagesToken(token) {
+  return new Promise((resolve) => {
+    if (!token) return resolve(false);
+    // Tiny request just to verify Static Images access.
+    const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/0,0,0/1x1?access_token=${encodeURIComponent(token)}`;
+    const req = https.get(url, (res) => {
+      // Consume data to avoid socket leaks.
+      res.on('data', () => {});
+      res.on('end', () => resolve(res.statusCode === 200));
+    });
+    req.on('error', () => resolve(false));
+  });
+}
+
+function formatPopulation(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) return 'Unknown';
+  try {
+    return Math.round(num).toLocaleString();
+  } catch (_) {
+    return String(Math.round(num));
+  }
+}
+
+function safeStatBytes(filePath) {
+  try {
+    return fs.statSync(filePath).size || 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
+function estimatePolygonPackDownload(point, adminArea, cityArea, polygons) {
+  // Estimate the bytes a client would download to compute polygons for this point.
+  // This represents ONLY the polygon packs (not basemap tiles), per the Locate-Me runtime behavior.
+  const code = (point?.country || '').toString().trim().toLowerCase();
+  const localLevel = adminArea?.adminLevel || null; // local boundary level (ADM3 or ADM2 fallback)
+  const needsAdm3 = localLevel === 3;
+  const parts = [];
+  let total = 0;
+
+  const adm2Path = path.join(process.cwd(), 'public', 'adm-packs', code, 'adm2.json.gz');
+  const adm2Bytes = safeStatBytes(adm2Path);
+  if (adm2Bytes) {
+    total += adm2Bytes;
+    parts.push('ADM2');
+  }
+
+  if (needsAdm3) {
+    if (code === 'us') {
+      const state = (polygons?.[0]?.city?.admin1 || '').toString().trim().toLowerCase();
+      const adm3Path = path.join(process.cwd(), 'public', 'adm-packs', 'us', 'adm3', `${state}.json.gz`);
+      const adm3Bytes = safeStatBytes(adm3Path);
+      if (adm3Bytes) {
+        total += adm3Bytes;
+        parts.push('ADM3(state)');
+      } else {
+        parts.push('ADM3(state?)');
+      }
+    } else {
+      const adm3Path = path.join(process.cwd(), 'public', 'adm-packs', code, 'adm3.json.gz');
+      const adm3Bytes = safeStatBytes(adm3Path);
+      if (adm3Bytes) {
+        total += adm3Bytes;
+        parts.push('ADM3');
+      } else {
+        parts.push('ADM3?');
+      }
+    }
+  }
+
+  // If we couldn't stat any pack, return 0 with a placeholder.
+  const detail = parts.length ? parts.join('+') : 'Unknown';
+  return { totalBytes: total, detail };
 }
 
 // Mapbox Static Images API helpers
@@ -680,6 +757,12 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   return new Promise((resolve, reject) => {
     let url = undefined;
     const zoom = calculateZoomForWidth(point.lat, 16.0934); // ~10 miles width
+    // Some Mapbox tokens are configured with URL (referrer) restrictions. Server-side requests
+    // don't include a Referer header by default, so allow specifying one.
+    const requestHeaders = {
+      Referer: process.env.MAPBOX_REFERER || 'https://levante-pitwall.vercel.app/'
+    };
+    const doGet = (u) => https.get(u, { headers: requestHeaders }, handleResponse);
 
     // Build overlay
     let overlay = buildGeoJSONOverlay(point, polygons, adminArea, cityArea);
@@ -730,11 +813,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
 
       if (minimalUrl.length <= 8000) {
         console.log(`    Using minimal overlay (point + circle) - URL length: ${minimalUrl.length}`);
-        https.get(minimalUrl, handleResponse);
+        doGet(minimalUrl);
       } else {
         console.warn(`    Minimal overlay also too long, falling back to simple map`);
         const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
-        https.get(simpleUrl, handleResponse);
+        doGet(simpleUrl);
       }
     };
 
@@ -760,28 +843,57 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const cityLevel = cityArea?.adminLevel || null;
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
+            // Population: GeoBoundaries packs don't include population, so we provide a best-effort estimate.
+            // If the ADM name matches the nearest city name, use that city's population.
+            const nearestCity = polygons?.[0]?.city || null;
+            const nearestCityName = (nearestCity?.name || '').toString().trim().toLowerCase();
+            const localAreaNameNorm = (localName || '').toString().trim().toLowerCase();
+            const popCandidate =
+              nearestCityName && localAreaNameNorm && localAreaNameNorm.includes(nearestCityName)
+                ? nearestCity?.population
+                : null;
+            const localPopText = formatPopulation(popCandidate);
+
+            // Polygon pack download estimate (not basemap tiles)
+            const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons);
+            const dlText = `${formatBytes(dl.totalBytes)} (${dl.detail})`;
+
             // Draw a pixel-space scale bar + label as ONE attached overlay (bottom-left).
             // This avoids any projection mismatch where the label "floats" away from the bar.
             const mapW = 2400; // 1200x900@2x
             const mapH = 1800;
 
-            const SCALE_KM = 10;
-            const meters = SCALE_KM * 1000;
+            // Attached scale widget (label reflects the *actual* length represented by the bar)
+            // Mapbox Static Images API request uses `@2x`, so pixel density is 2x.
+            const TARGET_KM = 10;
+            const meters = TARGET_KM * 1000;
             const latRad = (point.lat * Math.PI) / 180;
 
             // meters-per-pixel at zoom depends on whether the style behaves like 256px or 512px tiles.
-            const mPerPx256 = (156543.03392 * Math.cos(latRad)) / Math.pow(2, zoom);
-            const mPerPx512 = (78271.51696 * Math.cos(latRad)) / Math.pow(2, zoom);
+            // At `@2x`, each output pixel represents half the distance.
+            const pixelRatio = 2;
+            const mPerPx256 = ((156543.03392 * Math.cos(latRad)) / Math.pow(2, zoom)) / pixelRatio;
+            const mPerPx512 = ((78271.51696 * Math.cos(latRad)) / Math.pow(2, zoom)) / pixelRatio;
             const pxLen256 = meters / (mPerPx256 || 1e-9);
             const pxLen512 = meters / (mPerPx512 || 1e-9);
 
-            const pick = (px) => ({
-              px,
-              // prefer a visually reasonable bar length
-              score: (px < 80 ? (80 - px) : 0) + (px > 260 ? (px - 260) : 0) + Math.abs(px - 160) * 0.25
-            });
-            const chosen = [pick(pxLen512), pick(pxLen256)].sort((a, b) => a.score - b.score)[0];
-            const barPx = Math.max(70, Math.min(300, Math.round(chosen.px)));
+            const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+            const candidate = (mPerPx, pxLen) => {
+              const unclamped = Math.round(pxLen);
+              const barPx = clamp(unclamped, 70, 300);
+              const kmActual = (barPx * (mPerPx || 0)) / 1000;
+              const err = Math.abs(kmActual - TARGET_KM);
+              // Prefer: closer to 10km and not heavily clamped.
+              const clampPenalty = Math.abs(barPx - unclamped) * 0.05;
+              return { barPx, kmActual, err: err + clampPenalty };
+            };
+
+            // Heuristic: choose the tile-size assumption that yields a more plausible km length for our bar.
+            const c256 = candidate(mPerPx256, pxLen256);
+            const c512 = candidate(mPerPx512, pxLen512);
+            const chosen = (c256.err <= c512.err) ? c256 : c512;
+            const barPx = chosen.barPx;
+            const kmActual = chosen.kmActual;
 
             const scaleOverlayW = barPx + 50;
             const scaleOverlayH = 64;
@@ -790,7 +902,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const barY = 40;
             const tickH = 10;
 
-            const labelText = `${SCALE_KM} km`;
+            const labelText = Number.isFinite(kmActual) ? `${kmActual.toFixed(1)} km` : 'Scale';
             const labelW = 76;
             const labelH = 26;
             const labelX = Math.round((barX1 + barX2) / 2 - labelW / 2);
@@ -808,11 +920,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     <text x="${Math.round(labelX + labelW/2)}" y="${Math.round(labelY + labelH/2) + 5}" text-anchor="middle">${escapeXml(labelText)}</text>
   </g>
 </svg>`);
-            const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 242" xmlns="http://www.w3.org/2000/svg">
+            const legendSvg = Buffer.from(`<svg width="780" height="780" viewBox="0 0 260 282" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 14px; fill: #111827; }
   </style>
-  <rect x="12" y="12" width="236" height="218" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="12" y="12" width="236" height="258" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.3" stroke="#22c55e" stroke-width="2" />
@@ -821,9 +933,10 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   <text x="50" y="106">10-mile circle</text>
   <rect x="24" y="122" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
   <text x="50" y="136">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
-  <rect x="24" y="152" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
-  <text x="50" y="166">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
-  <text x="50" y="196">Nearest: ${escapeXml(nearestName)}</text>
+  <text x="50" y="152">Pop (city proxy): ${escapeXml(localPopText)}</text>
+  <rect x="24" y="172" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
+  <text x="50" y="186">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
+  <text x="50" y="216">Polygons downloaded: ${escapeXml(dlText)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
@@ -926,11 +1039,11 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
         
         if (minimalUrl.length <= 8000) {
           console.log(`    Using minimal overlay (point + circle) - URL length: ${minimalUrl.length}`);
-          https.get(minimalUrl, handleResponse);
+          doGet(minimalUrl);
         } else {
           console.warn(`    Minimal overlay also too long (${minimalUrl.length} chars), using simple map without overlays`);
           const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
-          https.get(simpleUrl, handleResponse);
+          doGet(simpleUrl);
         }
       } else {
         // Validate all features before sending
@@ -1011,11 +1124,11 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
           
           if (minimalUrl.length <= 8000) {
             console.log(`    Using minimal overlay - URL length: ${minimalUrl.length}`);
-            https.get(minimalUrl, handleResponse);
+            doGet(minimalUrl);
           } else {
             console.warn(`    Minimal overlay too long, using simple map without overlays`);
             const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
-            https.get(simpleUrl, handleResponse);
+            doGet(simpleUrl);
           }
         } else {
           try {
@@ -1025,7 +1138,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
             }
             // If validation passes, send the request
             if (url) {
-              https.get(url, handleResponse);
+              doGet(url);
             } else {
               reject(new Error('URL not initialized'));
             }
@@ -1096,11 +1209,11 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
             
             if (minimalUrl.length <= 8000) {
               console.log(`    Using minimal overlay - URL length: ${minimalUrl.length}`);
-              https.get(minimalUrl, handleResponse);
+              doGet(minimalUrl);
             } else {
               console.warn(`    Minimal overlay too long, using simple map without overlays`);
               const simpleUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/${point.lon},${point.lat},${zoom}/1200x900@2x?access_token=${token}`;
-              https.get(simpleUrl, handleResponse);
+              doGet(simpleUrl);
             }
           }
         }
@@ -1165,6 +1278,14 @@ async function main() {
     process.exit(1);
   } else {
     console.log(`✅ MAPBOX_ACCESS_TOKEN found\n`);
+  }
+
+  const tokenOk = await validateMapboxStaticImagesToken(token);
+  if (!tokenOk) {
+    console.error('❌ ERROR: MAPBOX_ACCESS_TOKEN is not authorized for the Mapbox Static Images API.');
+    console.error('   The generator requires a token that can access `styles/v1/.../static/...`.');
+    console.error('   Fix by using a token from a Mapbox account with Static Images enabled (and no restrictive URL rules), then retry.\n');
+    process.exit(1);
   }
   
   if (!fs.existsSync(DATA_FILE)) {
