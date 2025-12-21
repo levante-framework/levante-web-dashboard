@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const zlib = require('zlib');
 const sharp = require('sharp');
 
 // Load environment variables from .env file if it exists (do not log secrets)
@@ -66,6 +67,109 @@ function formatPopulation(n) {
   } catch (_) {
     return String(Math.round(num));
   }
+}
+
+let citiesMinCache = null;
+let citiesByCountryCache = null;
+
+function loadCitiesMin() {
+  if (citiesMinCache) return citiesMinCache;
+  const gzPath = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json.gz');
+  const rawPath = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.json');
+  let buf = null;
+  if (fs.existsSync(gzPath)) {
+    buf = zlib.gunzipSync(fs.readFileSync(gzPath));
+  } else if (fs.existsSync(rawPath)) {
+    buf = fs.readFileSync(rawPath);
+  } else {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(buf.toString('utf8'));
+    citiesMinCache = Array.isArray(parsed) ? parsed : null;
+    return citiesMinCache;
+  } catch (_) {
+    return null;
+  }
+}
+
+function citiesByCountry() {
+  if (citiesByCountryCache) return citiesByCountryCache;
+  const arr = loadCitiesMin();
+  const map = new Map();
+  if (!arr) {
+    citiesByCountryCache = map;
+    return map;
+  }
+  for (const c of arr) {
+    const cc = (c?.country || '').toString().trim().toUpperCase();
+    if (!cc) continue;
+    if (!map.has(cc)) map.set(cc, []);
+    map.get(cc).push(c);
+  }
+  citiesByCountryCache = map;
+  return map;
+}
+
+function pointInRing(pt, ring) {
+  const [px, py] = pt;
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    const intersect = (yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-12) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygonGeometry(pt, geom) {
+  if (!geom) return false;
+  const type = geom.type;
+  const polys =
+    type === 'Polygon'
+      ? [geom.coordinates]
+      : type === 'MultiPolygon'
+      ? geom.coordinates
+      : [];
+  for (const poly of polys) {
+    if (!poly || !poly.length) continue;
+    const [outer, ...holes] = poly;
+    if (!outer || outer.length < 4) continue;
+    if (!pointInRing(pt, outer)) continue;
+    let inHole = false;
+    for (const hole of holes) {
+      if (hole && hole.length >= 4 && pointInRing(pt, hole)) {
+        inHole = true;
+        break;
+      }
+    }
+    if (!inHole) return true;
+  }
+  return false;
+}
+
+function estimatePopulationFromCities(geometry, countryCode) {
+  const cc = (countryCode || '').toString().trim().toUpperCase();
+  if (!geometry || !cc) return null;
+  const bbox = bboxFromGeometry(geometry);
+  if (!bbox) return null;
+  const list = citiesByCountry().get(cc) || [];
+  if (!list.length) return null;
+
+  const pt = [0, 0];
+  let total = 0;
+  for (const c of list) {
+    const lon = Number(c?.lon);
+    const lat = Number(c?.lat);
+    const pop = Number(c?.population) || 0;
+    if (!Number.isFinite(lon) || !Number.isFinite(lat) || pop <= 0) continue;
+    if (lon < bbox.minLon || lon > bbox.maxLon || lat < bbox.minLat || lat > bbox.maxLat) continue;
+    pt[0] = lon;
+    pt[1] = lat;
+    if (pointInPolygonGeometry(pt, geometry)) total += pop;
+  }
+  return total || null;
 }
 
 function safeStatBytes(filePath) {
@@ -895,22 +999,12 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const cityLevel = cityArea?.adminLevel || null;
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
-            // Population: GeoBoundaries packs don't include population, so we provide a best-effort estimate.
-            // If the ADM name matches the nearest city name, use that city's population.
-            const nearestCity = polygons?.[0]?.city || null;
-            const nearestCityName = (nearestCity?.name || '').toString().trim().toLowerCase();
-            const localAreaNameNorm = (localName || '').toString().trim().toLowerCase();
-            const cityAreaNameNorm = (cityAreaName || '').toString().trim().toLowerCase();
-            const popCandidate =
-              nearestCityName && localAreaNameNorm && localAreaNameNorm.includes(nearestCityName)
-                ? nearestCity?.population
-                : null;
-            const localPopText = formatPopulation(popCandidate);
-            const bluePopCandidate =
-              nearestCityName && cityAreaNameNorm && cityAreaNameNorm.includes(nearestCityName)
-                ? nearestCity?.population
-                : null;
-            const bluePopText = formatPopulation(bluePopCandidate);
+            // Population: better estimate by summing GeoNames city populations inside the polygon.
+            // Note: this is approximate (GeoNames cities5000-derived, filtered to pop>=1000).
+            const localPopEst = estimatePopulationFromCities(adminArea?.polygon?.geometry, point?.country);
+            const bluePopEst = estimatePopulationFromCities(cityArea?.polygon?.geometry, point?.country);
+            const localPopText = localPopEst ? formatPopulation(localPopEst) : 'Unknown';
+            const bluePopText = bluePopEst ? formatPopulation(bluePopEst) : 'Unknown';
 
             // Polygon pack download estimate (not basemap tiles)
             const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons);
@@ -980,22 +1074,20 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
 </svg>`);
             const legendSvg = Buffer.from(`<svg width="780" height="820" viewBox="0 0 260 296" xmlns="http://www.w3.org/2000/svg">
   <style>
-    text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 13px; fill: #111827; }
+    text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 11px; fill: #111827; }
   </style>
   <rect x="12" y="12" width="236" height="272" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
-  <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.3" stroke="#22c55e" stroke-width="2" />
-  <text x="50" y="76">2-mile circle</text>
-  <rect x="24" y="92" width="18" height="18" fill="#16a34a" fill-opacity="0.25" stroke="#16a34a" stroke-width="2" />
-  <text x="50" y="106">10-mile circle</text>
-  <rect x="24" y="122" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
-  <text x="50" y="136">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
-  <text x="50" y="152">Pop (city proxy): ${escapeXml(localPopText)}</text>
-  <rect x="24" y="172" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
-  <text x="50" y="186">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
-  <text x="50" y="202">Pop (city proxy): ${escapeXml(bluePopText)}</text>
-  <text x="50" y="232">Polygons downloaded: ${escapeXml(dlText)}</text>
+  <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.26" stroke="#16a34a" stroke-width="2" />
+  <text x="50" y="76">2 &amp; 10-mile circles</text>
+  <rect x="24" y="92" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
+  <text x="50" y="106">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
+  <text x="50" y="120">Pop: ${escapeXml(localPopText)}</text>
+  <rect x="24" y="140" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
+  <text x="50" y="154">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
+  <text x="50" y="168">Pop: ${escapeXml(bluePopText)}</text>
+  <text x="50" y="198">Polygons downloaded: ${escapeXml(dlText)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
