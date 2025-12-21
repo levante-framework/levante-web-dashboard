@@ -23,7 +23,8 @@
     "adm:build": "node scripts/adm/build-packs.js",
     "adm:build:co": "node scripts/adm/build-packs.js --countries=CO",
     "adm:build:de": "node scripts/adm/build-packs.js --countries=DE",
-    "adm:build:us": "node scripts/adm/build-packs.js --countries=US"
+    "adm:build:us": "node scripts/adm/build-packs.js --countries=US",
+    "adm:build:us-place": "node scripts/us/build-us-place-boundaries.js --states=CA,OR,FL,NY,IL --year=2024 --precision=3 --maxPoints=300"
   },
   "keywords": [
     "audio",

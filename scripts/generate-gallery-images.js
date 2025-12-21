@@ -71,6 +71,89 @@ function formatPopulation(n) {
 
 let citiesMinCache = null;
 let citiesByCountryCache = null;
+let usPlacePackCache = new Map();
+let usTractPackCache = new Map();
+
+function loadGzFeatureCollection(filePath) {
+  try {
+    const buf = fs.readFileSync(filePath);
+    const json = JSON.parse(zlib.gunzipSync(buf).toString('utf8'));
+    return json && json.features ? json : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function geometryAreaApprox(geom) {
+  if (!geom || !geom.type || !geom.coordinates) return Infinity;
+  const ringArea = (ring = []) => {
+    if (!ring || ring.length < 3) return 0;
+    let sum = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const [x1, y1] = ring[i];
+      const [x2, y2] = ring[(i + 1) % ring.length];
+      sum += x1 * y2 - x2 * y1;
+    }
+    return Math.abs(sum / 2);
+  };
+  const polys =
+    geom.type === 'Polygon'
+      ? [geom.coordinates]
+      : geom.type === 'MultiPolygon'
+      ? geom.coordinates
+      : [];
+  let total = 0;
+  for (const poly of polys) {
+    if (!poly || !poly.length) continue;
+    const [outer, ...holes] = poly;
+    total += ringArea(outer || []);
+    for (const hole of holes) total -= ringArea(hole || []);
+  }
+  return total || Infinity;
+}
+
+function bestContainingFeature(features, lon, lat) {
+  if (!Array.isArray(features) || !features.length) return null;
+  const pt = [lon, lat];
+  let best = null;
+  let bestArea = Infinity;
+  for (const f of features) {
+    if (!f?.geometry) continue;
+    if (!pointInPolygonGeometry(pt, f.geometry)) continue;
+    const area = geometryAreaApprox(f.geometry);
+    if (area < bestArea) {
+      bestArea = area;
+      best = f;
+    }
+  }
+  return best;
+}
+
+function loadUsPlaceFeature(stateAbbr, lon, lat) {
+  const st = (stateAbbr || '').toString().trim().toLowerCase();
+  if (!st) return null;
+  const filePath = path.join(process.cwd(), 'public', 'adm-packs', 'us', 'adm3-place', `${st}.json.gz`);
+  if (usPlacePackCache.has(st)) {
+    const pack = usPlacePackCache.get(st);
+    return pack ? bestContainingFeature(pack.features || [], lon, lat) : null;
+  }
+  const pack = fs.existsSync(filePath) ? loadGzFeatureCollection(filePath) : null;
+  usPlacePackCache.set(st, pack);
+  return pack ? bestContainingFeature(pack.features || [], lon, lat) : null;
+}
+
+function loadUsTractFeature(stateAbbr, lon, lat) {
+  const st = (stateAbbr || '').toString().trim().toLowerCase();
+  if (!st) return null;
+  const filePath = path.join(process.cwd(), 'public', 'adm-packs', 'us', 'adm3', `${st}.json.gz`);
+  if (usTractPackCache.has(st)) {
+    const pack = usTractPackCache.get(st);
+    return pack ? bestContainingFeature(pack.features || [], lon, lat) : null;
+  }
+  const pack = fs.existsSync(filePath) ? loadGzFeatureCollection(filePath) : null;
+  usTractPackCache.set(st, pack);
+  return pack ? bestContainingFeature(pack.features || [], lon, lat) : null;
+}
 
 function loadCitiesMin() {
   if (citiesMinCache) return citiesMinCache;
@@ -180,7 +263,7 @@ function safeStatBytes(filePath) {
   }
 }
 
-function estimatePolygonPackDownload(point, adminArea, cityArea, polygons) {
+function estimatePolygonPackDownload(point, adminArea, cityArea, polygons, usLocalSource = null) {
   // Estimate the bytes a client would download to compute polygons for this point.
   // This represents ONLY the polygon packs (not basemap tiles), per the Locate-Me runtime behavior.
   const code = (point?.country || '').toString().trim().toLowerCase();
@@ -199,13 +282,26 @@ function estimatePolygonPackDownload(point, adminArea, cityArea, polygons) {
   if (needsAdm3) {
     if (code === 'us') {
       const state = (polygons?.[0]?.city?.admin1 || '').toString().trim().toLowerCase();
-      const adm3Path = path.join(process.cwd(), 'public', 'adm-packs', 'us', 'adm3', `${state}.json.gz`);
-      const adm3Bytes = safeStatBytes(adm3Path);
-      if (adm3Bytes) {
-        total += adm3Bytes;
-        parts.push('ADM3(state)');
-      } else {
-        parts.push('ADM3(state?)');
+      const usePlace = usLocalSource === 'place';
+      const useTract = usLocalSource === 'tract' || !usePlace;
+      if (usePlace) {
+        const placePath = path.join(process.cwd(), 'public', 'adm-packs', 'us', 'adm3-place', `${state}.json.gz`);
+        const placeBytes = safeStatBytes(placePath);
+        if (placeBytes) {
+          total += placeBytes;
+          parts.push('ADM3(place)');
+        } else {
+          parts.push('ADM3(place?)');
+        }
+      } else if (useTract) {
+        const adm3Path = path.join(process.cwd(), 'public', 'adm-packs', 'us', 'adm3', `${state}.json.gz`);
+        const adm3Bytes = safeStatBytes(adm3Path);
+        if (adm3Bytes) {
+          total += adm3Bytes;
+          parts.push('ADM3(tract)');
+        } else {
+          parts.push('ADM3(tract?)');
+        }
       }
     } else {
       const adm3Path = path.join(process.cwd(), 'public', 'adm-packs', code, 'adm3.json.gz');
@@ -858,13 +954,29 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
   console.log(`    Added 5-mile circle with ${fiveMileRing.length} points`);
 
   // Add outline overlays from source polygons (very small payload)
-  // Red = Local; Blue = Regional (ADM2). If boundaries are identical/similar, make red more visible.
-  const redGeomSrc = adminArea?.polygon?.geometry || null;
-  const blueGeomSrc = cityArea?.polygon?.geometry || (Array.isArray(polygons) ? polygons[0]?.polygon?.geometry : null);
+  // Red = Local; Blue = Regional (ADM2).
+  // For US, prefer a "place/city" boundary as local (in-between tract and county).
+  const country = (point?.country || '').toString().trim().toUpperCase();
+  const stateHint = (polygons?.[0]?.city?.admin1 || '').toString().trim();
+
+  let redFeature = adminArea?.polygon || null;
+  let blueFeature = cityArea?.polygon || (Array.isArray(polygons) ? polygons[0]?.polygon : null);
+  if (country === 'US' && stateHint) {
+    const place = loadUsPlaceFeature(stateHint, point.lon, point.lat);
+    if (place) {
+      redFeature = place;
+    } else {
+      const tract = loadUsTractFeature(stateHint, point.lon, point.lat);
+      if (tract) redFeature = tract;
+    }
+  }
+
+  const redGeomSrc = redFeature?.geometry || null;
+  const blueGeomSrc = blueFeature?.geometry || null;
 
   const sameLevel = (adminArea?.adminLevel && cityArea?.adminLevel && adminArea.adminLevel === cityArea.adminLevel);
   const normName = (s) => (s || '').toString().trim().toLowerCase();
-  const redName = normName(adminArea?.name || adminArea?.polygon?.properties?.name);
+  const redName = normName(redFeature?.properties?.name || adminArea?.name || adminArea?.polygon?.properties?.name);
   const blueName = normName(
     cityArea?.name ||
       cityArea?.polygon?.properties?.name ||
@@ -992,7 +1104,30 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
                 })()
               : 'City candidate';
             const localLevel = adminArea?.adminLevel || null;
-            const localName = (adminArea && adminArea.name) ? adminArea.name : (adminArea?.polygon?.properties?.name || 'Local outline');
+            const countryUpper = (point?.country || '').toString().trim().toUpperCase();
+            const stateHint = (polygons?.[0]?.city?.admin1 || '').toString().trim();
+
+            let usLocalSource = null; // 'place' | 'tract' | null
+            let effectiveLocalPolygon = adminArea?.polygon || null;
+            let effectiveLocalName = (adminArea && adminArea.name) ? adminArea.name : (adminArea?.polygon?.properties?.name || 'Local outline');
+
+            if (countryUpper === 'US' && stateHint) {
+              const place = loadUsPlaceFeature(stateHint, point.lon, point.lat);
+              if (place) {
+                usLocalSource = 'place';
+                effectiveLocalPolygon = place;
+                effectiveLocalName = place?.properties?.name || effectiveLocalName;
+              } else {
+                const tract = loadUsTractFeature(stateHint, point.lon, point.lat);
+                if (tract) {
+                  usLocalSource = 'tract';
+                  effectiveLocalPolygon = tract;
+                  effectiveLocalName = tract?.properties?.name || effectiveLocalName;
+                }
+              }
+            }
+
+            const localName = effectiveLocalName;
             const cityAreaName = (cityArea && cityArea.name)
               ? cityArea.name
               : (cityArea?.polygon?.properties?.name || polygons?.[0]?.polygon?.properties?.name || 'City outline');
@@ -1001,13 +1136,13 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
 
             // Population: better estimate by summing GeoNames city populations inside the polygon.
             // Note: this is approximate (GeoNames cities5000-derived, filtered to pop>=1000).
-            const localPopEst = estimatePopulationFromCities(adminArea?.polygon?.geometry, point?.country);
+            const localPopEst = estimatePopulationFromCities(effectiveLocalPolygon?.geometry, point?.country);
             const bluePopEst = estimatePopulationFromCities(cityArea?.polygon?.geometry, point?.country);
             const localPopText = localPopEst ? formatPopulation(localPopEst) : 'Unknown';
             const bluePopText = bluePopEst ? formatPopulation(bluePopEst) : 'Unknown';
 
             // Polygon pack download estimate (not basemap tiles)
-            const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons);
+            const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons, usLocalSource);
             const dlText = `${formatBytes(dl.totalBytes)} (${dl.detail})`;
 
             // Draw a pixel-space scale bar + label as ONE attached overlay (bottom-left).
