@@ -60,6 +60,9 @@ createApp({
       gadmPolygonCache: {},
       admPackCache: {},
       admPolygon: null,
+      inlineLegendControl: null,
+      currentWeather: null,
+      weatherStatus: null,
     };
   },
   computed: {
@@ -120,6 +123,193 @@ createApp({
     }
   },
   methods: {
+    roundToStep(value, step) {
+      const n = Number(value);
+      const s = Number(step);
+      if (!Number.isFinite(n) || !Number.isFinite(s) || s <= 0) return n;
+      return Math.round(n / s) * s;
+    },
+    bboxFromGeoJSON(obj) {
+      // Returns { minLon, minLat, maxLon, maxLat } or null
+      const geom = obj?.type === 'Feature' ? obj.geometry : obj;
+      const coords = geom?.coordinates;
+      if (!geom || !coords) return null;
+      let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+      const walk = (c) => {
+        if (!c) return;
+        if (typeof c[0] === 'number' && typeof c[1] === 'number') {
+          const lon = Number(c[0]);
+          const lat = Number(c[1]);
+          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+          minLon = Math.min(minLon, lon);
+          maxLon = Math.max(maxLon, lon);
+          minLat = Math.min(minLat, lat);
+          maxLat = Math.max(maxLat, lat);
+          return;
+        }
+        if (Array.isArray(c)) c.forEach(walk);
+      };
+      walk(coords);
+      if (!Number.isFinite(minLon) || !Number.isFinite(minLat) || !Number.isFinite(maxLon) || !Number.isFinite(maxLat)) return null;
+      return { minLon, minLat, maxLon, maxLat };
+    },
+    pickCoarseWeatherQueryPoint() {
+      // Prefer ADM2 bbox center (regional, coarse). Fall back to nearest-city center.
+      const adm2 = this.admPolygon?.adm2 || null;
+      const bbox = adm2 ? this.bboxFromGeoJSON(adm2) : null;
+      if (bbox) {
+        return {
+          lat: (bbox.minLat + bbox.maxLat) / 2,
+          lon: (bbox.minLon + bbox.maxLon) / 2,
+          basis: 'adm2_bbox_center'
+        };
+      }
+      const best = this.results?.[0] || null;
+      const lat = Number(best?.lat);
+      const lon = Number(best?.lon);
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return { lat, lon, basis: 'nearest_city_center' };
+      }
+      // Last resort: do not use precise GPS; round it aggressively if present.
+      const gpsLat = Number(this.coordinates?.lat);
+      const gpsLon = Number(this.coordinates?.lon);
+      if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon)) {
+        return { lat: this.roundToStep(gpsLat, 1.0), lon: this.roundToStep(gpsLon, 1.0), basis: 'gps_rounded_1deg' };
+      }
+      return null;
+    },
+    weatherCodeDescription(code) {
+      // Open-Meteo WMO weather interpretation codes
+      const c = Number(code);
+      if (!Number.isFinite(c)) return 'Unknown';
+      const map = {
+        0: 'Clear',
+        1: 'Mostly clear',
+        2: 'Partly cloudy',
+        3: 'Overcast',
+        45: 'Fog',
+        48: 'Rime fog',
+        51: 'Light drizzle',
+        53: 'Drizzle',
+        55: 'Heavy drizzle',
+        56: 'Freezing drizzle',
+        57: 'Heavy freezing drizzle',
+        61: 'Light rain',
+        63: 'Rain',
+        65: 'Heavy rain',
+        66: 'Freezing rain',
+        67: 'Heavy freezing rain',
+        71: 'Light snow',
+        73: 'Snow',
+        75: 'Heavy snow',
+        77: 'Snow grains',
+        80: 'Light showers',
+        81: 'Showers',
+        82: 'Heavy showers',
+        85: 'Snow showers',
+        86: 'Heavy snow showers',
+        95: 'Thunderstorm',
+        96: 'Thunderstorm (hail)',
+        99: 'Thunderstorm (heavy hail)'
+      };
+      return map[c] || 'Unknown';
+    },
+    weatherCacheKey(country, admin1, roundedLat, roundedLon) {
+      const c = (country || '').toString().trim().toUpperCase() || 'XX';
+      const a1 = (admin1 || '').toString().trim().toUpperCase() || 'NA';
+      return `wx:v1:${c}:${a1}:${roundedLat.toFixed(2)}:${roundedLon.toFixed(2)}`;
+    },
+    readWeatherCache(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        const exp = Number(parsed.expiresAt || 0);
+        if (exp && Date.now() > exp) return null;
+        return parsed;
+      } catch (_) {
+        return null;
+      }
+    },
+    writeWeatherCache(key, payload) {
+      try {
+        localStorage.setItem(key, JSON.stringify(payload));
+      } catch (_) {}
+    },
+    async fetchCoarseWeather() {
+      const best = this.results?.[0] || null;
+      const country = (best?.country || this.latestMetrics?.seedCountry || '').toString().trim().toUpperCase();
+      const admin1 = (best?.admin1 || '').toString().trim();
+      const qp = this.pickCoarseWeatherQueryPoint();
+      if (!qp) return null;
+
+      // Round query point to reduce precision before network call (privacy).
+      const step = 0.25; // ~25km at equator; coarser at higher latitudes
+      const qLat = this.roundToStep(qp.lat, step);
+      const qLon = this.roundToStep(qp.lon, step);
+      const cacheKey = this.weatherCacheKey(country, admin1, qLat, qLon);
+      const cached = this.readWeatherCache(cacheKey);
+      if (cached?.weather) {
+        return cached.weather;
+      }
+
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(qLat)}&longitude=${encodeURIComponent(qLon)}&current_weather=true&timezone=auto`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`weather_fetch_failed_${res.status}`);
+      const json = await res.json();
+      const cw = json?.current_weather || null;
+      if (!cw) return null;
+
+      const weather = {
+        source: 'open-meteo',
+        // keep shape compatible with the log modal in locate-me.html
+        temperature: Number(cw.temperature),
+        windKph: Number(cw.windspeed),
+        weathercode: Number(cw.weathercode),
+        description: this.weatherCodeDescription(cw.weathercode),
+        observedAt: cw.time || null,
+        coarse: {
+          basis: qp.basis,
+          roundingDeg: step,
+          queryLat: qLat,
+          queryLon: qLon,
+          country: country || null,
+          admin1: admin1 || null
+        }
+      };
+
+      this.writeWeatherCache(cacheKey, {
+        expiresAt: Date.now() + 45 * 60 * 1000,
+        fetchedAt: Date.now(),
+        weather
+      });
+      return weather;
+    },
+    updateInlineLegend() {
+      if (!this.inlineLegendControl) return;
+      const best = this.results?.[0] || null;
+      const country = (best?.country || '').toString().trim();
+      const admin1 = (best?.admin1 || '').toString().trim();
+      const localName = this.admPolygon?.local?.properties?.name || 'Local';
+      const regionalName = this.admPolygon?.adm2?.properties?.name || 'Regional (ADM2)';
+      const wx = this.currentWeather;
+      const wxLine = wx
+        ? `Weather: ${Number.isFinite(wx.temperature) ? Math.round(wx.temperature) + '°C' : '—'} · ${wx.description || '—'}`
+        : (this.weatherStatus ? `Weather: ${this.weatherStatus}` : 'Weather: —');
+
+      const div = this.inlineLegendControl.getContainer();
+      div.innerHTML = `
+        <div class="locate-legend-title">Legend</div>
+        <div class="locate-legend-row"><span class="swatch swatch-gps"></span> GPS point</div>
+        <div class="locate-legend-row"><span class="swatch swatch-circle"></span> 2 &amp; 10-mile circles</div>
+        <div class="locate-legend-row"><span class="swatch swatch-red"></span> Red: ${localName}</div>
+        <div class="locate-legend-row"><span class="swatch swatch-blue"></span> Blue: ${regionalName}</div>
+        <div class="locate-legend-divider"></div>
+        <div class="locate-legend-row locate-legend-weather">${wxLine}</div>
+        <div class="locate-legend-footnote">${country}${admin1 ? ' · ' + admin1 : ''} (coarse lookup)</div>
+      `;
+    },
     async fetchGzJson(url) {
       const res = await fetch(url, { cache: 'force-cache' });
       if (!res.ok) throw new Error(`fetch failed (${res.status})`);
@@ -739,6 +929,24 @@ createApp({
               this.admPolygon = null;
             }
 
+            // Weather (privacy-preserving): fetch using a coarse query point (ADM2 bbox center / nearest city),
+            // rounded before the network call. Never send raw GPS coordinates.
+            this.weatherStatus = 'Loading…';
+            this.currentWeather = null;
+            const weatherPromise = this.fetchCoarseWeather()
+              .then((wx) => {
+                this.currentWeather = wx || null;
+                this.weatherStatus = wx ? null : 'Unavailable';
+                return wx || null;
+              })
+              .catch((e) => {
+                console.warn('weather fetch failed', e);
+                this.weatherStatus = 'Unavailable';
+                this.currentWeather = null;
+                return null;
+              })
+              .finally(() => this.updateInlineLegend());
+
             // Append derived log entry (no coordinates)
             await this.appendClientLog({
               timestamp: new Date().toISOString(),
@@ -752,6 +960,10 @@ createApp({
               country: this.results[0]?.country || null,
               admin1: this.results[0]?.admin1 || null,
               admin2: this.results[0]?.admin2 || null,
+              weather: await Promise.race([
+                weatherPromise,
+                new Promise((resolve) => setTimeout(() => resolve(null), 1500))
+              ]),
               source: 'client'
             });
 
@@ -853,6 +1065,10 @@ createApp({
         this.inlineMapLayers.clearLayers();
         this.inlineMapLayers = null;
       }
+      if (this.inlineLegendControl) {
+        try { this.inlineLegendControl.remove(); } catch (_) {}
+      }
+      this.inlineLegendControl = null;
     },
     async renderInlineMap() {
       try {
@@ -876,6 +1092,20 @@ createApp({
           maxZoom: 18,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(this.inlineMapInstance);
+
+        // Inline legend (top-left)
+        if (this.inlineLegendControl) {
+          try { this.inlineLegendControl.remove(); } catch (_) {}
+          this.inlineLegendControl = null;
+        }
+        this.inlineLegendControl = L.control({ position: 'topleft' });
+        this.inlineLegendControl.onAdd = () => {
+          const div = L.DomUtil.create('div', 'locate-legend leaflet-bar');
+          // allow interacting without dragging map
+          L.DomEvent.disableClickPropagation(div);
+          return div;
+        };
+        this.inlineLegendControl.addTo(this.inlineMapInstance);
 
         // Add scale control
         L.control.scale({
@@ -970,6 +1200,9 @@ createApp({
             }
           }
         }
+
+        // Refresh legend text after layers are present
+        this.updateInlineLegend();
 
         if (coords.length > 1) {
           this.inlineMapInstance.fitBounds(coords, { padding: [32, 32] });
