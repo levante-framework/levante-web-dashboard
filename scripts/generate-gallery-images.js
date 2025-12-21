@@ -622,11 +622,46 @@ function octagonFromBBox(bbox) {
 
 
 
-// Simplify polygon/multipolygon to a single outline with limited vertices
-function simplifyToOutline(geometry, maxPoints = 32) {
+// Simplify polygon/multipolygon to a single outline with limited vertices.
+// If `focusPoint` is provided ([lon,lat]), prefer the MultiPolygon component that contains it.
+function simplifyToOutline(geometry, maxPoints = 32, focusPoint = null) {
   if (!geometry || !geometry.coordinates) return null;
   const fixed = fixPolygonGeometry(geometry);
   if (!fixed || !fixed.coordinates) return null;
+
+  const pointInRing = (pt, ring) => {
+    const [px, py] = pt;
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i];
+      const [xj, yj] = ring[j];
+      const intersect = (yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / ((yj - yi) || 1e-12) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
+  const pointInPolyCoords = (pt, polyCoords) => {
+    if (!Array.isArray(polyCoords) || !polyCoords.length) return false;
+    const [outer, ...holes] = polyCoords;
+    if (!outer || outer.length < 4) return false;
+    if (!pointInRing(pt, outer)) return false;
+    for (const hole of holes) {
+      if (hole && hole.length >= 4 && pointInRing(pt, hole)) return false;
+    }
+    return true;
+  };
+
+  const ringArea = (ring) => {
+    if (!ring || ring.length < 3) return 0;
+    let sum = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const [x1, y1] = ring[i];
+      const [x2, y2] = ring[(i + 1) % ring.length];
+      sum += x1 * y2 - x2 * y1;
+    }
+    return Math.abs(sum / 2);
+  };
 
   const downsampleRing = (ring) => {
     if (!Array.isArray(ring) || ring.length < 4) return null;
@@ -646,10 +681,27 @@ function simplifyToOutline(geometry, maxPoints = 32) {
   }
 
   if (fixed.type === 'MultiPolygon') {
-    const rings = fixed.coordinates.map(poly => poly && poly[0] ? downsampleRing(poly[0]) : null).filter(Boolean);
-    if (!rings.length) return null;
-    const largest = rings.reduce((a, b) => (b.length > a.length ? b : a), rings[0]);
-    return { type: 'Polygon', coordinates: [largest] };
+    // Prefer polygon component that contains the focus point (if provided).
+    if (focusPoint && Array.isArray(focusPoint) && focusPoint.length === 2) {
+      for (const poly of fixed.coordinates) {
+        if (!poly || !poly.length) continue;
+        if (pointInPolyCoords(focusPoint, poly)) {
+          const ring = downsampleRing(poly[0]);
+          if (ring) return { type: 'Polygon', coordinates: [ring] };
+        }
+      }
+    }
+
+    // Fallback: choose component with largest outer-ring area (more stable than point-count).
+    const candidates = fixed.coordinates
+      .map((poly) => {
+        const outer = poly && poly[0] ? poly[0] : null;
+        return outer ? { area: ringArea(outer), ring: downsampleRing(outer) } : null;
+      })
+      .filter((x) => x && x.ring);
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => b.area - a.area);
+    return { type: 'Polygon', coordinates: [candidates[0].ring] };
   }
 
   return null;
@@ -725,7 +777,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
   const blueOpacity = sameName ? 0.90 : 1.0;
 
   if (redGeomSrc) {
-    const outline = simplifyToOutline(redGeomSrc, 32);
+    const outline = simplifyToOutline(redGeomSrc, 32, [point.lon, point.lat]);
     const geom = outline || octagonFromBBox(bboxFromGeometry(redGeomSrc));
     if (geom) {
       features.push({
@@ -737,7 +789,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
   }
 
   if (blueGeomSrc) {
-    const outline = simplifyToOutline(blueGeomSrc, 32);
+    const outline = simplifyToOutline(blueGeomSrc, 32, [point.lon, point.lat]);
     const geom = outline || octagonFromBBox(bboxFromGeometry(blueGeomSrc));
     if (geom) {
       features.push({
@@ -848,11 +900,17 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const nearestCity = polygons?.[0]?.city || null;
             const nearestCityName = (nearestCity?.name || '').toString().trim().toLowerCase();
             const localAreaNameNorm = (localName || '').toString().trim().toLowerCase();
+            const cityAreaNameNorm = (cityAreaName || '').toString().trim().toLowerCase();
             const popCandidate =
               nearestCityName && localAreaNameNorm && localAreaNameNorm.includes(nearestCityName)
                 ? nearestCity?.population
                 : null;
             const localPopText = formatPopulation(popCandidate);
+            const bluePopCandidate =
+              nearestCityName && cityAreaNameNorm && cityAreaNameNorm.includes(nearestCityName)
+                ? nearestCity?.population
+                : null;
+            const bluePopText = formatPopulation(bluePopCandidate);
 
             // Polygon pack download estimate (not basemap tiles)
             const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons);
@@ -920,11 +978,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     <text x="${Math.round(labelX + labelW/2)}" y="${Math.round(labelY + labelH/2) + 5}" text-anchor="middle">${escapeXml(labelText)}</text>
   </g>
 </svg>`);
-            const legendSvg = Buffer.from(`<svg width="780" height="780" viewBox="0 0 260 282" xmlns="http://www.w3.org/2000/svg">
+            const legendSvg = Buffer.from(`<svg width="780" height="820" viewBox="0 0 260 296" xmlns="http://www.w3.org/2000/svg">
   <style>
-    text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 14px; fill: #111827; }
+    text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 13px; fill: #111827; }
   </style>
-  <rect x="12" y="12" width="236" height="258" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="12" y="12" width="236" height="272" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.3" stroke="#22c55e" stroke-width="2" />
@@ -936,7 +994,8 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   <text x="50" y="152">Pop (city proxy): ${escapeXml(localPopText)}</text>
   <rect x="24" y="172" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
   <text x="50" y="186">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
-  <text x="50" y="216">Polygons downloaded: ${escapeXml(dlText)}</text>
+  <text x="50" y="202">Pop (city proxy): ${escapeXml(bluePopText)}</text>
+  <text x="50" y="232">Polygons downloaded: ${escapeXml(dlText)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
