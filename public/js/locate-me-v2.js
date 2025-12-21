@@ -485,6 +485,20 @@ createApp({
         return null;
       }
     },
+    async loadUsPlacePack(stateAbbr) {
+      const st = (stateAbbr || '').toString().trim().toLowerCase();
+      if (!st) return null;
+      const key = `us:adm3-place:${st}`;
+      if (this.admPackCache[key] !== undefined) return this.admPackCache[key];
+      try {
+        const json = await this.fetchGzJson(`/adm-packs/us/adm3-place/${st}.json.gz`);
+        this.admPackCache[key] = json;
+        return json;
+      } catch (err) {
+        this.admPackCache[key] = null;
+        return null;
+      }
+    },
     pointInRing(pt, ring) {
       const [px, py] = pt;
       let inside = false;
@@ -577,6 +591,24 @@ createApp({
     },
     async fetchUsAdm3Polygon(stateAbbr, lat, lon) {
       const pack = await this.loadUsAdm3Pack(stateAbbr);
+      if (!pack || !pack.features) return null;
+      const pt = [lon, lat];
+      let best = null;
+      let bestArea = Infinity;
+      for (const feature of pack.features) {
+        if (!feature?.geometry) continue;
+        if (this.pointInPolygon(pt, feature.geometry)) {
+          const area = this.polygonArea(feature.geometry);
+          if (area < bestArea) {
+            bestArea = area;
+            best = feature;
+          }
+        }
+      }
+      return best;
+    },
+    async fetchUsPlacePolygon(stateAbbr, lat, lon) {
+      const pack = await this.loadUsPlacePack(stateAbbr);
       if (!pack || !pack.features) return null;
       const pt = [lon, lat];
       let best = null;
@@ -686,12 +718,16 @@ createApp({
                 const adm2 = countryForAdm
                   ? await this.fetchAdmPolygonFromPack(countryForAdm, 'adm2', latitude, longitude)
                   : null;
-                const local =
-                  countryForAdm === 'us'
-                    ? await this.fetchUsAdm3Polygon(best.admin1, latitude, longitude)
-                    : countryForAdm
-                    ? await this.fetchAdmPolygonFromPack(countryForAdm, 'adm3', latitude, longitude)
-                    : null;
+                let local = null;
+                if (countryForAdm === 'us') {
+                  // Prefer an in-between "place/city" boundary when available (e.g., Chicago city),
+                  // falling back to tract-level (very small) if no place boundary contains the point.
+                  const place = await this.fetchUsPlacePolygon(best.admin1, latitude, longitude).catch(() => null);
+                  const tract = place ? null : await this.fetchUsAdm3Polygon(best.admin1, latitude, longitude).catch(() => null);
+                  local = place || tract;
+                } else if (countryForAdm) {
+                  local = await this.fetchAdmPolygonFromPack(countryForAdm, 'adm3', latitude, longitude);
+                }
                 // Local fallback: if no finer local polygon exists, use ADM2 so user can still compare outlines.
                 this.admPolygon = countryForAdm ? { adm2, local: local || adm2 } : null;
               } catch (admErr) {
