@@ -5,3 +5,4 @@ data/geonames_cities5000.zip
 .env
 
 data/tiger/
+.env*.local
