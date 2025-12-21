@@ -19,6 +19,7 @@ const GEOCODER_PATH = path.join(process.cwd(), 'data', 'geocoder', 'cities.min.j
 const GEOCODER_PATH_GZ = `${GEOCODER_PATH}.gz`;
 const MAX_LOCALITY_CANDIDATES = 6000; // cap per-country locality sample to stay compact
 const ADM_PACK_DIR = path.join(process.cwd(), 'public', 'adm-packs');
+const ADM0_PATH_GZ = path.join(process.cwd(), 'public', 'adm0', 'countries.min.json.gz');
 
 const ALLOWED_COUNTRY_SLUGS = new Set([
   'scotland',
@@ -95,6 +96,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 let geoData = null;
 let countryBounds = null;
 const countrySlices = new Map();
+let countriesFc = null;
 
 function loadGeocoderData() {
   if (geoData) return geoData;
@@ -106,6 +108,20 @@ function loadGeocoderData() {
     throw new Error('Geocoder dataset not found (cities.min.json[.gz])');
   }
   return geoData;
+}
+
+function loadCountries() {
+  if (countriesFc) return countriesFc;
+  if (!fs.existsSync(ADM0_PATH_GZ)) {
+    throw new Error(`ADM0 dataset missing at ${ADM0_PATH_GZ}. Run node scripts/adm/build-adm0.js`);
+  }
+  const raw = zlib.gunzipSync(fs.readFileSync(ADM0_PATH_GZ)).toString();
+  const fc = JSON.parse(raw);
+  if (!fc || fc.type !== 'FeatureCollection' || !Array.isArray(fc.features)) {
+    throw new Error('ADM0 dataset malformed');
+  }
+  countriesFc = fc;
+  return countriesFc;
 }
 
 function buildCountryBounds() {
@@ -205,10 +221,34 @@ function nearestLocality(lat, lon, country) {
   };
 }
 
+function nearestLocalities(lat, lon, country, limit = 2, maxDistanceKm = MAX_DISTANCE_KM) {
+  if (!country || !ALLOWED_COUNTRY_CODES.has(country)) return [];
+  const slice = getCountrySlice(country);
+  if (!slice.length) return [];
+  const hits = [];
+  for (const city of slice) {
+    const d = distanceKm({ lat, lon }, { lat: city.lat, lon: city.lon });
+    if (!Number.isFinite(d) || d > maxDistanceKm) continue;
+    hits.push({
+      name: city.name || city.ascii || 'Unknown',
+      admin1: city.admin1 || null,
+      admin2: city.admin2 || null,
+      country: city.country,
+      lat: city.lat,
+      lon: city.lon,
+      population: city.population,
+      distanceKm: d,
+      source: 'local-geocoder'
+    });
+  }
+  hits.sort((a, b) => a.distanceKm - b.distanceKm);
+  return hits.slice(0, limit);
+}
+
 // Simple on-disk cache to avoid re-hitting Overpass-backed endpoints when rerunning
 
 // --- ADM pack helpers (local polygons; no GPS sent remotely) ---
-const admPackCache = new Map();
+const admPackCache = new Map(); // key: `${iso2}|${level}` -> FeatureCollection|null
 
 function pointInRing(pt, ring) {
   const [px, py] = pt;
@@ -279,22 +319,59 @@ function polygonArea(geom) {
   return total || Infinity;
 }
 
-function loadAdmPack(countryCode) {
-  const code = (countryCode || '').toLowerCase();
-  if (!code) return null;
-  if (admPackCache.has(code)) return admPackCache.get(code);
-  const filePath = path.join(ADM_PACK_DIR, `${code}.json`);
+function adm0CountryLookup(lat, lon) {
+  const fc = loadCountries();
+  const pt = [lon, lat];
+  let best = null;
+  let bestArea = Infinity;
+  for (const feature of fc.features) {
+    if (!feature?.geometry) continue;
+    if (!pointInPolygon(pt, feature.geometry)) continue;
+    const area = polygonArea(feature.geometry);
+    if (area < bestArea) {
+      bestArea = area;
+      best = feature;
+    }
+  }
+  const iso2 = best?.properties?.iso2;
+  return iso2 ? String(iso2).trim().toUpperCase() : null;
+}
+
+function loadAdmPack(countryCode, level) {
+  const code = (countryCode || '').toString().trim().toLowerCase();
+  const lvl = (level || '').toString().trim().toLowerCase(); // adm1|adm2
+  if (!code || !lvl) return null;
+  const key = `${code}|${lvl}`;
+  if (admPackCache.has(key)) return admPackCache.get(key);
+  const filePath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
   if (!fs.existsSync(filePath)) {
-    admPackCache.set(code, null);
+    admPackCache.set(key, null);
     return null;
   }
-  const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  admPackCache.set(code, data);
+  const raw = zlib.gunzipSync(fs.readFileSync(filePath)).toString();
+  const data = JSON.parse(raw);
+  admPackCache.set(key, data);
   return data;
 }
 
-function lookupAdmPolygon(countryCode, lat, lon) {
-  const pack = loadAdmPack(countryCode);
+function loadUsAdm3Pack(stateAbbr) {
+  const st = (stateAbbr || '').toString().trim().toLowerCase();
+  if (!st) return null;
+  const key = `us|adm3|${st}`;
+  if (admPackCache.has(key)) return admPackCache.get(key);
+  const filePath = path.join(ADM_PACK_DIR, 'us', 'adm3', `${st}.json.gz`);
+  if (!fs.existsSync(filePath)) {
+    admPackCache.set(key, null);
+    return null;
+  }
+  const raw = zlib.gunzipSync(fs.readFileSync(filePath)).toString();
+  const data = JSON.parse(raw);
+  admPackCache.set(key, data);
+  return data;
+}
+
+function lookupAdmPolygon(countryCode, level, lat, lon) {
+  const pack = loadAdmPack(countryCode, level);
   if (!pack || !pack.features) return null;
   const pt = [lon, lat];
   let best = null;
@@ -310,6 +387,65 @@ function lookupAdmPolygon(countryCode, lat, lon) {
     }
   }
   return best;
+}
+
+function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null) {
+  // Option (1): local boundary = smallest available admin level (try ADM5→ADM4→ADM3).
+  // Regional boundary = ADM2.
+  const pt = [lon, lat];
+
+  const adm2Pack = loadAdmPack(countryIso2Lower, 'adm2');
+
+  const bestContaining = (pack) => {
+    if (!pack || !pack.features) return null;
+    let best = null;
+    let bestArea = Infinity;
+    for (const feature of pack.features) {
+      if (!feature?.geometry) continue;
+      if (!pointInPolygon(pt, feature.geometry)) continue;
+      const area = polygonArea(feature.geometry);
+      if (!Number.isFinite(area)) continue;
+      if (area < bestArea) {
+        bestArea = area;
+        best = feature;
+      }
+    }
+    return best;
+  };
+
+  const adm2 = bestContaining(adm2Pack);
+  let localFeature = null;
+  let localLevel = null;
+  if (countryIso2Lower === 'us') {
+    const usPack = loadUsAdm3Pack(hintAdmin1);
+    const f = bestContaining(usPack);
+    if (f) {
+      localFeature = f;
+      localLevel = 3;
+    }
+  } else {
+    for (const lvl of ['adm4', 'adm3']) {
+      const pack = loadAdmPack(countryIso2Lower, lvl);
+      const f = bestContaining(pack);
+      if (f) {
+        localFeature = f;
+        localLevel = lvl === 'adm3' ? 3 : 4;
+        break;
+      }
+    }
+  }
+
+  const blue = adm2 || null;                // Regional (ADM2)
+  const red = localFeature || adm2 || null; // Local, fallback to ADM2 so red is always present when ADM2 exists
+
+  return {
+    local: blue
+      ? { polygon: blue, adminLevel: 2, name: blue?.properties?.name || 'Unknown' }
+      : null,
+    regional: red
+      ? { polygon: red, adminLevel: localFeature ? localLevel : 2, name: red?.properties?.name || 'Unknown' }
+      : null
+  };
 }
 
 // Simple on-disk cache to avoid re-hitting Overpass-backed endpoints when rerunning
@@ -459,8 +595,13 @@ async function processPoint(point, index, total) {
   console.log(`[${index + 1}/${total}] Processing ${point.id} (${point.country})...`);
   
   try {
-    // Local coarse country/admin hint (tiny on-disk index -> country -> per-country slice)
-    let coarseCountry = coarseCountryLookup(point.lat, point.lon);
+    // ADM0 seed (local point-in-polygon)
+    const seededCountry = adm0CountryLookup(point.lat, point.lon);
+    const fallbackCountry = (point.country || '').toString().trim().toUpperCase();
+    let coarseCountry =
+      (seededCountry && ALLOWED_COUNTRY_CODES.has(seededCountry) ? seededCountry : null) ||
+      (fallbackCountry && ALLOWED_COUNTRY_CODES.has(fallbackCountry) ? fallbackCountry : null) ||
+      null;
     if (!coarseCountry) {
       const fallbackSlug = mapCountrySlug(point.country) || point.slug;
       const fallbackCode = fallbackSlug ? SLUG_TO_COUNTRY[fallbackSlug] : null;
@@ -468,61 +609,62 @@ async function processPoint(point, index, total) {
         coarseCountry = fallbackCode;
       }
     }
+    if (!coarseCountry) {
+      coarseCountry = coarseCountryLookup(point.lat, point.lon);
+    }
+
     const localAdmin = coarseCountry ? nearestLocality(point.lat, point.lon, coarseCountry) : null;
 
-    // Step 1: Reverse geocode with 20km limit
-    const geocodeUrl = `${BASE_URL}/api/reverse-geocode?lat=${point.lat}&lon=${point.lon}&limit=2&maxDistanceKm=${MAX_DISTANCE_KM}`;
-    const geocodeData = await fetchJSONWithRetry(geocodeUrl, `Geocode ${point.id}`);
-    
-    if (!geocodeData.results || geocodeData.results.length === 0) {
+    // Step 1: On-device reverse geocode (no network)
+    const lookupStart = process.hrtime.bigint();
+    const results = coarseCountry
+      ? nearestLocalities(point.lat, point.lon, coarseCountry, 2, MAX_DISTANCE_KM)
+      : [];
+    const lookupMs = Number((process.hrtime.bigint() - lookupStart) / 1000000n);
+
+    if (!results.length) {
       console.warn(`  ⚠️  No results within ${MAX_DISTANCE_KM}km for ${point.id}`);
       return null;
     }
-    
-    // Filter: nearest location must be <= 20km
-    const nearestDistance = geocodeData.results[0]?.distanceKm;
+
+    // Filter: nearest location must be <= MAX_DISTANCE_KM
+    const nearestDistance = results[0]?.distanceKm;
     if (nearestDistance === undefined || nearestDistance > MAX_DISTANCE_KM) {
-      console.warn(`  ⚠️  Nearest location (${nearestDistance?.toFixed(1)}km) exceeds ${MAX_DISTANCE_KM}km for ${point.id}`);
+      console.warn(
+        `  ⚠️  Nearest location (${nearestDistance?.toFixed(1)}km) exceeds ${MAX_DISTANCE_KM}km for ${point.id}`
+      );
       return null;
     }
-    
-    const results = geocodeData.results.slice(0, 2);
-    
-    // Step 2: Get polygons for each result using local ADM pack
-    const polygons = [];
-    for (const result of results) {
-      try {
-        const poly = lookupAdmPolygon(result.country, result.lat, result.lon);
-        polygons.push({ city: result, polygon: poly });
-      } catch (err) {
-        console.warn(`  ⚠️  Failed to get polygon for ${result.name}: ${err.message}`);
-        polygons.push({ city: result, polygon: null });
+
+    const geocodeData = {
+      lat: point.lat,
+      lon: point.lon,
+      results: results.map((r) => ({ ...r, distanceKm: Math.round(r.distanceKm * 10) / 10 })),
+      metrics: {
+        datasetFile: 'cities.min.json.gz',
+        lookupMs,
+        seedCountry: coarseCountry,
+        seedMethod: seededCountry ? 'adm0' : 'seed-file',
+        source: 'local'
       }
-    }
-    
-    // Step 3: Get administrative area polygon for the GPS point itself (local pack)
-    console.log(`  [${point.id}] Starting admin area lookup (local pack)...`);
-    let adminArea = null;
-    try {
-      const poly = lookupAdmPolygon(point.country, point.lat, point.lon);
-      if (poly) {
-        const name = poly.properties?.name || poly.properties?.tags?.name || poly.properties?.tags?.['name:en'] || 'Unknown';
-        const population = poly.properties?.population || poly.properties?.tags?.population || null;
-        adminArea = {
-          polygon: poly,
-          adminLevel: poly.properties?.admin_level || null,
-          name,
-          population: population ? parseInt(population, 10) : null
-        };
-        console.log(`  [${point.id}] ✓ Admin area found: ${name}`);
-      } else {
-        console.log(`  [${point.id}] ⚠️  No admin polygon in local pack`);
-      }
-    } catch (err) {
-      console.warn(`  [${point.id}] ⚠️  Exception getting admin area: ${err.message}`);
-    }
-    
-    console.log(`  [${point.id}] Final adminArea value before return:`, adminArea ? `SET (${adminArea.name})` : (adminArea === null ? 'NULL' : 'UNDEFINED'));
+    };
+
+    // Step 2/3: ADM polygons for the GPS point itself (local packs)
+    const countryForPacks = (coarseCountry || '').toString().trim().toLowerCase();
+    const admin1Hint = geocodeData?.results?.[0]?.admin1 || null;
+    const { local, regional } = lookupTwoLevelAreas(countryForPacks, point.lat, point.lon, admin1Hint);
+    // For gallery rendering:
+    // - Blue (cityArea): ADM2 (regional)
+    // - Red (adminArea): Local = smallest available level (ADM5→ADM4→ADM3; optional)
+    const cityArea = local || null;
+    const adminArea = regional || null;
+
+    // Keep legacy `polygons` array for the gallery UI, but make it represent the GPS-point ADM2 boundary.
+    const polygons = [
+      { city: geocodeData.results[0], polygon: cityArea?.polygon || null },
+      geocodeData.results[1] ? { city: geocodeData.results[1], polygon: null } : null
+    ].filter(Boolean);
+
     const result = {
       point,
       geocode: geocodeData,
@@ -530,9 +672,9 @@ async function processPoint(point, index, total) {
       coarseCountry: coarseCountry || null,
       locality: localAdmin || null,
       adminArea: adminArea || null,  // Explicitly set to null if undefined
+      cityArea: cityArea || null,
       metrics: geocodeData.metrics || null
     };
-    console.log(`  [${point.id}] Returning result. Keys:`, Object.keys(result), `adminArea in result:`, 'adminArea' in result, `value:`, result.adminArea ? 'SET' : (result.adminArea === null ? 'NULL' : 'UNDEFINED'));
     return result;
   } catch (error) {
     console.error(`  ❌ Error processing ${point.id}: ${error.message}`);

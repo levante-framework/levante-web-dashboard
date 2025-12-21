@@ -22,6 +22,12 @@ createApp({
       results: [],
       coordinates: null,
       latestMetrics: null,
+      citiesDataset: null,
+      citiesDatasetInfo: null,
+      citiesDatasetPromise: null,
+      countriesDataset: null,
+      countriesDatasetInfo: null,
+      countriesDatasetPromise: null,
       loading: false,
       error: null,
       showRawLogModal: false,
@@ -114,6 +120,132 @@ createApp({
     }
   },
   methods: {
+    async fetchGzJson(url) {
+      const res = await fetch(url, { cache: 'force-cache' });
+      if (!res.ok) throw new Error(`fetch failed (${res.status})`);
+      const buf = await res.arrayBuffer();
+      if (typeof DecompressionStream === 'undefined') {
+        throw new Error('DecompressionStream not supported in this browser');
+      }
+      const ds = new DecompressionStream('gzip');
+      const stream = new Response(new Blob([buf]).stream().pipeThrough(ds));
+      return stream.json();
+    },
+    async loadCitiesDataset() {
+      if (this.citiesDataset && this.citiesDatasetInfo) return this.citiesDatasetInfo;
+      if (this.citiesDatasetPromise) return this.citiesDatasetPromise;
+
+      const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      this.citiesDatasetPromise = (async () => {
+        const fileName = 'cities.min.json.gz';
+        const cities = await this.fetchGzJson('/geocoder/cities.min.json.gz');
+        if (!Array.isArray(cities)) {
+          throw new Error('cities dataset malformed');
+        }
+        const endedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const loadDurationMs = Math.round(endedAt - startedAt);
+        this.citiesDataset = cities;
+        this.citiesDatasetInfo = {
+          datasetFile: fileName,
+          totalPoints: cities.length,
+          datasetLoadMs: loadDurationMs,
+          loadedAt: new Date().toISOString(),
+          source: 'client'
+        };
+        return this.citiesDatasetInfo;
+      })();
+
+      try {
+        return await this.citiesDatasetPromise;
+      } finally {
+        this.citiesDatasetPromise = null;
+      }
+    },
+    async loadCountriesDataset() {
+      if (this.countriesDataset && this.countriesDatasetInfo) return this.countriesDatasetInfo;
+      if (this.countriesDatasetPromise) return this.countriesDatasetPromise;
+
+      const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      this.countriesDatasetPromise = (async () => {
+        const fileName = 'countries.min.json.gz';
+        const fc = await this.fetchGzJson('/adm0/countries.min.json.gz');
+        if (!fc || fc.type !== 'FeatureCollection' || !Array.isArray(fc.features)) {
+          throw new Error('countries dataset malformed');
+        }
+        const endedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const loadDurationMs = Math.round(endedAt - startedAt);
+        this.countriesDataset = fc;
+        this.countriesDatasetInfo = {
+          datasetFile: fileName,
+          totalFeatures: fc.features.length,
+          datasetLoadMs: loadDurationMs,
+          loadedAt: new Date().toISOString(),
+          source: 'client'
+        };
+        return this.countriesDatasetInfo;
+      })();
+
+      try {
+        return await this.countriesDatasetPromise;
+      } finally {
+        this.countriesDatasetPromise = null;
+      }
+    },
+    lookupCountryIso2(lat, lon) {
+      const fc = this.countriesDataset;
+      if (!fc || !Array.isArray(fc.features)) return null;
+      const pt = [lon, lat];
+      let best = null;
+      let bestArea = Infinity;
+      for (const feature of fc.features) {
+        if (!feature?.geometry) continue;
+        if (!this.pointInPolygon(pt, feature.geometry)) continue;
+        const area = this.polygonArea(feature.geometry);
+        if (area < bestArea) {
+          bestArea = area;
+          best = feature;
+        }
+      }
+      const iso2 = best?.properties?.iso2;
+      return iso2 ? String(iso2).trim().toLowerCase() : null;
+    },
+    approxDistanceKm(lat1, lon1, lat2, lon2) {
+      // Fast equirectangular approximation; good enough for nearest-city lookup on cities5000.
+      const toRad = (d) => (d * Math.PI) / 180;
+      const R = 6371;
+      const x = toRad(lon2 - lon1) * Math.cos(toRad((lat1 + lat2) / 2));
+      const y = toRad(lat2 - lat1);
+      return R * Math.sqrt(x * x + y * y);
+    },
+    findNearestCities(lat, lon, limit = 2, maxDistanceKm = 150, countryIso2 = null) {
+      const cities = this.citiesDataset || [];
+      const best = [];
+      for (const c of cities) {
+        if (!c) continue;
+        if (countryIso2 && String(c.country || '').toLowerCase() !== countryIso2) continue;
+        const d = this.approxDistanceKm(lat, lon, Number(c.lat), Number(c.lon));
+        if (!Number.isFinite(d) || d > maxDistanceKm) continue;
+        best.push({ ...c, distanceKm: Math.round(d * 10) / 10 });
+      }
+      best.sort((a, b) => (a.distanceKm || 1e9) - (b.distanceKm || 1e9));
+      return best.slice(0, limit);
+    },
+    async appendClientLog(entry) {
+      // Critical privacy rule: do not send raw GPS coords off-device.
+      if (entry && (entry.latitude != null || entry.longitude != null || entry.lat != null || entry.lon != null)) {
+        throw new Error('Refusing to log raw coordinates');
+      }
+      try {
+        await fetch(apiUrl('/api/location-log'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry || {})
+        });
+      } catch (err) {
+        // Logging should never break locating.
+        console.warn('client log append failed', err?.message || err);
+      }
+    },
     formatBytes(bytes) {
       if (!bytes) return 'N/A';
       if (bytes < 1024) return bytes + ' B';
@@ -326,17 +458,30 @@ createApp({
           return stream.json();
         };
 
-        const [adm1, adm2] = await Promise.all([
-          fetchGzJson(`/adm-packs/${code}/adm1.json.gz`),
-          fetchGzJson(`/adm-packs/${code}/adm2.json.gz`)
-        ]);
+        const adm2 = await fetchGzJson(`/adm-packs/${code}/adm2.json.gz`);
+        // ADM3 is optional; for US we use per-state tract packs (downloaded on demand).
+        const adm3 = code === 'us' ? null : await fetchGzJson(`/adm-packs/${code}/adm3.json.gz`).catch(() => null);
 
-        const bundle = { adm1, adm2 };
+        const bundle = { adm2, adm3 };
         this.admPackCache[code] = bundle;
         return bundle;
       } catch (err) {
         console.warn('ADM pack load failed', code, err.message);
         this.admPackCache[code] = null;
+        return null;
+      }
+    },
+    async loadUsAdm3Pack(stateAbbr) {
+      const st = (stateAbbr || '').toString().trim().toLowerCase();
+      if (!st) return null;
+      const key = `us:adm3:${st}`;
+      if (this.admPackCache[key] !== undefined) return this.admPackCache[key];
+      try {
+        const json = await this.fetchGzJson(`/adm-packs/us/adm3/${st}.json.gz`);
+        this.admPackCache[key] = json;
+        return json;
+      } catch (err) {
+        this.admPackCache[key] = null;
         return null;
       }
     },
@@ -409,11 +554,29 @@ createApp({
     async fetchAdmPolygonFromPack(country, level, lat, lon) {
       const packBundle = await this.loadAdmPack(country);
       const pack =
-        packBundle && level === 'adm1'
-          ? packBundle.adm1
-          : packBundle && level === 'adm2'
+        packBundle && level === 'adm2'
           ? packBundle.adm2
+          : packBundle && level === 'adm3'
+          ? packBundle.adm3
           : null;
+      if (!pack || !pack.features) return null;
+      const pt = [lon, lat];
+      let best = null;
+      let bestArea = Infinity;
+      for (const feature of pack.features) {
+        if (!feature?.geometry) continue;
+        if (this.pointInPolygon(pt, feature.geometry)) {
+          const area = this.polygonArea(feature.geometry);
+          if (area < bestArea) {
+            bestArea = area;
+            best = feature;
+          }
+        }
+      }
+      return best;
+    },
+    async fetchUsAdm3Polygon(stateAbbr, lat, lon) {
+      const pack = await this.loadUsAdm3Pack(stateAbbr);
       if (!pack || !pack.features) return null;
       const pt = [lon, lat];
       let best = null;
@@ -476,31 +639,42 @@ createApp({
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          this.status = 'Resolving nearest city…';
+          this.status = 'Determining country (on-device)…';
           try {
-            const query = new URLSearchParams({
-              lat: latitude.toString(),
-              lon: longitude.toString(),
-              limit: '2',
-              maxDistanceKm: '150'
-            });
-            const response = await fetch(apiUrl(`/api/reverse-geocode?${query.toString()}`));
-            if (!response.ok) {
-              const errorPayload = await response.json().catch(() => ({ error: 'Unknown error' }));
-              throw new Error(errorPayload?.message || errorPayload?.error || 'Unknown error');
+            // Seed country from ADM0 polygons (no network call with coords).
+            await this.loadCountriesDataset();
+            const seedCountry = this.lookupCountryIso2(latitude, longitude);
+
+            if (seedCountry) {
+              this.status = `Country: ${seedCountry.toUpperCase()} (loading admin packs)…`;
+              // Kick off country pack download early (cached on device).
+              this.loadAdmPack(seedCountry).catch(() => null);
+            } else {
+              this.status = 'Country not found (fallback to city dataset)…';
             }
-            const payload = await response.json();
+
+            this.status = 'Resolving nearest city (on-device)…';
+            const datasetInfo = await this.loadCitiesDataset();
+            const lookupStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const results = this.findNearestCities(latitude, longitude, 2, 150, seedCountry);
+            const lookupEnd = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const lookupMs = Math.round(lookupEnd - lookupStart);
 
             // Store results for display
-            this.results = payload.results || [];
-            this.coordinates = { lat: payload.lat, lon: payload.lon };
-            
-            // Use metrics from API response directly
-            if (payload.metrics) {
-              this.latestMetrics = payload.metrics;
-            } else {
-              this.refreshMetrics(true);
-            }
+            this.results = results;
+            this.coordinates = { lat: latitude, lon: longitude };
+
+            // Local metrics (no server call)
+            this.latestMetrics = {
+              datasetFile: datasetInfo?.datasetFile || 'cities.min.json.gz',
+              datasetLoadMs: datasetInfo?.datasetLoadMs ?? null,
+              lookupMs,
+              totalPoints: datasetInfo?.totalPoints ?? null,
+              loadedAt: datasetInfo?.loadedAt ?? null,
+              seedCountry: seedCountry ? seedCountry.toUpperCase() : null,
+              seedMethod: seedCountry ? 'adm0' : 'none',
+              source: 'client'
+            };
             
             if (this.results.length > 0) {
               const best = this.results[0];
@@ -508,10 +682,18 @@ createApp({
               this.status = `Found: ${parts.join(', ')}`;
               // Local ADM2/3 lookup from on-device pack; raw GPS stays local
               try {
-                this.admPolygon = {
-                  adm1: await this.fetchAdmPolygonFromPack(best.country, 'adm1', latitude, longitude),
-                  adm2: await this.fetchAdmPolygonFromPack(best.country, 'adm2', latitude, longitude)
-                };
+                const countryForAdm = (seedCountry || best.country || '').toString().trim().toLowerCase();
+                const adm2 = countryForAdm
+                  ? await this.fetchAdmPolygonFromPack(countryForAdm, 'adm2', latitude, longitude)
+                  : null;
+                const local =
+                  countryForAdm === 'us'
+                    ? await this.fetchUsAdm3Polygon(best.admin1, latitude, longitude)
+                    : countryForAdm
+                    ? await this.fetchAdmPolygonFromPack(countryForAdm, 'adm3', latitude, longitude)
+                    : null;
+                // Local fallback: if no finer local polygon exists, use ADM2 so user can still compare outlines.
+                this.admPolygon = countryForAdm ? { adm2, local: local || adm2 } : null;
               } catch (admErr) {
                 console.warn('ADM pack lookup failed', admErr);
                 this.admPolygon = null;
@@ -520,6 +702,22 @@ createApp({
               this.status = 'No city found';
               this.admPolygon = null;
             }
+
+            // Append derived log entry (no coordinates)
+            await this.appendClientLog({
+              timestamp: new Date().toISOString(),
+              datasetFile: this.latestMetrics?.datasetFile || null,
+              datasetLoadMs: this.latestMetrics?.datasetLoadMs ?? null,
+              lookupMs: this.latestMetrics?.lookupMs ?? null,
+              seedCountry: this.latestMetrics?.seedCountry || null,
+              seedMethod: this.latestMetrics?.seedMethod || null,
+              resultCount: this.results.length,
+              cityName: this.results[0]?.name || null,
+              country: this.results[0]?.country || null,
+              admin1: this.results[0]?.admin1 || null,
+              admin2: this.results[0]?.admin2 || null,
+              source: 'client'
+            });
 
             // Refresh logs so modals show the most recent entry
             await this.fetchLogEntries(true);
@@ -566,11 +764,10 @@ createApp({
         }
         const data = await res.json();
         const entries = Array.isArray(data) ? data : [];
-        this.logEntries = entries.map((entry) => ({
-          ...entry,
-          latitude: entry.latitude != null ? Number(entry.latitude) : null,
-          longitude: entry.longitude != null ? Number(entry.longitude) : null
-        }));
+        this.logEntries = entries.map((entry) => {
+          const { latitude, longitude, lat, lon, ...rest } = entry || {};
+          return rest;
+        });
         return this.logEntries;
       } catch (error) {
         console.error('Failed to fetch location log', error);
@@ -693,6 +890,29 @@ createApp({
         // - Blue: ADM2 containing the GPS point ("City") (more precise)
         // - Red:  ADM1 containing the GPS point ("Admin") (broader)
         if (Number.isFinite(gpsLat) && Number.isFinite(gpsLon) && this.admPolygon) {
+          // Red = Local (ADM3 if available, otherwise ADM2 fallback)
+          const local = this.admPolygon.local || null;
+          if (local) {
+            const isFallback = !!(this.admPolygon.adm2 && local === this.admPolygon.adm2);
+            const layer = L.geoJSON(local, {
+              style: {
+                color: '#dc2626',
+                weight: isFallback ? 6 : 4,
+                opacity: isFallback ? 0.55 : 0.85,
+                fillColor: '#dc2626',
+                fillOpacity: 0.08
+              }
+            }).addTo(this.inlineMapLayers);
+            const name = local.properties?.name || 'Local';
+            layer.bindPopup(`<strong>${name}</strong><br>Local boundary`);
+            const b = layer.getBounds();
+            if (b.isValid()) {
+              coords.push([b.getSouth(), b.getWest()]);
+              coords.push([b.getNorth(), b.getEast()]);
+            }
+          }
+
+          // Blue = Regional (ADM2)
           const adm2 = this.admPolygon.adm2 || null;
           if (adm2) {
             const layer = L.geoJSON(adm2, {
@@ -705,27 +925,7 @@ createApp({
               }
             }).addTo(this.inlineMapLayers);
             const name = adm2.properties?.name || 'ADM2';
-            layer.bindPopup(`<strong>${name}</strong><br>ADM2 (local)`);
-            const b = layer.getBounds();
-            if (b.isValid()) {
-              coords.push([b.getSouth(), b.getWest()]);
-              coords.push([b.getNorth(), b.getEast()]);
-            }
-          }
-
-          const adm1 = this.admPolygon.adm1 || null;
-          if (adm1) {
-            const layer = L.geoJSON(adm1, {
-              style: {
-                color: '#dc2626',
-                weight: 3,
-                opacity: 1.0,
-                fillColor: '#dc2626',
-                fillOpacity: 0.06
-              }
-            }).addTo(this.inlineMapLayers);
-            const name = adm1.properties?.name || 'ADM1';
-            layer.bindPopup(`<strong>${name}</strong><br>ADM1 (local)`);
+            layer.bindPopup(`<strong>${name}</strong><br>Regional (ADM2)`);
             const b = layer.getBounds();
             if (b.isValid()) {
               coords.push([b.getSouth(), b.getWest()]);

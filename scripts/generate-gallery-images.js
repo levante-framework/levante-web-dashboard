@@ -592,7 +592,7 @@ function simplifyToOutline(geometry, maxPoints = 32) {
   return null;
 }
 
-function buildGeoJSONOverlay(point, polygons, adminArea) {
+function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
   const features = [];
 
   // GPS point marker
@@ -684,26 +684,35 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
   });
 
   // Add octagon outlines from source polygons (very small payload)
-  // Draw city first, then admin on top to avoid overlap hiding the admin outline
-  if (Array.isArray(polygons) && polygons.length > 0) {
-    const outline = simplifyToOutline(polygons[0]?.polygon?.geometry, 32);
-    const geom = outline || octagonFromBBox(bboxFromGeometry(polygons[0]?.polygon?.geometry));
+  // Red = Local; Blue = Regional (ADM2). If both are identical (fallback), draw red thicker/softer and blue on top.
+  const redGeomSrc = adminArea?.polygon?.geometry || null;
+  const blueGeomSrc = cityArea?.polygon?.geometry || (Array.isArray(polygons) ? polygons[0]?.polygon?.geometry : null);
+
+  const sameLevel = (adminArea?.adminLevel && cityArea?.adminLevel && adminArea.adminLevel === cityArea.adminLevel);
+  const redStroke = sameLevel ? 6 : 4;
+  const redOpacity = sameLevel ? 0.55 : 0.85;
+  const blueStroke = 3;
+
+  if (redGeomSrc) {
+    const outline = simplifyToOutline(redGeomSrc, 32);
+    const geom = outline || octagonFromBBox(bboxFromGeometry(redGeomSrc));
     if (geom) {
       features.push({
         type: 'Feature',
         geometry: geom,
-        properties: { stroke: '#2563eb', 'stroke-width': 3, fill: 'none', 'fill-opacity': 0 }
+        properties: { stroke: '#dc2626', 'stroke-width': redStroke, 'stroke-opacity': redOpacity, fill: 'none', 'fill-opacity': 0 }
       });
     }
   }
-  if (adminArea && adminArea.polygon && adminArea.polygon.geometry) {
-    const outline = simplifyToOutline(adminArea.polygon.geometry, 32);
-    const geom = outline || octagonFromBBox(bboxFromGeometry(adminArea.polygon.geometry));
+
+  if (blueGeomSrc) {
+    const outline = simplifyToOutline(blueGeomSrc, 32);
+    const geom = outline || octagonFromBBox(bboxFromGeometry(blueGeomSrc));
     if (geom) {
       features.push({
         type: 'Feature',
         geometry: geom,
-        properties: { stroke: '#dc2626', 'stroke-width': 4, fill: 'none', 'fill-opacity': 0 }
+        properties: { stroke: '#2563eb', 'stroke-width': blueStroke, 'stroke-opacity': 1.0, fill: 'none', 'fill-opacity': 0 }
       });
     }
   }
@@ -713,13 +722,13 @@ function buildGeoJSONOverlay(point, polygons, adminArea) {
   return { type: 'FeatureCollection', features };
 }
 
-function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token) {
+function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputPath, token) {
   return new Promise((resolve, reject) => {
     let url = undefined;
     const zoom = calculateZoomForWidth(point.lat, 16.0934); // ~10 miles width
 
     // Build overlay
-    let overlay = buildGeoJSONOverlay(point, polygons, adminArea);
+    let overlay = buildGeoJSONOverlay(point, polygons, adminArea, cityArea);
     let overlayJson = JSON.stringify(overlay);
     let overlayEncoded = encodeURIComponent(overlayJson);
 
@@ -782,31 +791,43 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
         res.on('end', async () => {
           try {
             const buffer = Buffer.concat(chunks);
-            const cityName = (polygons && polygons[0] && polygons[0].city && polygons[0].city.name)
+            const nearestName = (polygons && polygons[0] && polygons[0].city && polygons[0].city.name)
               ? (() => {
                   const nm = polygons[0].city.name;
                   const km = polygons[0].city.distanceKm;
                   return (typeof km === 'number' && isFinite(km)) ? `${nm} (${km.toFixed(1)} km)` : nm;
                 })()
               : 'City candidate';
-            const adminName = (adminArea && adminArea.name) ? adminArea.name : 'Admin outline';
+            const localLevel = adminArea?.adminLevel || null;
+            const localName = (adminArea && adminArea.name) ? adminArea.name : (adminArea?.polygon?.properties?.name || 'Local outline');
+            const cityAreaName = (cityArea && cityArea.name)
+              ? cityArea.name
+              : (cityArea?.polygon?.properties?.name || polygons?.[0]?.polygon?.properties?.name || 'City outline');
+            const cityLevel = cityArea?.adminLevel || null;
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
             // Place "10 km" caption adjacent to the scale bar.
-            const tileSize = 512;
             const mapW = 2400; // 1200x900@2x
             const mapH = 1800;
-            const project = (lon, lat, z) => {
+
+            // Mapbox static projection can behave like 512px tiles (modern) or 256px tiles depending on style.
+            // To avoid "floating" labels, compute both and pick the one that lands in the expected bottom-left region.
+            const projectFactory = (tileSize) => (lon, lat, z) => {
               const scale = tileSize * Math.pow(2, z);
               const x = ((lon + 180) / 360) * scale;
               const latRad = (lat * Math.PI) / 180;
-              const y = ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
+              const y =
+                ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * scale;
               return [x, y];
             };
-            const centerPx = project(point.lon, point.lat, zoom);
-            const toScreen = (lon, lat) => {
-              const px = project(lon, lat, zoom);
-              return [px[0] - centerPx[0] + mapW / 2, px[1] - centerPx[1] + mapH / 2];
+
+            const makeToScreen = (tileSize) => {
+              const project = projectFactory(tileSize);
+              const centerPx = project(point.lon, point.lat, zoom);
+              return (lon, lat) => {
+                const px = project(lon, lat, zoom);
+                return [px[0] - centerPx[0] + mapW / 2, px[1] - centerPx[1] + mapH / 2];
+              };
             };
             // Must match buildGeoJSONOverlay scale-bar placement.
             const scaleKm = 10;
@@ -818,22 +839,38 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
             const scaleLon = point.lon - padLon;
             const midLon = scaleLon + lonDegrees / 2;
             const midLat = scaleLat;
-            const [sx, sy] = toScreen(midLon, midLat);
-            const captionW = 220;
-            const captionH = 60;
-            const captionLeft = Math.max(10, Math.min(mapW - captionW - 10, Math.round(sx - captionW / 2)));
-            const captionTop = Math.max(10, Math.min(mapH - captionH - 10, Math.round(sy - captionH - 10)));
+            const candidateScreens = [512, 256].map((ts) => {
+              const toScreen = makeToScreen(ts);
+              const [sx, sy] = toScreen(midLon, midLat);
+              const inFrame = sx >= 0 && sx <= mapW && sy >= 0 && sy <= mapH;
+              const inBottomLeft = sx < mapW * 0.5 && sy > mapH * 0.5;
+              return { tileSize: ts, sx, sy, score: (inFrame ? 0 : 1e9) + (inBottomLeft ? 0 : 1e6) + Math.abs(sx) + Math.abs(mapH - sy) };
+            });
+            candidateScreens.sort((a, b) => a.score - b.score);
+            const { sx, sy } = candidateScreens[0];
+            // Put "10 km" directly on the scale bar (small pill centered on the line)
+            const captionW = 86;
+            const captionH = 26;
+            const captionLeft = Math.max(6, Math.min(mapW - captionW - 6, Math.round(sx - captionW / 2)));
+            const captionTop = Math.max(6, Math.min(mapH - captionH - 6, Math.round(sy - captionH / 2)));
 
             const scaleCaptionSvg = Buffer.from(`<svg width="${captionW}" height="${captionH}" viewBox="0 0 ${captionW} ${captionH}" xmlns="http://www.w3.org/2000/svg">
-  <style>text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 18px; fill: #111827; font-weight: 600; }</style>
-  <rect x="0" y="0" width="${captionW}" height="${captionH}" rx="10" ry="10" fill="white" fill-opacity="0.72" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="18" y="38">10 km</text>
+  <style>
+    text {
+      font-family: 'Inter', 'Helvetica', 'Arial', sans-serif;
+      font-size: 14px;
+      fill: #111827;
+      font-weight: 600;
+    }
+  </style>
+  <rect x="0" y="0" width="${captionW}" height="${captionH}" rx="8" ry="8" fill="white" fill-opacity="0.82" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="${Math.round(captionW / 2)}" y="${Math.round(captionH / 2) + 5}" text-anchor="middle">10 km</text>
 </svg>`);
-            const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 220" xmlns="http://www.w3.org/2000/svg">
+            const legendSvg = Buffer.from(`<svg width="780" height="660" viewBox="0 0 260 242" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 14px; fill: #111827; }
   </style>
-  <rect x="12" y="12" width="236" height="196" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="12" y="12" width="236" height="218" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.3" stroke="#22c55e" stroke-width="2" />
@@ -841,9 +878,10 @@ function downloadMapboxStaticImage(point, polygons, adminArea, outputPath, token
   <rect x="24" y="92" width="18" height="18" fill="#16a34a" fill-opacity="0.25" stroke="#16a34a" stroke-width="2" />
   <text x="50" y="106">10-mile circle</text>
   <rect x="24" y="122" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
-  <text x="50" y="136">Admin: ${escapeXml(adminName)}</text>
+  <text x="50" y="136">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
   <rect x="24" y="152" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
-  <text x="50" y="166">Nearest: ${escapeXml(cityName)}</text>
+  <text x="50" y="166">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
+  <text x="50" y="196">Nearest: ${escapeXml(nearestName)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
@@ -1169,7 +1207,7 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
 }
 
 async function generateImage(data, index, total) {
-  const { point, polygons = [], adminArea } = data;
+  const { point, polygons = [], adminArea, cityArea } = data;
   // Get token from main scope (passed via closure) or process.env
   const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
   
@@ -1184,7 +1222,7 @@ async function generateImage(data, index, total) {
   console.log(`[${index + 1}/${total}] Generating ${point.id}.webp...`);
   
   try {
-    await downloadMapboxStaticImage(point, polygons, adminArea, imageFile, mapboxToken);
+    await downloadMapboxStaticImage(point, polygons, adminArea, cityArea, imageFile, mapboxToken);
     console.log(`[${index + 1}/${total}] Generated ${point.id}.webp`);
   } catch (error) {
     console.error(`[${index + 1}/${total}] Failed to generate ${point.id}.webp:`, error.message);
@@ -1216,8 +1254,11 @@ async function main() {
   const allResults = galleryData.results;
   
   // Filter to only include results with polygons
-  const resultsWithPolygons = allResults.filter(result => {
-    return result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+  const resultsWithPolygons = allResults.filter((result) => {
+    const hasCity = result?.cityArea?.polygon?.geometry;
+    const hasAdmin = result?.adminArea?.polygon?.geometry;
+    const legacy = result?.polygons && result.polygons.some((p) => p?.polygon?.geometry);
+    return Boolean(hasCity || hasAdmin || legacy);
   });
   
   console.log(`Total results: ${allResults.length}`);
