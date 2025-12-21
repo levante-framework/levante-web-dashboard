@@ -69,6 +69,141 @@ function formatPopulation(n) {
   }
 }
 
+// --- Weather (Open-Meteo) ---
+const WEATHER_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'weather-cache.json');
+let weatherCache = null;
+let lastWeatherFetchAt = 0;
+
+function loadWeatherCache() {
+  if (weatherCache) return weatherCache;
+  try {
+    if (fs.existsSync(WEATHER_CACHE_PATH)) {
+      weatherCache = JSON.parse(fs.readFileSync(WEATHER_CACHE_PATH, 'utf8'));
+    } else {
+      weatherCache = {};
+    }
+  } catch (_) {
+    weatherCache = {};
+  }
+  return weatherCache;
+}
+
+function saveWeatherCache() {
+  try {
+    fs.mkdirSync(path.dirname(WEATHER_CACHE_PATH), { recursive: true });
+    fs.writeFileSync(WEATHER_CACHE_PATH, JSON.stringify(weatherCache || {}, null, 2));
+  } catch (_) {}
+}
+
+function weatherCodeDescription(code) {
+  const c = Number(code);
+  if (!Number.isFinite(c)) return 'Unknown';
+  const map = {
+    0: 'Clear',
+    1: 'Mostly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Fog',
+    48: 'Rime fog',
+    51: 'Light drizzle',
+    53: 'Drizzle',
+    55: 'Heavy drizzle',
+    56: 'Freezing drizzle',
+    57: 'Heavy freezing drizzle',
+    61: 'Light rain',
+    63: 'Rain',
+    65: 'Heavy rain',
+    66: 'Freezing rain',
+    67: 'Heavy freezing rain',
+    71: 'Light snow',
+    73: 'Snow',
+    75: 'Heavy snow',
+    77: 'Snow grains',
+    80: 'Light showers',
+    81: 'Showers',
+    82: 'Heavy showers',
+    85: 'Snow showers',
+    86: 'Heavy snow showers',
+    95: 'Thunderstorm',
+    96: 'Thunderstorm (hail)',
+    99: 'Thunderstorm (heavy hail)'
+  };
+  return map[c] || 'Unknown';
+}
+
+function roundToStep(value, step) {
+  const n = Number(value);
+  const s = Number(step);
+  if (!Number.isFinite(n) || !Number.isFinite(s) || s <= 0) return n;
+  return Math.round(n / s) * s;
+}
+
+function fetchJsonHttps(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (res) => {
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => {
+          try {
+            const body = Buffer.concat(chunks).toString('utf8');
+            if (res.statusCode !== 200) {
+              return reject(new Error(`HTTP ${res.statusCode}: ${body.slice(0, 200)}`));
+            }
+            resolve(JSON.parse(body));
+          } catch (e) {
+            reject(e);
+          }
+        });
+      })
+      .on('error', reject);
+  });
+}
+
+async function getCurrentWeatherForPoint(lat, lon) {
+  // Cache key is rounded so reruns don't hammer Open-Meteo.
+  const step = 0.1; // ~11km at equator; good enough for a gallery legend snapshot
+  const rLat = roundToStep(lat, step);
+  const rLon = roundToStep(lon, step);
+  const key = `${rLat.toFixed(2)},${rLon.toFixed(2)}`;
+
+  const cache = loadWeatherCache();
+  const cached = cache[key];
+  const now = Date.now();
+  if (cached && cached.expiresAt && now < cached.expiresAt && cached.weather) {
+    return cached.weather;
+  }
+
+  // Light throttle (avoid bursts)
+  const since = now - lastWeatherFetchAt;
+  if (since < 150) {
+    await new Promise((r) => setTimeout(r, 150 - since));
+  }
+  lastWeatherFetchAt = Date.now();
+
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(rLat)}&longitude=${encodeURIComponent(rLon)}&current_weather=true&timezone=auto`;
+  const json = await fetchJsonHttps(url);
+  const cw = json?.current_weather;
+  if (!cw) return null;
+
+  const weather = {
+    temperatureC: Number(cw.temperature),
+    windKph: Number(cw.windspeed),
+    weathercode: Number(cw.weathercode),
+    description: weatherCodeDescription(cw.weathercode),
+    observedAt: cw.time || null,
+    query: { lat: rLat, lon: rLon, roundingDeg: step }
+  };
+
+  cache[key] = {
+    fetchedAt: Date.now(),
+    expiresAt: Date.now() + 60 * 60 * 1000,
+    weather
+  };
+  saveWeatherCache();
+  return weather;
+}
+
 let citiesMinCache = null;
 let citiesByCountryCache = null;
 let usPlacePackCache = new Map();
@@ -1145,6 +1280,21 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons, usLocalSource);
             const dlText = `${formatBytes(dl.totalBytes)} (${dl.detail})`;
 
+            // Weather snapshot (gallery has explicit coordinates, so this can be direct)
+            let weatherLine = 'Weather: Unknown';
+            let weatherTimeLine = '';
+            try {
+              const wx = await getCurrentWeatherForPoint(point.lat, point.lon);
+              if (wx && Number.isFinite(wx.temperatureC)) {
+                weatherLine = `Weather: ${Math.round(wx.temperatureC)}°C · ${wx.description || 'Unknown'}`;
+                if (wx.observedAt) {
+                  weatherTimeLine = `Observed: ${wx.observedAt}`;
+                }
+              }
+            } catch (e) {
+              // ignore; keep unknown
+            }
+
             // Draw a pixel-space scale bar + label as ONE attached overlay (bottom-left).
             // This avoids any projection mismatch where the label "floats" away from the bar.
             const mapW = 2400; // 1200x900@2x
@@ -1207,11 +1357,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     <text x="${Math.round(labelX + labelW/2)}" y="${Math.round(labelY + labelH/2) + 5}" text-anchor="middle">${escapeXml(labelText)}</text>
   </g>
 </svg>`);
-            const legendSvg = Buffer.from(`<svg width="780" height="820" viewBox="0 0 260 296" xmlns="http://www.w3.org/2000/svg">
+            const legendSvg = Buffer.from(`<svg width="780" height="900" viewBox="0 0 260 322" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 11px; fill: #111827; }
   </style>
-  <rect x="12" y="12" width="236" height="272" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="12" y="12" width="236" height="298" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.26" stroke="#16a34a" stroke-width="2" />
@@ -1223,6 +1373,8 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   <text x="50" y="154">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
   <text x="50" y="168">Pop: ${escapeXml(bluePopText)}</text>
   <text x="50" y="198">Polygons downloaded: ${escapeXml(dlText)}</text>
+  <text x="50" y="224">${escapeXml(weatherLine)}</text>
+  <text x="50" y="240">${escapeXml(weatherTimeLine)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
