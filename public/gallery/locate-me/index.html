@@ -6,6 +6,7 @@
   <title>Locate Me Gallery · Levante</title>
   <link rel="icon" type="image/svg+xml" href="/images/location-pin.svg">
   <link rel="apple-touch-icon" href="/images/location-pin.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
     * {
       margin: 0;
@@ -26,6 +27,35 @@
       border-radius: 20px;
       box-shadow: 0 22px 48px rgba(0,0,0,0.4);
       border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+    .header-actions a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-decoration: none;
+      border: 1px solid rgba(15, 23, 42, 0.22);
+      background: rgba(255, 255, 255, 0.86);
+      color: #0b1220;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .header-actions a:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.95);
+    }
+    .header-actions a:focus-visible {
+      outline: 2px solid #facc15;
+      outline-offset: 2px;
     }
     header h1 {
       font-size: 30px;
@@ -188,6 +218,10 @@
 </head>
 <body>
   <header>
+    <div class="header-actions">
+      <a class="back-to-pitwall" href="/index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+      <a class="doc-link" href="/docs/locate-me-v2.html" target="_blank" rel="noopener noreferrer"><i class="fas fa-book-open"></i> Documentation</a>
+    </div>
     <h1>📍 Locate Me Gallery</h1>
     <p id="subtitle">Visual results from the Locate-Me workflow</p>
     <div class="stats">
