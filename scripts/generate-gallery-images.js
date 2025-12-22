@@ -1052,14 +1052,14 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
     properties: { 'marker-color': '#da3d16', 'marker-size': 'large' }
   });
 
-  // 2-mile circle
-  const twoMileKm = 1.60934;
+  // Inner circle: 1-mile radius
+  const oneMileKm = 1.60934;
   const twoMilePoints = 24;
   const twoMileRing = [];
   for (let i = 0; i < twoMilePoints; i++) {
     const angle = (i / twoMilePoints) * 2 * Math.PI;
-    const latOffset = (twoMileKm / 111.0) * Math.cos(angle);
-    const lonOffset = (twoMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+    const latOffset = (oneMileKm / 111.0) * Math.cos(angle);
+    const lonOffset = (oneMileKm / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
     twoMileRing.push([roundCoord(point.lon + lonOffset), roundCoord(point.lat + latOffset)]);
   }
   twoMileRing.push(twoMileRing[0]);
@@ -1068,7 +1068,7 @@ function buildGeoJSONOverlay(point, polygons, adminArea, cityArea) {
     geometry: { type: 'Polygon', coordinates: [twoMileRing] },
     properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.12 }
   });
-  console.log(`    Added 2-mile circle with ${twoMileRing.length} points`);
+  console.log(`    Added 1-mile circle with ${twoMileRing.length} points`);
 
   // Outer circle: 5-mile radius, half the resolution to shrink payload
   const fiveMileKm = 8.0467;
@@ -1196,6 +1196,17 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
       }
       circlePoints.push(circlePoints[0]);
 
+      const radius5Km = 8.0467;
+      const minimalCircle5Points = 16;
+      const circle5Points = [];
+      for (let i = 0; i < minimalCircle5Points; i++) {
+        const angle = (i / minimalCircle5Points) * 2 * Math.PI;
+        const latOffset = (radius5Km / 111.0) * Math.cos(angle);
+        const lonOffset = (radius5Km / (111.0 * Math.cos(point.lat * Math.PI / 180))) * Math.sin(angle);
+        circle5Points.push([roundCoord(point.lon + lonOffset), roundCoord(point.lat + latOffset)]);
+      }
+      circle5Points.push(circle5Points[0]);
+
       const minimalOverlay = {
         type: 'FeatureCollection',
         features: [
@@ -1208,6 +1219,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             type: 'Feature',
             geometry: { type: 'Polygon', coordinates: [circlePoints] },
             properties: { stroke: '#22c55e', 'stroke-width': 3, fill: '#22c55e', 'fill-opacity': 0.15 }
+          },
+          {
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: [circle5Points] },
+            properties: { stroke: '#16a34a', 'stroke-width': 2, fill: '#16a34a', 'fill-opacity': 0.08 }
           }
         ]
       };
@@ -1365,7 +1381,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.26" stroke="#16a34a" stroke-width="2" />
-  <text x="50" y="76">2 &amp; 10-mile circles</text>
+  <text x="50" y="76">1 &amp; 5-mile circles</text>
   <rect x="24" y="92" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
   <text x="50" y="106">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
   <text x="50" y="120">Pop: ${escapeXml(localPopText)}</text>
