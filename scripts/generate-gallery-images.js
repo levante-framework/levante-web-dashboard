@@ -1381,7 +1381,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.26" stroke="#16a34a" stroke-width="2" />
-  <text x="50" y="76">1 &amp; 5-mile circles</text>
+  <text x="50" y="76">1 &amp; 5-mile radius circles</text>
   <rect x="24" y="92" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
   <text x="50" y="106">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
   <text x="50" y="120">Pop: ${escapeXml(localPopText)}</text>
