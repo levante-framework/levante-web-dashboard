@@ -369,7 +369,7 @@ createApp({
       div.innerHTML = `
         <div class="locate-legend-title">Legend</div>
         <div class="locate-legend-row"><span class="swatch swatch-gps"></span> GPS point</div>
-        <div class="locate-legend-row"><span class="swatch swatch-circle"></span> 2 &amp; 10-mile circles</div>
+        <div class="locate-legend-row"><span class="swatch swatch-circle"></span> 1 &amp; 5-mile circles</div>
         <div class="locate-legend-row"><span class="swatch swatch-red"></span> Red: ${localName}</div>
         <div class="locate-legend-row"><span class="swatch swatch-blue"></span> Blue: ${regionalName}</div>
         <div class="locate-legend-divider"></div>
@@ -1254,11 +1254,18 @@ createApp({
           L.marker([gpsLat, gpsLon], {
             title: 'Device GPS location'
           }).addTo(this.inlineMapLayers);
-          const circle = L.circle([gpsLat, gpsLon], {
+          // 1-mile and 5-mile circles
+          L.circle([gpsLat, gpsLon], {
             radius: 1609, // 1 mile
-            color: '#1d4ed8',
+            color: '#22c55e',
             weight: 2,
             fillOpacity: 0.05
+          }).addTo(this.inlineMapLayers);
+          L.circle([gpsLat, gpsLon], {
+            radius: 8047, // 5 miles
+            color: '#16a34a',
+            weight: 2,
+            fillOpacity: 0.03
           }).addTo(this.inlineMapLayers);
           coords.push([gpsLat, gpsLon]);
         }
