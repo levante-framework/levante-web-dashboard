@@ -1,4 +1,4 @@
-const { readLog, appendLog } = require('../lib/locationLog');
+const { readLog, appendLog, getLogBackendInfo } = require('../lib/locationLog');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -41,6 +41,10 @@ module.exports = async function handler(req, res) {
       };
 
       await appendLog(entry);
+      const info = getLogBackendInfo ? getLogBackendInfo() : null;
+      if (info?.backend) {
+        res.setHeader('x-location-log-backend', info.backend);
+      }
       res.status(200).json({ ok: true });
       return;
     } catch (error) {
@@ -57,6 +61,10 @@ module.exports = async function handler(req, res) {
 
   try {
     const entries = await readLog();
+    const info = getLogBackendInfo ? getLogBackendInfo() : null;
+    if (info?.backend) {
+      res.setHeader('x-location-log-backend', info.backend);
+    }
     const sanitized = (Array.isArray(entries) ? entries : []).map((entry) => {
       if (!entry || typeof entry !== 'object') return entry;
       const { latitude, longitude, lat, lon, ...rest } = entry;
