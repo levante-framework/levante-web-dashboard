@@ -34,10 +34,13 @@ module.exports = async function handler(req, res) {
         country: body.country || null,
         admin1: body.admin1 || null,
         admin2: body.admin2 || null,
-        source: body.source || 'client'
+        source: body.source || 'client',
+        // Optional coarse fields (no raw GPS allowed):
+        weather: body.weather || null,
+        network: body.network || null
       };
 
-      appendLog(entry);
+      await appendLog(entry);
       res.status(200).json({ ok: true });
       return;
     } catch (error) {
