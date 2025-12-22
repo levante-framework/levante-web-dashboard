@@ -788,6 +788,57 @@
             </div>
         </section>
         <!-- Raw Log Modal -->
+        <!-- Location Permission Modal -->
+        <div v-if="showGeoPermissionModal" class="modal-overlay" @click.self="closeGeoPermissionModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas fa-location-dot"></i>
+                        <span v-if="geoPermissionMode === 'denied'">Enable location in your browser</span>
+                        <span v-else>Enable location?</span>
+                    </h3>
+                    <button class="btn-close" @click="closeGeoPermissionModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin: 0 0 10px; color: #111827;">
+                        We use your location to find the nearest city and draw local/regional boundaries on the map.
+                    </p>
+                    <ul style="margin: 0 0 12px; color: #374151;">
+                        <li><strong>We don’t store your raw GPS</strong> in logs.</li>
+                        <li>Weather uses a <strong>coarse lookup</strong>, not your exact coordinates.</li>
+                    </ul>
+
+                    <div v-if="geoPermissionMode === 'denied'" style="margin-top: 10px;">
+                        <p style="margin: 0 0 10px; color: #111827;">
+                            Location access is currently blocked for this site. To enable it:
+                        </p>
+                        <ol style="margin: 0 0 12px; color: #374151;">
+                            <li>Click the <strong>lock icon</strong> in the address bar</li>
+                            <li>Open <strong>Site settings</strong></li>
+                            <li>Set <strong>Location</strong> to <strong>Allow</strong>, then reload</li>
+                        </ol>
+                    </div>
+
+                    <div class="button-group" style="margin-top: 14px;">
+                        <button v-if="geoPermissionMode !== 'denied'" class="btn btn-primary" @click="confirmEnableGeolocation">
+                            <i class="fas fa-check"></i>
+                            Enable location
+                        </button>
+                        <button class="btn btn-secondary" @click="useWhereInstead">
+                            <i class="fas fa-magnifying-glass"></i>
+                            Use city search instead
+                        </button>
+                        <button class="btn btn-secondary" @click="closeGeoPermissionModal">
+                            <i class="fas fa-xmark"></i>
+                            Not now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div v-if="showRawLogModal" class="modal-overlay" @click.self="closeRawLogModal">
             <div class="modal">
                 <div class="modal-header">

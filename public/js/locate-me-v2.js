@@ -65,6 +65,8 @@ createApp({
       weatherStatus: null,
       networkIsp: null,
       networkStatus: null,
+      showGeoPermissionModal: false,
+      geoPermissionMode: 'preprompt', // 'preprompt' | 'denied'
     };
   },
   computed: {
@@ -155,6 +157,33 @@ createApp({
         data
       });
       return data;
+    },
+    async getGeolocationPermissionState() {
+      // Returns: 'granted' | 'prompt' | 'denied' | 'unknown'
+      try {
+        if (!navigator?.permissions?.query) return 'unknown';
+        const res = await navigator.permissions.query({ name: 'geolocation' });
+        const s = (res && res.state) ? String(res.state) : 'unknown';
+        if (s === 'granted' || s === 'prompt' || s === 'denied') return s;
+        return 'unknown';
+      } catch (_) {
+        return 'unknown';
+      }
+    },
+    openGeoPermissionModal(mode = 'preprompt') {
+      this.geoPermissionMode = mode === 'denied' ? 'denied' : 'preprompt';
+      this.showGeoPermissionModal = true;
+    },
+    closeGeoPermissionModal() {
+      this.showGeoPermissionModal = false;
+    },
+    async confirmEnableGeolocation() {
+      this.closeGeoPermissionModal();
+      await this.runLocateWithGeolocation();
+    },
+    useWhereInstead() {
+      this.closeGeoPermissionModal();
+      this.openWhereAmI();
     },
     roundToStep(value, step) {
       const n = Number(value);
@@ -893,6 +922,26 @@ createApp({
         return;
       }
 
+      // Friendly UX: show our own explanation before triggering the browser prompt.
+      const state = await this.getGeolocationPermissionState();
+      if (state === 'denied') {
+        this.openGeoPermissionModal('denied');
+        return;
+      }
+      if (state === 'prompt' || state === 'unknown') {
+        this.openGeoPermissionModal('preprompt');
+        return;
+      }
+
+      await this.runLocateWithGeolocation();
+    },
+    async runLocateWithGeolocation() {
+      if (!navigator.geolocation) {
+        this.error = 'Geolocation is not supported by this browser.';
+        this.status = 'Geolocation unavailable';
+        return;
+      }
+
       this.loading = true;
       this.error = null;
       this.status = 'Requesting device location…';
@@ -1045,6 +1094,8 @@ createApp({
           switch (geoError.code) {
             case geoError.PERMISSION_DENIED:
               this.error = 'Location permission denied.';
+              // Show a friendly instruction modal after denial.
+              this.openGeoPermissionModal('denied');
               break;
             case geoError.POSITION_UNAVAILABLE:
               this.error = 'Position unavailable.';
