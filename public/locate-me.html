@@ -92,6 +92,30 @@
         }
         .header-actions {
             margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .back-to-pitwall {
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 999px;
+            padding: 12px 18px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: background 0.2s ease, transform 0.2s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+        }
+        .back-to-pitwall:hover {
+            background: #111827;
+            transform: translateY(-1px);
+        }
+        .back-to-pitwall:focus-visible {
+            outline: 2px solid #facc15;
+            outline-offset: 2px;
         }
         .doc-link {
             background: #1d4ed8;
@@ -688,7 +712,11 @@
                 </div>
             </div>
             <div class="header-actions">
-                <a class="doc-link" href="/docs/locate-me-doc.html" target="_blank" rel="noopener noreferrer">
+                <a class="back-to-pitwall" href="./index.html" rel="noopener noreferrer">
+                    <i class="fas fa-arrow-left" style="margin-right: 8px;"></i>
+                    Back to Pitwall
+                </a>
+                <a class="doc-link" href="/docs/locate-me-v2.html" target="_blank" rel="noopener noreferrer">
                     <i class="fas fa-book-open" style="margin-right: 8px;"></i>
                     Documentation
                 </a>

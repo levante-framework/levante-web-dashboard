@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Locate Me · Documentation (v2)</title>
+  <link rel="icon" type="image/svg+xml" href="../images/location-pin.svg" />
+  <link rel="apple-touch-icon" href="../images/location-pin.svg" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    body {
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0b1220;
+      color: #e2e8f0;
+      margin: 0;
+      line-height: 1.6;
+      padding: 28px 18px 48px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .back-to-pitwall {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      text-decoration: none;
+      border: 1px solid rgba(148, 197, 255, 0.35);
+      background: rgba(15, 23, 42, 0.65);
+      color: #e2e8f0;
+    }
+    .back-to-pitwall:hover { background: rgba(59, 130, 246, 0.22); }
+    header {
+      background: linear-gradient(135deg, rgba(255, 111, 0, 0.92), rgba(255, 146, 43, 0.85));
+      color: #0b1220;
+      border-radius: 18px;
+      padding: 22px 22px 18px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 22px 48px rgba(0,0,0,0.35);
+      margin-bottom: 18px;
+    }
+    header h1 { margin: 0 0 6px; font-size: 1.8rem; }
+    header p { margin: 0; color: rgba(3, 7, 18, 0.85); font-weight: 600; }
+    main {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 197, 255, 0.18);
+      border-radius: 18px;
+      padding: 22px;
+    }
+    h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    h3 { margin: 18px 0 8px; font-size: 1rem; color: #cbd5e1; }
+    ul { margin: 10px 0 0; padding-left: 20px; }
+    a { color: #7dd3fc; }
+    a:hover { color: #bae6fd; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .callouts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .callout {
+      background: rgba(2, 6, 23, 0.55);
+      border: 1px solid rgba(148, 197, 255, 0.18);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .callout strong { color: #f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <a class="back-to-pitwall" href="../index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+    </div>
+
+    <header>
+      <h1><i class="fas fa-location-dot"></i> Locate Me · Documentation (v2)</h1>
+      <p>Current Locate‑Me implementation: offline geocoder + offline admin packs + weather + ISP hint.</p>
+    </header>
+
+    <main>
+      <h2>Quick links</h2>
+      <div class="callouts">
+        <div class="callout">
+          <strong>Locate‑Me App</strong><br />
+          <a href="../locate-me.html">Open interactive Locate‑Me</a>
+        </div>
+        <div class="callout">
+          <strong>Locate‑Me Gallery</strong><br />
+          <a href="../gallery/locate-me/">Open Locate‑Me gallery</a>
+        </div>
+        <div class="callout">
+          <strong>Engineering notes</strong><br />
+          <a href="https://github.com/levante-framework/levante-web-dashboard/blob/main/docs/locate-me/README.md" target="_blank" rel="noopener noreferrer">Open repo notes</a>
+        </div>
+      </div>
+
+      <h3>What the app does</h3>
+      <ul>
+        <li><strong>Nearest city</strong>: computed in-browser from <code>data/geocoder/cities.min.json.gz</code>.</li>
+        <li><strong>Boundaries</strong>: computed locally from gzipped packs in <code>public/adm-packs/**</code> (no per-request boundary fetch).</li>
+        <li><strong>US local boundary</strong>: prefers <code>adm3-place</code> (place/city) with tract fallback.</li>
+        <li><strong>Weather</strong>: Open‑Meteo using a coarse query point (e.g., ADM2 bbox center), cached client-side.</li>
+        <li><strong>ISP hint</strong>: server-side IP lookup via <code>/api/network-isp</code> (best-effort).</li>
+      </ul>
+
+      <h3>Privacy</h3>
+      <ul>
+        <li>We <strong>do not store raw GPS</strong> in the server log.</li>
+        <li>The “Show Map” modal plots <strong>approximate city centers</strong> from the offline dataset (not GPS points).</li>
+      </ul>
+    </main>
+  </div>
+</body>
+</html>
+
+
