@@ -67,6 +67,7 @@ createApp({
       networkStatus: null,
       showGeoPermissionModal: false,
       geoPermissionMode: 'preprompt', // 'preprompt' | 'denied'
+      logCityCoordCache: {},
     };
   },
   computed: {
@@ -1350,7 +1351,7 @@ createApp({
         return;
       }
       this.mapError = null;
-      this.initMap();
+      await this.initMap();
     },
     closeMapModal() {
       this.showMapModal = false;
@@ -1359,9 +1360,42 @@ createApp({
         this.mapInstance = null;
       }
     },
-    initMap() {
+    findCityCenterForLogEntry(entry) {
+      const name = (entry?.cityName || '').toString().trim();
+      const country = (entry?.country || '').toString().trim().toUpperCase();
+      const admin1 = (entry?.admin1 || '').toString().trim();
+      if (!name || !country) return null;
+
+      const key = `${country}|${admin1}|${name}`.toLowerCase();
+      if (this.logCityCoordCache[key]) return this.logCityCoordCache[key];
+
+      const rows = Array.isArray(this.citiesDataset) ? this.citiesDataset : [];
+      const nm = name.toLowerCase();
+      let best = null;
+      for (const r of rows) {
+        if (!r) continue;
+        if ((r.country || '').toString().toUpperCase() !== country) continue;
+        if (admin1 && (r.admin1 || '').toString().trim() !== admin1) continue;
+        const rName = (r.name || '').toString().toLowerCase();
+        const rAscii = (r.ascii || '').toString().toLowerCase();
+        if (rName !== nm && rAscii !== nm) continue;
+        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lon)) continue;
+        const pop = Number(r.population || 0) || 0;
+        if (!best || pop > (best.pop || 0)) {
+          best = { lat: r.lat, lon: r.lon, pop };
+        }
+      }
+      if (best) {
+        this.logCityCoordCache[key] = best;
+        return best;
+      }
+      return null;
+    },
+    async initMap() {
       console.log('initMap called. entries:', this.logEntries.length, 'modal:', this.showMapModal, 'L:', !!window.L);
       if (!this.logEntries.length || !this.showMapModal || !window.L) return;
+      // We no longer store raw GPS in logs, so we plot approximate city centers (privacy).
+      await this.loadCitiesDataset().catch(() => null);
       const mapElement = document.getElementById('logMap');
       console.log('Map element found:', !!mapElement);
       if (!mapElement) return;
@@ -1376,13 +1410,35 @@ createApp({
 
       const coords = [];
       this.logEntries.forEach((entry) => {
-        if (entry.latitude && entry.longitude) {
-          coords.push([entry.latitude, entry.longitude]);
-          const marker = L.marker([entry.latitude, entry.longitude]).addTo(this.mapInstance);
+        // Backwards-compatible: if older logs had coordinates, use them.
+        const lat = Number(entry.latitude ?? entry.lat);
+        const lon = Number(entry.longitude ?? entry.lon);
+        let point = null;
+        let note = '';
+        if (Number.isFinite(lat) && Number.isFinite(lon)) {
+          point = { lat, lon };
+          note = 'GPS (legacy)';
+        } else {
+          const center = this.findCityCenterForLogEntry(entry);
+          if (center && Number.isFinite(center.lat) && Number.isFinite(center.lon)) {
+            point = { lat: center.lat, lon: center.lon };
+            note = 'City center (approx)';
+          }
+        }
+        if (point) {
+          coords.push([point.lat, point.lon]);
+          const marker = L.circleMarker([point.lat, point.lon], {
+            radius: 6,
+            weight: 2,
+            color: '#0f172a',
+            fillColor: '#da3d16',
+            fillOpacity: 0.9
+          }).addTo(this.mapInstance);
           const popup = `
             <strong>${entry.cityName || 'Unknown city'}</strong><br>
             ${entry.country || ''} · ${entry.distanceKm ? entry.distanceKm + ' km' : 'distance unknown'}<br>
-            ${this.formatDateTime(entry.timestamp)}
+            ${this.formatDateTime(entry.timestamp)}<br>
+            <span style="color:#64748b;font-size:12px;">${note}</span>
           `;
           marker.bindPopup(popup);
         }

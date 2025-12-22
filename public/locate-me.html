@@ -432,7 +432,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 999;
+            /* Must be above Leaflet controls on the underlying preview map */
+            z-index: 5000;
             padding: 20px;
         }
         .modal {
