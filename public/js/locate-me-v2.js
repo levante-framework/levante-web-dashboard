@@ -63,6 +63,8 @@ createApp({
       inlineLegendControl: null,
       currentWeather: null,
       weatherStatus: null,
+      networkIsp: null,
+      networkStatus: null,
     };
   },
   computed: {
@@ -123,6 +125,37 @@ createApp({
     }
   },
   methods: {
+    readLocalJson(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (_) {
+        return null;
+      }
+    },
+    writeLocalJson(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (_) {}
+    },
+    async fetchNetworkIsp() {
+      // Off-device lookup (request IP -> ISP). Cached to avoid repeated calls.
+      const cacheKey = 'isp:v1';
+      const cached = this.readLocalJson(cacheKey);
+      if (cached?.expiresAt && Date.now() < cached.expiresAt && cached?.data) {
+        return cached.data;
+      }
+
+      const res = await fetch(apiUrl('/api/network-isp'), { cache: 'no-store' });
+      const json = await res.json().catch(() => null);
+      const data = json && typeof json === 'object' ? json : null;
+      this.writeLocalJson(cacheKey, {
+        expiresAt: Date.now() + 6 * 60 * 60 * 1000,
+        data
+      });
+      return data;
+    },
     roundToStep(value, step) {
       const n = Number(value);
       const s = Number(step);
@@ -297,6 +330,11 @@ createApp({
       const wxLine = wx
         ? `Weather: ${Number.isFinite(wx.temperature) ? Math.round(wx.temperature) + '°C' : '—'} · ${wx.description || '—'}`
         : (this.weatherStatus ? `Weather: ${this.weatherStatus}` : 'Weather: —');
+      const isp = this.networkIsp;
+      const ispLabel = isp?.isStarlinkLikely ? 'Starlink (likely)' : (isp?.isp || isp?.org || null);
+      const ispLine = ispLabel
+        ? `ISP: ${ispLabel}`
+        : (this.networkStatus ? `ISP: ${this.networkStatus}` : 'ISP: —');
 
       const div = this.inlineLegendControl.getContainer();
       div.innerHTML = `
@@ -307,6 +345,7 @@ createApp({
         <div class="locate-legend-row"><span class="swatch swatch-blue"></span> Blue: ${regionalName}</div>
         <div class="locate-legend-divider"></div>
         <div class="locate-legend-row locate-legend-weather">${wxLine}</div>
+        <div class="locate-legend-row locate-legend-isp">${ispLine}</div>
         <div class="locate-legend-footnote">${country}${admin1 ? ' · ' + admin1 : ''} (coarse lookup)</div>
       `;
     },
@@ -947,6 +986,23 @@ createApp({
               })
               .finally(() => this.updateInlineLegend());
 
+            // ISP hint (off-device): request IP -> ISP via server lookup.
+            this.networkStatus = 'Loading…';
+            this.networkIsp = null;
+            const ispPromise = this.fetchNetworkIsp()
+              .then((info) => {
+                this.networkIsp = info && info.ok ? info : null;
+                this.networkStatus = (info && info.ok) ? null : 'Unavailable';
+                return this.networkIsp;
+              })
+              .catch((e) => {
+                console.warn('network isp fetch failed', e);
+                this.networkStatus = 'Unavailable';
+                this.networkIsp = null;
+                return null;
+              })
+              .finally(() => this.updateInlineLegend());
+
             // Append derived log entry (no coordinates)
             await this.appendClientLog({
               timestamp: new Date().toISOString(),
@@ -962,6 +1018,10 @@ createApp({
               admin2: this.results[0]?.admin2 || null,
               weather: await Promise.race([
                 weatherPromise,
+                new Promise((resolve) => setTimeout(() => resolve(null), 1500))
+              ]),
+              network: await Promise.race([
+                ispPromise,
                 new Promise((resolve) => setTimeout(() => resolve(null), 1500))
               ]),
               source: 'client'

@@ -61,6 +61,10 @@
       "maxDuration": 15,
       "includeFiles": "data/geocoder/cities.min.json.gz"
     },
+    "api/network-isp.js": {
+      "maxDuration": 10,
+      "excludeFiles": "data/**"
+    },
     "api/location-log.js": {
       "maxDuration": 10,
       "excludeFiles": "data/{tiger,geonames,geocoder}/**"
