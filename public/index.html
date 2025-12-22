@@ -42,6 +42,10 @@
         .card-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #ff8b1f; font-weight: 600; }
         .card-footer i { font-size: 1rem; color: rgba(255, 255, 255, 0.65); }
         .card a { text-decoration: none; color: inherit; }
+        /* Allow explicit inline links inside cards (some cards contain multiple links). */
+        .card a.inline-link { text-decoration: underline; color: #3dd5ff; }
+        .card a.inline-link:hover { color: #7be7ff; }
+        .card a.inline-link:focus-visible { outline: 2px solid #facc15; outline-offset: 3px; border-radius: 6px; }
         .status-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
         .status-pill { background: rgba(7, 13, 24, 0.9); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; border: 1px solid rgba(0, 160, 222, 0.28); box-shadow: 0 20px 44px rgba(2, 6, 23, 0.55); }
         .status-pill span.label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; color: #00c8ff; font-weight: 700; }
@@ -199,6 +203,22 @@
 <i class="fas fa-arrow-up-right-from-square"></i>
 </div>
 </a>
+</article>
+<article class="card">
+<i class="fas fa-location-dot"></i>
+<h3>GeoLocation</h3>
+<p>
+  <strong>Locate‑Me Gallery</strong>: static examples of polygons, scale bar, weather, and legend rendering across curated GPS points.
+  <a class="inline-link" href="./gallery/locate-me/">Open Locate‑Me Gallery</a>
+</p>
+<p>
+  <strong>Locate‑Me App</strong>: interactive, privacy‑preserving “nearest city” lookup with local admin boundaries, weather, and ISP hint.
+  <a class="inline-link" href="./locate-me.html">Open Locate‑Me</a>
+</p>
+<div class="card-footer">
+<span>Explore geolocation tools</span>
+<i class="fas fa-arrow-right"></i>
+</div>
 </article>
 </div>
 </section>
