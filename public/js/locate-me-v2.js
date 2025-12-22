@@ -369,7 +369,7 @@ createApp({
       div.innerHTML = `
         <div class="locate-legend-title">Legend</div>
         <div class="locate-legend-row"><span class="swatch swatch-gps"></span> GPS point</div>
-        <div class="locate-legend-row"><span class="swatch swatch-circle"></span> 1 &amp; 5-mile circles</div>
+        <div class="locate-legend-row"><span class="swatch swatch-circle"></span> 1 &amp; 5-mile radius circles</div>
         <div class="locate-legend-row"><span class="swatch swatch-red"></span> Red: ${localName}</div>
         <div class="locate-legend-row"><span class="swatch swatch-blue"></span> Blue: ${regionalName}</div>
         <div class="locate-legend-divider"></div>

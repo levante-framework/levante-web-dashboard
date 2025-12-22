@@ -93,7 +93,7 @@
     },
     {
       "source": "/favicon.ico",
-      "destination": "/public/favicon-32x32.png"
+      "destination": "/public/images/location-pin.svg"
     },
     {
       "source": "/",
