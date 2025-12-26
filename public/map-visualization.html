@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Activity Map - Levante Locations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        .info h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        .info p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .legend {
+            position: absolute;
+            bottom: 30px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .legend h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #333;
+        }
+        .location-legend {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 280px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        .location-legend h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .location-legend-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        .location-legend-item:hover {
+            background-color: #f5f5f5;
+        }
+        .location-legend-item.active {
+            background-color: #e3f2fd;
+            border-left: 3px solid #2196f3;
+        }
+        .location-number {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        .location-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .location-count {
+            font-size: 11px;
+            color: #666;
+            margin-left: auto;
+        }
+        .tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 2000;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .tooltip.visible {
+            opacity: 1;
+        }
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px 5px 0;
+            border-style: solid;
+            border-color: #333 transparent transparent;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="location-legend">
+        <h3>📍 Locations</h3>
+        
+            <div class="location-legend-item" data-index="0" 
+                 onmouseenter="showTooltip(event, 0)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(0)">
+                <div class="location-number" style="background: #ff0000; color: white; border: 2px solid #333;">
+                    1
+                </div>
+                <div class="location-name">London, CA</div>
+                <div class="location-count">14,789</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="1" 
+                 onmouseenter="showTooltip(event, 1)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(1)">
+                <div class="location-number" style="background: #0066ff; color: white; border: 2px solid #333;">
+                    2
+                </div>
+                <div class="location-name">Berlin, Germany</div>
+                <div class="location-count">9,088</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="2" 
+                 onmouseenter="showTooltip(event, 2)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(2)">
+                <div class="location-number" style="background: #00cc00; color: white; border: 2px solid #333;">
+                    3
+                </div>
+                <div class="location-name">Bogota, Colombia</div>
+                <div class="location-count">7,133</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="3" 
+                 onmouseenter="showTooltip(event, 3)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(3)">
+                <div class="location-number" style="background: #ff9900; color: white; border: 2px solid #333;">
+                    4
+                </div>
+                <div class="location-name">Berlin, Germany</div>
+                <div class="location-count">3,053</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="4" 
+                 onmouseenter="showTooltip(event, 4)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(4)">
+                <div class="location-number" style="background: #cc00ff; color: white; border: 2px solid #333;">
+                    5
+                </div>
+                <div class="location-name">Toronto, Canada</div>
+                <div class="location-count">2,765</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="5" 
+                 onmouseenter="showTooltip(event, 5)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(5)">
+                <div class="location-number" style="background: #00ffff; color: white; border: 2px solid #333;">
+                    6
+                </div>
+                <div class="location-name">Berlin, Germany</div>
+                <div class="location-count">1,768</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="6" 
+                 onmouseenter="showTooltip(event, 6)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(6)">
+                <div class="location-number" style="background: #ff00cc; color: white; border: 2px solid #333;">
+                    7
+                </div>
+                <div class="location-name">London, UK</div>
+                <div class="location-count">1,199</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="7" 
+                 onmouseenter="showTooltip(event, 7)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(7)">
+                <div class="location-number" style="background: #ffff00; color: white; border: 2px solid #333;">
+                    8
+                </div>
+                <div class="location-name">Los Angeles, USA</div>
+                <div class="location-count">1,076</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="8" 
+                 onmouseenter="showTooltip(event, 8)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(8)">
+                <div class="location-number" style="background: #ff0000; color: white; border: 2px solid #333;">
+                    9
+                </div>
+                <div class="location-name">London, CA</div>
+                <div class="location-count">746</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="9" 
+                 onmouseenter="showTooltip(event, 9)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(9)">
+                <div class="location-number" style="background: #0066ff; color: white; border: 2px solid #333;">
+                    10
+                </div>
+                <div class="location-name">Manchester, GB</div>
+                <div class="location-count">626</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="10" 
+                 onmouseenter="showTooltip(event, 10)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(10)">
+                <div class="location-number" style="background: #00cc00; color: white; border: 2px solid #333;">
+                    11
+                </div>
+                <div class="location-name">Bogota, Colombia</div>
+                <div class="location-count">590</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="11" 
+                 onmouseenter="showTooltip(event, 11)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(11)">
+                <div class="location-number" style="background: #ff9900; color: white; border: 2px solid #333;">
+                    12
+                </div>
+                <div class="location-name">Martinez, US</div>
+                <div class="location-count">568</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="12" 
+                 onmouseenter="showTooltip(event, 12)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(12)">
+                <div class="location-number" style="background: #cc00ff; color: white; border: 2px solid #333;">
+                    13
+                </div>
+                <div class="location-name">Los Angeles, USA</div>
+                <div class="location-count">522</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="13" 
+                 onmouseenter="showTooltip(event, 13)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(13)">
+                <div class="location-number" style="background: #00ffff; color: white; border: 2px solid #333;">
+                    14
+                </div>
+                <div class="location-name">Los Angeles, USA</div>
+                <div class="location-count">259</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="14" 
+                 onmouseenter="showTooltip(event, 14)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(14)">
+                <div class="location-number" style="background: #ff00cc; color: white; border: 2px solid #333;">
+                    15
+                </div>
+                <div class="location-name">Amsterdam, Netherlands</div>
+                <div class="location-count">243</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="15" 
+                 onmouseenter="showTooltip(event, 15)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(15)">
+                <div class="location-number" style="background: #ffff00; color: white; border: 2px solid #333;">
+                    16
+                </div>
+                <div class="location-name">Amsterdam, Netherlands</div>
+                <div class="location-count">205</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="16" 
+                 onmouseenter="showTooltip(event, 16)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(16)">
+                <div class="location-number" style="background: #ff0000; color: white; border: 2px solid #333;">
+                    17
+                </div>
+                <div class="location-name">Chiquinquirá, CO</div>
+                <div class="location-count">196</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="17" 
+                 onmouseenter="showTooltip(event, 17)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(17)">
+                <div class="location-number" style="background: #0066ff; color: white; border: 2px solid #333;">
+                    18
+                </div>
+                <div class="location-name">Minneapolis, US</div>
+                <div class="location-count">123</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="18" 
+                 onmouseenter="showTooltip(event, 18)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(18)">
+                <div class="location-number" style="background: #00cc00; color: white; border: 2px solid #333;">
+                    19
+                </div>
+                <div class="location-name">Groeningen, NL</div>
+                <div class="location-count">121</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="19" 
+                 onmouseenter="showTooltip(event, 19)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(19)">
+                <div class="location-number" style="background: #ff9900; color: white; border: 2px solid #333;">
+                    20
+                </div>
+                <div class="location-name">Redwood City, US</div>
+                <div class="location-count">112</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="20" 
+                 onmouseenter="showTooltip(event, 20)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(20)">
+                <div class="location-number" style="background: #cc00ff; color: white; border: 2px solid #333;">
+                    21
+                </div>
+                <div class="location-name">Bogotá, CO</div>
+                <div class="location-count">111</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="21" 
+                 onmouseenter="showTooltip(event, 21)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(21)">
+                <div class="location-number" style="background: #00ffff; color: white; border: 2px solid #333;">
+                    22
+                </div>
+                <div class="location-name">Chicago, USA</div>
+                <div class="location-count">84</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="22" 
+                 onmouseenter="showTooltip(event, 22)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(22)">
+                <div class="location-number" style="background: #ff00cc; color: white; border: 2px solid #333;">
+                    23
+                </div>
+                <div class="location-name">New York, USA</div>
+                <div class="location-count">48</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="23" 
+                 onmouseenter="showTooltip(event, 23)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(23)">
+                <div class="location-number" style="background: #ffff00; color: white; border: 2px solid #333;">
+                    24
+                </div>
+                <div class="location-name">Zurich, Switzerland</div>
+                <div class="location-count">47</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="24" 
+                 onmouseenter="showTooltip(event, 24)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(24)">
+                <div class="location-number" style="background: #ff0000; color: white; border: 2px solid #333;">
+                    25
+                </div>
+                <div class="location-name">London, UK</div>
+                <div class="location-count">42</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="25" 
+                 onmouseenter="showTooltip(event, 25)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(25)">
+                <div class="location-number" style="background: #0066ff; color: white; border: 2px solid #333;">
+                    26
+                </div>
+                <div class="location-name">London, CA</div>
+                <div class="location-count">41</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="26" 
+                 onmouseenter="showTooltip(event, 26)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(26)">
+                <div class="location-number" style="background: #00cc00; color: white; border: 2px solid #333;">
+                    27
+                </div>
+                <div class="location-name">Zurich, CH</div>
+                <div class="location-count">38</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="27" 
+                 onmouseenter="showTooltip(event, 27)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(27)">
+                <div class="location-number" style="background: #ff9900; color: white; border: 2px solid #333;">
+                    28
+                </div>
+                <div class="location-name">Berlin, DE</div>
+                <div class="location-count">35</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="28" 
+                 onmouseenter="showTooltip(event, 28)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(28)">
+                <div class="location-number" style="background: #cc00ff; color: white; border: 2px solid #333;">
+                    29
+                </div>
+                <div class="location-name">Chiquinquirá, CO</div>
+                <div class="location-count">20</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="29" 
+                 onmouseenter="showTooltip(event, 29)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(29)">
+                <div class="location-number" style="background: #00ffff; color: white; border: 2px solid #333;">
+                    30
+                </div>
+                <div class="location-name">Bogotá, CO</div>
+                <div class="location-count">19</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="30" 
+                 onmouseenter="showTooltip(event, 30)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(30)">
+                <div class="location-number" style="background: #ff00cc; color: white; border: 2px solid #333;">
+                    31
+                </div>
+                <div class="location-name">Berlin, DE</div>
+                <div class="location-count">15</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="31" 
+                 onmouseenter="showTooltip(event, 31)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(31)">
+                <div class="location-number" style="background: #ffff00; color: white; border: 2px solid #333;">
+                    32
+                </div>
+                <div class="location-name">Sao Paulo, Brazil</div>
+                <div class="location-count">12</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="32" 
+                 onmouseenter="showTooltip(event, 32)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(32)">
+                <div class="location-number" style="background: #ff0000; color: white; border: 2px solid #333;">
+                    33
+                </div>
+                <div class="location-name">Tunja, CO</div>
+                <div class="location-count">10</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="33" 
+                 onmouseenter="showTooltip(event, 33)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(33)">
+                <div class="location-number" style="background: #0066ff; color: white; border: 2px solid #333;">
+                    34
+                </div>
+                <div class="location-name">Shanghai, China</div>
+                <div class="location-count">7</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="34" 
+                 onmouseenter="showTooltip(event, 34)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(34)">
+                <div class="location-number" style="background: #00cc00; color: white; border: 2px solid #333;">
+                    35
+                </div>
+                <div class="location-name">Warsaw, Poland</div>
+                <div class="location-count">3</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="35" 
+                 onmouseenter="showTooltip(event, 35)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(35)">
+                <div class="location-number" style="background: #ff9900; color: white; border: 2px solid #333;">
+                    36
+                </div>
+                <div class="location-name">Kolkata, India</div>
+                <div class="location-count">3</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="36" 
+                 onmouseenter="showTooltip(event, 36)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(36)">
+                <div class="location-number" style="background: #cc00ff; color: white; border: 2px solid #333;">
+                    37
+                </div>
+                <div class="location-name">Cali, CO</div>
+                <div class="location-count">2</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="37" 
+                 onmouseenter="showTooltip(event, 37)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(37)">
+                <div class="location-number" style="background: #00ffff; color: white; border: 2px solid #333;">
+                    38
+                </div>
+                <div class="location-name">Taipei, TW</div>
+                <div class="location-count">2</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="38" 
+                 onmouseenter="showTooltip(event, 38)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(38)">
+                <div class="location-number" style="background: #ff00cc; color: white; border: 2px solid #333;">
+                    39
+                </div>
+                <div class="location-name">Bogotá, CO</div>
+                <div class="location-count">2</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="39" 
+                 onmouseenter="showTooltip(event, 39)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(39)">
+                <div class="location-number" style="background: #ffff00; color: white; border: 2px solid #333;">
+                    40
+                </div>
+                <div class="location-name">Stockholm, Sweden</div>
+                <div class="location-count">1</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="40" 
+                 onmouseenter="showTooltip(event, 40)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(40)">
+                <div class="location-number" style="background: #ff0000; color: white; border: 2px solid #333;">
+                    41
+                </div>
+                <div class="location-name">Rome, Italy</div>
+                <div class="location-count">1</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="41" 
+                 onmouseenter="showTooltip(event, 41)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(41)">
+                <div class="location-number" style="background: #0066ff; color: white; border: 2px solid #333;">
+                    42
+                </div>
+                <div class="location-name">Edmonton, Canada</div>
+                <div class="location-count">1</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="42" 
+                 onmouseenter="showTooltip(event, 42)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(42)">
+                <div class="location-number" style="background: #00cc00; color: white; border: 2px solid #333;">
+                    43
+                </div>
+                <div class="location-name">Cali, CO</div>
+                <div class="location-count">1</div>
+            </div>
+          
+            <div class="location-legend-item" data-index="43" 
+                 onmouseenter="showTooltip(event, 43)" 
+                 onmouseleave="hideTooltip()"
+                 onclick="focusLocation(43)">
+                <div class="location-number" style="background: #ff9900; color: white; border: 2px solid #333;">
+                    44
+                </div>
+                <div class="location-name">Bogotá, CO</div>
+                <div class="location-count">1</div>
+            </div>
+          
+    </div>
+    <div class="info">
+        <h3>Event Activity Map</h3>
+        <p><strong>Total Locations:</strong> 44</p>
+        <p><strong>Total Events:</strong> 45,728</p>
+        <p><strong>Max Events/Location:</strong> 14,789</p>
+        <p><strong>Min Events/Location:</strong> 1</p>
+    </div>
+    <div class="legend">
+        <h4>Event Count</h4>
+        <div class="legend-item">
+            <div class="legend-circle" style="background: rgba(255, 0, 0, 0.6); width: 10px; height: 10px;"></div>
+            <span>Low (1)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-circle" style="background: rgba(255, 0, 0, 0.6); width: 30px; height: 30px;"></div>
+            <span>High (14789)</span>
+        </div>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([20, 0], 2);
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Location data (sorted by count, high to low)
+        const locations = [{"lat":45.95,"lng":-61.13,"count":14789,"country":"CA","city":"London"},{"lat":51.08,"lng":13.78,"count":9088,"country":"Germany","city":"Berlin"},{"lat":4.71,"lng":-74.07,"count":7133,"country":"Colombia","city":"Bogota"},{"lat":49.72,"lng":20.41,"count":3053,"country":"Germany","city":"Berlin"},{"lat":43.65,"lng":-79.38,"count":2765,"country":"Canada","city":"Toronto"},{"lat":52.52,"lng":13.41,"count":1768,"country":"Germany","city":"Berlin"},{"lat":51.51,"lng":-0.13,"count":1199,"country":"UK","city":"London"},{"lat":34.05,"lng":-118.24,"count":1076,"country":"USA","city":"Los Angeles"},{"lat":43.01,"lng":-81.3,"count":746,"country":"CA","city":"London"},{"lat":53.48,"lng":-2.24,"count":626,"country":"GB","city":"Manchester"},{"lat":45.65,"lng":9.04,"count":590,"country":"Colombia","city":"Bogota"},{"lat":37.98,"lng":-122.14,"count":568,"country":"US","city":"Martinez"},{"lat":46.81,"lng":13.79,"count":522,"country":"USA","city":"Los Angeles"},{"lat":1.44,"lng":103.64,"count":259,"country":"USA","city":"Los Angeles"},{"lat":51.47,"lng":5.15,"count":243,"country":"Netherlands","city":"Amsterdam"},{"lat":52.37,"lng":4.9,"count":205,"country":"Netherlands","city":"Amsterdam"},{"lat":5.62,"lng":-73.82,"count":196,"country":"CO","city":"Chiquinquirá"},{"lat":44.94,"lng":-93.29,"count":123,"country":"US","city":"Minneapolis"},{"lat":51.61,"lng":5.99,"count":121,"country":"NL","city":"Groeningen"},{"lat":37.53,"lng":-122.25,"count":112,"country":"US","city":"Redwood City"},{"lat":4.71,"lng":-74.06,"count":111,"country":"CO","city":"Bogotá"},{"lat":41.88,"lng":-87.63,"count":84,"country":"USA","city":"Chicago"},{"lat":40.71,"lng":-74.01,"count":48,"country":"USA","city":"New York"},{"lat":47.38,"lng":8.54,"count":47,"country":"Switzerland","city":"Zurich"},{"lat":21.21,"lng":72.84,"count":42,"country":"UK","city":"London"},{"lat":42.95,"lng":-81.34,"count":41,"country":"CA","city":"London"},{"lat":47.4,"lng":8.54,"count":38,"country":"CH","city":"Zurich"},{"lat":52.44,"lng":13.25,"count":35,"country":"DE","city":"Berlin"},{"lat":5.62,"lng":-73.81,"count":20,"country":"CO","city":"Chiquinquirá"},{"lat":4.61,"lng":-74.15,"count":19,"country":"CO","city":"Bogotá"},{"lat":52.46,"lng":13.28,"count":15,"country":"DE","city":"Berlin"},{"lat":-23.55,"lng":-46.63,"count":12,"country":"Brazil","city":"Sao Paulo"},{"lat":5.54,"lng":-73.37,"count":10,"country":"CO","city":"Tunja"},{"lat":31.23,"lng":121.47,"count":7,"country":"China","city":"Shanghai"},{"lat":52.23,"lng":21.01,"count":3,"country":"Poland","city":"Warsaw"},{"lat":28.61,"lng":77.21,"count":3,"country":"India","city":"Kolkata"},{"lat":3.44,"lng":-76.52,"count":2,"country":"CO","city":"Cali"},{"lat":25.03,"lng":121.57,"count":2,"country":"TW","city":"Taipei"},{"lat":4.6,"lng":-74.09,"count":2,"country":"CO","city":"Bogotá"},{"lat":59.33,"lng":18.07,"count":1,"country":"Sweden","city":"Stockholm"},{"lat":41.9,"lng":12.5,"count":1,"country":"Italy","city":"Rome"},{"lat":53.55,"lng":-113.49,"count":1,"country":"Canada","city":"Edmonton"},{"lat":3.43,"lng":-76.52,"count":1,"country":"CO","city":"Cali"},{"lat":4.66,"lng":-74.12,"count":1,"country":"CO","city":"Bogotá"}];
+        const maxCount = 14789;
+        const minCount = 1;
+        const colors = ["#ff0000","#0066ff","#00cc00","#ff9900","#cc00ff","#00ffff","#ff00cc","#ffff00"];
+        const markers = [];
+        const circles = [];
+
+        // Function to calculate bubble size based on count
+        function getRadius(count) {
+            const minRadius = 5;
+            const maxRadius = 50;
+            if (maxCount === minCount) return (minRadius + maxRadius) / 2;
+            const ratio = (count - minCount) / (maxCount - minCount);
+            return minRadius + (maxRadius - minRadius) * ratio;
+        }
+
+        // Function to calculate opacity based on count
+        function getOpacity(count) {
+            const minOpacity = 0.3;
+            const maxOpacity = 0.8;
+            if (maxCount === minCount) return maxOpacity;
+            const ratio = (count - minCount) / (maxCount - minCount);
+            return minOpacity + (maxOpacity - minOpacity) * ratio;
+        }
+
+        // Add circles for each location with slight offset to prevent overlap
+        // Use different colors for better visibility
+        
+        locations.forEach((location, index) => {
+            const radius = getRadius(location.count);
+            const opacity = getOpacity(location.count);
+            const color = colors[index % colors.length];
+            
+            // Add a small random offset (0.1-0.3 degrees) to prevent exact overlap
+            // This ensures all markers are visible even if they're in the same city
+            const offsetLat = location.lat + (Math.random() * 0.2 - 0.1);
+            const offsetLng = location.lng + (Math.random() * 0.2 - 0.1);
+            
+            const circle = L.circleMarker([offsetLat, offsetLng], {
+                radius: Math.max(radius, 8), // Minimum size to ensure visibility
+                fillColor: color,
+                color: '#333333',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: Math.max(opacity, 0.6) // Ensure minimum visibility
+            }).addTo(map);
+            circles.push(circle);
+
+            // Add popup with details
+            const cityName = location.city || location.districtName || location.country || 'Unknown';
+            const locationLabel = location.city && location.country ? location.city + ', ' + location.country : cityName;
+            const percentage = ((location.count / locations.reduce((sum, d) => sum + d.count, 0)) * 100).toFixed(1);
+            const popupContent = '<div style="min-width: 200px;">' +
+                '<h4 style="margin: 0 0 10px 0; color: ' + color + ';">📍 Location ' + (index + 1) + '</h4>' +
+                '<strong>Location:</strong> ' + locationLabel + '<br>' +
+                (location.city ? '<strong>City:</strong> ' + location.city + '<br>' : '') +
+                '<strong>Event Count:</strong> ' + location.count.toLocaleString() + '<br>' +
+                (location.districtName ? '<strong>District:</strong> ' + location.districtName + '<br>' : '') +
+                (location.country ? '<strong>Country:</strong> ' + location.country + '<br>' : '') +
+                '<strong>Coordinates:</strong> ' + location.lat.toFixed(4) + ', ' + location.lng.toFixed(4) + '<br>' +
+                '<strong>Percentage:</strong> ' + percentage + '%' +
+                '</div>';
+            circle.bindPopup(popupContent);
+            
+            // Add label with location number
+            const marker = L.marker([offsetLat, offsetLng], {
+                icon: L.divIcon({
+                    className: 'location-label',
+                    html: `<div style="background: white; border: 2px solid ${color}; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: ${color};">${index + 1}</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                })
+            }).addTo(map);
+            markers.push({ marker, circle, location, index, offsetLat, offsetLng });
+        });
+
+        // Fit map to show all markers with extra padding
+        if (locations.length > 0) {
+            const bounds = locations.map(loc => [loc.lat, loc.lng]);
+            map.fitBounds(bounds, { padding: [100, 100], maxZoom: 6 }); // Extra padding and max zoom to show all locations
+        }
+        
+        // Add style for location labels
+        const style = document.createElement('style');
+        style.textContent = `
+            .location-label {
+                background: transparent !important;
+                border: none !important;
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Tooltip functions
+        function showTooltip(event, index) {
+            const tooltip = document.getElementById('tooltip');
+            const location = locations[index];
+            const cityName = location.city || location.districtName || location.country || ('Location ' + (index + 1));
+            const locationLabel = location.city && location.country ? location.city + ', ' + location.country : cityName;
+            const percentage = ((location.count / locations.reduce((sum, d) => sum + d.count, 0)) * 100).toFixed(1);
+            
+            tooltip.innerHTML = '<strong>' + locationLabel + '</strong><br>' +
+                'Events: ' + location.count.toLocaleString() + ' (' + percentage + '%)<br>' +
+                (location.city ? 'City: ' + location.city + '<br>' : '') +
+                (location.country ? 'Country: ' + location.country + '<br>' : '') +
+                'Coords: ' + location.lat.toFixed(4) + ', ' + location.lng.toFixed(4);
+            
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = (rect.right + 10) + 'px';
+            tooltip.style.top = (rect.top + rect.height / 2) + 'px';
+            tooltip.style.transform = 'translateY(-50%)';
+            tooltip.classList.add('visible');
+        }
+        
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.classList.remove('visible');
+        }
+        
+        // Focus location function
+        function focusLocation(index) {
+            const item = markers[index];
+            if (item) {
+                // Highlight in legend
+                document.querySelectorAll('.location-legend-item').forEach(el => {
+                    el.classList.remove('active');
+                });
+                const legendItem = document.querySelector('.location-legend-item[data-index="' + index + '"]');
+                if (legendItem) legendItem.classList.add('active');
+                
+                // Pan to location
+                map.setView([item.offsetLat, item.offsetLng], 6);
+                
+                // Open popup
+                item.circle.openPopup();
+            }
+        }
+    </script>
+</body>
+</html>
