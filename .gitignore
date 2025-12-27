@@ -10,3 +10,5 @@ data/gallery/weather-cache.json
 
 # Audio validation result files are generated locally (or via sibling repos) and should not ship to Vercel by default.
 data/validation/*.json
+
+public/locations-map.html

@@ -4,3 +4,5 @@ data/geonames_cities5000.zip
 
 data/validation/*.json
 
+public/locations-map.html
+
