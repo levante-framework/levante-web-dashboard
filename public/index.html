@@ -69,6 +69,7 @@
 <div class="pitwall-actions">
 <a href="./dashboard-app.html"><i class="fas fa-gauge"></i> Audio Dashboard</a>
 <a href="./audio-coverage.html"><i class="fas fa-music"></i> Audio Coverage</a>
+<a href="./audio-validation.html"><i class="fas fa-wave-square"></i> Audio Validation</a>
 <a href="./task-template.html"><i class="fas fa-clipboard-check"></i> Validate Task</a>
 <a href="./preflight-report.html"><i class="fas fa-clipboard-check"></i> Pre-Release Readiness Report</a>
 <a href="./draft-share.html"><i class="fas fa-share-nodes"></i> Ready to Deploy</a>
@@ -101,6 +102,13 @@
   <button id="stat-coverage-refresh" class="status-pill-refresh" type="button">Refresh</button>
 </div>
 </div></a>
+<a class="status-link" href="./audio-validation.html"><div class="status-pill">
+<span class="label">
+       Audio validation (ASR)
+      </span>
+<strong id="stat-audio-validation">--</strong>
+<em id="stat-audio-validation-detail">Waiting for audio validation summary...</em>
+</div></a>
 <a class="status-link" href="./audio-approval.html"><div class="status-pill">
 <span class="label"><span>Audio Clips</span><span class="label-sub">Approval Status</span></span>
 <strong id="stat-audio-clips">--</strong>
@@ -120,6 +128,30 @@
 <strong id="stat-issues">--</strong>
 <em id="stat-issues-detail">Fetching P0 / P1 counts…</em>
 </div></a>
+</div>
+<div class="card" id="audio-validation-breakdown" style="display:none; position: relative;">
+  <i class="fas fa-wave-square"></i>
+  <h3>Audio Validation by Language</h3>
+  <p>Latest ASR validation snapshot (similarity thresholds: Excellent ≥95%, Good ≥85%, Acceptable ≥70%).</p>
+  <div style="overflow:auto; border-radius: 14px; border: 1px solid rgba(0, 160, 222, 0.22);">
+    <table style="width:100%; border-collapse: collapse; font-size: 0.95rem;">
+      <thead>
+        <tr style="background: rgba(3, 12, 28, 0.65); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem;">
+          <th style="padding: 12px 14px; text-align:left;">Language</th>
+          <th style="padding: 12px 14px; text-align:left;">Pass %</th>
+          <th style="padding: 12px 14px; text-align:left;">Needs review</th>
+          <th style="padding: 12px 14px; text-align:left;">Avg similarity</th>
+          <th style="padding: 12px 14px; text-align:left;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="audio-validation-breakdown-body"></tbody>
+    </table>
+  </div>
+  <div class="card-footer">
+    <span>Open Audio Validation</span>
+    <i class="fas fa-arrow-right"></i>
+  </div>
+  <a href="./audio-validation.html" style="position:absolute; inset:0;" aria-label="Open Audio Validation by Language"></a>
 </div>
 </section><section>
 <div class="section-title">
@@ -145,6 +177,17 @@
 <p>Scan repo or buckets for missing, mismatched, or untagged audio assets. Filter by language to drill into issues.</p>
 <div class="card-footer">
 <span>Run coverage scan</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="./audio-validation.html">
+<i class="fas fa-wave-square"></i>
+<h3>Audio Validation (ASR)</h3>
+<p>Review Whisper/ASR validation results, regenerate low-quality clips, and publish a by-language health snapshot back to Pitwall.</p>
+<div class="card-footer">
+<span>Open validation report</span>
 <i class="fas fa-arrow-right"></i>
 </div>
 </a>
@@ -319,6 +362,10 @@
     const issuesDetailEl = document.getElementById('stat-issues-detail');
     const audioClipsEl = document.getElementById('stat-audio-clips');
     const audioClipsDetailEl = document.getElementById('stat-audio-clips-detail');
+    const audioValEl = document.getElementById('stat-audio-validation');
+    const audioValDetailEl = document.getElementById('stat-audio-validation-detail');
+    const audioValBreakdown = document.getElementById('audio-validation-breakdown');
+    const audioValBreakdownBody = document.getElementById('audio-validation-breakdown-body');
 
     const setError = (el, detailEl, message) => {
       if (el) el.textContent = '—';
@@ -358,6 +405,62 @@
       if (coverageRefreshBtn) {
         coverageRefreshBtn.disabled = false;
         coverageRefreshBtn.textContent = 'Refresh';
+      }
+
+      async function loadAudioValidationSummary(){
+        try{
+          const r = await fetch('/api/audio-validation-summary?key=latest', { cache: 'no-cache' });
+          if(!r.ok){
+            if (audioValEl) audioValEl.textContent = '--';
+            if (audioValDetailEl) audioValDetailEl.textContent = 'Run Audio Validation to publish a summary.';
+            return;
+          }
+          const data = await r.json();
+          const summary = data?.summary || {};
+          const overall = summary?.overall || {};
+          const total = typeof overall.total === 'number' ? overall.total : 0;
+          const passPercent = typeof overall.passPercent === 'number' ? overall.passPercent : null;
+          const needsReview = typeof overall.needsReviewCount === 'number' ? overall.needsReviewCount : null;
+          const avg = typeof overall.avgSimilarity === 'number' ? overall.avgSimilarity : null;
+          const when = summary.generatedAt ? new Date(summary.generatedAt) : null;
+          const whenText = when && !Number.isNaN(when.getTime()) ? when.toLocaleString() : 'unknown';
+
+          if (audioValEl) {
+            audioValEl.textContent = passPercent == null ? '--' : `${passPercent.toFixed(1)}%`;
+          }
+          if (audioValDetailEl) {
+            const parts = [];
+            if (needsReview != null && total) parts.push(`Needs review: ${needsReview}/${total}`);
+            if (avg != null) parts.push(`Avg: ${(avg * 100).toFixed(1)}%`);
+            parts.push(`Updated: ${whenText}`);
+            audioValDetailEl.textContent = parts.join(' • ');
+          }
+
+          // Render a compact by-language breakdown (top 12 rows).
+          const langs = Array.isArray(summary.languages) ? summary.languages : [];
+          if (audioValBreakdown && audioValBreakdownBody && langs.length) {
+            audioValBreakdown.style.display = '';
+            const rows = langs.slice(0, 12);
+            audioValBreakdownBody.innerHTML = rows.map(l => {
+              const lang = l.lang || '';
+              const pass = (typeof l.passPercent === 'number') ? `${l.passPercent.toFixed(1)}%` : '--';
+              const nr = l?.counts?.needsReview ?? '--';
+              const avgSim = (typeof l.avgSimilarity === 'number') ? `${(l.avgSimilarity * 100).toFixed(1)}%` : '--';
+              const t = (typeof l.total === 'number') ? l.total : '--';
+              return `<tr style="background: rgba(9, 17, 31, 0.92); border-bottom: 1px solid rgba(0, 160, 222, 0.12);">
+                <td style="padding: 12px 14px; font-weight: 700; color: #ffb347;">${lang}</td>
+                <td style="padding: 12px 14px;">${pass}</td>
+                <td style="padding: 12px 14px;">${nr}</td>
+                <td style="padding: 12px 14px;">${avgSim}</td>
+                <td style="padding: 12px 14px;">${t}</td>
+              </tr>`;
+            }).join('');
+          }
+        }catch(err){
+          console.warn('Failed to load audio validation summary:', err);
+          if (audioValEl) audioValEl.textContent = '--';
+          if (audioValDetailEl) audioValDetailEl.textContent = 'Audio validation summary unavailable';
+        }
       }
 
       // Load audio clip status
@@ -411,6 +514,7 @@
       }
       
       await loadAudioClipStatus();
+      await loadAudioValidationSummary();
 
       const visual = data?.visualAssets || {};
       if (visual.message) {
@@ -442,6 +546,8 @@
         coverageRefreshBtn.disabled = false;
         coverageRefreshBtn.textContent = 'Refresh';
       }
+      if (audioValEl) audioValEl.textContent = '--';
+      if (audioValDetailEl) audioValDetailEl.textContent = 'Audio validation summary unavailable';
       setError(visualEl, visualDetailEl, 'Visual audit unavailable');
       setError(issuesEl, issuesDetailEl, 'GitHub summary unavailable');
     }

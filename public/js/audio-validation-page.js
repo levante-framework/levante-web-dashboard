@@ -18,6 +18,130 @@
 
 	function base(path){ const i=(path||'').lastIndexOf('/'); return i>=0?path.slice(i+1):path; }
 	function stripExt(n){ return (n||'').replace(/\.[a-zA-Z0-9]+$/, ''); }
+
+	function pickSimilarity(row){
+		if(!row || typeof row !== 'object') return null;
+		const v = row?.elevenlabs_validation?.word_level_similarity
+			?? row?.elevenlabs_validation?.similarity_score
+			?? row?.basic_metrics?.similarity_ratio;
+		return (typeof v === 'number' && isFinite(v)) ? v : null;
+	}
+	function pickMeaning(row){
+		const v = row?.meaning_similarity;
+		return (typeof v === 'number' && isFinite(v)) ? v : null;
+	}
+	function classifySimilarity(sim, thresholds){
+		if(typeof sim !== 'number' || !isFinite(sim)) return 'unknown';
+		if(sim >= thresholds.excellentMin) return 'excellent';
+		if(sim >= thresholds.goodMin) return 'good';
+		if(sim >= thresholds.acceptableMin) return 'acceptable';
+		return 'needsReview';
+	}
+
+	async function postAudioValidationSummary(summary){
+		try{
+			const resp = await fetch('/api/audio-validation-summary', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(summary)
+			});
+			if(!resp.ok){
+				// Non-fatal: Pitwall will just show "unavailable"
+				console.warn('Failed to cache audio validation summary:', resp.status, await resp.text());
+			}
+		}catch(e){
+			console.warn('Failed to cache audio validation summary:', e?.message || String(e));
+		}
+	}
+
+	async function publishSummaryForRows(rows, sourceFile){
+		try{
+			if(!Array.isArray(rows) || rows.length === 0) return;
+			const thresholds = { excellentMin: 0.95, goodMin: 0.85, acceptableMin: 0.7 };
+			const perLang = new Map();
+			let overallTotal = 0;
+			let overallNeedsReview = 0;
+			let overallSimSum = 0;
+			let overallSimCount = 0;
+
+			for(const r of rows){
+				const lang = (r?.language || '').toString().trim();
+				if(!lang) continue;
+				const sim = pickSimilarity(r);
+				const meaning = pickMeaning(r);
+				const bucket = perLang.get(lang) || {
+					lang,
+					total: 0,
+					simSum: 0,
+					simCount: 0,
+					meaningSum: 0,
+					meaningCount: 0,
+					counts: { excellent: 0, good: 0, acceptable: 0, needsReview: 0 }
+				};
+
+				bucket.total += 1;
+				overallTotal += 1;
+
+				const cls = classifySimilarity(sim, thresholds);
+				if(cls !== 'unknown'){
+					bucket.counts[cls] = (bucket.counts[cls] || 0) + 1;
+					if(cls === 'needsReview') overallNeedsReview += 1;
+				}
+				if(typeof sim === 'number'){
+					bucket.simSum += sim; bucket.simCount += 1;
+					overallSimSum += sim; overallSimCount += 1;
+				}
+				if(typeof meaning === 'number'){
+					bucket.meaningSum += meaning; bucket.meaningCount += 1;
+				}
+				perLang.set(lang, bucket);
+			}
+
+			const languages = Array.from(perLang.values())
+				.map(l => {
+					const pass = (l.counts.excellent || 0) + (l.counts.good || 0);
+					const passPercent = l.total > 0 ? Math.round((pass / l.total) * 1000) / 10 : 0;
+					return {
+						lang: l.lang,
+						total: l.total,
+						avgSimilarity: l.simCount ? Math.round((l.simSum / l.simCount) * 1000) / 1000 : null,
+						meaningAvg: l.meaningCount ? Math.round((l.meaningSum / l.meaningCount) * 1000) / 1000 : null,
+						counts: l.counts,
+						passPercent
+					};
+				})
+				.sort((a,b) => {
+					// Prioritize languages needing review, then lowest passPercent
+					const an = a.counts?.needsReview || 0;
+					const bn = b.counts?.needsReview || 0;
+					if(bn !== an) return bn - an;
+					return (a.passPercent ?? 0) - (b.passPercent ?? 0);
+				});
+
+			const overallPassPercent = overallTotal > 0
+				? Math.round(((overallTotal - overallNeedsReview) / overallTotal) * 1000) / 10
+				: 0;
+
+			const payload = {
+				key: 'latest',
+				source: 'audio-validation-page',
+				sourceFile: sourceFile || undefined,
+				generatedAt: new Date().toISOString(),
+				thresholds,
+				overall: {
+					total: overallTotal,
+					avgSimilarity: overallSimCount ? Math.round((overallSimSum / overallSimCount) * 1000) / 1000 : null,
+					needsReviewCount: overallNeedsReview,
+					passPercent: overallPassPercent
+				},
+				languages
+			};
+
+			await postAudioValidationSummary(payload);
+		}catch(e){
+			console.warn('publishSummaryForRows failed:', e?.message || String(e));
+		}
+	}
 	
 	function extractLangsFromPath(audioPath){
 		const langs=new Set(); const p=audioPath||'';
@@ -128,7 +252,24 @@
 				}
 
 				function nextSearch(){ try{ const list=matchResults.value||[]; if(!list.length){ doSearch(); return; } matchCursor.value = (matchCursor.value + 1) % list.length; const cur=list[matchCursor.value]; document.querySelectorAll('tbody tr').forEach(tr=>tr.classList.remove('row-highlight')); let rowEl=null; const cells=document.querySelectorAll('tbody td.audio-path'); for(const c of cells){ if((c.textContent||'').trim()===cur.filename){ rowEl=c.closest('tr'); break; } } if(rowEl){ rowEl.classList.add('row-highlight'); rowEl.scrollIntoView({behavior:'smooth', block:'center'}); } regenOpenId.value=cur.id; } catch(e){ console.warn('nextSearch failed', e); } }
-				async function loadSelected(){ if(!selectedFile.value) return; loading.value=true; error.value=''; try{ const r=await fetch(`/api/get-validation-file?name=${encodeURIComponent(selectedFile.value)}`); const d=await r.json(); results.value=Array.isArray(d)?d:[d]; const langs=new Set(results.value.map(x=>x.language).filter(Boolean)); displayLang.value=langs.size?Array.from(langs).join(', '):''; /* defer voiceName fetch to regen/play */ }catch(e){ error.value=String(e); } finally{ loading.value=false; } }
+				async function loadSelected(){
+					if(!selectedFile.value) return;
+					loading.value=true;
+					error.value='';
+					try{
+						const r=await fetch(`/api/get-validation-file?name=${encodeURIComponent(selectedFile.value)}`);
+						const d=await r.json();
+						results.value=Array.isArray(d)?d:[d];
+						const langs=new Set(results.value.map(x=>x.language).filter(Boolean));
+						displayLang.value=langs.size?Array.from(langs).join(', '):'';
+						// Publish a compact by-language summary so Pitwall can show “validation health”.
+						publishSummaryForRows(results.value, selectedFile.value);
+					}catch(e){
+						error.value=String(e);
+					} finally{
+						loading.value=false;
+					}
+				}
 				function setSort(k){ if(sortKey.value===k) sortAsc.value=!sortAsc.value; else { sortKey.value=k; sortAsc.value=true; } }
 				
 				function rowId(r){ return stripExt(base(r.audio_path||'')); }
