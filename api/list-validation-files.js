@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 	if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
 	try {
-		const dataDir = path.resolve(__dirname, '..', 'data');
+		const dataDir = path.resolve(__dirname, '..', 'data', 'validation');
 		let files = [];
 		try {
 			files = fs.readdirSync(dataDir, { withFileTypes: true })
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 				.map(d => d.name)
 				.sort();
 		} catch (e) {
-			return res.status(200).json({ success: true, files: [], message: 'No data directory or no files found.' });
+			return res.status(200).json({ success: true, files: [], message: 'No validation data directory or no files found.' });
 		}
 
 		return res.status(200).json({ success: true, files });

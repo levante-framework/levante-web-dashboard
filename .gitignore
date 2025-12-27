@@ -7,3 +7,6 @@ data/geonames_cities5000.zip
 data/tiger/
 .env*.local
 data/gallery/weather-cache.json
+
+# Audio validation result files are generated locally (or via sibling repos) and should not ship to Vercel by default.
+data/validation/*.json

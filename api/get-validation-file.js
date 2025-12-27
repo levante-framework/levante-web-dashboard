@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 		if (!name || !name.endsWith('.json') || name.includes('..') || name.includes('/')) {
 			return res.status(400).json({ success: false, error: 'invalid_name' });
 		}
-		const dataDir = path.resolve(__dirname, '..', 'data');
+		const dataDir = path.resolve(__dirname, '..', 'data', 'validation');
 		const filePath = path.join(dataDir, name);
 		if (!fs.existsSync(filePath)) {
 			return res.status(404).json({ success: false, error: 'not_found' });
