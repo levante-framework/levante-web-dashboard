@@ -9,12 +9,18 @@ set -euo pipefail
 # data/validation/ folder so the Audio Validation UI can load them.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SRC_DIR_DEFAULT="$(cd "$ROOT_DIR/../levante_translations/web-dashboard/data" 2>/dev/null && pwd || true)"
+SRC_DIR_DEFAULT=""
+if cd "$ROOT_DIR/../levante_translations/web-dashboard/public/data" 2>/dev/null; then
+  SRC_DIR_DEFAULT="$(pwd)"
+elif cd "$ROOT_DIR/../levante_translations/web-dashboard/data" 2>/dev/null; then
+  SRC_DIR_DEFAULT="$(pwd)"
+fi
 SRC_DIR="${1:-$SRC_DIR_DEFAULT}"
 
 if [[ -z "${SRC_DIR:-}" || ! -d "$SRC_DIR" ]]; then
   echo "❌ Source directory not found."
-  echo "Tried: $SRC_DIR_DEFAULT"
+  echo "Tried: $ROOT_DIR/../levante_translations/web-dashboard/public/data"
+  echo "Tried: $ROOT_DIR/../levante_translations/web-dashboard/data"
   echo "Usage: $0 [source_dir]"
   exit 1
 fi
