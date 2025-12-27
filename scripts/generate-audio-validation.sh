@@ -39,6 +39,11 @@ echo "🚀 Running audio validation in levante_translations for: $LANGUAGE"
 echo "📥 Importing generated file(s) into this dashboard repo..."
 bash "$ROOT_DIR/scripts/import-audio-validation-files.sh"
 
+if [[ "${UPLOAD_TO_GCS:-0}" == "1" ]]; then
+  echo "☁️  UPLOAD_TO_GCS=1 set; uploading validation file(s) to the dashboard data bucket..."
+  node "$ROOT_DIR/scripts/upload-audio-validation-files.js"
+fi
+
 echo "✅ Done. Open Pitwall → Audio Validation, select the newest file, and Load."
 
 
