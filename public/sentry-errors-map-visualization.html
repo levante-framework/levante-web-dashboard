@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentry Errors Map - Levante Locations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        .info h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        .info p {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .legend {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 11px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+            border: 2px solid #333;
+        }
+        .legend-text {
+            flex: 1;
+        }
+        .starlink-badge {
+            display: inline-block;
+            background: #ff6b00;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="info">
+        <h3>🚨 Sentry Errors Map</h3>
+        <p><strong>67</strong> unique locations</p>
+        <p><strong>739</strong> total errors</p>
+        <p><strong>14</strong> Starlink locations</p>
+        <div class="legend">
+            <strong>Top Locations:</strong>
+            
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff0000;"></div>
+                    <div class="legend-text">
+                        Bogota, Colombia<br>
+                        <small>150 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #0066ff;"></div>
+                    <div class="legend-text">
+                        Manchester, GB<span class="starlink-badge">STARLINK</span><br>
+                        <small>90 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00cc00;"></div>
+                    <div class="legend-text">
+                        Bogotá, CO<br>
+                        <small>49 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff9900;"></div>
+                    <div class="legend-text">
+                        Benicia, US<span class="starlink-badge">STARLINK</span><br>
+                        <small>42 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #cc00ff;"></div>
+                    <div class="legend-text">
+                        Cali, CO<span class="starlink-badge">STARLINK</span><br>
+                        <small>37 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00ffff;"></div>
+                    <div class="legend-text">
+                        Cali, CO<span class="starlink-badge">STARLINK</span><br>
+                        <small>34 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff00cc;"></div>
+                    <div class="legend-text">
+                        Chiquinquirá, CO<br>
+                        <small>31 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffff00;"></div>
+                    <div class="legend-text">
+                        Dallas, US<br>
+                        <small>30 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff0000;"></div>
+                    <div class="legend-text">
+                        Berlin, Germany<br>
+                        <small>24 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #0066ff;"></div>
+                    <div class="legend-text">
+                        London, CA<br>
+                        <small>22 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00cc00;"></div>
+                    <div class="legend-text">
+                        Chiquinquirá, CO<br>
+                        <small>20 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff9900;"></div>
+                    <div class="legend-text">
+                        Bogotá, CO<br>
+                        <small>16 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #cc00ff;"></div>
+                    <div class="legend-text">
+                        Tunja, CO<br>
+                        <small>15 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00ffff;"></div>
+                    <div class="legend-text">
+                        Leipzig, DE<span class="starlink-badge">STARLINK</span><br>
+                        <small>11 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff00cc;"></div>
+                    <div class="legend-text">
+                        Bogotá, CO<span class="starlink-badge">STARLINK</span><br>
+                        <small>11 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ffff00;"></div>
+                    <div class="legend-text">
+                        Dresden, DE<span class="starlink-badge">STARLINK</span><br>
+                        <small>11 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff0000;"></div>
+                    <div class="legend-text">
+                        Bogotá, CO<br>
+                        <small>9 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #0066ff;"></div>
+                    <div class="legend-text">
+                        San Cristóbal, CO<br>
+                        <small>9 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #00cc00;"></div>
+                    <div class="legend-text">
+                        Leipzig, DE<span class="starlink-badge">STARLINK</span><br>
+                        <small>9 errors</small>
+                    </div>
+                </div>
+              
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #ff9900;"></div>
+                    <div class="legend-text">
+                        Stanford, US<br>
+                        <small>9 errors</small>
+                    </div>
+                </div>
+              
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([20, 0], 2);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Location data
+        const locations = [{"lat":44.07,"lng":-123.11,"count":4,"country":"US","city":"Eugene","isStarlink":false,"errorType":"sentry_error"},{"lat":25.03,"lng":121.57,"count":1,"country":"Taiwan","city":"臺北市","isStarlink":true,"errorType":"sentry_error"},{"lat":3.43,"lng":-76.52,"count":37,"country":"CO","city":"Cali","isStarlink":true,"errorType":"sentry_error"},{"lat":3.44,"lng":-76.52,"count":34,"country":"CO","city":"Cali","isStarlink":true,"errorType":"sentry_error"},{"lat":4.72,"lng":-74.11,"count":1,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":5.62,"lng":-73.81,"count":20,"country":"CO","city":"Chiquinquirá","isStarlink":false,"errorType":"sentry_error"},{"lat":5.7,"lng":-73.77,"count":2,"country":"CO","city":"Saboyá","isStarlink":false,"errorType":"sentry_error"},{"lat":51.82,"lng":5.87,"count":1,"country":"NL","city":"Nijmegen","isStarlink":false,"errorType":"sentry_error"},{"lat":4.71,"lng":-74.06,"count":49,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":4.7,"lng":-74.05,"count":9,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":4.61,"lng":-74.08,"count":5,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":4.67,"lng":-74.07,"count":1,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":2.12,"lng":-74.77,"count":2,"country":"CO","city":"San Vicente del Caguán","isStarlink":false,"errorType":"sentry_error"},{"lat":-24.53,"lng":-47.86,"count":1,"country":"BR","city":"Registro","isStarlink":false,"errorType":"sentry_error"},{"lat":39.09,"lng":-77.17,"count":1,"country":"US","city":"Rockville","isStarlink":false,"errorType":"sentry_error"},{"lat":4.61,"lng":-74.15,"count":16,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":4.66,"lng":-74.04,"count":1,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":52.02,"lng":5.66,"count":3,"country":"NL","city":"Ede","isStarlink":false,"errorType":"sentry_error"},{"lat":5.62,"lng":-73.82,"count":31,"country":"CO","city":"Chiquinquirá","isStarlink":false,"errorType":"sentry_error"},{"lat":43.01,"lng":-81.3,"count":22,"country":"CA","city":"London","isStarlink":false,"errorType":"sentry_error"},{"lat":4.71,"lng":-74.07,"count":150,"country":"Colombia","city":"Bogota","isStarlink":false,"errorType":"sentry_error"},{"lat":37.68,"lng":-122.48,"count":3,"country":"US","city":"Daly City","isStarlink":false,"errorType":"sentry_error"},{"lat":49.72,"lng":20.41,"count":24,"country":"Germany","city":"Berlin","isStarlink":false,"errorType":"sentry_error"},{"lat":51.37,"lng":12.38,"count":11,"country":"DE","city":"Leipzig","isStarlink":true,"errorType":"sentry_error"},{"lat":45.65,"lng":9.04,"count":2,"country":"Colombia","city":"Bogota","isStarlink":false,"errorType":"sentry_error"},{"lat":53.48,"lng":-2.24,"count":90,"country":"GB","city":"Manchester","isStarlink":true,"errorType":"sentry_error"},{"lat":4.69,"lng":-74.03,"count":5,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":4.59,"lng":-74.1,"count":11,"country":"CO","city":"Bogotá","isStarlink":true,"errorType":"sentry_error"},{"lat":4.57,"lng":-74.11,"count":1,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":4.56,"lng":-74.12,"count":2,"country":"CO","city":"Bogotá","isStarlink":true,"errorType":"sentry_error"},{"lat":38.05,"lng":-122.16,"count":42,"country":"US","city":"Benicia","isStarlink":true,"errorType":"sentry_error"},{"lat":37.55,"lng":-121.99,"count":3,"country":"US","city":"Fremont","isStarlink":false,"errorType":"sentry_error"},{"lat":4.65,"lng":-74.09,"count":3,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":5.54,"lng":-73.37,"count":15,"country":"CO","city":"Tunja","isStarlink":false,"errorType":"sentry_error"},{"lat":4.56,"lng":-74.09,"count":9,"country":"CO","city":"San Cristóbal","isStarlink":false,"errorType":"sentry_error"},{"lat":4.66,"lng":-74.12,"count":2,"country":"CO","city":"Bogotá","isStarlink":true,"errorType":"sentry_error"},{"lat":4.67,"lng":-74.09,"count":2,"country":"Colombia","city":"Bogota","isStarlink":false,"errorType":"sentry_error"},{"lat":4.63,"lng":-74.11,"count":2,"country":"CO","city":"Bogotá","isStarlink":true,"errorType":"sentry_error"},{"lat":4.68,"lng":-74.1,"count":2,"country":"CO","city":"Bogota","isStarlink":false,"errorType":"sentry_error"},{"lat":4.68,"lng":-74.16,"count":2,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":34.01,"lng":-118.11,"count":3,"country":"US","city":"Montebello","isStarlink":false,"errorType":"sentry_error"},{"lat":51.04,"lng":-114.07,"count":4,"country":"CA","city":"Calgary","isStarlink":false,"errorType":"sentry_error"},{"lat":37.89,"lng":-122.53,"count":1,"country":"US","city":"Mill Valley","isStarlink":false,"errorType":"sentry_error"},{"lat":51.51,"lng":-0.02,"count":3,"country":"United Kingdom","city":"London","isStarlink":false,"errorType":"sentry_error"},{"lat":-36,"lng":-60,"count":6,"country":"AR","city":"Buenos Aires","isStarlink":false,"errorType":"sentry_error"},{"lat":52.46,"lng":13.28,"count":6,"country":"DE","city":"Berlin","isStarlink":false,"errorType":"sentry_error"},{"lat":51.47,"lng":5.15,"count":5,"country":"Netherlands","city":"Amsterdam","isStarlink":false,"errorType":"sentry_error"},{"lat":51.34,"lng":12.37,"count":5,"country":"DE","city":"Leipzig","isStarlink":true,"errorType":"sentry_error"},{"lat":51.34,"lng":12.38,"count":9,"country":"DE","city":"Leipzig","isStarlink":true,"errorType":"sentry_error"},{"lat":51.08,"lng":13.78,"count":11,"country":"DE","city":"Dresden","isStarlink":true,"errorType":"sentry_error"},{"lat":4.6,"lng":-74.12,"count":1,"country":"CO","city":"Bogotá","isStarlink":true,"errorType":"sentry_error"},{"lat":51.34,"lng":12.32,"count":2,"country":"DE","city":"Leipzig","isStarlink":false,"errorType":"sentry_error"},{"lat":52.44,"lng":13.25,"count":1,"country":"DE","city":"Berlin","isStarlink":false,"errorType":"sentry_error"},{"lat":50.12,"lng":8.68,"count":2,"country":"DE","city":"Frankfurt am Main","isStarlink":false,"errorType":"sentry_error"},{"lat":4.6,"lng":-74.03,"count":1,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"},{"lat":34.15,"lng":-118.14,"count":3,"country":"US","city":"Pasadena","isStarlink":false,"errorType":"sentry_error"},{"lat":-25.5,"lng":-49.29,"count":4,"country":"BR","city":"Curitiba","isStarlink":false,"errorType":"sentry_error"},{"lat":47.39,"lng":8.54,"count":2,"country":"Switzerland","city":"Zurich","isStarlink":false,"errorType":"sentry_error"},{"lat":52.39,"lng":9.71,"count":1,"country":"Germany","city":"Hannover","isStarlink":false,"errorType":"sentry_error"},{"lat":47.38,"lng":8.54,"count":2,"country":"CH","city":"Zurich","isStarlink":false,"errorType":"sentry_error"},{"lat":37.42,"lng":-122.16,"count":9,"country":"US","city":"Stanford","isStarlink":false,"errorType":"sentry_error"},{"lat":32.78,"lng":-96.8,"count":30,"country":"US","city":"Dallas","isStarlink":false,"errorType":"sentry_error"},{"lat":37.95,"lng":-122.06,"count":1,"country":"US","city":"Pleasant Hill","isStarlink":false,"errorType":"sentry_error"},{"lat":39.04,"lng":-77.49,"count":1,"country":"US","city":"Ashburn","isStarlink":false,"errorType":"sentry_error"},{"lat":38.79,"lng":-77.07,"count":1,"country":"United States","city":"Alexandria","isStarlink":false,"errorType":"sentry_error"},{"lat":50.1,"lng":8.63,"count":1,"country":"DE","city":"Frankfurt am Main","isStarlink":false,"errorType":"sentry_error"},{"lat":4.63,"lng":-74.13,"count":2,"country":"CO","city":"Bogotá","isStarlink":false,"errorType":"sentry_error"}];
+        const colors = ["#ff0000","#0066ff","#00cc00","#ff9900","#cc00ff","#00ffff","#ff00cc","#ffff00"];
+        const maxCount = 150;
+        const minCount = 1;
+
+        // Calculate radius based on count (logarithmic scale)
+        function getRadius(count) {
+            const logMax = Math.log(maxCount);
+            const logMin = Math.log(Math.max(minCount, 1));
+            const logCount = Math.log(count);
+            const normalized = (logCount - logMin) / (logMax - logMin);
+            return Math.max(5, Math.min(50, 10 + normalized * 40));
+        }
+
+        // Add markers for each location
+        locations.forEach((loc, idx) => {
+            const radius = getRadius(loc.count);
+            const color = colors[idx % colors.length];
+            
+            const locationLabel = loc.city && loc.country 
+                ? loc.city + ', ' + loc.country
+                : loc.districtName || 'Unknown';
+            
+            const starlinkBadge = loc.isStarlink 
+                ? '<br><br><span style="background: #ff6b00; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold;">STARLINK</span>' 
+                : '';
+            
+            const popupContent = '<div style="text-align: center;">' +
+                '<strong>' + locationLabel + '</strong>' + starlinkBadge +
+                '<br><br>' +
+                '<strong>' + loc.count.toLocaleString() + '</strong> errors' +
+                (loc.districtName ? '<br><small>District: ' + loc.districtName + '</small>' : '') +
+                '</div>';
+            
+            L.circleMarker([loc.lat, loc.lng], {
+                radius: radius,
+                fillColor: color,
+                color: '#333',
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.6
+            })
+            .bindPopup(popupContent)
+            .addTo(map);
+        });
+
+        // Fit map to show all markers
+        if (locations.length > 0) {
+            const bounds = locations.map(loc => [loc.lat, loc.lng]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    </script>
+</body>
+</html>
