@@ -12,6 +12,28 @@ Your dashboard is always available at these stable URLs:
 
 These URLs automatically point to the latest production deployment.
 
+## Prerequisites
+
+### Git Author Configuration
+
+**Important:** Vercel requires that the Git author email matches a team member with deployment access. The project owner is `photo@cardinalphoto.com`.
+
+Before deploying, ensure your repo-local git config is set correctly:
+
+```bash
+git config user.name "Cardinal Photo"
+git config user.email "photo@cardinalphoto.com"
+```
+
+If your latest commit was authored with a different email (e.g., `github@proshooters.com`), create an empty commit to update the author:
+
+```bash
+git commit --allow-empty -m "chore: deploy as project owner"
+git push
+```
+
+This ensures Vercel's deployment authorization check passes.
+
 ## Build & Test Checklist
 
 Before deploying (locally or via CI):
@@ -101,6 +123,14 @@ vercel alias set <deployment-url> <alias-url>
 ## Troubleshooting
 
 ### Deployment Fails
+
+**Git Author Permission Error:**
+If you see: `Error: Git author <email> must have access to the team...`
+- Ensure your git author email matches a Vercel team member: `git config user.email`
+- Set it to `photo@cardinalphoto.com` (project owner): `git config user.email "photo@cardinalphoto.com"`
+- Create a new commit with the correct author: `git commit --allow-empty -m "chore: deploy as project owner" && git push`
+
+**Other Issues:**
 - Check your Vercel authentication: `vercel whoami`
 - Verify project linking: `vercel ls`
 - Check for syntax errors in `vercel.json`
@@ -113,6 +143,28 @@ vercel alias set <deployment-url> <alias-url>
 ### Script Execution Issues
 - For PowerShell: Run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 - For batch files: Run as administrator if needed
+
+## Audio Validation Files
+
+The Pitwall dashboard includes an **Audio Validation** component that displays validation summaries by language. Validation result files are stored in **Google Cloud Storage** (GCS) for the deployed environment:
+
+- **Bucket**: `levante-dashboard-dev` (or `DASHBOARD_DATA_BUCKET` env var)
+- **Prefix**: `pitwall/audio-validation-results/`
+
+### Uploading Validation Files
+
+After generating validation files locally (see `README_VALIDATION.md`), upload them to GCS:
+
+```bash
+# Set environment variable to enable auto-upload
+export UPLOAD_TO_GCS=1
+./scripts/generate-audio-validation.sh <language-code>
+
+# Or manually upload existing files
+node scripts/upload-audio-validation-files.js
+```
+
+The deployed Pitwall will automatically list and load validation files from GCS.
 
 ## Next Steps
 

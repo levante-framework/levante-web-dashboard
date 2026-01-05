@@ -7,13 +7,17 @@ Web dashboard application for managing Levante audio content, translations, and 
 - **Audio Approval Dashboard** – Review and approve audio content
 - **Partner Audio Dashboard** – Partner-facing audio management interface
 - **Pitwall** – Real-time monitoring and analytics
+  - **Audio Validation (ASR)** – Quantitative metrics per language (pass rates, needs review counts)
+  - **Audio Validation by Language** – Detailed breakdown table showing validation status by language
 - **Locate Me** – GPS-based city discovery with interactive map visualization
 
 ## Locate Me Feature
 
 The Locate Me feature (`public/locate-me.html`) allows users to discover their nearest cities using GPS coordinates and displays administrative boundaries on an interactive map.
 
-**Current deep-dive documentation:** see `docs/locate-me/README.md`.
+**Documentation:**
+- **Implementation details**: `docs/locate-me/README.md`
+- **Location strategies history**: `docs/location-strategies.md` (summary of strategies tried vs. currently in use)
 
 ### How It Works
 
@@ -43,11 +47,19 @@ Full documentation is available at `/docs/locate-me-doc.html` or via the Documen
   - `gadm-polygon.js` – Administrative boundary polygon API
   - `visual-audit.js` – Visual assets audit
   - `crowdin-*.js` – Crowdin integration APIs
+  - `audio-validation-summary.js` – Stores/loads aggregated audio validation summaries (GCS-backed)
+  - `list-validation-files.js` – Lists available validation result files (GCS-backed)
+  - `get-validation-file.js` – Retrieves a specific validation result file (GCS-backed)
 - `scripts/` – Build and deployment scripts
   - `apply-version.js` – Updates version numbers before deployment
   - `deploy-and-alias.js` – Orchestrates deployment and domain aliasing
   - `verify-deploy.js` – Verifies deployment across aliases
+  - `generate-audio-validation.sh` – Generates audio validation JSONs and imports them
+  - `import-audio-validation-files.sh` – Copies validation files from `levante_translations` repo
+  - `upload-audio-validation-files.js` – Uploads local validation files to GCS
+  - `compare-audio-file-versions.js` – Compares local audio files vs GCS buckets (timestamps, ID3 tags)
 - `data/` – Data files (geocoder city data, etc.)
+  - `validation/` – Local validation result JSONs (gitignored, uploaded to GCS for deployment)
 - `config/` – Configuration files
 
 ## Deployment
@@ -131,7 +143,41 @@ Retrieves administrative boundary polygons.
 curl "https://levante-audio-dashboard.vercel.app/api/gadm-polygon?country=USA&lat=37.424&lon=-122.166"
 ```
 
+## Audio Validation
+
+The Pitwall dashboard includes comprehensive audio validation reporting:
+
+### Pitwall Integration
+
+- **Status Pill**: Shows overall pass rate and needs review count
+- **By-Language Table**: Displays validation metrics per language (pass %, needs review count, average similarity)
+- **Data Source**: Validation summaries are stored in GCS (`levante-dashboard-dev/pitwall/audio-validation-summary/`) and automatically published when loading validation files
+
+### Workflow
+
+1. **Generate Validation**: Run validation in `../levante_translations`:
+   ```bash
+   ./scripts/generate-audio-validation.sh <language-code>
+   ```
+
+2. **Upload to GCS** (for deployed Pitwall):
+   ```bash
+   export UPLOAD_TO_GCS=1
+   ./scripts/generate-audio-validation.sh <language-code>
+   # Or manually:
+   node scripts/upload-audio-validation-files.js
+   ```
+
+3. **View in Pitwall**: Open the deployed Pitwall → Audio Validation section shows the latest summary
+
+See `README_VALIDATION.md` for detailed validation system documentation.
+
 ## Recent Improvements
+
+### Audio Validation
+- Added Pitwall component with quantitative metrics (pass rates, needs review counts per language)
+- GCS-backed storage for validation files and summaries (deployed environment)
+- Automatic summary publishing when loading validation files
 
 ### Reverse Geocoding
 - Fixed algorithm to scan all candidates within range (not just first N)

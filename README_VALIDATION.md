@@ -232,9 +232,9 @@ The **Audio Validation System** complements translation validation by verifying 
 ### Web Dashboard Integration
 
 **Access Audio Validation:**
-1. Click the **"Audio Validation"** button in the validation toolbar
-2. Select a validation results file from the dropdown
-3. Review results with sorting and filtering options
+1. Navigate to the **Audio Validation** page (`audio-validation.html`)
+2. Select a validation results file from the dropdown (files are loaded from GCS in deployed environment)
+3. Click **Load** to view results with sorting and filtering options
 
 **Interactive Features:**
 - **Play Audio**: Listen to original generated audio
@@ -250,9 +250,43 @@ The **Audio Validation System** complements translation validation by verifying 
 - Identify timing inconsistencies
 - Verify speed adjustments work as expected
 
+### Pitwall Integration
+
+The **Pitwall** dashboard (`index.html`) includes an **Audio Validation (ASR)** component that displays:
+
+- **Status Pill**: Overall pass rate percentage and needs review count
+- **By-Language Table**: Detailed breakdown showing:
+  - Language code
+  - Pass percentage
+  - Needs review count
+  - Average similarity score
+  - Total items validated
+
+**How It Works:**
+1. When you load a validation file on the Audio Validation page, it automatically publishes a summary to `/api/audio-validation-summary?key=latest`
+2. The summary is stored in GCS (`levante-dashboard-dev/pitwall/audio-validation-summary/latest.json`)
+3. The Pitwall dashboard fetches and displays this summary on page load
+4. The summary includes overall metrics plus per-language breakdowns
+
+**Storage:**
+- **Local Development**: Summaries are stored in-memory (fallback)
+- **Deployed Environment**: Summaries are stored in GCS for persistence across deployments
+
 ### Usage Examples
 
 **Command Line Validation:**
+
+From the `levante-web-dashboard` repo:
+```bash
+# Generate validation and import into dashboard
+./scripts/generate-audio-validation.sh es-CO
+
+# With auto-upload to GCS (for deployed Pitwall)
+export UPLOAD_TO_GCS=1
+./scripts/generate-audio-validation.sh de
+```
+
+From the `levante_translations` repo:
 ```bash
 # Validate English audio files
 ./validate_language.sh en
@@ -263,9 +297,39 @@ python -m validate_audio "audio_files/de/*.mp3" \
 ```
 
 **Expected Output Location:**
+
+Validation files are generated in `levante_translations/web-dashboard/public/data/`:
 ```
-web-dashboard/data/validation-{language}-{Month-Day-Year}.json
+validation-{language}-{Month-Day-Year}.json
 ```
+
+They are then imported into `levante-web-dashboard/data/validation/` and optionally uploaded to GCS:
+```
+gs://levante-dashboard-dev/pitwall/audio-validation-results/validation-{language}-{Month-Day-Year}.json
+```
+
+### Uploading Validation Files to GCS
+
+For the deployed Pitwall to access validation files, upload them to GCS:
+
+```bash
+# Automatic upload (during generation)
+export UPLOAD_TO_GCS=1
+./scripts/generate-audio-validation.sh <language-code>
+
+# Manual upload (existing files)
+node scripts/upload-audio-validation-files.js
+
+# With custom bucket/prefix
+node scripts/upload-audio-validation-files.js \
+    --bucket levante-dashboard-prod \
+    --prefix pitwall/audio-validation-results
+```
+
+**Environment Variables:**
+- `DASHBOARD_DATA_BUCKET` – GCS bucket name (default: `levante-dashboard-dev`)
+- `AUDIO_VALIDATION_FILES_PREFIX` – GCS prefix for validation files (default: `pitwall/audio-validation-results`)
+- `GCP_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` – GCP credentials (required)
 
 ### Troubleshooting
 
@@ -290,6 +354,42 @@ The audio validation system uses a multi-pass similarity algorithm:
 4. **Fuzzy Match**: Catch spelling differences and OCR errors
 
 This approach achieves high accuracy while being robust to common transcription variations.
+
+### ID3 Tag Management
+
+Audio files include ID3 tags for metadata (`text`, `voice`, `service`, `lang_code`, `created`). These tags are used by the validation system to extract expected text.
+
+**Fixing Incorrect Tags:**
+
+If validation results show incorrect "Expected" values (e.g., item keys instead of actual translations), use the ID3 tag fixing script in `levante_translations`:
+
+```bash
+cd ../levante_translations
+
+# Dry run (audit only)
+python utilities/fix_audio_text_tags.py --lang de --csv translations/item-bank-translations.csv
+
+# Apply fixes to 'text' tags
+python utilities/fix_audio_text_tags.py --lang de --csv translations/item-bank-translations.csv --apply
+
+# Also fix other metadata (voice, service, lang_code, created, etc.)
+python utilities/fix_audio_text_tags.py --lang de --csv translations/item-bank-translations.csv --apply --fix-metadata
+```
+
+**Comparing Local vs GCS Versions:**
+
+After fixing tags locally, compare against dev/prod buckets:
+
+```bash
+# Compare timestamps and ID3 tags
+node scripts/compare-audio-file-versions.js \
+    --lang de \
+    --report ../levante_translations/fix-report-de-applied.json \
+    --download-tags \
+    --out comparison-report.json
+```
+
+This helps identify which files need to be uploaded to GCS buckets.
 
 ---
 
