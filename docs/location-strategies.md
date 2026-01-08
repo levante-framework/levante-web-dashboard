@@ -222,6 +222,8 @@ Return GeoJSON boundary
 ### Potential Improvements
 
 1. **Population Data**: Currently estimates by summing cities-in-polygon; could use gridded sources (WorldPop, GPW)
+   - **See**: `docs/worldpop-integration.md` for detailed analysis and integration guide
+   - **Recommendation**: Use WorldPop for gallery generation (server-side), keep GeoNames for interactive page (client-side)
 2. **Weather**: Currently uses coarse query points; could improve with hourly series
 3. **More Countries**: Add ADM packs for additional countries as needed
 4. **Boundary Updates**: GeoBoundaries updates periodically; consider automated pack rebuilds
