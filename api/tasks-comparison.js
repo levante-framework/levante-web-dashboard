@@ -21,9 +21,34 @@ const FIREBASE_CONFIGS = {
  * @param {string} apiKey - Firebase API key
  * @param {string} collectionId - Collection to query (e.g., 'tasks' or 'variants')
  * @param {boolean} allDescendants - Whether to query all descendants (for subcollections)
+ * @param {string} authToken - Optional Firebase auth token for authenticated requests
  * @returns {Promise<Array>} Array of document results
  */
-async function queryFirestore(projectId, apiKey, collectionId, allDescendants = false) {
+async function getServiceAccountAccessToken() {
+  try {
+    const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (!serviceAccountJson) {
+      console.log('No service account JSON found in environment');
+      return null;
+    }
+    
+    const credentials = JSON.parse(serviceAccountJson);
+    const { GoogleAuth } = await import('google-auth-library');
+    const auth = new GoogleAuth({
+      credentials: credentials,
+      scopes: ['https://www.googleapis.com/auth/datastore']
+    });
+    const client = await auth.getClient();
+    const accessToken = await client.getAccessToken();
+    console.log('Got service account access token for Firestore');
+    return accessToken.token;
+  } catch (error) {
+    console.warn('Could not get service account access token:', error.message);
+    return null;
+  }
+}
+
+async function queryFirestore(projectId, apiKey, collectionId, allDescendants = false, authToken = null) {
   const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
   
   const requestBody = {
@@ -35,18 +60,37 @@ async function queryFirestore(projectId, apiKey, collectionId, allDescendants = 
     }
   };
 
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  
+  // Use provided auth token, or try to get service account token
+  let token = authToken;
+  if (!token) {
+    token = await getServiceAccountAccessToken();
+  }
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: headers,
       body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Firestore API error (${response.status}): ${errorText}`);
+      let errorMessage = `Firestore API error (${response.status})`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error?.message || errorJson.message || errorText;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      throw new Error(`${errorMessage} (project: ${projectId})`);
     }
 
     const data = await response.json();
@@ -107,13 +151,13 @@ function convertFirestoreValue(value) {
 /**
  * Fetch all tasks and their variants for a given environment
  */
-async function fetchTasksAndVariants(projectId, apiKey) {
+async function fetchTasksAndVariants(projectId, apiKey, authToken = null) {
   try {
     // Fetch tasks
-    const tasks = await queryFirestore(projectId, apiKey, 'tasks', false);
+    const tasks = await queryFirestore(projectId, apiKey, 'tasks', false, authToken);
     
     // Fetch all variants (using allDescendants to get subcollection)
-    const variants = await queryFirestore(projectId, apiKey, 'variants', true);
+    const variants = await queryFirestore(projectId, apiKey, 'variants', true, authToken);
     
     // Group variants by task ID
     const variantsByTask = {};
@@ -167,10 +211,23 @@ export default async function handler(req, res) {
   }
 
   try {
+    // For now, try without auth token first (will use service account if available)
+    // TODO: Add Firebase Admin SDK for proper authentication
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const authToken = authHeader ? authHeader.replace('Bearer ', '') : null;
+    
+    console.log('Tasks comparison request - auth token provided:', !!authToken);
+    
     // Fetch from both environments in parallel
     const [devData, prodData] = await Promise.all([
-      fetchTasksAndVariants(FIREBASE_CONFIGS.dev.projectId, FIREBASE_CONFIGS.dev.apiKey),
-      fetchTasksAndVariants(FIREBASE_CONFIGS.prod.projectId, FIREBASE_CONFIGS.prod.apiKey)
+      fetchTasksAndVariants(FIREBASE_CONFIGS.dev.projectId, FIREBASE_CONFIGS.dev.apiKey, authToken).catch(err => {
+        console.error('Dev fetch error:', err.message);
+        throw new Error(`Dev project error: ${err.message}`);
+      }),
+      fetchTasksAndVariants(FIREBASE_CONFIGS.prod.projectId, FIREBASE_CONFIGS.prod.apiKey, authToken).catch(err => {
+        console.error('Prod fetch error:', err.message);
+        throw new Error(`Prod project error: ${err.message}`);
+      })
     ]);
 
     // Create comparison data
@@ -220,9 +277,11 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('tasks-comparison error:', error);
-    res.status(500).json({ 
-      error: 'Internal error', 
+    const statusCode = error.message.includes('401') || error.message.includes('403') ? 403 : 500;
+    res.status(statusCode).json({ 
+      error: 'Failed to fetch tasks comparison', 
       message: error.message,
+      details: error.message.includes('Firestore API error') ? 'Check that service account has Firestore access' : undefined,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }

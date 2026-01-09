@@ -597,9 +597,49 @@
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading comparison data...</div>';
     
     try {
-      const response = await fetch('/api/tasks-comparison', { cache: 'no-cache' });
+      // Get Firebase auth token if Firebase is available
+      let authToken = null;
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+          const auth = firebase.auth();
+          const user = auth.currentUser;
+          if (user) {
+            authToken = await user.getIdToken();
+            console.log('Using Firebase auth token for Firestore requests');
+          } else {
+            console.warn('No authenticated user found. Firestore requests may fail without authentication.');
+          }
+        } catch (authError) {
+          console.warn('Could not get Firebase auth token:', authError);
+        }
+      }
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
+      const response = await fetch('/api/tasks-comparison', { 
+        cache: 'no-cache',
+        headers: headers
+      });
+      
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        let errorText = await response.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorText = errorJson.message || errorJson.error || errorText;
+        } catch {
+          // Keep original error text
+        }
+        
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Authentication required. Please sign in with Firebase.');
+        }
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
       
       const data = await response.json();
@@ -739,5 +779,26 @@
     </div>
   </div>
 </div>
+
+<!-- Firebase SDK for authentication -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="./firebase-config.js"></script>
+<script>
+  // Initialize Firebase for Pitwall (using dev project config)
+  if (typeof firebase !== 'undefined' && window.FIREBASE_CONFIG) {
+    try {
+      // Check if Firebase is already initialized
+      if (!firebase.apps || firebase.apps.length === 0) {
+        firebase.initializeApp(window.FIREBASE_CONFIG);
+        console.log('Firebase initialized for Pitwall');
+      } else {
+        console.log('Firebase already initialized');
+      }
+    } catch (error) {
+      console.warn('Firebase initialization error:', error);
+    }
+  }
+</script>
 </body>
 </html>
