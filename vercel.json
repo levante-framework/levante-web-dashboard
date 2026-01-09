@@ -68,6 +68,9 @@
     "api/location-log.js": {
       "maxDuration": 10,
       "excludeFiles": "data/{tiger,geonames,geocoder}/**"
+    },
+    "api/tasks-comparison.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
