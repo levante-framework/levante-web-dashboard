@@ -597,21 +597,30 @@
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading comparison data...</div>';
     
     try {
-      // Get Firebase auth token - required for Firestore access
+      // API will use service account credentials automatically if configured
+      // Only send user token if available (as fallback)
       let authToken = null;
-      try {
-        authToken = await getFirebaseAuthToken();
-        console.log('Using Firebase auth token for Firestore requests');
-      } catch (authError) {
-        console.error('Auth error:', authError);
-        container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> Authentication required: ${authError.message}<br><small style="color: rgba(203, 213, 225, 0.6); margin-top: 8px; display: block;">Please sign in with Firebase to access Firestore data</small></div>`;
-        return;
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+          const auth = firebase.auth();
+          const user = auth.currentUser;
+          if (user) {
+            authToken = await user.getIdToken();
+            console.log('Sending user auth token (API will prefer service account if available)');
+          }
+        } catch (authError) {
+          console.log('No user auth token available - API will use service account');
+        }
       }
       
       const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
+        'Content-Type': 'application/json'
       };
+      
+      // Only send auth header if we have a user token (service account is handled server-side)
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
       
       const response = await fetch('/api/tasks-comparison', { 
         cache: 'no-cache',

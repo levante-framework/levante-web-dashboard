@@ -211,22 +211,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get user's Firebase auth token from Authorization header
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    const authToken = authHeader ? authHeader.replace('Bearer ', '') : null;
+    // Try to use service account credentials first (preferred - no user login required)
+    let authToken = await getServiceAccountAccessToken();
     
+    // Fallback to user auth token if service account not available
     if (!authToken) {
-      return res.status(401).json({ 
-        error: 'Authentication required', 
-        message: 'Please sign in with Firebase to access Firestore data' 
-      });
+      const authHeader = req.headers.authorization || req.headers.Authorization;
+      authToken = authHeader ? authHeader.replace('Bearer ', '') : null;
+      
+      if (!authToken) {
+        return res.status(401).json({ 
+          error: 'Authentication required', 
+          message: 'Service account credentials (GCP_SERVICE_ACCOUNT_JSON) not configured. Please configure in Vercel project settings or sign in with Firebase.' 
+        });
+      }
+      console.log('Tasks comparison request - using user auth token (fallback)');
+    } else {
+      console.log('Tasks comparison request - using service account token');
     }
     
-    console.log('Tasks comparison request - using user auth token');
-    
-    // Fetch from both environments in parallel using user's auth token
-    // Note: The token needs to be valid for both projects. If you're signed in with dev project,
-    // you may need to sign in with prod project as well, or use a service account.
+    // Fetch from both environments in parallel
     const [devData, prodData] = await Promise.all([
       fetchTasksAndVariants(FIREBASE_CONFIGS.dev.projectId, FIREBASE_CONFIGS.dev.apiKey, authToken).catch(err => {
         console.error('Dev fetch error:', err.message);
