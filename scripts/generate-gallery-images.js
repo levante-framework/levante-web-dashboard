@@ -12,14 +12,23 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const zlib = require('zlib');
+const crypto = require('crypto');
 const sharp = require('sharp');
 
-// Load environment variables from .env file if it exists (do not log secrets)
+// Load environment variables from .env files if they exist (do not log secrets)
 try {
   const dotenv = require('dotenv');
+  // Try .env.local first (common for local overrides), then .env
+  const envLocalPath = path.join(process.cwd(), '.env.local');
   const envPath = path.join(process.cwd(), '.env');
-  // override=true ensures reruns in the same shell pick up updated .env values.
-  dotenv.config({ path: envPath, override: true, quiet: true });
+  
+  // Load .env.local first (if exists), then .env (will override if both exist)
+  if (fs.existsSync(envLocalPath)) {
+    dotenv.config({ path: envLocalPath, override: false, quiet: true });
+  }
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: true, quiet: true });
+  }
 } catch (e) {
   // dotenv not installed or .env file doesn't exist - that's okay
 }
@@ -50,7 +59,12 @@ function validateMapboxStaticImagesToken(token) {
     if (!token) return resolve(false);
     // Tiny request just to verify Static Images access.
     const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/0,0,0/1x1?access_token=${encodeURIComponent(token)}`;
-    const req = https.get(url, (res) => {
+    const referer = process.env.MAPBOX_REFERER || 'https://levante-pitwall.vercel.app/';
+    const headers = {
+      'Referer': referer,
+      'User-Agent': 'Mozilla/5.0 (compatible; LevanteGalleryGenerator/1.0)'
+    };
+    const req = https.get(url, { headers }, (res) => {
       // Consume data to avoid socket leaks.
       res.on('data', () => {});
       res.on('end', () => resolve(res.statusCode === 200));
@@ -66,6 +80,138 @@ function formatPopulation(n) {
     return Math.round(num).toLocaleString();
   } catch (_) {
     return String(Math.round(num));
+  }
+}
+
+// --- WorldPop Population Cache ---
+const WORLDPOP_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'worldpop-cache.json');
+let worldPopCache = null;
+let lastWorldPopFetchAt = 0;
+
+function loadWorldPopCache() {
+  if (worldPopCache) return worldPopCache;
+  try {
+    if (fs.existsSync(WORLDPOP_CACHE_PATH)) {
+      worldPopCache = JSON.parse(fs.readFileSync(WORLDPOP_CACHE_PATH, 'utf8'));
+    } else {
+      worldPopCache = {};
+    }
+  } catch (_) {
+    worldPopCache = {};
+  }
+  return worldPopCache;
+}
+
+function saveWorldPopCache() {
+  try {
+    fs.mkdirSync(path.dirname(WORLDPOP_CACHE_PATH), { recursive: true });
+    fs.writeFileSync(WORLDPOP_CACHE_PATH, JSON.stringify(worldPopCache || {}, null, 2));
+  } catch (_) {}
+}
+
+/**
+ * Estimate population using WorldPop API
+ * @param {Object} geometry - GeoJSON geometry (Polygon or MultiPolygon)
+ * @returns {Promise<number|null>} Population estimate or null if unavailable
+ */
+async function estimatePopulationFromWorldPop(geometry) {
+  if (!geometry || !geometry.type || !geometry.coordinates) return null;
+  
+  // Create a stable cache key from geometry coordinates (simplified)
+  const geomStr = JSON.stringify(geometry);
+  const cacheKey = crypto.createHash('sha256').update(geomStr).digest('hex').substring(0, 16);
+  
+  const cache = loadWorldPopCache();
+  const cached = cache[cacheKey];
+  const now = Date.now();
+  
+  // Cache for 7 days (WorldPop data doesn't change frequently)
+  if (cached && cached.expiresAt && now < cached.expiresAt && cached.population !== null) {
+    return cached.population;
+  }
+
+  // Light throttle (avoid bursts) - 200ms between requests
+  const since = now - lastWorldPopFetchAt;
+  if (since < 200) {
+    await new Promise((r) => setTimeout(r, 200 - since));
+  }
+  lastWorldPopFetchAt = Date.now();
+
+  try {
+    // Simplify geometry for WorldPop API (reduces URL length and improves performance)
+    // WorldPop uses 100m resolution, so we can simplify significantly without losing accuracy
+    let simplifiedGeometry = geometry;
+    if (geometry && (geometry.type === 'Polygon' || geometry.type === 'MultiPolygon')) {
+      // Use moderate tolerance (0.001 degrees ≈ 111m) - matches WorldPop resolution
+      simplifiedGeometry = simplifyPolygon(geometry, 0.001);
+    }
+    
+    // Create GeoJSON Feature for WorldPop API
+    const geojson = {
+      type: 'Feature',
+      geometry: simplifiedGeometry
+    };
+
+    const geojsonStr = JSON.stringify(geojson);
+    const encodedGeojson = encodeURIComponent(geojsonStr);
+    
+    // Check URL length before making request (most servers limit to 2048-8192 chars)
+    const baseUrl = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=`;
+    const url = baseUrl + encodedGeojson;
+    
+    // If URL is still too long after simplification, simplify more aggressively
+    const MAX_URL_LENGTH = 8000; // Conservative limit
+    if (url.length > MAX_URL_LENGTH) {
+      // Simplify more aggressively (0.005 degrees ≈ 555m)
+      simplifiedGeometry = simplifyPolygon(geometry, 0.005);
+      const simplifiedGeojson = {
+        type: 'Feature',
+        geometry: simplifiedGeometry
+      };
+      const simplifiedStr = JSON.stringify(simplifiedGeojson);
+      const simplifiedUrl = baseUrl + encodeURIComponent(simplifiedStr);
+      
+      if (simplifiedUrl.length > MAX_URL_LENGTH) {
+        // Still too long - fall back to GeoNames
+        console.warn(`WorldPop API: Geometry too complex (URL would be ${simplifiedUrl.length} chars), falling back to GeoNames`);
+        return null;
+      }
+      
+      // Use the more simplified version
+      url = simplifiedUrl;
+    }
+    
+    // Make the API request
+    const json = await fetchJsonHttps(url);
+    
+    // WorldPop API returns: { "stats": { "sum": 12345, "mean": 12.3, ... } }
+    const population = json?.stats?.sum;
+    
+    if (typeof population === 'number' && population >= 0) {
+      const result = Math.round(population);
+      
+      // Cache the result
+      cache[cacheKey] = {
+        fetchedAt: Date.now(),
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        population: result
+      };
+      saveWorldPopCache();
+      
+      return result;
+    }
+    
+    return null;
+  } catch (error) {
+    // Handle specific error cases
+    if (error.message && error.message.includes('414')) {
+      // URL too long - geometry is too complex
+      console.warn(`WorldPop API: Request-URI too long (414), geometry too complex. Falling back to GeoNames.`);
+    } else {
+      // Other errors - log but don't fail - fall back to GeoNames
+      console.warn(`WorldPop API error for geometry: ${error.message}`);
+    }
+    return null;
   }
 }
 
@@ -388,6 +534,29 @@ function estimatePopulationFromCities(geometry, countryCode) {
     if (pointInPolygonGeometry(pt, geometry)) total += pop;
   }
   return total || null;
+}
+
+/**
+ * Unified population estimation: tries WorldPop first, falls back to GeoNames
+ * @param {Object} geometry - GeoJSON geometry (Polygon or MultiPolygon)
+ * @param {string} countryCode - ISO country code (for GeoNames fallback)
+ * @returns {Promise<number|null>} Population estimate or null if unavailable
+ */
+async function estimatePopulation(geometry, countryCode) {
+  if (!geometry) return null;
+  
+  // Try WorldPop API first (more accurate, includes rural areas)
+  try {
+    const worldPop = await estimatePopulationFromWorldPop(geometry);
+    if (worldPop !== null && worldPop > 0) {
+      return worldPop;
+    }
+  } catch (error) {
+    console.warn('WorldPop estimation failed, falling back to GeoNames:', error.message);
+  }
+  
+  // Fallback to GeoNames (current method - city-based)
+  return estimatePopulationFromCities(geometry, countryCode);
 }
 
 function safeStatBytes(filePath) {
@@ -1162,8 +1331,10 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     const zoom = calculateZoomForWidth(point.lat, 16.0934); // ~10 miles width
     // Some Mapbox tokens are configured with URL (referrer) restrictions. Server-side requests
     // don't include a Referer header by default, so allow specifying one.
+    const referer = process.env.MAPBOX_REFERER || 'https://levante-pitwall.vercel.app/';
     const requestHeaders = {
-      Referer: process.env.MAPBOX_REFERER || 'https://levante-pitwall.vercel.app/'
+      'Referer': referer,
+      'User-Agent': 'Mozilla/5.0 (compatible; LevanteGalleryGenerator/1.0)'
     };
     const doGet = (u) => https.get(u, { headers: requestHeaders }, handleResponse);
 
@@ -1285,10 +1456,11 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             const cityLevel = cityArea?.adminLevel || null;
             const escapeXml = (s = '') => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
-            // Population: better estimate by summing GeoNames city populations inside the polygon.
-            // Note: this is approximate (GeoNames cities5000-derived, filtered to pop>=1000).
-            const localPopEst = estimatePopulationFromCities(effectiveLocalPolygon?.geometry, point?.country);
-            const bluePopEst = estimatePopulationFromCities(cityArea?.polygon?.geometry, point?.country);
+            // Population: uses WorldPop API (more accurate, includes rural areas) with GeoNames fallback
+            // WorldPop provides gridded population data at 100m resolution
+            // Falls back to GeoNames city-summing if WorldPop unavailable
+            const localPopEst = await estimatePopulation(effectiveLocalPolygon?.geometry, point?.country);
+            const bluePopEst = await estimatePopulation(cityArea?.polygon?.geometry, point?.country);
             const localPopText = localPopEst ? formatPopulation(localPopEst) : 'Unknown';
             const bluePopText = bluePopEst ? formatPopulation(bluePopEst) : 'Unknown';
 
@@ -1683,7 +1855,20 @@ if (token && !token.includes('rJcFIG214AriISLbB6B5aw')) {
 async function generateImage(data, index, total) {
   const { point, polygons = [], adminArea, cityArea } = data;
   // Get token from main scope (passed via closure) or process.env
-  const mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+  let mapboxToken = process.env.MAPBOX_ACCESS_TOKEN;
+  
+  // Clean token (strip quotes and semicolon if present)
+  if (mapboxToken) {
+    mapboxToken = mapboxToken.trim();
+    if (mapboxToken.endsWith(';')) {
+      mapboxToken = mapboxToken.slice(0, -1).trim();
+    }
+    while ((mapboxToken.length >= 2 && 
+            ((mapboxToken.startsWith('"') && mapboxToken.endsWith('"')) || 
+             (mapboxToken.startsWith("'") && mapboxToken.endsWith("'"))))) {
+      mapboxToken = mapboxToken.slice(1, -1).trim();
+    }
+  }
   
   if (!mapboxToken) {
     console.error(`    Error: MAPBOX_ACCESS_TOKEN not set. Skipping ${point.id}`);
@@ -1723,12 +1908,30 @@ async function main() {
   }
   
   // Check for token early - must be exported in shell environment
-  const token = process.env.MAPBOX_ACCESS_TOKEN;
+  let token = process.env.MAPBOX_ACCESS_TOKEN;
+  
+  // Strip quotes and trailing semicolon if present (dotenv may preserve quotes from .env file)
+  // Handle formats like: 'value', "value", "'value'", '"value"', 'value';, etc.
+  if (token) {
+    token = token.trim();
+    // Remove trailing semicolon if present
+    if (token.endsWith(';')) {
+      token = token.slice(0, -1).trim();
+    }
+    // Strip outer quotes (may be nested: "'value'" or '"value"')
+    while ((token.length >= 2 && 
+            ((token.startsWith('"') && token.endsWith('"')) || 
+             (token.startsWith("'") && token.endsWith("'"))))) {
+      token = token.slice(1, -1).trim();
+    }
+  }
+  
   if (!token) {
     console.error('❌ ERROR: MAPBOX_ACCESS_TOKEN not found in environment');
     console.error('   The token must be exported in your shell before running this script');
     console.error('   Try: export MAPBOX_ACCESS_TOKEN=your_token_here');
-    console.error('   Or: MAPBOX_ACCESS_TOKEN=your_token_here node scripts/generate-gallery-images.js\n');
+    console.error('   Or: MAPBOX_ACCESS_TOKEN=your_token_here node scripts/generate-gallery-images.js');
+    console.error('   Or: Add MAPBOX_ACCESS_TOKEN=your_token_here to .env file\n');
     process.exit(1);
   } else {
     console.log(`✅ MAPBOX_ACCESS_TOKEN found\n`);
