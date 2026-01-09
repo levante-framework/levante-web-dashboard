@@ -54,6 +54,27 @@
         .task-item .task-meta { font-size: 0.85rem; color: rgba(203, 213, 225, 0.7); }
         .loading { text-align: center; padding: 40px; color: #00c8ff; }
         .error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 16px; color: #fca5a5; margin-bottom: 16px; }
+        /* Sign-in modal styles */
+        .signin-modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 10001; backdrop-filter: blur(4px); }
+        .signin-modal.active { display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .signin-content { background: linear-gradient(135deg, rgba(9, 17, 31, 0.98), rgba(15, 23, 42, 0.98)); border-radius: 20px; padding: 32px; max-width: 400px; width: 100%; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 123, 0, 0.3); }
+        .signin-content h3 { margin: 0 0 20px; color: #ffb347; font-size: 1.5rem; }
+        .signin-content p { margin: 0 0 20px; color: rgba(203, 213, 225, 0.8); font-size: 0.95rem; line-height: 1.6; }
+        .signin-form { display: flex; flex-direction: column; gap: 16px; }
+        .signin-form input { background: rgba(7, 13, 24, 0.9); border: 1px solid rgba(255, 123, 0, 0.3); border-radius: 8px; padding: 12px; color: #f8fafc; font-size: 1rem; }
+        .signin-form input:focus { outline: none; border-color: rgba(255, 123, 0, 0.7); }
+        .signin-form button { background: rgba(255, 123, 0, 0.8); border: none; border-radius: 8px; padding: 12px; color: #06141f; font-weight: 600; cursor: pointer; font-size: 1rem; transition: background 0.2s; }
+        .signin-form button:hover { background: rgba(255, 123, 0, 1); }
+        .signin-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .signin-divider { text-align: center; margin: 16px 0; color: rgba(203, 213, 225, 0.6); position: relative; }
+        .signin-divider::before, .signin-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: rgba(255, 123, 0, 0.2); }
+        .signin-divider::before { left: 0; }
+        .signin-divider::after { right: 0; }
+        .signin-google-btn { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 123, 0, 0.3); border-radius: 8px; padding: 12px; color: #f8fafc; font-weight: 600; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+        .signin-google-btn:hover { background: rgba(255, 255, 255, 0.15); }
+        .signin-error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 12px; color: #fca5a5; font-size: 0.9rem; margin-top: 8px; }
+        .close-button { background: transparent; border: none; color: #ffb347; font-size: 1.5rem; cursor: pointer; padding: 8px; border-radius: 8px; transition: background 0.2s; }
+        .close-button:hover { background: rgba(255, 123, 0, 0.2); }
         .section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .section-title h2 { margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.08em; }
         .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -581,6 +602,23 @@
   function openTasksComparison() {
     const modal = document.getElementById('tasksComparisonModal');
     if (!modal) return;
+    
+    // Check if user is authenticated
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const auth = firebase.auth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        // Show sign-in modal first
+        showSignInModal(() => {
+          // After successful sign-in, open comparison modal
+          modal.classList.add('active');
+          loadTasksComparison();
+        });
+        return;
+      }
+    }
+    
     modal.classList.add('active');
     loadTasksComparison();
   }
@@ -597,8 +635,7 @@
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading comparison data...</div>';
     
     try {
-      // API will use service account credentials automatically if configured
-      // Only send user token if available (as fallback)
+      // Get user auth token (required for Firestore access)
       let authToken = null;
       if (typeof firebase !== 'undefined' && firebase.auth) {
         try {
@@ -606,21 +643,22 @@
           const user = auth.currentUser;
           if (user) {
             authToken = await user.getIdToken();
-            console.log('Sending user auth token (API will prefer service account if available)');
+            console.log('Using user auth token for Firestore access');
+          } else {
+            throw new Error('Not authenticated. Please sign in.');
           }
         } catch (authError) {
-          console.log('No user auth token available - API will use service account');
+          console.error('Auth error:', authError);
+          throw new Error('Authentication required. Please sign in with Firebase.');
         }
+      } else {
+        throw new Error('Firebase not available. Please refresh the page.');
       }
       
       const headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
       };
-      
-      // Only send auth header if we have a user token (service account is handled server-side)
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
       
       const response = await fetch('/api/tasks-comparison', { 
         cache: 'no-cache',
@@ -637,7 +675,11 @@
         }
         
         if (response.status === 401 || response.status === 403) {
-          throw new Error('Authentication required. Please sign in with Firebase.');
+          // Clear auth state and show sign-in again
+          if (typeof firebase !== 'undefined' && firebase.auth) {
+            await firebase.auth().signOut();
+          }
+          throw new Error('Authentication failed. Please sign in again.');
         }
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
@@ -647,6 +689,11 @@
     } catch (error) {
       console.error('Error loading tasks comparison:', error);
       container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> Error loading comparison: ${error.message}</div>`;
+      
+      // If auth error, show sign-in button
+      if (error.message.includes('Authentication') || error.message.includes('sign in')) {
+        container.innerHTML += `<div style="text-align: center; margin-top: 16px;"><button onclick="showSignInModal(() => loadTasksComparison())" style="background: rgba(255, 123, 0, 0.8); border: none; border-radius: 8px; padding: 12px 24px; color: #06141f; font-weight: 600; cursor: pointer;">Sign In</button></div>`;
+      }
     }
   }
 
@@ -770,12 +817,41 @@
   <div class="modal-content">
     <div class="modal-header">
       <h2><i class="fas fa-code-branch"></i> Dev/Prod Tasks Comparison</h2>
-      <button class="modal-close" onclick="closeTasksComparison()" aria-label="Close">
+      <button class="close-button" onclick="closeTasksComparison()" aria-label="Close">
         <i class="fas fa-times"></i>
       </button>
     </div>
     <div id="comparisonContent">
       <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Sign-in Modal -->
+<div id="signInModal" class="signin-modal">
+  <div class="signin-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-sign-in-alt"></i> Sign In Required</h3>
+      <button class="close-button" onclick="closeSignInModal()" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <p>Please sign in with your Firebase credentials to compare tasks between dev and prod environments.</p>
+    
+    <div class="signin-form">
+      <input type="email" id="signInEmail" placeholder="Email address" autocomplete="email" />
+      <input type="password" id="signInPassword" placeholder="Password" autocomplete="current-password" />
+      <button id="signInSubmit" onclick="signInWithEmail()">
+        <i class="fas fa-envelope"></i> Sign In with Email
+      </button>
+      
+      <div class="signin-divider">or</div>
+      
+      <button id="signInGoogle" class="signin-google-btn" onclick="signInWithGoogle()">
+        <i class="fab fa-google"></i> Sign In with Google
+      </button>
+      
+      <div id="signInError" class="signin-error" style="display: none;"></div>
     </div>
   </div>
 </div>
@@ -807,46 +883,135 @@
           console.log('No user authenticated');
         }
       });
+      
+      // Show error div when there's an error
+      const errorDiv = document.getElementById('signInError');
+      if (errorDiv) {
+        const checkError = () => {
+          if (errorDiv.textContent) {
+            errorDiv.style.display = 'block';
+          } else {
+            errorDiv.style.display = 'none';
+          }
+        };
+        // Use MutationObserver to watch for text changes
+        const observer = new MutationObserver(checkError);
+        observer.observe(errorDiv, { childList: true, characterData: true, subtree: true });
+        checkError();
+      }
     } catch (error) {
       console.warn('Firebase initialization error:', error);
     }
   }
   
-  // Helper function to get auth token with sign-in prompt
-  async function getFirebaseAuthToken() {
-    if (typeof firebase === 'undefined' || !firebase.auth) {
-      throw new Error('Firebase not available');
+  // Sign-in modal functions
+  let signInSuccessCallback = null;
+  
+  function showSignInModal(onSuccess) {
+    const modal = document.getElementById('signInModal');
+    if (!modal) return;
+    
+    signInSuccessCallback = onSuccess || null;
+    modal.classList.add('active');
+    
+    // Clear any previous errors and form fields
+    const errorDiv = document.getElementById('signInError');
+    const emailInput = document.getElementById('signInEmail');
+    const passwordInput = document.getElementById('signInPassword');
+    if (errorDiv) errorDiv.textContent = '';
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
+  }
+  
+  function closeSignInModal() {
+    const modal = document.getElementById('signInModal');
+    if (modal) modal.classList.remove('active');
+  }
+  
+  async function signInWithEmail() {
+    const emailInput = document.getElementById('signInEmail');
+    const passwordInput = document.getElementById('signInPassword');
+    const errorDiv = document.getElementById('signInError');
+    const submitBtn = document.getElementById('signInSubmit');
+    
+    if (!emailInput || !passwordInput || !errorDiv) return;
+    
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    
+    if (!email || !password) {
+      errorDiv.textContent = 'Please enter both email and password.';
+      return;
     }
     
-    const auth = firebase.auth();
-    let user = auth.currentUser;
+    submitBtn.disabled = true;
+    errorDiv.textContent = '';
     
-    // If not authenticated, prompt for sign-in
-    if (!user) {
-      const email = prompt('Please sign in with Firebase.\n\nEnter your email address:');
-      if (!email) {
-        throw new Error('Authentication cancelled');
+    try {
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        throw new Error('Firebase not available');
       }
       
-      // Try to sign in anonymously first (for superadmin bypass)
-      try {
-        await auth.signInAnonymously();
-        user = auth.currentUser;
-        console.log('Signed in anonymously');
-      } catch (error) {
-        // If anonymous fails, try email/password or show error
-        throw new Error('Please sign in through Firebase. You can use Google Sign-In or email/password.');
+      const auth = firebase.auth();
+      await auth.signInWithEmailAndPassword(email, password);
+      
+      console.log('Signed in successfully');
+      closeSignInModal();
+      
+      // Call success callback if provided
+      if (signInSuccessCallback) {
+        signInSuccessCallback();
       }
+    } catch (error) {
+      console.error('Sign-in error:', error);
+      errorDiv.textContent = error.message || 'Sign-in failed. Please try again.';
+      submitBtn.disabled = false;
     }
-    
-    if (!user) {
-      throw new Error('Authentication failed');
-    }
-    
-    const token = await user.getIdToken();
-    console.log('Got Firebase ID token');
-    return token;
   }
+  
+  async function signInWithGoogle() {
+    const errorDiv = document.getElementById('signInError');
+    const googleBtn = document.getElementById('signInGoogle');
+    
+    if (!errorDiv || !googleBtn) return;
+    
+    googleBtn.disabled = true;
+    errorDiv.textContent = '';
+    
+    try {
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        throw new Error('Firebase not available');
+      }
+      
+      const auth = firebase.auth();
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      
+      console.log('Signed in with Google successfully');
+      closeSignInModal();
+      
+      // Call success callback if provided
+      if (signInSuccessCallback) {
+        signInSuccessCallback();
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      errorDiv.textContent = error.message || 'Google sign-in failed. Please try again.';
+      googleBtn.disabled = false;
+    }
+  }
+  
+  // Handle Enter key in password field
+  document.addEventListener('DOMContentLoaded', () => {
+    const passwordInput = document.getElementById('signInPassword');
+    if (passwordInput) {
+      passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          signInWithEmail();
+        }
+      });
+    }
+  });
 </script>
 </body>
 </html>
