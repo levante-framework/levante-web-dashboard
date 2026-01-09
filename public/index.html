@@ -597,30 +597,21 @@
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading comparison data...</div>';
     
     try {
-      // Get Firebase auth token if Firebase is available
+      // Get Firebase auth token - required for Firestore access
       let authToken = null;
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        try {
-          const auth = firebase.auth();
-          const user = auth.currentUser;
-          if (user) {
-            authToken = await user.getIdToken();
-            console.log('Using Firebase auth token for Firestore requests');
-          } else {
-            console.warn('No authenticated user found. Firestore requests may fail without authentication.');
-          }
-        } catch (authError) {
-          console.warn('Could not get Firebase auth token:', authError);
-        }
+      try {
+        authToken = await getFirebaseAuthToken();
+        console.log('Using Firebase auth token for Firestore requests');
+      } catch (authError) {
+        console.error('Auth error:', authError);
+        container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> Authentication required: ${authError.message}<br><small style="color: rgba(203, 213, 225, 0.6); margin-top: 8px; display: block;">Please sign in with Firebase to access Firestore data</small></div>`;
+        return;
       }
       
       const headers = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
       };
-      
-      if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
       
       const response = await fetch('/api/tasks-comparison', { 
         cache: 'no-cache',
@@ -786,6 +777,7 @@
 <script src="./firebase-config.js"></script>
 <script>
   // Initialize Firebase for Pitwall (using dev project config)
+  let firebaseAuthReady = false;
   if (typeof firebase !== 'undefined' && window.FIREBASE_CONFIG) {
     try {
       // Check if Firebase is already initialized
@@ -795,9 +787,56 @@
       } else {
         console.log('Firebase already initialized');
       }
+      
+      // Check auth state
+      const auth = firebase.auth();
+      auth.onAuthStateChanged((user) => {
+        firebaseAuthReady = true;
+        if (user) {
+          console.log('User authenticated:', user.email || 'Anonymous');
+        } else {
+          console.log('No user authenticated');
+        }
+      });
     } catch (error) {
       console.warn('Firebase initialization error:', error);
     }
+  }
+  
+  // Helper function to get auth token with sign-in prompt
+  async function getFirebaseAuthToken() {
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      throw new Error('Firebase not available');
+    }
+    
+    const auth = firebase.auth();
+    let user = auth.currentUser;
+    
+    // If not authenticated, prompt for sign-in
+    if (!user) {
+      const email = prompt('Please sign in with Firebase.\n\nEnter your email address:');
+      if (!email) {
+        throw new Error('Authentication cancelled');
+      }
+      
+      // Try to sign in anonymously first (for superadmin bypass)
+      try {
+        await auth.signInAnonymously();
+        user = auth.currentUser;
+        console.log('Signed in anonymously');
+      } catch (error) {
+        // If anonymous fails, try email/password or show error
+        throw new Error('Please sign in through Firebase. You can use Google Sign-In or email/password.');
+      }
+    }
+    
+    if (!user) {
+      throw new Error('Authentication failed');
+    }
+    
+    const token = await user.getIdToken();
+    console.log('Got Firebase ID token');
+    return token;
   }
 </script>
 </body>

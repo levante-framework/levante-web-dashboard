@@ -211,14 +211,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    // For now, try without auth token first (will use service account if available)
-    // TODO: Add Firebase Admin SDK for proper authentication
+    // Get user's Firebase auth token from Authorization header
     const authHeader = req.headers.authorization || req.headers.Authorization;
     const authToken = authHeader ? authHeader.replace('Bearer ', '') : null;
     
-    console.log('Tasks comparison request - auth token provided:', !!authToken);
+    if (!authToken) {
+      return res.status(401).json({ 
+        error: 'Authentication required', 
+        message: 'Please sign in with Firebase to access Firestore data' 
+      });
+    }
     
-    // Fetch from both environments in parallel
+    console.log('Tasks comparison request - using user auth token');
+    
+    // Fetch from both environments in parallel using user's auth token
+    // Note: The token needs to be valid for both projects. If you're signed in with dev project,
+    // you may need to sign in with prod project as well, or use a service account.
     const [devData, prodData] = await Promise.all([
       fetchTasksAndVariants(FIREBASE_CONFIGS.dev.projectId, FIREBASE_CONFIGS.dev.apiKey, authToken).catch(err => {
         console.error('Dev fetch error:', err.message);
