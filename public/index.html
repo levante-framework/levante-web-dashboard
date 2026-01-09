@@ -31,6 +31,29 @@
         .pitwall-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; position: relative; z-index: 1; }
         .pitwall-actions a { background: rgba(3, 12, 28, 0.78); border: 1px solid rgba(255, 123, 0, 0.65); color: #fefcf7; padding: 12px 22px; border-radius: 999px; font-weight: 600; letter-spacing: 0.01em; text-decoration: none; display: inline-flex; gap: 10px; align-items: center; transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease; box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45); }
         .pitwall-actions a:hover { background: rgba(255, 123, 0, 0.92); color: #06141f; transform: translateY(-2px); box-shadow: 0 18px 36px rgba(255, 123, 0, 0.35); }
+        .pitwall-action-btn:hover { background: rgba(255, 123, 0, 0.92) !important; color: #06141f !important; transform: translateY(-2px); box-shadow: 0 18px 36px rgba(255, 123, 0, 0.35); }
+        /* Modal styles */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 10000; backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: linear-gradient(135deg, rgba(9, 17, 31, 0.98), rgba(15, 23, 42, 0.98)); border-radius: 20px; padding: 32px; max-width: 90vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 123, 0, 0.3); position: relative; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 123, 0, 0.2); }
+        .modal-header h2 { margin: 0; font-size: 1.8rem; color: #ffb347; display: flex; align-items: center; gap: 12px; }
+        .modal-close { background: transparent; border: none; color: #ffb347; font-size: 1.5rem; cursor: pointer; padding: 8px; border-radius: 8px; transition: background 0.2s; }
+        .modal-close:hover { background: rgba(255, 123, 0, 0.2); }
+        .comparison-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: rgba(7, 13, 24, 0.9); border-radius: 12px; padding: 16px; border: 1px solid rgba(0, 160, 222, 0.28); }
+        .stat-card h3 { margin: 0 0 8px; font-size: 0.85rem; color: #00c8ff; text-transform: uppercase; letter-spacing: 0.1em; }
+        .stat-card strong { font-size: 1.5rem; color: #ffb347; display: block; }
+        .comparison-section { margin-bottom: 32px; }
+        .comparison-section h3 { color: #ffb347; margin-bottom: 16px; font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+        .task-list { display: grid; gap: 8px; }
+        .task-item { background: rgba(7, 13, 24, 0.6); padding: 12px; border-radius: 8px; border-left: 3px solid rgba(255, 123, 0, 0.5); display: flex; justify-content: space-between; align-items: center; }
+        .task-item.dev-only { border-left-color: #00c8ff; }
+        .task-item.prod-only { border-left-color: #ff6b00; }
+        .task-item .task-id { font-weight: 600; color: #ffb347; }
+        .task-item .task-meta { font-size: 0.85rem; color: rgba(203, 213, 225, 0.7); }
+        .loading { text-align: center; padding: 40px; color: #00c8ff; }
+        .error { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 16px; color: #fca5a5; margin-bottom: 16px; }
         .section-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
         .section-title h2 { margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 10px; font-weight: 600; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.08em; }
         .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
@@ -73,6 +96,7 @@
 <a href="./task-template.html"><i class="fas fa-clipboard-check"></i> Validate Task</a>
 <a href="./preflight-report.html"><i class="fas fa-clipboard-check"></i> Pre-Release Readiness Report</a>
 <a href="./draft-share.html"><i class="fas fa-share-nodes"></i> Ready to Deploy</a>
+<button class="pitwall-action-btn" onclick="openTasksComparison()" style="background: rgba(3, 12, 28, 0.78); border: 1px solid rgba(255, 123, 0, 0.65); color: #fefcf7; padding: 12px 22px; border-radius: 999px; font-weight: 600; letter-spacing: 0.01em; cursor: pointer; display: inline-flex; gap: 10px; align-items: center; transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease; box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45); font-family: inherit; font-size: inherit;"><i class="fas fa-code-branch"></i> Compare Dev/Prod</button>
 </div>
 </header>
 <section>
@@ -552,6 +576,168 @@
       setError(issuesEl, issuesDetailEl, 'GitHub summary unavailable');
     }
   })();
+
+  // Tasks Comparison Modal
+  function openTasksComparison() {
+    const modal = document.getElementById('tasksComparisonModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    loadTasksComparison();
+  }
+
+  function closeTasksComparison() {
+    const modal = document.getElementById('tasksComparisonModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  async function loadTasksComparison() {
+    const container = document.getElementById('comparisonContent');
+    if (!container) return;
+    
+    container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading comparison data...</div>';
+    
+    try {
+      const response = await fetch('/api/tasks-comparison', { cache: 'no-cache' });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+      
+      const data = await response.json();
+      renderComparison(data);
+    } catch (error) {
+      console.error('Error loading tasks comparison:', error);
+      container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> Error loading comparison: ${error.message}</div>`;
+    }
+  }
+
+  function renderComparison(data) {
+    const container = document.getElementById('comparisonContent');
+    if (!container) return;
+    
+    const { dev, prod, comparison } = data;
+    
+    const html = `
+      <div class="comparison-stats">
+        <div class="stat-card">
+          <h3>Dev Environment</h3>
+          <strong>${dev.totalTasks}</strong>
+          <span style="color: rgba(203, 213, 225, 0.7); font-size: 0.9rem;">Tasks • ${dev.totalVariants} Variants</span>
+        </div>
+        <div class="stat-card">
+          <h3>Prod Environment</h3>
+          <strong>${prod.totalTasks}</strong>
+          <span style="color: rgba(203, 213, 225, 0.7); font-size: 0.9rem;">Tasks • ${prod.totalVariants} Variants</span>
+        </div>
+        <div class="stat-card">
+          <h3>In Both</h3>
+          <strong>${comparison.inBoth}</strong>
+          <span style="color: rgba(203, 213, 225, 0.7); font-size: 0.9rem;">Common Tasks</span>
+        </div>
+        <div class="stat-card">
+          <h3>Differences</h3>
+          <strong>${comparison.onlyInDev.length + comparison.onlyInProd.length}</strong>
+          <span style="color: rgba(203, 213, 225, 0.7); font-size: 0.9rem;">Tasks differ</span>
+        </div>
+      </div>
+
+      ${comparison.onlyInDev.length > 0 ? `
+        <div class="comparison-section">
+          <h3><i class="fas fa-code-branch"></i> Only in Dev (${comparison.onlyInDev.length})</h3>
+          <div class="task-list">
+            ${comparison.onlyInDev.map(task => `
+              <div class="task-item dev-only">
+                <div>
+                  <span class="task-id">${escapeHtml(task.id)}</span>
+                  <span class="task-meta">• ${task.variantCount} variant${task.variantCount !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${comparison.onlyInProd.length > 0 ? `
+        <div class="comparison-section">
+          <h3><i class="fas fa-code-branch"></i> Only in Prod (${comparison.onlyInProd.length})</h3>
+          <div class="task-list">
+            ${comparison.onlyInProd.map(task => `
+              <div class="task-item prod-only">
+                <div>
+                  <span class="task-id">${escapeHtml(task.id)}</span>
+                  <span class="task-meta">• ${task.variantCount} variant${task.variantCount !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${comparison.variantComparisons.length > 0 ? `
+        <div class="comparison-section">
+          <h3><i class="fas fa-list"></i> Variant Differences (${comparison.variantComparisons.length} tasks)</h3>
+          <div class="task-list">
+            ${comparison.variantComparisons.map(vc => `
+              <div class="task-item">
+                <div>
+                  <span class="task-id">${escapeHtml(vc.taskId)}</span>
+                  <span class="task-meta">
+                    Dev: ${vc.devVariants} • Prod: ${vc.prodVariants}
+                    ${vc.onlyInDev.length > 0 ? ` • <span style="color: #00c8ff;">+${vc.onlyInDev.length} in dev</span>` : ''}
+                    ${vc.onlyInProd.length > 0 ? ` • <span style="color: #ff6b00;">+${vc.onlyInProd.length} in prod</span>` : ''}
+                  </span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${comparison.onlyInDev.length === 0 && comparison.onlyInProd.length === 0 && comparison.variantComparisons.length === 0 ? `
+        <div style="text-align: center; padding: 40px; color: rgba(203, 213, 225, 0.7);">
+          <i class="fas fa-check-circle" style="font-size: 3rem; color: #00c8ff; margin-bottom: 16px; display: block;"></i>
+          <p>No differences found! Dev and Prod are in sync.</p>
+        </div>
+      ` : ''}
+    `;
+    
+    container.innerHTML = html;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Close modal on overlay click
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('tasksComparisonModal');
+    if (modal && e.target === modal) {
+      closeTasksComparison();
+    }
+  });
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeTasksComparison();
+    }
+  });
 </script>
+
+<!-- Tasks Comparison Modal -->
+<div id="tasksComparisonModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2><i class="fas fa-code-branch"></i> Dev/Prod Tasks Comparison</h2>
+      <button class="modal-close" onclick="closeTasksComparison()" aria-label="Close">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div id="comparisonContent">
+      <div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
