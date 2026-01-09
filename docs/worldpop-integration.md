@@ -185,6 +185,328 @@ Since you're using WorldPop for **population estimates** (text labels), not visu
    - Display population as text/label
    - No raster overlay needed
 
+---
+
+## Using WorldPop to Select Privacy-Preserving OSM Tiles
+
+### The Privacy Challenge
+
+Your current privacy strategy:
+- ✅ Never store raw GPS coordinates
+- ✅ Use approximate city centers for logging
+- ✅ Round coordinates before network calls
+- ✅ Process everything client-side when possible
+
+**New Challenge**: When displaying OSM map tiles, you want to show tiles that are:
+- ✅ **Nearby** (close to actual location for context)
+- ✅ **Low population density** (privacy-preserving)
+- ✅ **Similar context** (similar geographic features)
+
+### How WorldPop Can Help
+
+**Concept**: Use WorldPop population density to identify nearby OSM tiles with low population, then display those tiles instead of the exact location tile.
+
+**Algorithm**:
+1. **Get actual location**: User's GPS coordinates (lat/lon)
+2. **Convert to OSM tile coordinates**: Calculate tile (z/x/y) for actual location
+3. **Generate candidate tiles**: Create a ring of nearby tiles (e.g., 1-3 tiles away in all directions)
+4. **Query WorldPop for each candidate**: Get population density for each tile's bounding box
+5. **Select lowest-population tile**: Choose the tile with minimum population density
+6. **Display selected tile**: Show the privacy-preserving tile instead of exact location
+
+### Implementation Approach
+
+**Option 1: Client-Side with WorldPop API** (Recommended)
+
+```javascript
+/**
+ * Find a privacy-preserving OSM tile near the given location
+ * @param {number} lat - Actual latitude
+ * @param {number} lon - Actual longitude
+ * @param {number} zoom - OSM zoom level (default: 14)
+ * @param {number} searchRadius - Number of tiles to search in each direction (default: 2)
+ * @returns {Promise<{z: number, x: number, y: number, population: number}>}
+ */
+async function findPrivacyPreservingTile(lat, lon, zoom = 14, searchRadius = 2) {
+  // 1. Convert actual location to OSM tile coordinates
+  const actualTile = latLonToTile(lat, lon, zoom);
+  
+  // 2. Generate candidate tiles (ring around actual location)
+  const candidates = [];
+  for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+    for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+      // Skip the exact location tile
+      if (dx === 0 && dy === 0) continue;
+      
+      const candidateX = actualTile.x + dx;
+      const candidateY = actualTile.y + dy;
+      
+      // Validate tile coordinates
+      const maxTile = Math.pow(2, zoom);
+      if (candidateX >= 0 && candidateX < maxTile && 
+          candidateY >= 0 && candidateY < maxTile) {
+        candidates.push({ x: candidateX, y: candidateY });
+      }
+    }
+  }
+  
+  // 3. Query WorldPop API for each candidate tile's bounding box
+  const tilePopulations = await Promise.all(
+    candidates.map(async (tile) => {
+      const bbox = tileToBoundingBox(tile.x, tile.y, zoom);
+      const polygon = bboxToGeoJSONPolygon(bbox);
+      
+      try {
+        const population = await queryWorldPopAPI(polygon);
+        return { ...tile, population: population || 0 };
+      } catch (error) {
+        console.warn(`WorldPop query failed for tile ${tile.x}/${tile.y}:`, error);
+        return { ...tile, population: Infinity }; // Prefer tiles with successful queries
+      }
+    })
+  );
+  
+  // 4. Select tile with minimum population
+  tilePopulations.sort((a, b) => a.population - b.population);
+  const selected = tilePopulations[0];
+  
+  return {
+    z: zoom,
+    x: selected.x,
+    y: selected.y,
+    population: selected.population,
+    actualTile: { x: actualTile.x, y: actualTile.y }
+  };
+}
+
+// Helper: Convert lat/lon to OSM tile coordinates
+function latLonToTile(lat, lon, zoom) {
+  const n = Math.pow(2, zoom);
+  const x = Math.floor((lon + 180) / 360 * n);
+  const latRad = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+  return { x, y };
+}
+
+// Helper: Convert OSM tile to bounding box
+function tileToBoundingBox(x, y, zoom) {
+  const n = Math.pow(2, zoom);
+  const lonMin = (x / n) * 360 - 180;
+  const lonMax = ((x + 1) / n) * 360 - 180;
+  const latMax = Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI;
+  const latMin = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + 1) / n))) * 180 / Math.PI;
+  return { latMin, latMax, lonMin, lonMax };
+}
+
+// Helper: Convert bounding box to GeoJSON polygon
+function bboxToGeoJSONPolygon(bbox) {
+  return {
+    type: "Polygon",
+    coordinates: [[
+      [bbox.lonMin, bbox.latMin],
+      [bbox.lonMax, bbox.latMin],
+      [bbox.lonMax, bbox.latMax],
+      [bbox.lonMin, bbox.latMax],
+      [bbox.lonMin, bbox.latMin]
+    ]]
+  };
+}
+
+// Helper: Query WorldPop API
+async function queryWorldPopAPI(polygon, year = 2020) {
+  const url = `https://api.worldpop.org/v1/services/stats?` +
+    `dataset=wpgppop&` +
+    `year=${year}&` +
+    `geojson=${encodeURIComponent(JSON.stringify(polygon))}`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`WorldPop API error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data?.stats?.sum ?? 0;
+}
+```
+
+**Usage Example**:
+```javascript
+// User's actual location (never displayed)
+const actualLat = 40.7128;
+const actualLon = -74.0060;
+
+// Find privacy-preserving tile
+const privacyTile = await findPrivacyPreservingTile(actualLat, actualLon, 14, 2);
+
+// Display the privacy-preserving tile instead
+const map = L.map('map').setView([
+  tileToLatLon(privacyTile.x, privacyTile.y, privacyTile.z).lat,
+  tileToLatLon(privacyTile.x, privacyTile.y, privacyTile.z).lon
+], privacyTile.z);
+
+// Load OSM tile
+L.tileLayer(`https://tile.openstreetmap.org/${privacyTile.z}/${privacyTile.x}/${privacyTile.y}.png`).addTo(map);
+
+console.log(`Showing tile with population: ${privacyTile.population} (actual location tile had higher population)`);
+```
+
+### Privacy Benefits
+
+**Advantages**:
+- ✅ **Preserves context**: Nearby tiles maintain geographic relevance
+- ✅ **Reduces identifiability**: Low-population tiles are harder to associate with specific individuals
+- ✅ **Maintains functionality**: Map still shows relevant area
+- ✅ **Configurable**: Can adjust search radius based on privacy requirements
+
+**Considerations**:
+- ⚠️ **Network calls**: Requires WorldPop API calls (but can cache results)
+- ⚠️ **Latency**: Adds ~50-500ms per candidate tile query
+- ⚠️ **Rate limits**: WorldPop API has rate limits (1,000 calls/day free tier)
+- ⚠️ **Rural bias**: WorldPop underestimates rural populations (but that's fine for privacy)
+
+### Optimization Strategies
+
+**1. Cache Tile Population Data**
+```javascript
+// Cache WorldPop queries by tile coordinates
+const tilePopulationCache = new Map();
+
+async function getCachedTilePopulation(x, y, z) {
+  const key = `${z}/${x}/${y}`;
+  if (tilePopulationCache.has(key)) {
+    return tilePopulationCache.get(key);
+  }
+  
+  const bbox = tileToBoundingBox(x, y, z);
+  const polygon = bboxToGeoJSONPolygon(bbox);
+  const population = await queryWorldPopAPI(polygon);
+  
+  tilePopulationCache.set(key, population);
+  return population;
+}
+```
+
+**2. Pre-compute Privacy Tiles**
+```javascript
+// For gallery generation, pre-compute privacy tiles
+// Store mapping: actualLocation → privacyTile
+const privacyTileMap = {
+  "40.7128,-74.0060": { z: 14, x: 4824, y: 6159, population: 150 }
+};
+```
+
+**3. Limit Search Radius**
+```javascript
+// Start with small radius, expand if needed
+let searchRadius = 1; // Only check immediate neighbors
+// If all neighbors have high population, expand to radius = 2
+```
+
+**4. Use Population Thresholds**
+```javascript
+// Only use privacy tile if actual location tile exceeds threshold
+const PRIVACY_THRESHOLD = 1000; // Only protect if population > 1000
+
+const actualTilePopulation = await getCachedTilePopulation(actualTile.x, actualTile.y, zoom);
+if (actualTilePopulation > PRIVACY_THRESHOLD) {
+  // Find privacy-preserving alternative
+  const privacyTile = await findPrivacyPreservingTile(lat, lon, zoom, 2);
+  return privacyTile;
+} else {
+  // Low population already, use actual location
+  return actualTile;
+}
+```
+
+### Integration with Current Privacy Strategy
+
+**Current Flow**:
+```
+User GPS → Round coordinates → Use for city lookup → Display approximate city center
+```
+
+**Enhanced Flow with WorldPop**:
+```
+User GPS → Calculate OSM tile → Query WorldPop for nearby tiles → 
+Select lowest-population tile → Display privacy-preserving tile
+```
+
+**Combined Approach**:
+```javascript
+// 1. Get approximate city center (existing privacy measure)
+const cityCenter = await findNearestCity(lat, lon);
+
+// 2. Find privacy-preserving tile near city center
+const privacyTile = await findPrivacyPreservingTile(
+  cityCenter.lat, 
+  cityCenter.lon, 
+  14, 
+  2
+);
+
+// 3. Display privacy-preserving tile
+displayMapTile(privacyTile);
+```
+
+### Use Cases
+
+**1. Interactive Locate Me Page**
+- User grants GPS permission
+- System finds privacy-preserving tile near actual location
+- Displays map with privacy-preserving tile
+- User sees relevant area without revealing exact location
+
+**2. Gallery Generation**
+- Pre-compute privacy tiles for seed points
+- Generate gallery images using privacy-preserving tiles
+- Maintains visual consistency while protecting privacy
+
+**3. Location Logging**
+- When logging locations, use privacy-preserving tile coordinates
+- Store tile (z/x/y) instead of lat/lon
+- Reduces identifiability while maintaining approximate location
+
+### Limitations & Considerations
+
+**1. Geographic Context Loss**
+- Privacy-preserving tile might show different geographic features
+- User might see farmland instead of urban area
+- **Mitigation**: Limit search radius, prefer tiles with similar elevation/terrain
+
+**2. API Rate Limits**
+- WorldPop API: 1,000 calls/day (free tier)
+- Each privacy tile search = 8-24 API calls (depending on search radius)
+- **Mitigation**: Cache results, pre-compute for common locations
+
+**3. Rural Bias**
+- WorldPop underestimates rural populations
+- Might select tiles that appear low-population but aren't
+- **Impact**: Actually beneficial for privacy (more conservative)
+
+**4. Tile Alignment**
+- WorldPop pixels don't perfectly align with OSM tiles
+- Some approximation error in population estimates
+- **Impact**: Minimal for privacy purposes (exact numbers less important)
+
+### Alternative: Pre-computed Privacy Tile Database
+
+**Approach**: Pre-compute privacy-preserving tiles for common locations
+
+**Steps**:
+1. Generate grid of locations (e.g., every 0.1° lat/lon)
+2. For each location, find privacy-preserving tile
+3. Store mapping: `location → privacyTile`
+4. Serve as static JSON file or database
+
+**Benefits**:
+- ✅ No API calls at runtime
+- ✅ Fast lookup
+- ✅ Predictable performance
+
+**Drawbacks**:
+- ❌ Large file size (millions of entries)
+- ❌ Requires periodic updates
+- ❌ Less flexible than dynamic lookup
+
 ### If You Wanted Visual Overlays
 
 **Example**: Heatmap showing population density
