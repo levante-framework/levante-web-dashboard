@@ -704,11 +704,16 @@
         }
         
         if (response.status === 401 || response.status === 403) {
-          // Clear auth state and show sign-in again
+          // Clear auth state and show sign-in modal
           if (typeof firebase !== 'undefined' && firebase.auth) {
             await firebase.auth().signOut();
           }
-          throw new Error('Authentication failed. Please sign in again.');
+          // Close comparison modal and show sign-in modal
+          closeTasksComparison();
+          showSignInModal(() => {
+            openTasksComparison();
+          });
+          return;
         }
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
@@ -717,12 +722,18 @@
       renderComparison(data);
     } catch (error) {
       console.error('Error loading tasks comparison:', error);
-      container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> Error loading comparison: ${error.message}</div>`;
       
-      // If auth error, show sign-in button
-      if (error.message.includes('Authentication') || error.message.includes('sign in')) {
-        container.innerHTML += `<div style="text-align: center; margin-top: 16px;"><button onclick="showSignInModal(() => loadTasksComparison())" style="background: rgba(255, 123, 0, 0.8); border: none; border-radius: 8px; padding: 12px 24px; color: #06141f; font-weight: 600; cursor: pointer;">Sign In</button></div>`;
+      // If auth error, close comparison modal and show sign-in modal
+      if (error.message.includes('Authentication') || error.message.includes('sign in') || error.message.includes('auth')) {
+        closeTasksComparison();
+        showSignInModal(() => {
+          openTasksComparison();
+        });
+        return;
       }
+      
+      // For other errors, show error message in the modal
+      container.innerHTML = `<div class="error"><i class="fas fa-exclamation-triangle"></i> Error loading comparison: ${error.message}</div>`;
     }
   }
 
