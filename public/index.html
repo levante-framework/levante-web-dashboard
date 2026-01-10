@@ -603,22 +603,32 @@
     const modal = document.getElementById('tasksComparisonModal');
     if (!modal) return;
     
-    // Check if user is authenticated
-    if (typeof firebase !== 'undefined' && firebase.auth) {
-      const auth = firebase.auth();
-      const user = auth.currentUser;
-      
-      if (!user) {
-        // Show sign-in modal first
-        showSignInModal(() => {
-          // After successful sign-in, open comparison modal
-          modal.classList.add('active');
-          loadTasksComparison();
-        });
-        return;
-      }
+    // Check if Firebase is available
+    if (typeof firebase === 'undefined' || !firebase.auth) {
+      // Show sign-in modal with error message
+      showSignInModal(() => {
+        // After successful sign-in, open comparison modal
+        modal.classList.add('active');
+        loadTasksComparison();
+      });
+      return;
     }
     
+    // Check if user is authenticated
+    const auth = firebase.auth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      // Show sign-in modal first
+      showSignInModal(() => {
+        // After successful sign-in, open comparison modal
+        modal.classList.add('active');
+        loadTasksComparison();
+      });
+      return;
+    }
+    
+    // User is authenticated, proceed with loading
     modal.classList.add('active');
     loadTasksComparison();
   }
@@ -637,22 +647,41 @@
     try {
       // Get user auth token (required for Firestore access)
       let authToken = null;
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        try {
-          const auth = firebase.auth();
-          const user = auth.currentUser;
-          if (user) {
-            authToken = await user.getIdToken();
-            console.log('Using user auth token for Firestore access');
-          } else {
-            throw new Error('Not authenticated. Please sign in.');
-          }
-        } catch (authError) {
-          console.error('Auth error:', authError);
-          throw new Error('Authentication required. Please sign in with Firebase.');
-        }
-      } else {
-        throw new Error('Firebase not available. Please refresh the page.');
+      
+      // Check Firebase availability first
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        // Close comparison modal and show sign-in modal
+        closeTasksComparison();
+        showSignInModal(() => {
+          openTasksComparison();
+        });
+        return;
+      }
+      
+      const auth = firebase.auth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        // User not authenticated - close comparison modal and show sign-in modal
+        closeTasksComparison();
+        showSignInModal(() => {
+          openTasksComparison();
+        });
+        return;
+      }
+      
+      // User is authenticated, get token
+      try {
+        authToken = await user.getIdToken();
+        console.log('Using user auth token for Firestore access');
+      } catch (authError) {
+        console.error('Auth error:', authError);
+        // Close comparison modal and show sign-in modal
+        closeTasksComparison();
+        showSignInModal(() => {
+          openTasksComparison();
+        });
+        return;
       }
       
       const headers = {
