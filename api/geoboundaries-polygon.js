@@ -252,13 +252,16 @@ async function handler(req, res) {
   try {
     const geojson = await loadGeoBoundaries(iso3, levelNum);
     if (!geojson?.features?.length) {
-      res.status(404).json({ error: 'polygon_not_found', source: 'geoboundaries', message: 'No boundaries available' });
+      // Return 200 with error message instead of 404, so client can distinguish
+      // between "API not found" (404) and "data not available" (200 with error)
+      res.status(200).json({ error: 'polygon_not_found', source: 'geoboundaries', message: 'No boundaries available' });
       return;
     }
 
     const bestFeature = pickBestFeature(geojson.features, latNum, lonNum);
     if (!bestFeature) {
-      res.status(404).json({ error: 'polygon_not_found', source: 'geoboundaries', message: 'No polygon contained the point' });
+      // Return 200 with error message instead of 404
+      res.status(200).json({ error: 'polygon_not_found', source: 'geoboundaries', message: 'No polygon contained the point' });
       return;
     }
 

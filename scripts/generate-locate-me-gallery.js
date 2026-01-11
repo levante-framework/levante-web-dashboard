@@ -12,7 +12,8 @@ const MAX_RETRIES = 4;
 const BASE_DELAY_MS = 800; // base backoff; jitter is added
 const CACHE_FILE = path.join(process.cwd(), 'data', 'gallery', 'overpass-cache.json');
 
-const BASE_URL = process.env.BASE_URL || 'https://levante-pitwall.vercel.app';
+// Use deployment URL if alias isn't working yet
+const BASE_URL = process.env.BASE_URL || process.env.DEPLOYMENT_URL || 'https://levante-pitwall.vercel.app';
 const USE_GEOBOUNDARIES = process.env.USE_GEOBOUNDARIES === 'true' || process.env.USE_GEOBOUNDARIES === '1';
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me');
 const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');
@@ -463,15 +464,23 @@ async function lookupGeoBoundariesAreas(countryIso2Upper, lat, lon) {
     console.log(`  🌍 Fetching GeoBoundaries for ${iso3} (ADM2 & ADM4)...`);
     
     const [adm2Res, adm4Res] = await Promise.all([
-      fetchJsonHttps(adm2Url, 10000).catch((err) => {
+      fetchJsonHttps(adm2Url, 30000).catch((err) => {
         console.warn(`  ⚠️  GeoBoundaries ADM2 failed for ${iso3}: ${err.message}`);
         return null;
       }),
-      fetchJsonHttps(adm4Url, 10000).catch((err) => {
+      fetchJsonHttps(adm4Url, 30000).catch((err) => {
         console.warn(`  ⚠️  GeoBoundaries ADM4 failed for ${iso3}: ${err.message}`);
         return null;
       })
     ]);
+
+    // Handle error responses (API returns 200 with error field when data not available)
+    if (adm2Res?.error) {
+      console.warn(`  ⚠️  GeoBoundaries ADM2: ${adm2Res.message || adm2Res.error}`);
+    }
+    if (adm4Res?.error) {
+      console.warn(`  ⚠️  GeoBoundaries ADM4: ${adm4Res.message || adm4Res.error}`);
+    }
 
     const adm2Feature = adm2Res?.feature || null;
     const adm4Feature = adm4Res?.feature || null;
