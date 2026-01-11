@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const https = require('https');
+const { Storage } = require('@google-cloud/storage');
 
 const GEOBOUNDARIES_BASE_URL = 'https://www.geoboundaries.org/api/current/gbOpen';
 // Use local data directory (pre-downloaded files) - works in both Vercel and local dev

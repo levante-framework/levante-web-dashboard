@@ -15,7 +15,8 @@ const CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
 
 // Countries we need (ISO3 codes)
 const COUNTRIES = ['USA', 'CAN', 'COL', 'DEU', 'GBR', 'NLD', 'GHA', 'CHE', 'IND', 'ARG'];
-const LEVELS = [2, 4]; // ADM2 and ADM4
+// Only ADM2 for now - ADM4 may not be available for all countries and files are very large
+const LEVELS = [2]; // ADM2 only (ADM4 skipped due to size/availability)
 
 function downloadFile(url, outputPath) {
   return new Promise((resolve, reject) => {
