@@ -15,8 +15,9 @@ const CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
 
 // Countries we need (ISO3 codes)
 const COUNTRIES = ['USA', 'CAN', 'COL', 'DEU', 'GBR', 'NLD', 'GHA', 'CHE', 'IND', 'ARG'];
-// Only ADM2 for now - ADM4 may not be available for all countries and files are very large
-const LEVELS = [2]; // ADM2 only (ADM4 skipped due to size/availability)
+// ADM2 and ADM4 - ADM4 is a key feature of GeoBoundaries
+// Some countries may not have ADM4, we'll handle that gracefully
+const LEVELS = [2, 4]; // ADM2 and ADM4
 
 function downloadFile(url, outputPath) {
   return new Promise((resolve, reject) => {
@@ -106,7 +107,11 @@ async function main() {
       try {
         await downloadGeoBoundaries(country, level);
       } catch (error) {
-        console.error(`  ❌ Failed ${country} ADM${level}: ${error.message}`);
+        if (error.message.includes('not available') || error.message.includes('404')) {
+          console.warn(`  ⚠️  ${country} ADM${level} not available (this is OK for some countries)`);
+        } else {
+          console.error(`  ❌ Failed ${country} ADM${level}: ${error.message}`);
+        }
       }
     }
   }
