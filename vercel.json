@@ -71,6 +71,9 @@
     },
     "api/tasks-comparison.js": {
       "maxDuration": 30
+    },
+    "api/geoboundaries-polygon.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
