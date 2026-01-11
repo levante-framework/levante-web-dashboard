@@ -1,8 +1,12 @@
+# Exclude large data directories from Vercel deployment
+# These are not needed for serverless functions (they use GCS or are generated)
+
 data/tiger/
+data/population/worldpop/
+data/geoboundaries/
 data/geonames/
-data/geonames_cities5000.zip
-
-data/validation/*.json
-
-public/locations-map.html
-
+data/geocoder/
+data/validation/
+venv/
+__pycache__/
+*.pyc
