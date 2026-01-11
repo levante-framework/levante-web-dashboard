@@ -7,12 +7,31 @@ const https = require('https');
 const { Storage } = require('@google-cloud/storage');
 
 const GEOBOUNDARIES_BASE_URL = 'https://www.geoboundaries.org/api/current/gbOpen';
-// Use Google Cloud Storage bucket for large files (avoids GitHub size limits)
-const GEOBOUNDARIES_BUCKET = process.env.GEOBOUNDARIES_BUCKET || 'levante-geoboundaries';
+// Use existing GCS bucket (same as dashboard data) or dedicated bucket
+const GEOBOUNDARIES_BUCKET = process.env.GEOBOUNDARIES_BUCKET || process.env.DASHBOARD_DATA_BUCKET || 'levante-dashboard-dev';
 const GEOBOUNDARIES_BUCKET_PREFIX = 'geoboundaries';
 // Fallback to local directory for development
 const GEOBOUNDARIES_CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (not used for pre-downloaded files)
+
+// Initialize GCS using same pattern as other APIs
+function initializeGCS() {
+  try {
+    const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (serviceAccountJson) {
+      const credentials = JSON.parse(serviceAccountJson);
+      return new Storage({
+        projectId: credentials.project_id,
+        credentials: credentials
+      });
+    }
+    // Fallback to Application Default Credentials
+    return new Storage();
+  } catch (error) {
+    console.warn(`geoboundaries-polygon: GCS initialization failed: ${error.message}`);
+    return null;
+  }
+}
 
 // ISO2 to ISO3 mapping for GeoBoundaries
 const ISO2_TO_ISO3 = new Map([
@@ -81,26 +100,29 @@ function getCachePath(iso3, level) {
 }
 
 async function loadCachedGeoBoundaries(iso3, level) {
-  // Try GCS bucket first (production)
-  // Check if bucket name is explicitly set (not just default)
-  const bucketName = process.env.GEOBOUNDARIES_BUCKET || GEOBOUNDARIES_BUCKET;
-  if (bucketName && process.env.VERCEL) {
+  // Try GCS bucket first (production) - use existing GCS setup
+  const bucketName = GEOBOUNDARIES_BUCKET;
+  if (process.env.VERCEL || process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
     try {
-      console.log(`geoboundaries-polygon: Attempting to load from GCS bucket: ${bucketName}`);
-      const storage = new Storage();
-      const bucket = storage.bucket(bucketName);
-      const fileName = `${GEOBOUNDARIES_BUCKET_PREFIX}/${iso3}_ADM${level}.json.gz`;
-      const file = bucket.file(fileName);
-      
-      const [exists] = await file.exists();
-      if (exists) {
-        console.log(`geoboundaries-polygon: Loading from GCS: ${fileName}`);
-        const [buf] = await file.download();
-        const json = zlib.gunzipSync(buf).toString('utf8');
-        console.log(`geoboundaries-polygon: Successfully loaded ${iso3} ADM${level} from GCS`);
-        return JSON.parse(json);
+      const storage = initializeGCS();
+      if (!storage) {
+        console.warn(`geoboundaries-polygon: GCS not initialized, skipping bucket access`);
       } else {
-        console.warn(`geoboundaries-polygon: File not found in GCS: ${fileName}`);
+        console.log(`geoboundaries-polygon: Attempting to load from GCS bucket: ${bucketName}`);
+        const bucket = storage.bucket(bucketName);
+        const fileName = `${GEOBOUNDARIES_BUCKET_PREFIX}/${iso3}_ADM${level}.json.gz`;
+        const file = bucket.file(fileName);
+        
+        const [exists] = await file.exists();
+        if (exists) {
+          console.log(`geoboundaries-polygon: Loading from GCS: ${fileName}`);
+          const [buf] = await file.download();
+          const json = zlib.gunzipSync(buf).toString('utf8');
+          console.log(`geoboundaries-polygon: Successfully loaded ${iso3} ADM${level} from GCS`);
+          return JSON.parse(json);
+        } else {
+          console.warn(`geoboundaries-polygon: File not found in GCS: ${fileName}`);
+        }
       }
     } catch (error) {
       // Fallback to local file if GCS fails
@@ -108,7 +130,7 @@ async function loadCachedGeoBoundaries(iso3, level) {
       console.error(`geoboundaries-polygon: Error stack: ${error.stack}`);
     }
   } else {
-    console.log(`geoboundaries-polygon: GCS not configured (bucket: ${bucketName}, VERCEL: ${process.env.VERCEL})`);
+    console.log(`geoboundaries-polygon: GCS not configured (using local files)`);
   }
   
   // Fallback to local file (development)

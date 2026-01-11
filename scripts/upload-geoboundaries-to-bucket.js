@@ -10,7 +10,8 @@ const fs = require('fs');
 const path = require('path');
 
 const CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
-const BUCKET_NAME = process.env.GEOBOUNDARIES_BUCKET || 'levante-geoboundaries';
+// Use existing dashboard bucket or dedicated bucket
+const BUCKET_NAME = process.env.GEOBOUNDARIES_BUCKET || process.env.DASHBOARD_DATA_BUCKET || 'levante-dashboard-dev';
 const BUCKET_PREFIX = 'geoboundaries';
 
 async function uploadToBucket() {
