@@ -49,6 +49,11 @@ async function downloadGeoBoundaries(iso3, level) {
   
   return new Promise((resolve, reject) => {
     https.get(metadataUrl, (res) => {
+      if (res.statusCode === 404) {
+        // ADM4 may not be available for some countries - that's OK
+        reject(new Error(`ADM${level} not available for ${iso3} (404)`));
+        return;
+      }
       if (res.statusCode !== 200) {
         reject(new Error(`Metadata HTTP ${res.statusCode}`));
         return;
@@ -62,21 +67,30 @@ async function downloadGeoBoundaries(iso3, level) {
           const downloadUrl = metadata?.gjDownloadURL;
           
           if (!downloadUrl) {
-            reject(new Error('No download URL'));
+            reject(new Error('No download URL in metadata'));
             return;
           }
           
+          console.log(`  📥 Downloading ${iso3} ADM${level} from ${downloadUrl}`);
           const outputPath = path.join(CACHE_DIR, `${iso3}_ADM${level}.json.gz`);
           const tempPath = outputPath + '.tmp';
           
           downloadFile(downloadUrl, tempPath)
             .then(() => {
+              // Check file size
+              const stats = fs.statSync(tempPath);
+              const sizeMB = stats.size / 1024 / 1024;
+              console.log(`  📦 Downloaded: ${sizeMB.toFixed(2)}MB`);
+              
               // Compress and save
+              console.log(`  🗜️  Compressing...`);
               const geojson = JSON.parse(fs.readFileSync(tempPath, 'utf8'));
               const compressed = zlib.gzipSync(JSON.stringify(geojson));
               fs.writeFileSync(outputPath, compressed);
               fs.unlinkSync(tempPath);
-              console.log(`  ✅ Compressed and saved: ${iso3} ADM${level}`);
+              
+              const compressedSizeMB = fs.statSync(outputPath).size / 1024 / 1024;
+              console.log(`  ✅ Compressed and saved: ${iso3} ADM${level} (${compressedSizeMB.toFixed(2)}MB)`);
               resolve();
             })
             .catch(reject);
