@@ -6,7 +6,10 @@ const zlib = require('zlib');
 const https = require('https');
 
 const GEOBOUNDARIES_BASE_URL = 'https://www.geoboundaries.org/api/current/gbOpen';
-const GEOBOUNDARIES_CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
+// Use /tmp for Vercel serverless functions (writable), fallback to data/geoboundaries for local dev
+const GEOBOUNDARIES_CACHE_DIR = process.env.VERCEL 
+  ? path.join('/tmp', 'geoboundaries')
+  : path.join(process.cwd(), 'data', 'geoboundaries');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // ISO2 to ISO3 mapping for GeoBoundaries
