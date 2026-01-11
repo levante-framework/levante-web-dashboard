@@ -109,6 +109,10 @@
     {
       "source": "/(.*)",
       "destination": "/public/$1"
+    },
+    {
+      "source": "/api/geoboundaries-polygon",
+      "destination": "/api/geoboundaries-polygon.js"
     }
   ],
   "headers": [

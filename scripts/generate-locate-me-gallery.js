@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const http = require('http');
 const zlib = require('zlib');
 
 const MAX_DISTANCE_KM = 20; // Filter out results where nearest city is > 20km (unless seed point has allowFar=true)
@@ -12,6 +13,7 @@ const BASE_DELAY_MS = 800; // base backoff; jitter is added
 const CACHE_FILE = path.join(process.cwd(), 'data', 'gallery', 'overpass-cache.json');
 
 const BASE_URL = process.env.BASE_URL || 'https://levante-pitwall.vercel.app';
+const USE_GEOBOUNDARIES = process.env.USE_GEOBOUNDARIES === 'true' || process.env.USE_GEOBOUNDARIES === '1';
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me');
 const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');
 const SEED_FILE = path.join(OUTPUT_DIR, 'seed-points.json');
@@ -86,6 +88,20 @@ const SLUG_TO_COUNTRY = {
   india: 'IN',
   switzerland: 'CH'
 };
+
+// ISO2 to ISO3 mapping for GeoBoundaries
+const ISO2_TO_ISO3 = new Map([
+  ['US', 'USA'],
+  ['CA', 'CAN'],
+  ['CO', 'COL'],
+  ['IN', 'IND'],
+  ['AR', 'ARG'],
+  ['NL', 'NLD'],
+  ['GH', 'GHA'],
+  ['CH', 'CHE'],
+  ['DE', 'DEU'],
+  ['GB', 'GBR']
+]);
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -389,6 +405,97 @@ function lookupAdmPolygon(countryCode, level, lat, lon) {
   return best;
 }
 
+function fetchJsonHttps(url, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const client = urlObj.protocol === 'https:' ? https : http;
+    
+    let timeout = setTimeout(() => {
+      req.destroy();
+      reject(new Error(`Request timeout after ${timeoutMs}ms`));
+    }, timeoutMs);
+    
+    const req = client.get(url, (res) => {
+      clearTimeout(timeout);
+      if (res.statusCode !== 200) {
+        // Consume response body to prevent leaks
+        res.resume();
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(data));
+        } catch (e) {
+          reject(new Error(`Failed to parse JSON: ${e.message}`));
+        }
+      });
+    });
+    
+    req.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+    
+    req.setTimeout(timeoutMs, () => {
+      req.destroy();
+      clearTimeout(timeout);
+      reject(new Error(`Request timeout after ${timeoutMs}ms`));
+    });
+  });
+}
+
+async function lookupGeoBoundariesAreas(countryIso2Upper, lat, lon) {
+  // GeoBoundaries: ADM2 (regional/blue) and ADM4 (local/red)
+  const iso3 = ISO2_TO_ISO3.get(countryIso2Upper);
+  if (!iso3) {
+    console.warn(`GeoBoundaries: No ISO3 mapping for ${countryIso2Upper}`);
+    return { local: null, regional: null };
+  }
+
+  const baseUrl = process.env.GEOBOUNDARIES_API_URL || BASE_URL;
+  const adm2Url = `${baseUrl}/api/geoboundaries-polygon?lat=${lat}&lon=${lon}&country=${iso3}&level=2`;
+  const adm4Url = `${baseUrl}/api/geoboundaries-polygon?lat=${lat}&lon=${lon}&country=${iso3}&level=4`;
+
+  try {
+    console.log(`  🌍 Fetching GeoBoundaries for ${iso3} (ADM2 & ADM4)...`);
+    
+    const [adm2Res, adm4Res] = await Promise.all([
+      fetchJsonHttps(adm2Url, 10000).catch((err) => {
+        console.warn(`  ⚠️  GeoBoundaries ADM2 failed for ${iso3}: ${err.message}`);
+        return null;
+      }),
+      fetchJsonHttps(adm4Url, 10000).catch((err) => {
+        console.warn(`  ⚠️  GeoBoundaries ADM4 failed for ${iso3}: ${err.message}`);
+        return null;
+      })
+    ]);
+
+    const adm2Feature = adm2Res?.feature || null;
+    const adm4Feature = adm4Res?.feature || null;
+
+    if (adm2Feature || adm4Feature) {
+      console.log(`  ✅ GeoBoundaries: ADM2=${!!adm2Feature}, ADM4=${!!adm4Feature}`);
+    } else {
+      console.warn(`  ⚠️  GeoBoundaries: No features found for ${iso3}`);
+    }
+
+    return {
+      local: adm4Feature
+        ? { polygon: adm4Feature, adminLevel: 4, name: adm4Res?.name || adm4Feature?.properties?.shapeName || 'Unknown' }
+        : null,
+      regional: adm2Feature
+        ? { polygon: adm2Feature, adminLevel: 2, name: adm2Res?.name || adm2Feature?.properties?.shapeName || 'Unknown' }
+        : null
+    };
+  } catch (error) {
+    console.warn(`  ⚠️  GeoBoundaries lookup failed for ${iso3}:`, error.message);
+    return { local: null, regional: null };
+  }
+}
+
 function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null) {
   // Option (1): local boundary = smallest available admin level (try ADM5→ADM4→ADM3).
   // Regional boundary = ADM2.
@@ -651,13 +758,25 @@ async function processPoint(point, index, total) {
       }
     };
 
-    // Step 2/3: ADM polygons for the GPS point itself (local packs)
+    // Step 2/3: ADM polygons for the GPS point itself (local packs or GeoBoundaries API)
     const countryForPacks = (coarseCountry || '').toString().trim().toLowerCase();
+    const countryForPacksUpper = (coarseCountry || '').toString().trim().toUpperCase();
     const admin1Hint = geocodeData?.results?.[0]?.admin1 || null;
-    const { local, regional } = lookupTwoLevelAreas(countryForPacks, point.lat, point.lon, admin1Hint);
+    
+    let local, regional;
+    if (USE_GEOBOUNDARIES) {
+      const result = await lookupGeoBoundariesAreas(countryForPacksUpper, point.lat, point.lon);
+      local = result?.local || null;
+      regional = result?.regional || null;
+    } else {
+      const result = lookupTwoLevelAreas(countryForPacks, point.lat, point.lon, admin1Hint);
+      local = result.local;
+      regional = result.regional;
+    }
+    
     // For gallery rendering:
-    // - Blue (cityArea): ADM2 (regional)
-    // - Red (adminArea): Local = smallest available level (ADM5→ADM4→ADM3; optional)
+    // - Blue (cityArea): ADM2 (regional) - GADM or GeoBoundaries ADM2
+    // - Red (adminArea): Local = ADM3/4 (GADM) or ADM4 (GeoBoundaries)
     const cityArea = local || null;
     const adminArea = regional || null;
 
@@ -687,6 +806,7 @@ async function processPoint(point, index, total) {
 async function main() {
   console.log('🎯 Generating Locate Me Gallery');
   console.log(`Base URL: ${BASE_URL}`);
+  console.log(`Using GeoBoundaries: ${USE_GEOBOUNDARIES ? 'YES (ADM2/ADM4)' : 'NO (GADM ADM2/ADM3)'}`);
   console.log(`Output directory: ${OUTPUT_DIR}\n`);
   const points = loadSeedPoints();
   console.log(`📍 Loaded ${points.length} curated GPS points from seed file\n`);

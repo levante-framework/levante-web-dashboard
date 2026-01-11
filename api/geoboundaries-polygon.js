@@ -1,0 +1,267 @@
+const booleanPointInPolygon = require('@turf/boolean-point-in-polygon').default;
+const area = require('@turf/area').default;
+const fs = require('fs');
+const path = require('path');
+const zlib = require('zlib');
+const https = require('https');
+
+const GEOBOUNDARIES_BASE_URL = 'https://www.geoboundaries.org/api/current/gbOpen';
+const GEOBOUNDARIES_CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ISO2 to ISO3 mapping for GeoBoundaries
+const ISO2_TO_ISO3 = new Map([
+  ['US', 'USA'],
+  ['CA', 'CAN'],
+  ['CO', 'COL'],
+  ['IN', 'IND'],
+  ['AR', 'ARG'],
+  ['NL', 'NLD'],
+  ['GH', 'GHA'],
+  ['CH', 'CHE'],
+  ['DE', 'DEU'],
+  ['GB', 'GBR']
+]);
+
+const COUNTRY_SYNONYMS = new Map([
+  ['usa', 'USA'],
+  ['us', 'USA'],
+  ['united states', 'USA'],
+  ['canada', 'CAN'],
+  ['ca', 'CAN'],
+  ['colombia', 'COL'],
+  ['co', 'COL'],
+  ['india', 'IND'],
+  ['in', 'IND'],
+  ['argentina', 'ARG'],
+  ['ar', 'ARG'],
+  ['netherlands', 'NLD'],
+  ['nl', 'NLD'],
+  ['ghana', 'GHA'],
+  ['gh', 'GHA'],
+  ['switzerland', 'CHE'],
+  ['ch', 'CHE'],
+  ['germany', 'DEU'],
+  ['de', 'DEU'],
+  ['united kingdom', 'GBR'],
+  ['gb', 'GBR'],
+  ['uk', 'GBR']
+]);
+
+const SUPPORTED_COUNTRIES = new Set(Array.from(ISO2_TO_ISO3.values()));
+
+function normalizeCountry(input) {
+  const lower = (input || '').trim().toLowerCase();
+  if (COUNTRY_SYNONYMS.has(lower)) {
+    return COUNTRY_SYNONYMS.get(lower);
+  }
+  const upper = (input || '').trim().toUpperCase();
+  if (ISO2_TO_ISO3.has(upper)) {
+    return ISO2_TO_ISO3.get(upper);
+  }
+  if (SUPPORTED_COUNTRIES.has(upper)) {
+    return upper;
+  }
+  return null;
+}
+
+function ensureCacheDir() {
+  if (!fs.existsSync(GEOBOUNDARIES_CACHE_DIR)) {
+    fs.mkdirSync(GEOBOUNDARIES_CACHE_DIR, { recursive: true });
+  }
+}
+
+function getCachePath(iso3, level) {
+  return path.join(GEOBOUNDARIES_CACHE_DIR, `${iso3}_ADM${level}.json.gz`);
+}
+
+function loadCachedGeoBoundaries(iso3, level) {
+  const cachePath = getCachePath(iso3, level);
+  if (!fs.existsSync(cachePath)) {
+    return null;
+  }
+  
+  try {
+    const stats = fs.statSync(cachePath);
+    const age = Date.now() - stats.mtimeMs;
+    if (age > CACHE_TTL_MS) {
+      return null; // Cache expired
+    }
+    
+    const buf = fs.readFileSync(cachePath);
+    const json = zlib.gunzipSync(buf).toString('utf8');
+    return JSON.parse(json);
+  } catch (error) {
+    console.warn(`geoboundaries-polygon: Failed to load cache for ${iso3} ADM${level}:`, error.message);
+    return null;
+  }
+}
+
+function saveCachedGeoBoundaries(iso3, level, geojson) {
+  try {
+    ensureCacheDir();
+    const cachePath = getCachePath(iso3, level);
+    const json = JSON.stringify(geojson);
+    const compressed = zlib.gzipSync(json);
+    fs.writeFileSync(cachePath, compressed);
+  } catch (error) {
+    console.warn(`geoboundaries-polygon: Failed to save cache for ${iso3} ADM${level}:`, error.message);
+  }
+}
+
+function downloadGeoBoundaries(iso3, level) {
+  return new Promise((resolve, reject) => {
+    const url = `${GEOBOUNDARIES_BASE_URL}/${iso3}/ADM${level}/`;
+    
+    https.get(url, (res) => {
+      if (res.statusCode !== 200) {
+        reject(new Error(`HTTP ${res.statusCode}`));
+        return;
+      }
+      
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const metadata = JSON.parse(data);
+          const downloadUrl = metadata?.gjDownloadURL;
+          
+          if (!downloadUrl) {
+            reject(new Error('No download URL in metadata'));
+            return;
+          }
+          
+          // Download the actual GeoJSON file
+          https.get(downloadUrl, (geoRes) => {
+            if (geoRes.statusCode !== 200) {
+              reject(new Error(`Download failed: HTTP ${geoRes.statusCode}`));
+              return;
+            }
+            
+            let geoData = '';
+            geoRes.on('data', (chunk) => { geoData += chunk; });
+            geoRes.on('end', () => {
+              try {
+                const geojson = JSON.parse(geoData);
+                saveCachedGeoBoundaries(iso3, level, geojson);
+                resolve(geojson);
+              } catch (error) {
+                reject(new Error(`Failed to parse GeoJSON: ${error.message}`));
+              }
+            });
+          }).on('error', reject);
+        } catch (error) {
+          reject(new Error(`Failed to parse metadata: ${error.message}`));
+        }
+      });
+    }).on('error', reject);
+  });
+}
+
+function computeArea(feature) {
+  try {
+    return area(feature);
+  } catch {
+    return Infinity;
+  }
+}
+
+function pickBestFeature(features, lat, lon) {
+  const pt = [lon, lat];
+  const candidates = [];
+
+  for (const feature of features) {
+    if (!feature?.geometry) continue;
+    try {
+      if (booleanPointInPolygon(pt, feature.geometry)) {
+        candidates.push(feature);
+      }
+    } catch (error) {
+      // Skip invalid geometries
+      continue;
+    }
+  }
+
+  if (!candidates.length) {
+    return null;
+  }
+
+  // Prefer smaller area (more specific boundary)
+  candidates.sort((a, b) => {
+    const areaA = computeArea(a);
+    const areaB = computeArea(b);
+    return areaA - areaB;
+  });
+
+  return candidates[0];
+}
+
+async function loadGeoBoundaries(iso3, level) {
+  // Try cache first
+  const cached = loadCachedGeoBoundaries(iso3, level);
+  if (cached) {
+    return cached;
+  }
+  
+  // Download if not cached
+  try {
+    return await downloadGeoBoundaries(iso3, level);
+  } catch (error) {
+    console.warn(`geoboundaries-polygon: Failed to download ${iso3} ADM${level}:`, error.message);
+    return null;
+  }
+}
+
+async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'method_not_allowed' });
+    return;
+  }
+
+  const { lat, lon, country, level = '2' } = req.query;
+  const latNum = Number(lat);
+  const lonNum = Number(lon);
+  const levelNum = Number(level);
+
+  if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) {
+    res.status(400).json({ error: 'invalid_coordinates' });
+    return;
+  }
+
+  if (![2, 4].includes(levelNum)) {
+    res.status(400).json({ error: 'invalid_level', allowed: [2, 4] });
+    return;
+  }
+
+  const iso3 = normalizeCountry(country);
+  if (!iso3) {
+    res.status(400).json({ error: 'unsupported_country', allowed: Array.from(SUPPORTED_COUNTRIES) });
+    return;
+  }
+
+  try {
+    const geojson = await loadGeoBoundaries(iso3, levelNum);
+    if (!geojson?.features?.length) {
+      res.status(404).json({ error: 'polygon_not_found', source: 'geoboundaries', message: 'No boundaries available' });
+      return;
+    }
+
+    const bestFeature = pickBestFeature(geojson.features, latNum, lonNum);
+    if (!bestFeature) {
+      res.status(404).json({ error: 'polygon_not_found', source: 'geoboundaries', message: 'No polygon contained the point' });
+      return;
+    }
+
+    res.status(200).json({
+      feature: bestFeature,
+      adminLevel: levelNum,
+      source: 'geoboundaries',
+      name: bestFeature?.properties?.shapeName || bestFeature?.properties?.shapeISO || 'Unknown'
+    });
+  } catch (error) {
+    console.error('geoboundaries-polygon: error', error);
+    res.status(502).json({ error: 'geoboundaries_failed', message: error.message });
+  }
+}
+
+module.exports = handler;
