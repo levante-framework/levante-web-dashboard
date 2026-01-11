@@ -5,9 +5,13 @@ const path = require('path');
 const zlib = require('zlib');
 const https = require('https');
 const { Storage } = require('@google-cloud/storage');
+const { Storage } = require('@google-cloud/storage');
 
 const GEOBOUNDARIES_BASE_URL = 'https://www.geoboundaries.org/api/current/gbOpen';
-// Use local data directory (pre-downloaded files) - works in both Vercel and local dev
+// Use Google Cloud Storage bucket for large files (avoids GitHub size limits)
+const GEOBOUNDARIES_BUCKET = process.env.GEOBOUNDARIES_BUCKET || 'levante-geoboundaries';
+const GEOBOUNDARIES_BUCKET_PREFIX = 'geoboundaries';
+// Fallback to local directory for development
 const GEOBOUNDARIES_CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (not used for pre-downloaded files)
 
@@ -77,7 +81,29 @@ function getCachePath(iso3, level) {
   return path.join(GEOBOUNDARIES_CACHE_DIR, `${iso3}_ADM${level}.json.gz`);
 }
 
-function loadCachedGeoBoundaries(iso3, level) {
+async function loadCachedGeoBoundaries(iso3, level) {
+  // Try GCS bucket first (production)
+  if (GEOBOUNDARIES_BUCKET && GEOBOUNDARIES_BUCKET !== 'levante-geoboundaries' || process.env.VERCEL) {
+    try {
+      const storage = new Storage();
+      const bucket = storage.bucket(GEOBOUNDARIES_BUCKET);
+      const fileName = `${GEOBOUNDARIES_BUCKET_PREFIX}/${iso3}_ADM${level}.json.gz`;
+      const file = bucket.file(fileName);
+      
+      const [exists] = await file.exists();
+      if (exists) {
+        console.log(`geoboundaries-polygon: Loading from GCS: ${fileName}`);
+        const [buf] = await file.download();
+        const json = zlib.gunzipSync(buf).toString('utf8');
+        return JSON.parse(json);
+      }
+    } catch (error) {
+      // Fallback to local file if GCS fails
+      console.warn(`geoboundaries-polygon: GCS load failed, trying local: ${error.message}`);
+    }
+  }
+  
+  // Fallback to local file (development)
   const cachePath = getCachePath(iso3, level);
   if (!fs.existsSync(cachePath)) {
     return null;
@@ -224,15 +250,15 @@ function pickBestFeature(features, lat, lon) {
 }
 
 async function loadGeoBoundaries(iso3, level) {
-  // Try local pre-downloaded file first
-  const cached = loadCachedGeoBoundaries(iso3, level);
+  // Try GCS bucket or local pre-downloaded file
+  const cached = await loadCachedGeoBoundaries(iso3, level);
   if (cached) {
-    console.log(`geoboundaries-polygon: Using pre-downloaded data for ${iso3} ADM${level}`);
+    console.log(`geoboundaries-polygon: Using cached data for ${iso3} ADM${level}`);
     return cached;
   }
   
-  // Fallback: Download if not pre-downloaded (for development/testing)
-  console.log(`geoboundaries-polygon: Pre-downloaded file not found, attempting download for ${iso3} ADM${level}`);
+  // Fallback: Download if not cached (for development/testing)
+  console.log(`geoboundaries-polygon: Cache miss, attempting download for ${iso3} ADM${level}`);
   try {
     const result = await downloadGeoBoundaries(iso3, level);
     console.log(`geoboundaries-polygon: Successfully downloaded ${iso3} ADM${level}`);
