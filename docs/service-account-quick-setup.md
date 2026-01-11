@@ -79,7 +79,7 @@ After adding the environment variable, you need to redeploy:
 
 ## Step 6: Test
 
-1. Go to: https://levante-audio-dashboard.vercel.app/index.html
+1. Go to: https://levante-pitwall.vercel.app/index.html
 2. Click **"Compare Dev/Prod"**
 3. Should work without login prompt! 🎉
 
