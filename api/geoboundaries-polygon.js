@@ -112,9 +112,11 @@ function saveCachedGeoBoundaries(iso3, level, geojson) {
 function downloadGeoBoundaries(iso3, level) {
   return new Promise((resolve, reject) => {
     const url = `${GEOBOUNDARIES_BASE_URL}/${iso3}/ADM${level}/`;
+    console.log(`geoboundaries-polygon: Fetching metadata from ${url}`);
     
     https.get(url, (res) => {
       if (res.statusCode !== 200) {
+        console.error(`geoboundaries-polygon: Metadata fetch failed: HTTP ${res.statusCode}`);
         reject(new Error(`HTTP ${res.statusCode}`));
         return;
       }
@@ -127,34 +129,57 @@ function downloadGeoBoundaries(iso3, level) {
           const downloadUrl = metadata?.gjDownloadURL;
           
           if (!downloadUrl) {
+            console.error(`geoboundaries-polygon: No download URL in metadata for ${iso3} ADM${level}`);
             reject(new Error('No download URL in metadata'));
             return;
           }
           
+          console.log(`geoboundaries-polygon: Downloading GeoJSON from ${downloadUrl}`);
+          
           // Download the actual GeoJSON file
           https.get(downloadUrl, (geoRes) => {
             if (geoRes.statusCode !== 200) {
+              console.error(`geoboundaries-polygon: GeoJSON download failed: HTTP ${geoRes.statusCode}`);
               reject(new Error(`Download failed: HTTP ${geoRes.statusCode}`));
               return;
             }
             
             let geoData = '';
-            geoRes.on('data', (chunk) => { geoData += chunk; });
+            let totalSize = 0;
+            geoRes.on('data', (chunk) => { 
+              geoData += chunk; 
+              totalSize += chunk.length;
+            });
             geoRes.on('end', () => {
               try {
+                console.log(`geoboundaries-polygon: Downloaded ${(totalSize / 1024 / 1024).toFixed(2)}MB for ${iso3} ADM${level}`);
                 const geojson = JSON.parse(geoData);
+                if (!geojson.features || geojson.features.length === 0) {
+                  console.warn(`geoboundaries-polygon: No features in GeoJSON for ${iso3} ADM${level}`);
+                  reject(new Error('No features in GeoJSON'));
+                  return;
+                }
+                console.log(`geoboundaries-polygon: Parsed ${geojson.features.length} features for ${iso3} ADM${level}`);
                 saveCachedGeoBoundaries(iso3, level, geojson);
                 resolve(geojson);
               } catch (error) {
+                console.error(`geoboundaries-polygon: Failed to parse GeoJSON: ${error.message}`);
                 reject(new Error(`Failed to parse GeoJSON: ${error.message}`));
               }
             });
-          }).on('error', reject);
+          }).on('error', (err) => {
+            console.error(`geoboundaries-polygon: Download error: ${err.message}`);
+            reject(err);
+          });
         } catch (error) {
+          console.error(`geoboundaries-polygon: Failed to parse metadata: ${error.message}`);
           reject(new Error(`Failed to parse metadata: ${error.message}`));
         }
       });
-    }).on('error', reject);
+    }).on('error', (err) => {
+      console.error(`geoboundaries-polygon: Metadata fetch error: ${err.message}`);
+      reject(err);
+    });
   });
 }
 
