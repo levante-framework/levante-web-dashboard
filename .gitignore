@@ -27,3 +27,8 @@ data/population/worldpop/*.tiff
 
 # WorldPop cache (generated locally)
 data/gallery/worldpop-cache.json
+
+# GeoBoundaries data files (stored in GCS bucket, not in repo)
+data/geoboundaries/**/*.json.gz
+data/geoboundaries/**/*.json
+data/geoboundaries/**/*.tmp
