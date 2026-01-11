@@ -112,20 +112,14 @@ function saveWorldPopCache() {
 /**
  * Poll WorldPop API task for results
  * @param {string} taskId - Task ID from WorldPop API
- * @param {string} dataset - Dataset name (e.g., 'wpgppop')
- * @param {number} year - Year (e.g., 2020)
- * @param {string} geojsonStr - Encoded GeoJSON string
+ * @param {string} encodedGeojson - The encoded GeoJSON that was used in the original request
  * @param {number} maxAttempts - Maximum polling attempts (default: 30)
  * @param {number} pollInterval - Milliseconds between polls (default: 2000)
  * @returns {Promise<number|null>} Population estimate or null if unavailable
  */
-async function pollWorldPopTask(taskId, dataset, year, geojsonStr, maxAttempts = 30, pollInterval = 2000) {
-  // WorldPop API: Poll using taskid AND original parameters (required by API)
-  const pollUrl = `https://api.worldpop.org/v1/services/stats?` +
-    `taskid=${encodeURIComponent(taskId)}&` +
-    `dataset=${encodeURIComponent(dataset)}&` +
-    `year=${year}&` +
-    `geojson=${geojsonStr}`;
+async function pollWorldPopTask(taskId, encodedGeojson, maxAttempts = 30, pollInterval = 2000) {
+  // WorldPop API: Poll requires original parameters + taskid
+  const pollUrl = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&taskid=${encodeURIComponent(taskId)}&geojson=${encodedGeojson}`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -136,13 +130,6 @@ async function pollWorldPopTask(taskId, dataset, year, geojsonStr, maxAttempts =
       
       const json = await fetchJsonHttps(pollUrl);
       
-      // Check for direct stats response (might be available even with taskid)
-      const directPopulation = json?.stats?.sum;
-      if (typeof directPopulation === 'number' && directPopulation >= 0) {
-        console.log(`WorldPop API: Task completed after ${attempt + 1} attempts, population: ${Math.round(directPopulation).toLocaleString()}`);
-        return directPopulation;
-      }
-      
       // Check if task is still processing
       if (json?.status === 'created' || json?.status === 'running' || json?.status === 'pending') {
         // Task still processing
@@ -152,10 +139,9 @@ async function pollWorldPopTask(taskId, dataset, year, geojsonStr, maxAttempts =
         continue; // Keep polling
       }
       
-      // Check if task completed successfully (check various status fields)
-      if (json?.status === 'completed' || json?.status === 'finished' || 
-          (json?.status_code === 200 && json?.stats)) {
-        // Task completed - extract population data from various possible locations
+      // Check if task completed successfully
+      if (json?.status === 'completed' || json?.status === 'finished' || json?.status_code === 200) {
+        // Task completed - extract population data
         const population = json?.stats?.sum || json?.result?.stats?.sum || json?.data?.stats?.sum;
         if (typeof population === 'number' && population >= 0) {
           console.log(`WorldPop API: Task completed after ${attempt + 1} attempts, population: ${Math.round(population).toLocaleString()}`);
@@ -173,9 +159,9 @@ async function pollWorldPopTask(taskId, dataset, year, geojsonStr, maxAttempts =
         return null;
       }
       
-      // Unknown status - log response structure for debugging
+      // Unknown status - log and continue polling
       if (attempt === 0) {
-        console.log(`WorldPop API: Unknown status: ${json?.status || 'unknown'}, response keys: ${Object.keys(json || {}).join(', ')}`);
+        console.log(`WorldPop API: Unknown status: ${json?.status || 'unknown'}, continuing to poll...`);
       }
       
     } catch (error) {
@@ -197,28 +183,41 @@ async function pollWorldPopTask(taskId, dataset, year, geojsonStr, maxAttempts =
 }
 
 /**
- * Estimate population using WorldPop API
+ * Estimate population using WorldPop raster processing (local GeoTIFF files)
  * @param {Object} geometry - GeoJSON geometry (Polygon or MultiPolygon)
+ * @param {string} countryCode - ISO country code (e.g., 'US', 'USA', 'CA', 'CAN')
  * @returns {Promise<number|null>} Population estimate or null if unavailable
- * 
- * NOTE: WorldPop API currently appears to be broken - async tasks never complete.
- * This function is disabled and always returns null, falling back to GeoNames.
- * TODO: Re-enable when WorldPop API async tasks start working again.
  */
-async function estimatePopulationFromWorldPop(geometry) {
-  // WorldPop API is currently broken - async tasks never complete
-  // Disabling WorldPop until API is fixed
-  // All async tasks stay in "created" or "finished" status and never return stats
-  // Even simple bounding boxes trigger async tasks that never complete
-  // TODO: Re-enable when WorldPop API async tasks start working again
-  return null;
-  
-  /* DISABLED CODE - WorldPop API async tasks don't work
+async function estimatePopulationFromWorldPop(geometry, countryCode) {
   if (!geometry || !geometry.type || !geometry.coordinates) return null;
+  if (!countryCode) {
+    console.warn('WorldPop raster: No country code provided, skipping');
+    return null;
+  }
   
-  // Create a stable cache key from geometry coordinates (simplified)
+  // Convert country code to ISO3 format (e.g., 'US' -> 'USA', 'CA' -> 'CAN')
+  const countryCodeMap = {
+    'US': 'USA', 'USA': 'USA',
+    'CA': 'CAN', 'CAN': 'CAN',
+    'CO': 'COL', 'COL': 'COL',
+    'IN': 'IND', 'IND': 'IND',
+    'AR': 'ARG', 'ARG': 'ARG',
+    'NL': 'NLD', 'NLD': 'NLD',
+    'GH': 'GHA', 'GHA': 'GHA',
+    'CH': 'CHE', 'CHE': 'CHE',
+    'DE': 'DEU', 'DEU': 'DEU',
+    'GB': 'GBR', 'GBR': 'GBR', 'UK': 'GBR'
+  };
+  
+  const iso3Code = countryCodeMap[countryCode.toUpperCase()];
+  if (!iso3Code) {
+    console.warn(`WorldPop raster: Country code '${countryCode}' not supported, skipping`);
+    return null;
+  }
+  
+  // Create a stable cache key from geometry coordinates and country
   const geomStr = JSON.stringify(geometry);
-  const cacheKey = crypto.createHash('sha256').update(geomStr).digest('hex').substring(0, 16);
+  const cacheKey = crypto.createHash('sha256').update(geomStr + iso3Code).digest('hex').substring(0, 16);
   
   const cache = loadWorldPopCache();
   const cached = cache[cacheKey];
@@ -229,136 +228,66 @@ async function estimatePopulationFromWorldPop(geometry) {
     return cached.population;
   }
 
-  // Light throttle (avoid bursts) - 200ms between requests
-  const since = now - lastWorldPopFetchAt;
-  if (since < 200) {
-    await new Promise((r) => setTimeout(r, 200 - since));
-  }
-  lastWorldPopFetchAt = Date.now();
-
   try {
-    // Use bounding box approximation for WorldPop API to avoid complex geometries
-    // WorldPop uses 100m resolution, so bounding box approximation is acceptable
-    // This ensures simple, fast API calls that return synchronously
-    const bbox = bboxFromGeometry(geometry);
-    if (!bbox) {
-      console.warn(`WorldPop API: Could not compute bounding box, falling back to GeoNames`);
-      return null;
-    }
+    const { execSync } = require('child_process');
+    const scriptPath = path.join(__dirname, 'estimate-population-worldpop.py');
     
-    // Create a simple rectangular polygon from bounding box (always simple, always works)
-    const bboxPolygon = {
-      type: 'Polygon',
-      coordinates: [[
-        [bbox.minLon, bbox.minLat],
-        [bbox.maxLon, bbox.minLat],
-        [bbox.maxLon, bbox.maxLat],
-        [bbox.minLon, bbox.maxLat],
-        [bbox.minLon, bbox.minLat]
-      ]]
-    };
-    
+    // Create GeoJSON Feature for Python script
     const geojson = {
       type: 'Feature',
-      geometry: bboxPolygon
+      geometry: geometry
     };
-    
     const geojsonStr = JSON.stringify(geojson);
-    const encodedGeojson = encodeURIComponent(geojsonStr);
-    // Use runasync=false to request synchronous processing (avoids async task issues)
-    const baseUrl = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=`;
-    const url = baseUrl + encodedGeojson + `&runasync=false`;
     
-    // Bounding box polygons are always simple (< 500 chars), so URL length should never be an issue
-    if (url.length > 8000) {
-      console.warn(`WorldPop API: URL too long even with bounding box (${url.length} chars), falling back to GeoNames`);
-      return null;
-    }
+    // Escape single quotes in JSON for shell safety
+    const escapedGeojson = geojsonStr.replace(/'/g, "'\\''");
     
-    // Make the API request
-    const json = await fetchJsonHttps(url);
+    // Try venv Python first, fall back to system python3
+    const venvPython = path.join(__dirname, '..', 'venv', 'bin', 'python3');
+    const pythonCmd = fs.existsSync(venvPython) ? venvPython : 'python3';
     
-    // WorldPop API may return async task ID or direct results
-    // Check if we have direct stats (synchronous response)
-    const directPopulation = json?.stats?.sum;
-    if (typeof directPopulation === 'number' && directPopulation >= 0) {
-      const result = Math.round(directPopulation);
-      console.log(`WorldPop API: Direct response received, population: ${result.toLocaleString()}`);
-      
-      // Cache the result
-      cache[cacheKey] = {
-        fetchedAt: Date.now(),
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-        population: result
-      };
-      saveWorldPopCache();
-      
-      return result;
-    }
-    
-    // Check if it's an async task (has taskid but no stats yet)
-    // If status is "finished", try polling once - it might be ready
-    if (json?.taskid && !json?.stats?.sum) {
-      if (json?.status === 'finished') {
-        // Status says finished - try polling once to see if results are available
-        console.log(`WorldPop API: Task finished (${json.taskid}), polling once for results...`);
-        const dataset = 'wpgppop';
-        const year = 2020;
-        const pollPopulation = await pollWorldPopTask(json.taskid, dataset, year, encodedGeojson, 1, 1000);
-        
-        if (typeof pollPopulation === 'number' && pollPopulation >= 0) {
-          const result = Math.round(pollPopulation);
-          console.log(`WorldPop API: Got results from finished task, population: ${result.toLocaleString()}`);
-          
-          // Cache the result
-          cache[cacheKey] = {
-            fetchedAt: Date.now(),
-            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-            population: result
-          };
-          saveWorldPopCache();
-          
-          return result;
-        }
+    // Call Python script
+    const result = execSync(
+      `"${pythonCmd}" "${scriptPath}" "${iso3Code}" '${escapedGeojson}'`,
+      { 
+        encoding: 'utf-8', 
+        timeout: 10000, // 10 second timeout (should be much faster)
+        maxBuffer: 1024 * 1024, // 1 MB buffer
+        cwd: path.dirname(scriptPath)
       }
-      
-      // For "created" status or if polling failed, skip WorldPop
-      console.warn(`WorldPop API: Async task required (${json.taskid}, status: ${json.status}), skipping WorldPop, falling back to GeoNames`);
+    );
+    
+    const population = parseInt(result.trim(), 10);
+    
+    if (isNaN(population) || population < 0) {
+      console.warn(`WorldPop raster: Invalid result: ${result.trim()}`);
       return null;
     }
     
-    // Check for stats response (fallback check)
-    const population = json?.stats?.sum;
+    const resultValue = Math.round(population);
+    console.log(`WorldPop raster: Population estimate: ${resultValue.toLocaleString()} (${iso3Code})`);
     
-    if (typeof population === 'number' && population >= 0) {
-      const result = Math.round(population);
-      
-      // Cache the result
-      cache[cacheKey] = {
-        fetchedAt: Date.now(),
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
-        population: result
-      };
-      saveWorldPopCache();
-      
-      return result;
-    }
+    // Cache the result
+    cache[cacheKey] = {
+      fetchedAt: Date.now(),
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      population: resultValue
+    };
+    saveWorldPopCache();
     
-    // No population data found
-    console.warn(`WorldPop API: No population data in response, falling back to GeoNames`);
-    return null;
+    return resultValue;
+    
   } catch (error) {
-    // Handle specific error cases
-    if (error.message && error.message.includes('414')) {
-      // URL too long - geometry is too complex
-      console.warn(`WorldPop API: Request-URI too long (414), geometry too complex. Falling back to GeoNames.`);
+    // Handle errors gracefully
+    if (error.message && error.message.includes('ENOENT')) {
+      console.warn(`WorldPop raster: Python script not found or raster file missing. Install dependencies: pip install rasterio shapely`);
+    } else if (error.message && error.message.includes('WorldPop raster not found')) {
+      console.warn(`WorldPop raster: Raster file not downloaded. Run: ./scripts/download-worldpop-rasters.sh ${iso3Code}`);
     } else {
-      // Other errors - log but don't fail - fall back to GeoNames
-      console.warn(`WorldPop API error for geometry: ${error.message}`);
+      console.warn(`WorldPop raster error: ${error.message}`);
     }
     return null;
   }
-  */
 }
 
 // --- Weather (Open-Meteo) ---
@@ -691,9 +620,9 @@ function estimatePopulationFromCities(geometry, countryCode) {
 async function estimatePopulation(geometry, countryCode) {
   if (!geometry) return null;
   
-  // Try WorldPop API first (more accurate, includes rural areas)
+  // Try WorldPop raster first (more accurate, includes rural areas, faster)
   try {
-    const worldPop = await estimatePopulationFromWorldPop(geometry);
+    const worldPop = await estimatePopulationFromWorldPop(geometry, countryCode);
     if (worldPop !== null && worldPop > 0) {
       return worldPop;
     }

@@ -12,3 +12,18 @@ data/gallery/weather-cache.json
 data/validation/*.json
 
 public/locations-map.html
+
+# Python virtual environment (should never be committed)
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# WorldPop raster files (large binary files, download as needed)
+data/population/worldpop/*.tif
+data/population/worldpop/*.tiff
+
+# WorldPop cache (generated locally)
+data/gallery/worldpop-cache.json

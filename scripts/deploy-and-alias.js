@@ -43,10 +43,7 @@ function run(command) {
 
     const deploymentHost = new URL(deploymentUrl).host;
     const aliases = [
-      'audio-dashboard-levante.vercel.app',
-      'levante-audio-dashboard.vercel.app',
-      'levante-pitwall.vercel.app',
-      'levante-partner-tools.vercel.app'
+      'levante-pitwall.vercel.app'
     ];
 
     for (const alias of aliases) {

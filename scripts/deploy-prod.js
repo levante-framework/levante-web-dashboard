@@ -12,14 +12,11 @@ const path = require('path');
 
 const PREVIEW_FILE = path.join('.vercel', 'latest-preview-url.txt');
 const STAGING_ALIAS = process.env.VERCEL_STAGING_ALIAS || '';
-const PRIMARY_PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-web-dashboard.vercel.app';
+const PRIMARY_PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-pitwall.vercel.app';
 const LEGACY_PROD_ALIASES = (process.env.VERCEL_PROD_ALIASES
   ? process.env.VERCEL_PROD_ALIASES.split(',').map(alias => alias.trim()).filter(Boolean)
   : [
-      'audio-dashboard-levante.vercel.app',
-      'levante-audio-dashboard.vercel.app',
       'levante-pitwall.vercel.app',
-      'levante-partner-tools.vercel.app',
     ]
 );
 

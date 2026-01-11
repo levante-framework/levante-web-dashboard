@@ -11,7 +11,7 @@ const MAX_RETRIES = 4;
 const BASE_DELAY_MS = 800; // base backoff; jitter is added
 const CACHE_FILE = path.join(process.cwd(), 'data', 'gallery', 'overpass-cache.json');
 
-const BASE_URL = process.env.BASE_URL || 'https://levante-audio-dashboard.vercel.app';
+const BASE_URL = process.env.BASE_URL || 'https://levante-pitwall.vercel.app';
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me');
 const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');
 const SEED_FILE = path.join(OUTPUT_DIR, 'seed-points.json');

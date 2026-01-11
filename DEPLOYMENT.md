@@ -6,11 +6,10 @@ This project is configured with automatic aliasing so that every new deployment 
 
 ## Stable URLs
 
-Your dashboard is always available at these stable URLs:
-- **Primary**: https://audio-dashboard-levante.vercel.app
-- **Secondary**: https://levante-audio-dashboard.vercel.app
+Your dashboard is always available at:
+- **Primary**: https://levante-pitwall.vercel.app
 
-These URLs automatically point to the latest production deployment.
+This URL automatically points to the latest production deployment.
 
 ## Prerequisites
 
@@ -169,7 +168,6 @@ The deployed Pitwall will automatically list and load validation files from GCS.
 ## Next Steps
 
 After deployment, your dashboard will be available at:
-- https://audio-dashboard-levante.vercel.app
-- https://levante-audio-dashboard.vercel.app
+- https://levante-pitwall.vercel.app
 
-Both URLs will automatically point to your latest deployment! 
+This URL will automatically point to your latest deployment! 
