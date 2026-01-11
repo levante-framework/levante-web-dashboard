@@ -83,10 +83,13 @@ function getCachePath(iso3, level) {
 
 async function loadCachedGeoBoundaries(iso3, level) {
   // Try GCS bucket first (production)
-  if (GEOBOUNDARIES_BUCKET && (process.env.VERCEL || process.env.GEOBOUNDARIES_BUCKET)) {
+  // Check if bucket name is explicitly set (not just default)
+  const bucketName = process.env.GEOBOUNDARIES_BUCKET || GEOBOUNDARIES_BUCKET;
+  if (bucketName && process.env.VERCEL) {
     try {
+      console.log(`geoboundaries-polygon: Attempting to load from GCS bucket: ${bucketName}`);
       const storage = new Storage();
-      const bucket = storage.bucket(GEOBOUNDARIES_BUCKET);
+      const bucket = storage.bucket(bucketName);
       const fileName = `${GEOBOUNDARIES_BUCKET_PREFIX}/${iso3}_ADM${level}.json.gz`;
       const file = bucket.file(fileName);
       
@@ -95,12 +98,18 @@ async function loadCachedGeoBoundaries(iso3, level) {
         console.log(`geoboundaries-polygon: Loading from GCS: ${fileName}`);
         const [buf] = await file.download();
         const json = zlib.gunzipSync(buf).toString('utf8');
+        console.log(`geoboundaries-polygon: Successfully loaded ${iso3} ADM${level} from GCS`);
         return JSON.parse(json);
+      } else {
+        console.warn(`geoboundaries-polygon: File not found in GCS: ${fileName}`);
       }
     } catch (error) {
       // Fallback to local file if GCS fails
-      console.warn(`geoboundaries-polygon: GCS load failed, trying local: ${error.message}`);
+      console.error(`geoboundaries-polygon: GCS load failed: ${error.message}`);
+      console.error(`geoboundaries-polygon: Error stack: ${error.stack}`);
     }
+  } else {
+    console.log(`geoboundaries-polygon: GCS not configured (bucket: ${bucketName}, VERCEL: ${process.env.VERCEL})`);
   }
   
   // Fallback to local file (development)
