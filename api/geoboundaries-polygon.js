@@ -6,11 +6,9 @@ const zlib = require('zlib');
 const https = require('https');
 
 const GEOBOUNDARIES_BASE_URL = 'https://www.geoboundaries.org/api/current/gbOpen';
-// Use /tmp for Vercel serverless functions (writable), fallback to data/geoboundaries for local dev
-const GEOBOUNDARIES_CACHE_DIR = process.env.VERCEL 
-  ? path.join('/tmp', 'geoboundaries')
-  : path.join(process.cwd(), 'data', 'geoboundaries');
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Use local data directory (pre-downloaded files) - works in both Vercel and local dev
+const GEOBOUNDARIES_CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (not used for pre-downloaded files)
 
 // ISO2 to ISO3 mapping for GeoBoundaries
 const ISO2_TO_ISO3 = new Map([
@@ -225,17 +223,21 @@ function pickBestFeature(features, lat, lon) {
 }
 
 async function loadGeoBoundaries(iso3, level) {
-  // Try cache first
+  // Try local pre-downloaded file first
   const cached = loadCachedGeoBoundaries(iso3, level);
   if (cached) {
+    console.log(`geoboundaries-polygon: Using pre-downloaded data for ${iso3} ADM${level}`);
     return cached;
   }
   
-  // Download if not cached
+  // Fallback: Download if not pre-downloaded (for development/testing)
+  console.log(`geoboundaries-polygon: Pre-downloaded file not found, attempting download for ${iso3} ADM${level}`);
   try {
-    return await downloadGeoBoundaries(iso3, level);
+    const result = await downloadGeoBoundaries(iso3, level);
+    console.log(`geoboundaries-polygon: Successfully downloaded ${iso3} ADM${level}`);
+    return result;
   } catch (error) {
-    console.warn(`geoboundaries-polygon: Failed to download ${iso3} ADM${level}:`, error.message);
+    console.error(`geoboundaries-polygon: Failed to download ${iso3} ADM${level}:`, error.message);
     return null;
   }
 }
