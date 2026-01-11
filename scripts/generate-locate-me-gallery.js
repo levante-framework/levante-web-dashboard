@@ -449,7 +449,8 @@ function fetchJsonHttps(url, timeoutMs = 10000) {
 }
 
 async function lookupGeoBoundariesAreas(countryIso2Upper, lat, lon) {
-  // GeoBoundaries: ADM2 (regional/blue) and ADM4 (local/red)
+  // GeoBoundaries: Try ADM4 first, then ADM3, then ADM2
+  // Regional: ADM2 (always available)
   const iso3 = ISO2_TO_ISO3.get(countryIso2Upper);
   if (!iso3) {
     console.warn(`GeoBoundaries: No ISO3 mapping for ${countryIso2Upper}`);
@@ -458,42 +459,57 @@ async function lookupGeoBoundariesAreas(countryIso2Upper, lat, lon) {
 
   const baseUrl = process.env.GEOBOUNDARIES_API_URL || BASE_URL;
   const adm2Url = `${baseUrl}/api/geoboundaries-polygon?lat=${lat}&lon=${lon}&country=${iso3}&level=2`;
+  const adm3Url = `${baseUrl}/api/geoboundaries-polygon?lat=${lat}&lon=${lon}&country=${iso3}&level=3`;
   const adm4Url = `${baseUrl}/api/geoboundaries-polygon?lat=${lat}&lon=${lon}&country=${iso3}&level=4`;
 
   try {
-    console.log(`  🌍 Fetching GeoBoundaries for ${iso3} (ADM2 & ADM4)...`);
+    console.log(`  🌍 Fetching GeoBoundaries for ${iso3} (ADM2, ADM3, ADM4)...`);
     
-    const [adm2Res, adm4Res] = await Promise.all([
+    // Try ADM4, ADM3, and ADM2 in parallel
+    const [adm2Res, adm3Res, adm4Res] = await Promise.all([
       fetchJsonHttps(adm2Url, 30000).catch((err) => {
         console.warn(`  ⚠️  GeoBoundaries ADM2 failed for ${iso3}: ${err.message}`);
         return null;
       }),
+      fetchJsonHttps(adm3Url, 30000).catch((err) => {
+        // ADM3 might not be available - that's OK
+        return null;
+      }),
       fetchJsonHttps(adm4Url, 30000).catch((err) => {
-        console.warn(`  ⚠️  GeoBoundaries ADM4 failed for ${iso3}: ${err.message}`);
+        // ADM4 might not be available - that's OK
         return null;
       })
     ]);
 
-    // Handle error responses (API returns 200 with error field when data not available)
+    // Handle error responses
     if (adm2Res?.error) {
       console.warn(`  ⚠️  GeoBoundaries ADM2: ${adm2Res.message || adm2Res.error}`);
     }
+    if (adm3Res?.error) {
+      // ADM3 not available is expected for many countries
+    }
     if (adm4Res?.error) {
-      console.warn(`  ⚠️  GeoBoundaries ADM4: ${adm4Res.message || adm4Res.error}`);
+      // ADM4 not available is expected for most countries
     }
 
     const adm2Feature = adm2Res?.feature || null;
+    const adm3Feature = adm3Res?.feature || null;
     const adm4Feature = adm4Res?.feature || null;
 
-    if (adm2Feature || adm4Feature) {
-      console.log(`  ✅ GeoBoundaries: ADM2=${!!adm2Feature}, ADM4=${!!adm4Feature}`);
+    // Use ADM4 if available, otherwise ADM3, otherwise null
+    const localFeature = adm4Feature || adm3Feature || null;
+    const localLevel = adm4Feature ? 4 : (adm3Feature ? 3 : null);
+    const localName = adm4Res?.name || adm3Res?.name || localFeature?.properties?.shapeName || null;
+
+    if (adm2Feature || localFeature) {
+      console.log(`  ✅ GeoBoundaries: ADM2=${!!adm2Feature}, Local=${localLevel ? `ADM${localLevel}` : 'none'}`);
     } else {
       console.warn(`  ⚠️  GeoBoundaries: No features found for ${iso3}`);
     }
 
     return {
-      local: adm4Feature
-        ? { polygon: adm4Feature, adminLevel: 4, name: adm4Res?.name || adm4Feature?.properties?.shapeName || 'Unknown' }
+      local: localFeature
+        ? { polygon: localFeature, adminLevel: localLevel, name: localName || 'Unknown' }
         : null,
       regional: adm2Feature
         ? { polygon: adm2Feature, adminLevel: 2, name: adm2Res?.name || adm2Feature?.properties?.shapeName || 'Unknown' }

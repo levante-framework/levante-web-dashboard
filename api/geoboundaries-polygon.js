@@ -325,8 +325,8 @@ async function handler(req, res) {
     return;
   }
 
-  if (![2, 4].includes(levelNum)) {
-    res.status(400).json({ error: 'invalid_level', allowed: [2, 4] });
+  if (![2, 3, 4].includes(levelNum)) {
+    res.status(400).json({ error: 'invalid_level', allowed: [2, 3, 4] });
     return;
   }
 

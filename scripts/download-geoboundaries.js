@@ -15,9 +15,10 @@ const CACHE_DIR = path.join(process.cwd(), 'data', 'geoboundaries');
 
 // Countries we need (ISO3 codes)
 const COUNTRIES = ['USA', 'CAN', 'COL', 'DEU', 'GBR', 'NLD', 'GHA', 'CHE', 'IND', 'ARG'];
-// ADM2 and ADM4 - ADM4 is a key feature of GeoBoundaries
-// Some countries may not have ADM4, we'll handle that gracefully
-const LEVELS = [2, 4]; // ADM2 and ADM4
+// Download ADM2, ADM3, and ADM4
+// ADM4 only available for IND, ADM3 available for CAN/DEU/GBR/CHE
+// We'll use the highest available level for each country
+const LEVELS = [2, 3, 4]; // ADM2, ADM3, ADM4
 
 function downloadFile(url, outputPath) {
   return new Promise((resolve, reject) => {
