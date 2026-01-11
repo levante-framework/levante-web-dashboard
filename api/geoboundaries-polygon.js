@@ -83,7 +83,7 @@ function getCachePath(iso3, level) {
 
 async function loadCachedGeoBoundaries(iso3, level) {
   // Try GCS bucket first (production)
-  if (GEOBOUNDARIES_BUCKET && GEOBOUNDARIES_BUCKET !== 'levante-geoboundaries' || process.env.VERCEL) {
+  if (GEOBOUNDARIES_BUCKET && (process.env.VERCEL || process.env.GEOBOUNDARIES_BUCKET)) {
     try {
       const storage = new Storage();
       const bucket = storage.bucket(GEOBOUNDARIES_BUCKET);
