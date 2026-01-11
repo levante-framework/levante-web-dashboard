@@ -73,7 +73,8 @@
       "maxDuration": 30
     },
     "api/geoboundaries-polygon.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "excludeFiles": "data/geoboundaries/**"
     }
   },
   "rewrites": [
