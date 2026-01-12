@@ -315,7 +315,12 @@
         }
         
         const resultsWithPolygons = galleryData.results.filter(result => {
-          return result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+          // Check for polygons in the legacy format (polygons array)
+          const hasLegacyPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+          // Check for polygons in the new format (cityArea/adminArea)
+          const hasNewPolygon = (result.cityArea && result.cityArea.polygon && result.cityArea.polygon.geometry) ||
+                                (result.adminArea && result.adminArea.polygon && result.adminArea.polygon.geometry);
+          return hasLegacyPolygon || hasNewPolygon;
         });
         document.getElementById('totalCount').textContent = resultsWithPolygons.length;
         document.getElementById('generatedDate').textContent = new Date(galleryData.generated).toLocaleDateString();
@@ -347,8 +352,12 @@
       }
       
       const resultsWithPolygons = galleryData.results.filter(result => {
-        const hasPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
-        return hasPolygon;
+        // Check for polygons in the legacy format (polygons array)
+        const hasLegacyPolygon = result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
+        // Check for polygons in the new format (cityArea/adminArea)
+        const hasNewPolygon = (result.cityArea && result.cityArea.polygon && result.cityArea.polygon.geometry) ||
+                              (result.adminArea && result.adminArea.polygon && result.adminArea.polygon.geometry);
+        return hasLegacyPolygon || hasNewPolygon;
       });
       
       const filtered = currentFilter === 'all' 
