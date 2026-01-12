@@ -356,15 +356,27 @@ function adm0CountryLookup(lat, lon) {
 
 function loadAdmPack(countryCode, level) {
   const code = (countryCode || '').toString().trim().toLowerCase();
-  const lvl = (level || '').toString().trim().toLowerCase(); // adm1|adm2
+  const lvl = (level || '').toString().trim().toLowerCase(); // adm1|adm2|adm3|adm4|adm5
   if (!code || !lvl) return null;
   const key = `${code}|${lvl}`;
   if (admPackCache.has(key)) return admPackCache.get(key);
-  const filePath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
-  if (!fs.existsSync(filePath)) {
+  
+  // Try OSM pack first for ADM4/ADM5 (more consistent), then GADM
+  const osmPath = path.join(ADM_PACK_DIR, code, `${lvl}-osm.json.gz`);
+  const gadmPath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
+  
+  let filePath = null;
+  if ((lvl === 'adm4' || lvl === 'adm5') && fs.existsSync(osmPath)) {
+    filePath = osmPath; // Prefer OSM for ADM4/5
+  } else if (fs.existsSync(gadmPath)) {
+    filePath = gadmPath; // Use GADM for ADM2/3 or if OSM not available
+  }
+  
+  if (!filePath) {
     admPackCache.set(key, null);
     return null;
   }
+  
   const raw = zlib.gunzipSync(fs.readFileSync(filePath)).toString();
   const data = JSON.parse(raw);
   admPackCache.set(key, data);
