@@ -611,12 +611,37 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
     }
     
     // Select the SMALLEST boundary (most granular)
+    // But prefer ADM3 over ADM4/5 unless ADM4/5 is significantly smaller (< 80% of ADM3)
+    // This avoids using ADM4/5 when they represent different admin concepts (e.g., provinces vs districts)
     if (candidates.length > 0) {
       candidates.sort((a, b) => a.area - b.area); // Sort by area, smallest first
-      const best = candidates[0];
-      localFeature = best.feature;
-      localLevel = best.level;
-      console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
+      
+      // Find ADM3 candidate if it exists
+      const adm3Candidate = candidates.find(c => c.level === 3);
+      
+      // If we have ADM3 and other candidates, prefer ADM3 unless others are significantly smaller
+      if (adm3Candidate && candidates.length > 1) {
+        const smallest = candidates[0];
+        // Only use ADM4/5 if it's at least 20% smaller than ADM3 (more granular)
+        if (smallest.level !== 3 && smallest.area >= adm3Candidate.area * 0.8) {
+          console.log(`  ℹ️  Preferring ADM3 over ${smallest.levelName.toUpperCase()} (${smallest.levelName.toUpperCase()} is ${((smallest.area / adm3Candidate.area) * 100).toFixed(0)}% of ADM3 size)`);
+          localFeature = adm3Candidate.feature;
+          localLevel = 3;
+          console.log(`  ✅ Selected ADM3 boundary: ${adm3Candidate.feature.properties?.name || 'Unknown'} (admin_level 3, ${(adm3Candidate.area / 1e6).toFixed(2)} km²)`);
+        } else {
+          const best = candidates[0];
+          localFeature = best.feature;
+          localLevel = best.level;
+          console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
+        }
+      } else {
+        // No ADM3, or only one candidate - use smallest
+        const best = candidates[0];
+        localFeature = best.feature;
+        localLevel = best.level;
+        console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
+      }
+      
       if (candidates.length > 1) {
         console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
       }
