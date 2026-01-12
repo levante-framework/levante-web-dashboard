@@ -356,7 +356,7 @@ function adm0CountryLookup(lat, lon) {
 
 function loadAdmPack(countryCode, level) {
   const code = (countryCode || '').toString().trim().toLowerCase();
-  const lvl = (level || '').toString().trim().toLowerCase(); // adm1|adm2|adm3|adm4|adm5
+  const lvl = (level || '').toString().trim().toLowerCase(); // adm1|adm2|adm3|adm4|adm5|adm6|adm7|adm8|place-city|place-town|place-village
   if (!code || !lvl) return null;
   const key = `${code}|${lvl}`;
   if (admPackCache.has(key)) return admPackCache.get(key);
@@ -364,12 +364,18 @@ function loadAdmPack(countryCode, level) {
   // Priority order:
   // - ADM2/3: GADM packs (most reliable)
   // - ADM6/7/8: Geofabrik packs (more granular: towns, neighborhoods, wards)
+  // - place-*: Geofabrik packs (actual city/town boundaries)
   const geofabrikPath = path.join(ADM_PACK_DIR, code, `${lvl}-geofabrik.json.gz`);
   const osmPath = path.join(ADM_PACK_DIR, code, `${lvl}-osm.json.gz`);
   const gadmPath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
   
   let filePath = null;
-  if ((lvl === 'adm6' || lvl === 'adm7' || lvl === 'adm8')) {
+  if (lvl.startsWith('place-')) {
+    // For place boundaries, only Geofabrik
+    if (fs.existsSync(geofabrikPath)) {
+      filePath = geofabrikPath;
+    }
+  } else if ((lvl === 'adm6' || lvl === 'adm7' || lvl === 'adm8')) {
     // For ADM6/7/8, prefer Geofabrik, then OSM
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
@@ -592,7 +598,7 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
     }
     const adm3Feature = bestContaining(adm3Pack);
     
-    // Try ADM6/7/8 (more granular: towns, neighborhoods, wards)
+    // Try ADM6/7/8 and place boundaries (more granular: towns, neighborhoods, wards, actual city boundaries)
     let candidates = [];
     if (adm3Feature) {
       const area = polygonArea(adm3Feature.geometry);
@@ -600,10 +606,31 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
         feature: adm3Feature,
         level: 3,
         area: area,
-        levelName: 'adm3'
+        levelName: 'adm3',
+        type: 'admin'
       });
     }
     
+    // Try place boundaries (actual city/town boundaries - often more accurate than admin divisions)
+    for (const placeType of ['place-city', 'place-town', 'place-village', 'place-suburb']) {
+      const pack = loadAdmPack(countryIso2Lower, placeType);
+      if (pack && pack.features && pack.features.length > 0) {
+        console.log(`  📦 Loaded ${pack.features.length} ${placeType} features`);
+      }
+      const f = bestContaining(pack);
+      if (f) {
+        const area = polygonArea(f.geometry);
+        candidates.push({
+          feature: f,
+          level: placeType === 'place-city' ? 'city' : (placeType === 'place-town' ? 'town' : (placeType === 'place-village' ? 'village' : 'suburb')),
+          area: area,
+          levelName: placeType,
+          type: 'place'
+        });
+      }
+    }
+    
+    // Try ADM6/7/8 (admin divisions: towns, neighborhoods, wards)
     for (const lvl of ['adm6', 'adm7', 'adm8']) {
       const pack = loadAdmPack(countryIso2Lower, lvl);
       if (pack && pack.features && pack.features.length > 0) {
@@ -616,23 +643,36 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
           feature: f,
           level: lvl === 'adm6' ? 6 : (lvl === 'adm7' ? 7 : 8),
           area: area,
-          levelName: lvl
+          levelName: lvl,
+          type: 'admin'
         });
       }
     }
     
     // Select smallest boundary (most granular)
+    // Prefer place boundaries over admin boundaries when similar size (they're actual city boundaries)
     if (candidates.length > 0) {
-      candidates.sort((a, b) => a.area - b.area);
+      candidates.sort((a, b) => {
+        // Sort by area first
+        if (Math.abs(a.area - b.area) / Math.max(a.area, b.area) > 0.1) {
+          return a.area - b.area;
+        }
+        // If similar size, prefer place boundaries over admin boundaries
+        if (a.type === 'place' && b.type === 'admin') return -1;
+        if (a.type === 'admin' && b.type === 'place') return 1;
+        return a.area - b.area;
+      });
+      
       const best = candidates[0];
       localFeature = best.feature;
-      localLevel = best.level;
-      console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
+      localLevel = typeof best.level === 'number' ? best.level : best.level;
+      const levelLabel = best.type === 'place' ? best.levelName : `${best.levelName.toUpperCase()} (admin_level ${localLevel})`;
+      console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
       if (candidates.length > 1) {
         console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
       }
     } else if (adm3Feature) {
-      // Fallback to ADM3 if no ADM6/7/8 found
+      // Fallback to ADM3 if no other boundaries found
       localFeature = adm3Feature;
       localLevel = 3;
       const area = polygonArea(adm3Feature.geometry);
