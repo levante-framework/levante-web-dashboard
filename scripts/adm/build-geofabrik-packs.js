@@ -316,7 +316,7 @@ function extractAdminBoundariesOgr2ogr(pbfPath, countryIso2, adminLevel) {
 
 // Convert OSM Overpass response to GeoJSON
 // This is a simplified version - relations need geometry reconstruction from ways
-function convertOSMToGeoJSON(osmData, adminLevel) {
+function convertOSMToGeoJSON(osmData, adminLevel, countryIso2 = null) {
   const features = [];
   const relations = osmData.elements.filter(e => e.type === 'relation');
   
@@ -333,6 +333,17 @@ function convertOSMToGeoJSON(osmData, adminLevel) {
   // For each relation, try to reconstruct geometry from its members
   for (const relation of relations) {
     if (!relation.tags || parseInt(relation.tags.admin_level) !== adminLevel) continue;
+    
+    // Filter by country: check ISO3166-1 tag
+    // Note: This is a basic check - for more accuracy, use osmium-tool with country-specific PBF
+    if (countryIso2) {
+      const relationCountry = relation.tags['ISO3166-1'] || relation.tags['ISO3166-1:alpha2'];
+      // If country tag exists and doesn't match, skip (but allow if tag is missing)
+      // This helps filter out neighboring countries when bounding box is too large
+      if (relationCountry && relationCountry.toUpperCase() !== countryIso2.toUpperCase()) {
+        continue; // Skip relations from other countries
+      }
+    }
     
     // Get ways that are members of this relation
     const relationWays = [];
@@ -363,6 +374,45 @@ function convertOSMToGeoJSON(osmData, adminLevel) {
         if (coordinates[0][0] !== coordinates[coordinates.length - 1][0] ||
             coordinates[0][1] !== coordinates[coordinates.length - 1][1]) {
           coordinates.push(coordinates[0]);
+        }
+        
+        // Filter by country bounding box if no ISO3166-1 tag
+        if (countryIso2) {
+          const COUNTRY_BBOX = {
+            'us': { minLat: 24.5, maxLat: 49.4, minLon: -125.0, maxLon: -66.9 },
+            'ca': { minLat: 41.7, maxLat: 83.1, minLon: -141.0, maxLon: -52.6 },
+            'co': { minLat: -4.2, maxLat: 12.5, minLon: -79.0, maxLon: -66.9 },
+            'de': { minLat: 47.3, maxLat: 55.1, minLon: 5.9, maxLon: 15.0 },
+            'gb': { minLat: 49.9, maxLat: 60.8, minLon: -8.6, maxLon: 1.8 },
+            'nl': { minLat: 50.8, maxLat: 53.6, minLon: 3.4, maxLon: 7.2 },
+            'gh': { minLat: 4.7, maxLat: 11.2, minLon: -3.3, maxLon: 1.3 },
+            'ch': { minLat: 45.8, maxLat: 47.8, minLon: 5.9, maxLon: 10.5 },
+            'in': { minLat: 6.8, maxLat: 35.7, minLon: 68.2, maxLon: 97.4 },
+            'ar': { minLat: -55.1, maxLat: -21.8, minLon: -73.6, maxLon: -53.6 }
+          };
+          
+          const bbox = COUNTRY_BBOX[countryIso2.toLowerCase()];
+          if (bbox) {
+            // Check if polygon centroid is within country bounds
+            let sumLat = 0, sumLon = 0, count = 0;
+            for (const coord of coordinates) {
+              if (coord && coord.length >= 2) {
+                sumLon += coord[0];
+                sumLat += coord[1];
+                count++;
+              }
+            }
+            if (count > 0) {
+              const centroidLat = sumLat / count;
+              const centroidLon = sumLon / count;
+              
+              // Skip if centroid is outside country bounds
+              if (centroidLat < bbox.minLat || centroidLat > bbox.maxLat ||
+                  centroidLon < bbox.minLon || centroidLon > bbox.maxLon) {
+                continue; // Skip features outside country bounds
+              }
+            }
+          }
         }
         
         features.push({
@@ -497,7 +547,7 @@ async function buildGeofabrikPack(countryIso2) {
         
         console.log(`  ✅ Found ${osmData.elements.filter(e => e.type === 'relation').length} relations`);
         
-        const geojson = convertOSMToGeoJSON(osmData, level);
+        const geojson = convertOSMToGeoJSON(osmData, level, countryIso2);
         
         if (!geojson || !geojson.features || geojson.features.length === 0) {
           console.warn(`  ⚠️  Could not convert to GeoJSON (geometry reconstruction issues)`);
