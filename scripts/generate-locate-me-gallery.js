@@ -611,23 +611,21 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       });
     }
     
-    // Try place boundaries (actual city/town boundaries - often more accurate than admin divisions)
-    for (const placeType of ['place-city', 'place-town', 'place-village', 'place-suburb']) {
-      const pack = loadAdmPack(countryIso2Lower, placeType);
-      if (pack && pack.features && pack.features.length > 0) {
-        console.log(`  📦 Loaded ${pack.features.length} ${placeType} features`);
-      }
-      const f = bestContaining(pack);
-      if (f) {
-        const area = polygonArea(f.geometry);
-        candidates.push({
-          feature: f,
-          level: placeType === 'place-city' ? 'city' : (placeType === 'place-town' ? 'town' : (placeType === 'place-village' ? 'village' : 'suburb')),
-          area: area,
-          levelName: placeType,
-          type: 'place'
-        });
-      }
+    // Try city boundaries (actual city/town boundaries from OSM - often more accurate than admin divisions)
+    const cityBoundariesPack = loadAdmPack(countryIso2Lower, 'city-boundaries-osm');
+    if (cityBoundariesPack && cityBoundariesPack.features && cityBoundariesPack.features.length > 0) {
+      console.log(`  📦 Loaded ${cityBoundariesPack.features.length} city boundary features`);
+    }
+    const cityBoundaryFeature = bestContaining(cityBoundariesPack);
+    if (cityBoundaryFeature) {
+      const area = polygonArea(cityBoundaryFeature.geometry);
+      candidates.push({
+        feature: cityBoundaryFeature,
+        level: cityBoundaryFeature.properties?.place || 'city',
+        area: area,
+        levelName: 'city-boundary',
+        type: 'city-boundary'
+      });
     }
     
     // Try ADM6/7/8 (admin divisions: towns, neighborhoods, wards)

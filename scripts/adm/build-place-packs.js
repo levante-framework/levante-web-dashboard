@@ -101,10 +101,18 @@ async function extractPlaceBoundaries(pbfPath, countryIso2, placeType) {
   
   const tempGeojsonPath = path.join(outputDir, `place-${placeType}-temp.geojson`);
   
+  const tempOsmPath = path.join(outputDir, `place-${placeType}-temp.osm`);
+  
   try {
     // Extract place boundaries using osmium-tool
     // Filter for place=city, place=town, place=village, place=suburb
-    execSync(`osmium tags-filter ${pbfPath} -o ${tempGeojsonPath} -f geojsonseq place=${placeType}`, {
+    // Output to OSM XML format first
+    execSync(`osmium tags-filter ${pbfPath} -o ${tempOsmPath} -f osm place=${placeType}`, {
+      stdio: 'inherit'
+    });
+    
+    // Convert OSM XML to GeoJSON using osmium export
+    execSync(`osmium export ${tempOsmPath} -o ${tempGeojsonPath} -f geojsonseq`, {
       stdio: 'inherit'
     });
     
@@ -116,8 +124,9 @@ async function extractPlaceBoundaries(pbfPath, countryIso2, placeType) {
       try {
         const feature = JSON.parse(line);
         if (feature.type === 'Feature' && feature.geometry) {
-          // Ensure it has a name
-          if (feature.properties?.name) {
+          // Ensure it has a name and is a polygon/multipolygon
+          if (feature.properties?.name && 
+              (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon')) {
             features.push(feature);
           }
         }
@@ -135,12 +144,14 @@ async function extractPlaceBoundaries(pbfPath, countryIso2, placeType) {
     fs.writeFileSync(finalPath, compressed);
     
     // Cleanup
+    if (fs.existsSync(tempOsmPath)) fs.unlinkSync(tempOsmPath);
     if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
     
     const stats = fs.statSync(finalPath);
     console.log(`  ✅ Saved: ${features.length} features (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
     return true;
   } catch (error) {
+    if (fs.existsSync(tempOsmPath)) fs.unlinkSync(tempOsmPath);
     if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
     throw error;
   }
