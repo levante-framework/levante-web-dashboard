@@ -105,24 +105,46 @@ function convertOSMToGeoJSON(osmData) {
   const relations = osmData.elements.filter(e => e.type === 'relation');
   
   for (const relation of relations) {
-    if (!relation.members || !relation.tags) continue;
+    if (!relation.tags) continue;
     
-    // Extract geometry from relation members (ways)
-    // This is simplified - full implementation would need to handle ways/nodes
-    // For now, we'll use the geometry if Overpass returns it with out geom;
-    const geometry = relation.geometry ? {
+    // Overpass with 'out geom;' returns geometry directly in relation.geometry
+    // This is an array of {lat, lon} objects forming the polygon boundary
+    if (!relation.geometry || relation.geometry.length < 3) {
+      continue; // Need at least 3 points for a polygon
+    }
+    
+    // Convert OSM geometry format to GeoJSON Polygon
+    const coordinates = [];
+    for (const geom of relation.geometry) {
+      if (geom.lat !== undefined && geom.lon !== undefined) {
+        coordinates.push([geom.lon, geom.lat]);
+      }
+    }
+    
+    if (coordinates.length < 3) continue;
+    
+    // Close the polygon if not already closed
+    const first = coordinates[0];
+    const last = coordinates[coordinates.length - 1];
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      coordinates.push([first[0], first[1]]);
+    }
+    
+    // Handle MultiPolygon if there are multiple outer rings
+    // For simplicity, we'll create a Polygon with the first ring
+    // Full implementation would need to detect inner/outer rings
+    const geometry = {
       type: 'Polygon',
-      coordinates: [relation.geometry.map(g => [g.lon, g.lat])]
-    } : null;
-    
-    if (!geometry) continue;
+      coordinates: [coordinates]
+    };
     
     features.push({
       type: 'Feature',
       properties: {
         name: relation.tags.name || relation.tags['name:en'] || relation.tags['name:local'] || 'Unknown',
         admin_level: parseInt(relation.tags.admin_level) || null,
-        source: 'osm-overpass'
+        source: 'osm-overpass',
+        osm_id: relation.id
       },
       geometry
     });
