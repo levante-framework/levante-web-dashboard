@@ -1056,11 +1056,12 @@ async function processPoint(point, index, total) {
     if (useGeoBoundariesForCountry) {
       // India: Use GeoBoundaries for ADM4
       const result = await lookupGeoBoundariesAreas(countryForPacksUpper, point.lat, point.lon);
+    console.log(`  🔍 Lookup result for ${point.id}: local=${!!local}, regional=${!!regional}`);
       local = result?.local || null;
       regional = result?.regional || null;
     } else {
       // All other countries: Use GADM for better ADM3 coverage
-      const result = lookupTwoLevelAreas(countryForPacks, point.lat, point.lon, admin1Hint);
+      const result = await lookupTwoLevelAreas(countryForPacks, point.lat, point.lon, admin1Hint);
       local = result.local;
       regional = result.regional;
     }
