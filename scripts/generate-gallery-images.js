@@ -418,7 +418,8 @@ async function getCurrentWeatherForPoint(lat, lon) {
 
   cache[key] = {
     fetchedAt: Date.now(),
-    expiresAt: Date.now() + 60 * 60 * 1000,
+    expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes (weather changes frequently)
+    fetchedAt: Date.now(), // Track when weather was fetched
     weather
   };
   saveWeatherCache();

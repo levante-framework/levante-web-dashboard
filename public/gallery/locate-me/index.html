@@ -326,7 +326,8 @@
           return hasLegacyPolygon || hasNewPolygon || hasGeocodeData;
         });
         document.getElementById('totalCount').textContent = resultsWithPolygons.length;
-        document.getElementById('generatedDate').textContent = new Date(galleryData.generated).toLocaleDateString();
+        const generatedDate = new Date(galleryData.generated);
+        document.getElementById('generatedDate').textContent = generatedDate.toLocaleString();
         countries = Array.from(new Set(resultsWithPolygons.map(r => r.point.country)));
         document.getElementById('countryList').textContent = countries.join(', ');
         document.getElementById('subtitle').textContent = `Visual results from ${resultsWithPolygons.length} GPS points processed through the Locate-Me workflow`;
