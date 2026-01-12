@@ -1547,8 +1547,17 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             // Population: uses WorldPop API (more accurate, includes rural areas) with GeoNames fallback
             // WorldPop provides gridded population data at 100m resolution
             // Falls back to GeoNames city-summing if WorldPop unavailable
-            const localPopEst = await estimatePopulation(effectiveLocalPolygon?.geometry, point?.country);
+            // Note: ADM4/5 should always be <= ADM2 (more granular = smaller area = less population)
             const bluePopEst = await estimatePopulation(cityArea?.polygon?.geometry, point?.country);
+            let localPopEst = await estimatePopulation(effectiveLocalPolygon?.geometry, point?.country);
+            
+            // Ensure ADM4/5 population doesn't exceed ADM2 population (logical constraint)
+            // This can happen if boundaries overlap incorrectly or population estimation has errors
+            if (localPopEst && bluePopEst && localPopEst > bluePopEst) {
+              console.warn(`  ⚠️  ADM${adminArea?.adminLevel || '?'} population (${localPopEst.toLocaleString()}) > ADM2 (${bluePopEst.toLocaleString()}), capping to ADM2`);
+              localPopEst = bluePopEst;
+            }
+            
             const localPopText = localPopEst ? formatPopulation(localPopEst) : 'Unknown';
             const bluePopText = bluePopEst ? formatPopulation(bluePopEst) : 'Unknown';
 
