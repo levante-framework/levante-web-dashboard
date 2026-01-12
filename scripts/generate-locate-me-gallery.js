@@ -625,10 +625,80 @@ try {
   cache = {};
 }
 
+// Multiple Overpass instances for load balancing and rate limit avoidance
+const OVERPASS_INSTANCES = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass.nchc.org.tw/api/interpreter'
+];
+let currentOverpassInstance = 0;
+
+/**
+ * Get next Overpass instance (round-robin)
+ */
+function getNextOverpassInstance() {
+  const instance = OVERPASS_INSTANCES[currentOverpassInstance];
+  currentOverpassInstance = (currentOverpassInstance + 1) % OVERPASS_INSTANCES.length;
+  return instance;
+}
+
+/**
+ * Check admin_level using Nominatim (faster, less rate-limited)
+ * Returns admin_level if >= 4, null otherwise
+ */
+async function checkAdminLevelNominatim(lat, lon) {
+  const cacheKey = `nominatim-admin-level:${lat.toFixed(4)},${lon.toFixed(4)}`;
+  
+  if (cache[cacheKey] !== undefined) {
+    return cache[cacheKey];
+  }
+
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1100)); // Rate limit
+    
+    const params = new URLSearchParams({
+      format: 'json',
+      lat: lat.toString(),
+      lon: lon.toString(),
+      zoom: '18',
+      addressdetails: '1',
+      extratags: '1'
+    });
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+      headers: {
+        'User-Agent': 'Levante-Locations/1.0 (contact: support@levante-network.org)',
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const adminLevel = data.extratags?.['admin_level'] ? 
+                      parseInt(data.extratags['admin_level']) : null;
+    
+    cache[cacheKey] = adminLevel;
+    saveCache();
+    return adminLevel;
+  } catch (error) {
+    cache[cacheKey] = null;
+    saveCache();
+    return null;
+  }
+}
+
 /**
  * Query OSM Overpass API for administrative boundaries at admin_level 4+
  * Falls back to admin_level 3 if 4+ not available
  * Returns GeoJSON Feature with polygon geometry
+ * Uses Nominatim pre-check to avoid unnecessary Overpass queries
  */
 async function queryOSMOverpassAdminBoundary(lat, lon, countryIso2 = null) {
   const cacheKey = `osm-admin:${lat.toFixed(4)},${lon.toFixed(4)}`;
@@ -638,7 +708,16 @@ async function queryOSMOverpassAdminBoundary(lat, lon, countryIso2 = null) {
     return cache[cacheKey];
   }
 
-  const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+  // Pre-check with Nominatim to see if admin_level 4+ exists
+  // This avoids Overpass queries when admin_level < 4
+  const adminLevel = await checkAdminLevelNominatim(lat, lon);
+  if (adminLevel !== null && adminLevel < 4) {
+    // No need to query Overpass - admin_level is too low
+    cache[cacheKey] = null;
+    saveCache();
+    return null;
+  }
+
   const RADIUS_M = 2000; // Search within 2km
   const pt = [lon, lat];
   
@@ -651,21 +730,53 @@ async function queryOSMOverpassAdminBoundary(lat, lon, countryIso2 = null) {
 out geom;`;
 
     try {
-      // Rate limiting: Overpass API recommends max 1 request per second
-      await new Promise(resolve => setTimeout(resolve, 1100));
+      // Rate limiting: Use longer delay and round-robin instances
+      await new Promise(resolve => setTimeout(resolve, 2000)); // 2s delay between queries
+      
+      const OVERPASS_URL = getNextOverpassInstance(); // Round-robin instances
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
       
-      const response = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'User-Agent': 'Levante-Locations/1.0 (contact: support@levante-network.org)',
-        },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: controller.signal,
-      });
+      let response;
+      let lastError = null;
+      
+      // Try current instance, fallback to others if rate limited
+      for (let attempt = 0; attempt < OVERPASS_INSTANCES.length; attempt++) {
+        try {
+          response = await fetch(OVERPASS_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'User-Agent': 'Levante-Locations/1.0 (contact: support@levante-network.org)',
+            },
+            body: `data=${encodeURIComponent(query)}`,
+            signal: controller.signal,
+          });
+          
+          // If rate limited (429) or server error (5xx), try next instance
+          if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
+            console.warn(`  ⚠️  Overpass instance ${OVERPASS_URL} returned ${response.status}, trying next...`);
+            const nextUrl = getNextOverpassInstance();
+            if (nextUrl === OVERPASS_URL) break; // Already tried all instances
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay before retry
+            continue;
+          }
+          
+          break; // Success or non-rate-limit error
+        } catch (error) {
+          lastError = error;
+          if (attempt < OVERPASS_INSTANCES.length - 1) {
+            const nextUrl = getNextOverpassInstance();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+        }
+      }
+      
+      if (!response) {
+        throw lastError || new Error('All Overpass instances failed');
+      }
       
       clearTimeout(timeoutId);
       
