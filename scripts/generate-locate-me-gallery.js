@@ -788,12 +788,17 @@ async function processPoint(point, index, total) {
     const countryForPacksUpper = (coarseCountry || '').toString().trim().toUpperCase();
     const admin1Hint = geocodeData?.results?.[0]?.admin1 || null;
     
+    // Hybrid approach: Use GeoBoundaries for India (ADM4), GADM for others (better ADM3 coverage)
     let local, regional;
-    if (USE_GEOBOUNDARIES) {
+    const useGeoBoundariesForCountry = USE_GEOBOUNDARIES && countryForPacksUpper === 'IND';
+    
+    if (useGeoBoundariesForCountry) {
+      // India: Use GeoBoundaries for ADM4
       const result = await lookupGeoBoundariesAreas(countryForPacksUpper, point.lat, point.lon);
       local = result?.local || null;
       regional = result?.regional || null;
     } else {
+      // All other countries: Use GADM for better ADM3 coverage
       const result = lookupTwoLevelAreas(countryForPacks, point.lat, point.lon, admin1Hint);
       local = result.local;
       regional = result.regional;
@@ -831,7 +836,7 @@ async function processPoint(point, index, total) {
 async function main() {
   console.log('🎯 Generating Locate Me Gallery');
   console.log(`Base URL: ${BASE_URL}`);
-  console.log(`Using GeoBoundaries: ${USE_GEOBOUNDARIES ? 'YES (ADM2/ADM4)' : 'NO (GADM ADM2/ADM3)'}`);
+  console.log(`Using GeoBoundaries: ${USE_GEOBOUNDARIES ? 'YES (hybrid: IND=ADM4, others=GADM ADM3)' : 'NO (GADM ADM2/ADM3)'}`);
   console.log(`Output directory: ${OUTPUT_DIR}\n`);
   const points = loadSeedPoints();
   console.log(`📍 Loaded ${points.length} curated GPS points from seed file\n`);
