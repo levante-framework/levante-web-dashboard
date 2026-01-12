@@ -802,8 +802,8 @@ async function processPoint(point, index, total) {
     // For gallery rendering:
     // - Blue (cityArea): ADM2 (regional) - GADM or GeoBoundaries ADM2
     // - Red (adminArea): Local = ADM3/4 (GADM) or ADM4 (GeoBoundaries)
-    const cityArea = local || null;
-    const adminArea = regional || null;
+    const cityArea = regional || null;  // ADM2 (regional/blue)
+    const adminArea = local || null;   // ADM3/4 (local/red)
 
     // Keep legacy `polygons` array for the gallery UI, but make it represent the GPS-point ADM2 boundary.
     const polygons = [
