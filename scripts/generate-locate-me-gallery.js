@@ -587,13 +587,17 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
     }
   } else {
     // Try ADM5, ADM4, then ADM3 (most granular first)
-    // OSM packs preferred for ADM4/5, GADM for ADM3
+    // Geofabrik packs preferred for ADM4/5, GADM for ADM3
     for (const lvl of ['adm5', 'adm4', 'adm3']) {
       const pack = loadAdmPack(countryIso2Lower, lvl);
+      if (pack && pack.features && pack.features.length > 0) {
+        console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
+      }
       const f = bestContaining(pack);
       if (f) {
         localFeature = f;
         localLevel = lvl === 'adm3' ? 3 : (lvl === 'adm4' ? 4 : 5);
+        console.log(`  ✅ Found ${lvl.toUpperCase()} boundary: ${f.properties?.name || 'Unknown'} (admin_level ${localLevel})`);
         break;
       }
     }
