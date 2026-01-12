@@ -6,14 +6,14 @@
  * Downloads Geofabrik PBF files and extracts admin_level 4-5 boundaries,
  * storing them as GeoJSON packs (similar to GADM packs) for fast local lookups.
  * 
- * This uses a simplified approach:
- *   1. Downloads Geofabrik PBF files
- *   2. Uses Overpass API to query admin boundaries (more reliable than parsing PBF)
- *   3. Stores as GeoJSON packs
+ * This script automatically detects and uses the best available method:
+ *   1. If osmium-tool is installed: Downloads PBF → Extracts with osmium → Converts to GeoJSON (FASTEST)
+ *   2. Otherwise: Uses Overpass API to query admin boundaries (works without installation)
  * 
- * Alternative: For full PBF parsing, install osmium-tool:
- *   sudo apt-get install osmium-tool
- *   OR brew install osmium-tool
+ * Installation:
+ *   Ubuntu/Debian: sudo apt-get install osmium-tool
+ *   macOS: brew install osmium-tool
+ *   Windows: Download from https://osmcode.org/osmium-tool/
  * 
  * Usage:
  *   node scripts/adm/build-geofabrik-packs.js [country1,country2,...]
@@ -26,10 +26,21 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 const https = require('https');
+const { execSync } = require('child_process');
 
 const ADM_PACK_DIR = path.join(process.cwd(), 'public', 'adm-packs');
 const GEOFABRIK_CACHE_DIR = path.join(process.cwd(), 'data', 'geofabrik');
 const GEOFABRIK_BASE_URL = 'https://download.geofabrik.de';
+
+// Check if osmium-tool is available
+function checkOsmiumTool() {
+  try {
+    execSync('osmium --version', { stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 // ISO2 to Geofabrik region mapping
 const GEOFABRIK_REGIONS = {
@@ -429,8 +440,14 @@ async function main() {
   
   console.log('🗺️  Building Admin Boundary Packs using Geofabrik data');
   console.log(`Countries: ${countries.join(', ')}\n`);
-  console.log('💡 Using Overpass API to query admin boundaries');
-  console.log('   (Geofabrik provides the underlying OSM data)\n');
+  
+  const hasOsmium = checkOsmiumTool();
+  if (hasOsmium) {
+    console.log('✅ Using osmium-tool (fast local processing)\n');
+  } else {
+    console.log('💡 Using Overpass API (install osmium-tool for faster processing)');
+    console.log('   Install: sudo apt-get install osmium-tool\n');
+  }
   
   for (const country of countries) {
     if (!GEOFABRIK_REGIONS[country]) {
@@ -445,10 +462,6 @@ async function main() {
   console.log('\nNext steps:');
   console.log('  1. Update loadAdmPack to try Geofabrik packs');
   console.log('  2. Regenerate gallery data');
-  console.log('\n💡 For better performance with large countries, consider:');
-  console.log('   - Installing osmium-tool: sudo apt-get install osmium-tool');
-  console.log('   - Downloading Geofabrik PBF files');
-  console.log('   - Processing locally with osmium-tool');
 }
 
 main().catch(console.error);
