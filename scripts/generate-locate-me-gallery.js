@@ -599,6 +599,9 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
         localLevel = lvl === 'adm3' ? 3 : (lvl === 'adm4' ? 4 : 5);
         console.log(`  ✅ Found ${lvl.toUpperCase()} boundary: ${f.properties?.name || 'Unknown'} (admin_level ${localLevel})`);
         break;
+      } else if (pack && pack.features && pack.features.length > 0 && (lvl === 'adm4' || lvl === 'adm5')) {
+        // Debug: Check why ADM4/5 isn't matching
+        console.log(`  ⚠️  ${lvl.toUpperCase()} pack loaded but no match found for point (${lat}, ${lon})`);
       }
     }
     
