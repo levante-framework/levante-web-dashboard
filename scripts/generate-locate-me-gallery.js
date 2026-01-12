@@ -361,23 +361,20 @@ function loadAdmPack(countryCode, level) {
   const key = `${code}|${lvl}`;
   if (admPackCache.has(key)) return admPackCache.get(key);
   
-  // Priority order for ADM4/ADM5:
-  // 1. Geofabrik packs (most reliable, pre-processed)
-  // 2. OSM Overpass packs (if available)
-  // 3. GADM packs (for ADM2/3)
+  // Priority order:
+  // - ADM2/3: GADM packs (most reliable)
+  // - ADM6/7/8: Geofabrik packs (more granular: towns, neighborhoods, wards)
   const geofabrikPath = path.join(ADM_PACK_DIR, code, `${lvl}-geofabrik.json.gz`);
   const osmPath = path.join(ADM_PACK_DIR, code, `${lvl}-osm.json.gz`);
   const gadmPath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
   
   let filePath = null;
-  if ((lvl === 'adm4' || lvl === 'adm5')) {
-    // For ADM4/5, prefer Geofabrik, then OSM, then GADM
+  if ((lvl === 'adm6' || lvl === 'adm7' || lvl === 'adm8')) {
+    // For ADM6/7/8, prefer Geofabrik, then OSM
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
     } else if (fs.existsSync(osmPath)) {
       filePath = osmPath;
-    } else if (fs.existsSync(gadmPath)) {
-      filePath = gadmPath;
     }
   } else {
     // For ADM2/3, prefer GADM
