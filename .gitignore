@@ -32,3 +32,7 @@ data/gallery/worldpop-cache.json
 data/geoboundaries/**/*.json.gz
 data/geoboundaries/**/*.json
 data/geoboundaries/**/*.tmp
+
+# Geofabrik PBF cache (large files, can be re-downloaded)
+data/geofabrik/**/*.osm.pbf
+data/geofabrik/**/*.tmp
