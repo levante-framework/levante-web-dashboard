@@ -597,11 +597,11 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
   const red = localFeature || adm2 || null; // Local, fallback to ADM2 so red is always present when ADM2 exists
 
   return {
-    local: blue
-      ? { polygon: blue, adminLevel: 2, name: blue?.properties?.name || 'Unknown' }
-      : null,
-    regional: red
+    local: red  // Local = ADM3/4 (red)
       ? { polygon: red, adminLevel: localFeature ? localLevel : 2, name: red?.properties?.name || 'Unknown' }
+      : null,
+    regional: blue  // Regional = ADM2 (blue)
+      ? { polygon: blue, adminLevel: 2, name: blue?.properties?.name || 'Unknown' }
       : null
   };
 }
