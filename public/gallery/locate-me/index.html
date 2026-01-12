@@ -305,7 +305,14 @@
     async function loadGallery() {
       try {
         const response = await fetch('./gallery-data.json');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         galleryData = await response.json();
+        
+        if (!galleryData || !galleryData.results) {
+          throw new Error('Invalid gallery data format');
+        }
         
         const resultsWithPolygons = galleryData.results.filter(result => {
           return result.polygons && result.polygons.some(p => p.polygon && p.polygon.geometry);
@@ -323,7 +330,11 @@
         renderGallery();
       } catch (error) {
         console.error('Failed to load gallery data:', error);
-        document.getElementById('gallery').innerHTML = '<p style="text-align:center;padding:40px;color:#71717a;">Failed to load gallery data. Make sure gallery-data.json exists.</p>';
+        const isCorsError = error.message.includes('CORS') || error.message.includes('Failed to fetch') || window.location.protocol === 'file:';
+        const errorMsg = isCorsError 
+          ? '<p style="text-align:center;padding:40px;color:#fca5a5;">⚠️ CORS Error: Cannot load gallery-data.json via file:// URL.<br><br>Please view this page via:<br><br><a href="https://levante-pitwall.vercel.app/gallery/locate-me/" style="color:#38bdf8;text-decoration:underline;">https://levante-pitwall.vercel.app/gallery/locate-me/</a><br><br>Or run a local server:<br><code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;">python3 -m http.server 8000 --directory public/gallery/locate-me</code></p>'
+          : `<p style="text-align:center;padding:40px;color:#71717a;">Failed to load gallery data: ${error.message}<br><br>Make sure gallery-data.json exists and is accessible.</p>`;
+        document.getElementById('gallery').innerHTML = errorMsg;
       }
     }
     
