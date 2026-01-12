@@ -646,8 +646,9 @@ function estimatePolygonPackDownload(point, adminArea, cityArea, polygons, usLoc
   // Estimate the bytes a client would download to compute polygons for this point.
   // This represents ONLY the polygon packs (not basemap tiles), per the Locate-Me runtime behavior.
   const code = (point?.country || '').toString().trim().toLowerCase();
-  const localLevel = adminArea?.adminLevel || null; // local boundary level (ADM3 or ADM2 fallback)
+  const localLevel = adminArea?.adminLevel || null; // local boundary level (ADM3/ADM4 or ADM2 fallback)
   const needsAdm3 = localLevel === 3;
+  const needsAdm4 = localLevel === 4;
   const parts = [];
   let total = 0;
 
@@ -691,6 +692,17 @@ function estimatePolygonPackDownload(point, adminArea, cityArea, polygons, usLoc
       } else {
         parts.push('ADM3?');
       }
+    }
+  }
+
+  if (needsAdm4) {
+    const adm4Path = path.join(process.cwd(), 'public', 'adm-packs', code, 'adm4.json.gz');
+    const adm4Bytes = safeStatBytes(adm4Path);
+    if (adm4Bytes) {
+      total += adm4Bytes;
+      parts.push('ADM4');
+    } else {
+      parts.push('ADM4?');
     }
   }
 
@@ -1633,7 +1645,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
   <text x="50" y="106">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
   <text x="50" y="120">Pop: ${escapeXml(localPopText)}</text>
   <rect x="24" y="140" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
-  <text x="50" y="154">Blue: Regional (ADM${escapeXml(String(cityLevel || ''))}) ${escapeXml(cityAreaName)}</text>
+  <text x="50" y="154">Blue: Regional (ADM${escapeXml(String(cityLevel || '2'))}) ${escapeXml(cityAreaName)}</text>
   <text x="50" y="168">Pop: ${escapeXml(bluePopText)}</text>
   <text x="50" y="198">Polygons downloaded: ${escapeXml(dlText)}</text>
   <text x="50" y="224">${escapeXml(weatherLine)}</text>

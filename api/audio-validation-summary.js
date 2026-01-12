@@ -117,9 +117,10 @@ function validateSummary(body) {
     acceptableMin: Number.isFinite(thresholds.acceptableMin) ? thresholds.acceptableMin : 0.7
   };
 
+  // Always update generatedAt to current time when saving
   return {
     version: 1,
-    generatedAt: body.generatedAt || new Date().toISOString(),
+    generatedAt: new Date().toISOString(), // Always use current time
     source: body.source || 'audio-validation-page',
     sourceFile: body.sourceFile || undefined,
     notes: body.notes || undefined,
