@@ -568,13 +568,14 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       localLevel = 3;
     }
   } else {
-    // Try GADM ADM4, then ADM3
-    for (const lvl of ['adm4', 'adm3']) {
+    // Try ADM5, ADM4, then ADM3 (most granular first)
+    // OSM packs preferred for ADM4/5, GADM for ADM3
+    for (const lvl of ['adm5', 'adm4', 'adm3']) {
       const pack = loadAdmPack(countryIso2Lower, lvl);
       const f = bestContaining(pack);
       if (f) {
         localFeature = f;
-        localLevel = lvl === 'adm3' ? 3 : 4;
+        localLevel = lvl === 'adm3' ? 3 : (lvl === 'adm4' ? 4 : 5);
         break;
       }
     }
