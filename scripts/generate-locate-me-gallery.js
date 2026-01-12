@@ -586,64 +586,50 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       localLevel = 3;
     }
   } else {
-    // Try ADM5, ADM4, then ADM3 (most granular first)
-    // Geofabrik packs preferred for ADM4/5, GADM for ADM3
-    // Collect ALL matching boundaries and pick the SMALLEST one (most granular)
-    let candidates = [];
-    for (const lvl of ['adm5', 'adm4', 'adm3']) {
-      const pack = loadAdmPack(countryIso2Lower, lvl);
-      if (pack && pack.features && pack.features.length > 0) {
-        console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
-      }
-      const f = bestContaining(pack);
-      if (f) {
-        const area = polygonArea(f.geometry);
-        candidates.push({
-          feature: f,
-          level: lvl === 'adm3' ? 3 : (lvl === 'adm4' ? 4 : 5),
-          area: area,
-          levelName: lvl
-        });
-      } else if (pack && pack.features && pack.features.length > 0 && (lvl === 'adm4' || lvl === 'adm5')) {
-        // Debug: Check why ADM4/5 isn't matching
-        console.log(`  ⚠️  ${lvl.toUpperCase()} pack loaded but no match found for point (${lat}, ${lon})`);
-      }
+    // Try ADM3 first (GADM - reliable, well-defined hierarchy)
+    // Only use ADM4/5 (Geofabrik) if ADM3 isn't available
+    // ADM4/5 from OSM often represent different admin concepts (provinces, regions) 
+    // than GADM ADM3 (districts, municipalities), so they're not directly comparable
+    const adm3Pack = loadAdmPack(countryIso2Lower, 'adm3');
+    if (adm3Pack && adm3Pack.features && adm3Pack.features.length > 0) {
+      console.log(`  📦 Loaded ${adm3Pack.features.length} ADM3 features from ${adm3Pack.features[0]?.properties?.source || 'unknown'} pack`);
     }
+    const adm3Feature = bestContaining(adm3Pack);
     
-    // Select the SMALLEST boundary (most granular)
-    // But prefer ADM3 over ADM4/5 unless ADM4/5 is significantly smaller (< 80% of ADM3)
-    // This avoids using ADM4/5 when they represent different admin concepts (e.g., provinces vs districts)
-    if (candidates.length > 0) {
-      candidates.sort((a, b) => a.area - b.area); // Sort by area, smallest first
-      
-      // Find ADM3 candidate if it exists
-      const adm3Candidate = candidates.find(c => c.level === 3);
-      
-      // If we have ADM3 and other candidates, prefer ADM3 unless others are significantly smaller
-      if (adm3Candidate && candidates.length > 1) {
-        const smallest = candidates[0];
-        // Only use ADM4/5 if it's at least 20% smaller than ADM3 (more granular)
-        if (smallest.level !== 3 && smallest.area >= adm3Candidate.area * 0.8) {
-          console.log(`  ℹ️  Preferring ADM3 over ${smallest.levelName.toUpperCase()} (${smallest.levelName.toUpperCase()} is ${((smallest.area / adm3Candidate.area) * 100).toFixed(0)}% of ADM3 size)`);
-          localFeature = adm3Candidate.feature;
-          localLevel = 3;
-          console.log(`  ✅ Selected ADM3 boundary: ${adm3Candidate.feature.properties?.name || 'Unknown'} (admin_level 3, ${(adm3Candidate.area / 1e6).toFixed(2)} km²)`);
-        } else {
-          const best = candidates[0];
-          localFeature = best.feature;
-          localLevel = best.level;
-          console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
+    if (adm3Feature) {
+      // ADM3 available - use it (most reliable)
+      localFeature = adm3Feature;
+      localLevel = 3;
+      const area = polygonArea(adm3Feature.geometry);
+      console.log(`  ✅ Selected ADM3 boundary: ${adm3Feature.properties?.name || 'Unknown'} (admin_level 3, ${(area / 1e6).toFixed(2)} km²)`);
+    } else {
+      // No ADM3 - try ADM4/5 as fallback
+      console.log(`  ⚠️  No ADM3 boundary found, trying ADM4/5...`);
+      let candidates = [];
+      for (const lvl of ['adm5', 'adm4']) {
+        const pack = loadAdmPack(countryIso2Lower, lvl);
+        if (pack && pack.features && pack.features.length > 0) {
+          console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
         }
-      } else {
-        // No ADM3, or only one candidate - use smallest
+        const f = bestContaining(pack);
+        if (f) {
+          const area = polygonArea(f.geometry);
+          candidates.push({
+            feature: f,
+            level: lvl === 'adm4' ? 4 : 5,
+            area: area,
+            levelName: lvl
+          });
+        }
+      }
+      
+      // Use smallest ADM4/5 if available
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => a.area - b.area);
         const best = candidates[0];
         localFeature = best.feature;
         localLevel = best.level;
         console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
-      }
-      
-      if (candidates.length > 1) {
-        console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
       }
     }
     
