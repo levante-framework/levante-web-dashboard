@@ -588,6 +588,8 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
   } else {
     // Try ADM5, ADM4, then ADM3 (most granular first)
     // Geofabrik packs preferred for ADM4/5, GADM for ADM3
+    // Collect ALL matching boundaries and pick the SMALLEST one (most granular)
+    let candidates = [];
     for (const lvl of ['adm5', 'adm4', 'adm3']) {
       const pack = loadAdmPack(countryIso2Lower, lvl);
       if (pack && pack.features && pack.features.length > 0) {
@@ -595,13 +597,28 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       }
       const f = bestContaining(pack);
       if (f) {
-        localFeature = f;
-        localLevel = lvl === 'adm3' ? 3 : (lvl === 'adm4' ? 4 : 5);
-        console.log(`  ✅ Found ${lvl.toUpperCase()} boundary: ${f.properties?.name || 'Unknown'} (admin_level ${localLevel})`);
-        break;
+        const area = polygonArea(f.geometry);
+        candidates.push({
+          feature: f,
+          level: lvl === 'adm3' ? 3 : (lvl === 'adm4' ? 4 : 5),
+          area: area,
+          levelName: lvl
+        });
       } else if (pack && pack.features && pack.features.length > 0 && (lvl === 'adm4' || lvl === 'adm5')) {
         // Debug: Check why ADM4/5 isn't matching
         console.log(`  ⚠️  ${lvl.toUpperCase()} pack loaded but no match found for point (${lat}, ${lon})`);
+      }
+    }
+    
+    // Select the SMALLEST boundary (most granular)
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => a.area - b.area); // Sort by area, smallest first
+      const best = candidates[0];
+      localFeature = best.feature;
+      localLevel = best.level;
+      console.log(`  ✅ Selected ${best.levelName.toUpperCase()} boundary: ${best.feature.properties?.name || 'Unknown'} (admin_level ${localLevel}, ${(best.area / 1e6).toFixed(2)} km²)`);
+      if (candidates.length > 1) {
+        console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
       }
     }
     
