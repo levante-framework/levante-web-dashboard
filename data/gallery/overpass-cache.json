@@ -26,5 +26,11 @@
   "osm-admin:4.8845,-1.7554": null,
   "osm-admin:46.2044,6.1432": null,
   "osm-admin:47.3769,8.5417": null,
-  "osm-admin:47.5596,7.5886": null
+  "osm-admin:47.5596,7.5886": null,
+  "nominatim-admin-level:28.6139,77.2090": null,
+  "osm-admin:28.6139,77.2090": null,
+  "nominatim-admin-level:19.0760,72.8777": null,
+  "osm-admin:19.0760,72.8777": null,
+  "nominatim-admin-level:12.9716,77.5946": null,
+  "osm-admin:12.9716,77.5946": null
 }
