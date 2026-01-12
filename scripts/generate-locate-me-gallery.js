@@ -521,7 +521,7 @@ async function lookupGeoBoundariesAreas(countryIso2Upper, lat, lon) {
   }
 }
 
-function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null) {
+async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null) {
   // Option (1): local boundary = smallest available admin level (try ADM5→ADM4→ADM3).
   // Regional boundary = ADM2.
   const pt = [lon, lat];
@@ -556,6 +556,7 @@ function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null) {
       localLevel = 3;
     }
   } else {
+    // Try GADM ADM4, then ADM3
     for (const lvl of ['adm4', 'adm3']) {
       const pack = loadAdmPack(countryIso2Lower, lvl);
       const f = bestContaining(pack);
@@ -563,6 +564,31 @@ function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null) {
         localFeature = f;
         localLevel = lvl === 'adm3' ? 3 : 4;
         break;
+      }
+    }
+    
+    // If GADM doesn't have ADM4, try OSM Overpass as fallback
+    if (!localFeature || localLevel === 3) {
+      try {
+        const osmFeature = await queryOSMOverpassAdminBoundary(lat, lon, countryIso2Lower);
+        if (osmFeature && osmFeature.geometry) {
+          // Check if OSM feature contains the point and is more granular than GADM ADM3
+          const pt = [lon, lat];
+          if (pointInPolygon(pt, osmFeature.geometry)) {
+            const osmArea = polygonArea(osmFeature.geometry);
+            const gadmArea = localFeature ? polygonArea(localFeature.geometry) : Infinity;
+            
+            // Use OSM if it's admin_level 4+ and (we don't have GADM ADM3 OR OSM is smaller/more granular)
+            if (osmFeature.properties.admin_level >= 4 && (!localFeature || osmArea < gadmArea)) {
+              localFeature = osmFeature;
+              localLevel = osmFeature.properties.admin_level;
+              console.log(`  ✅ OSM Overpass: Found admin_level ${localLevel} boundary (${osmFeature.properties.name})`);
+            }
+          }
+        }
+      } catch (error) {
+        // Silently fail - OSM is just a fallback
+        console.warn(`  ⚠️  OSM Overpass fallback failed: ${error.message}`);
       }
     }
   }
@@ -597,6 +623,130 @@ try {
 } catch (err) {
   console.warn(`⚠️  Failed to read cache ${CACHE_FILE}: ${err.message}`);
   cache = {};
+}
+
+/**
+ * Query OSM Overpass API for administrative boundaries at admin_level 4+
+ * Falls back to admin_level 3 if 4+ not available
+ * Returns GeoJSON Feature with polygon geometry
+ */
+async function queryOSMOverpassAdminBoundary(lat, lon, countryIso2 = null) {
+  const cacheKey = `osm-admin:${lat.toFixed(4)},${lon.toFixed(4)}`;
+  
+  // Check cache first
+  if (cache[cacheKey] !== undefined) {
+    return cache[cacheKey];
+  }
+
+  const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+  const RADIUS_M = 2000; // Search within 2km
+  const pt = [lon, lat];
+  
+  // Try admin_level 4 first (most granular), then 3 as fallback
+  for (const adminLevel of [4, 3]) {
+    const query = `[out:json][timeout:25];
+(
+  relation["admin_level"="${adminLevel}"]["boundary"="administrative"](around:${RADIUS_M},${lat},${lon});
+);
+out geom;`;
+
+    try {
+      // Rate limiting: Overpass API recommends max 1 request per second
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
+      const response = await fetch(OVERPASS_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Levante-Locations/1.0 (contact: support@levante-network.org)',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        console.warn(`  ⚠️  Overpass API error: ${response.status} ${response.statusText}`);
+        continue; // Try next admin level
+      }
+      
+      const data = await response.json();
+      
+      if (!data.elements || data.elements.length === 0) {
+        continue; // Try next admin level
+      }
+      
+      // Find the smallest boundary containing the point (most specific)
+      let bestFeature = null;
+      let bestArea = Infinity;
+      
+      for (const element of data.elements) {
+        if (element.type !== 'relation' || !element.geometry) continue;
+        
+        // Overpass returns geometry as array of {lat, lon} objects
+        // Convert to GeoJSON Polygon coordinates
+        const coordinates = [];
+        for (const geom of element.geometry) {
+          if (geom.lat !== undefined && geom.lon !== undefined) {
+            coordinates.push([geom.lon, geom.lat]);
+          }
+        }
+        
+        if (coordinates.length < 3) continue; // Need at least 3 points for a polygon
+        
+        // Close the polygon if not already closed
+        if (coordinates[0][0] !== coordinates[coordinates.length - 1][0] ||
+            coordinates[0][1] !== coordinates[coordinates.length - 1][1]) {
+          coordinates.push(coordinates[0]);
+        }
+        
+        const geom = {
+          type: 'Polygon',
+          coordinates: [coordinates]
+        };
+        
+        // Check if point is in polygon
+        if (pointInPolygon(pt, geom)) {
+          const area = polygonArea(geom);
+          if (area < bestArea) {
+            bestArea = area;
+            bestFeature = {
+              type: 'Feature',
+              properties: {
+                name: element.tags?.name || element.tags?.['name:en'] || element.tags?.['name:local'] || 'Unknown',
+                admin_level: adminLevel,
+                source: 'osm-overpass'
+              },
+              geometry: geom
+            };
+          }
+        }
+      }
+      
+      if (bestFeature) {
+        // Cache the result
+        cache[cacheKey] = bestFeature;
+        saveCache();
+        return bestFeature;
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.warn(`  ⚠️  Overpass API timeout for admin_level ${adminLevel}`);
+      } else {
+        console.warn(`  ⚠️  Overpass API error for admin_level ${adminLevel}: ${error.message}`);
+      }
+      continue; // Try next admin level
+    }
+  }
+  
+  // No results found - cache null to avoid retrying
+  cache[cacheKey] = null;
+  saveCache();
+  return null;
 }
 
 function saveCache() {
