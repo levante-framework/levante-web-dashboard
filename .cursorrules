@@ -1,0 +1,128 @@
+# Levante Web Dashboard - Cursor Rules
+
+This file contains important context and rules for working with the Levante Web Dashboard codebase.
+
+## Gallery ADM4/ADM5 Implementation
+
+### Current Status
+- Gallery is deployed at: https://levante-pitwall.vercel.app/gallery/locate-me/
+- ADM2/ADM3 boundaries work for all countries
+- ADM4 boundaries work **only for India** (uses GeoBoundaries API)
+- ADM4/ADM5 boundaries **do not work** for other countries (DE, NL, CA, US, GB, CO, CH, AR)
+
+### Root Cause
+Geofabrik packs are built using Overpass API fallback (osmium-tool not installed). Overpass geometry reconstruction is incomplete:
+- Only uses first outer ring from relations
+- Doesn't handle multipolygons correctly
+- Creates incomplete polygons that don't match points
+
+### Solution
+Install osmium-tool and rebuild packs:
+```bash
+sudo apt-get install -y osmium-tool
+node scripts/adm/build-geofabrik-packs.js de,nl,ca,us,gb,co,ch,ar
+USE_GEOBOUNDARIES=false node scripts/generate-locate-me-gallery.js
+npm run deploy
+```
+
+### Important Files
+- `scripts/adm/build-geofabrik-packs.js` - Builds Geofabrik packs (detects osmium-tool, falls back to Overpass)
+- `scripts/generate-locate-me-gallery.js` - Generates gallery data (prioritizes Geofabrik → OSM → GADM packs)
+- `public/adm-packs/{country}/adm4-geofabrik.json.gz` - Geofabrik ADM4 packs
+- `docs/gallery-adm4-adm5-status.md` - Full status and history
+
+### Key Functions
+- `loadAdmPack(countryCode, level)` - Loads ADM pack with priority order
+- `lookupTwoLevelAreas(lat, lon, country, admin1Hint)` - Finds ADM2 and local boundary
+- `convertOSMToGeoJSON(osmData, adminLevel, countryIso2)` - Converts Overpass to GeoJSON (has geometry issues)
+
+## Vercel Deployment Constraints
+
+### Limitations
+- **Read-only filesystem**: Cannot write to `/tmp` at runtime (only during build)
+- **Timeout limits**: Serverless functions have max duration (60s for geoboundaries-polygon.js)
+- **Deployment size**: 250MB unzipped limit (use `.vercelignore` to exclude large data files)
+
+### Solutions
+- **GCS for large data**: Pre-download GeoBoundaries data, store in GCS bucket
+- **Exclude data directories**: `.vercelignore` excludes `data/**` from deployment
+- **Function-specific excludes**: `vercel.json` has `excludeFiles` for specific functions
+
+## Admin Boundary Pack Priority
+
+When looking up admin boundaries, the system uses this priority order:
+
+1. **For ADM4/ADM5**:
+   - Geofabrik packs (`adm4-geofabrik.json.gz`) - Preferred (if built with osmium-tool)
+   - OSM Overpass packs (`adm4-osm.json.gz`) - Fallback (has geometry issues)
+   - GADM packs (`adm4.json.gz`) - Rarely available
+
+2. **For ADM2/ADM3**:
+   - GADM packs (`adm2.json.gz`, `adm3.json.gz`) - Primary source
+   - Geofabrik packs - Fallback
+
+## Country Filtering
+
+Geofabrik packs built via Overpass API need country filtering because:
+- Bounding boxes can include neighboring countries
+- Example: DE pack included Austrian (Steiermark) and Dutch (Fryslân) regions
+
+**Solution**: Filter by `ISO3166-1` tag or polygon centroid within country bounding box.
+
+## Gallery Generation
+
+### Process
+1. Load seed points from `public/gallery/locate-me/seed-points.json`
+2. For each point, find ADM2 (regional) and ADM3-5 (local) boundaries
+3. Generate `gallery-data.json` with boundary polygons
+4. Generate `.webp` images with `generate-gallery-images.js`
+5. Deploy to Vercel
+
+### Key Variables
+- `cityArea`: ADM2 boundary (regional, blue polygon)
+- `adminArea`: ADM3-5 boundary (local, red polygon)
+
+## Debugging Tips
+
+### Check if packs are loading
+Look for debug output: `📦 Loaded N ADM4 features from geofabrik-overpass pack`
+
+### Check if point-in-polygon is matching
+Look for: `⚠️ ADM4 pack loaded but no match found for point (lat, lon)`
+
+### Verify pack structure
+```bash
+node -e "const fs=require('fs');const zlib=require('zlib');const pack=zlib.gunzipSync(fs.readFileSync('public/adm-packs/nl/adm4-geofabrik.json.gz'));const data=JSON.parse(pack);console.log('Features:', data.features.length);"
+```
+
+### Test point-in-polygon
+```bash
+node -e "const booleanPointInPolygon=require('@turf/boolean-point-in-polygon').default;const fs=require('fs');const zlib=require('zlib');const pack=zlib.gunzipSync(fs.readFileSync('public/adm-packs/nl/adm4-geofabrik.json.gz'));const geojson=JSON.parse(pack);const pt=[4.9041,52.3676];const containing=geojson.features.filter(f=>booleanPointInPolygon(pt,f.geometry));console.log('Matches:', containing.length);"
+```
+
+## Common Issues
+
+### "No ADM4/ADM5 boundaries showing"
+- Check if packs exist: `ls public/adm-packs/{country}/adm4-geofabrik.json.gz`
+- Check if osmium-tool is installed: `osmium --version`
+- Rebuild packs with osmium-tool if available
+
+### "Cross-border regions in packs"
+- Country filtering should remove these
+- Check `convertOSMToGeoJSON` function has country filtering logic
+
+### "Point-in-polygon not matching"
+- Likely Overpass geometry reconstruction issue
+- Install osmium-tool and rebuild packs
+
+### "Gallery not showing images"
+- Check CORS issues (view via HTTP, not file://)
+- Verify `gallery-data.json` exists and has valid data
+- Check browser console for errors
+
+## Related Documentation
+
+- `docs/gallery-adm4-adm5-status.md` - Full status and implementation history
+- `docs/install-osmium-tool.md` - osmium-tool installation guide
+- `docs/locate-me/README.md` - Locate Me feature docs
+- `public/gallery/locate-me/README.md` - Gallery docs

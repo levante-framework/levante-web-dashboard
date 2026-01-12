@@ -19,6 +19,26 @@ The Locate Me feature (`public/locate-me.html`) allows users to discover their n
 - **Implementation details**: `docs/locate-me/README.md`
 - **Location strategies history**: `docs/location-strategies.md` (summary of strategies tried vs. currently in use)
 
+## Gallery Feature
+
+The Locate Me Gallery (`public/gallery/locate-me/`) displays administrative boundaries for seed GPS points across multiple countries.
+
+**Current Status:**
+- ✅ ADM2/ADM3 boundaries work for all countries
+- ✅ ADM4 boundaries work for **India only** (uses GeoBoundaries API)
+- ⚠️ ADM4/ADM5 boundaries **not working** for other countries (requires osmium-tool installation)
+
+**Documentation:**
+- **Full status and history**: `docs/gallery-adm4-adm5-status.md`
+- **osmium-tool installation**: `docs/install-osmium-tool.md`
+- **Gallery README**: `public/gallery/locate-me/README.md`
+
+**To Fix ADM4/ADM5 for All Countries:**
+1. Install osmium-tool: `sudo apt-get install -y osmium-tool`
+2. Rebuild packs: `node scripts/adm/build-geofabrik-packs.js de,nl,ca,us,gb,co,ch,ar`
+3. Regenerate gallery: `USE_GEOBOUNDARIES=false node scripts/generate-locate-me-gallery.js`
+4. Deploy: `npm run deploy`
+
 ### How It Works
 
 1. **On-device reverse geocoding**
