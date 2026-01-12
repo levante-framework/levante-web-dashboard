@@ -388,46 +388,131 @@ function convertOSMToGeoJSON(osmData, adminLevel) {
   };
 }
 
-async function buildGeofabrikPack(countryIso2) {
-  console.log(`\n🌍 Building Geofabrik packs for ${countryIso2.toUpperCase()}...`);
-  console.log(`  💡 Using Overpass API (Geofabrik data via Overpass)`);
-  console.log(`  ⚠️  Note: For better performance, consider using osmium-tool with PBF files`);
-  
+async function extractWithOsmium(pbfPath, countryIso2, adminLevel) {
   const outputDir = path.join(ADM_PACK_DIR, countryIso2);
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   
-  // Extract admin_level 4 and 5 using Overpass API
-  for (const level of [4, 5]) {
-    console.log(`  📥 Querying admin_level ${level}...`);
+  const tempPbfPath = path.join(outputDir, `adm${adminLevel}-temp.osm.pbf`);
+  const tempGeojsonPath = path.join(outputDir, `adm${adminLevel}-temp.geojson`);
+  const finalPath = path.join(outputDir, `adm${adminLevel}-geofabrik.json.gz`);
+  
+  try {
+    // Step 1: Extract relations with admin_level using osmium tags-filter
+    console.log(`  🔍 Extracting admin_level ${adminLevel} with osmium...`);
+    execSync(`osmium tags-filter "${pbfPath}" r/boundary=administrative r/admin_level=${adminLevel} -o "${tempPbfPath}"`, {
+      stdio: 'inherit'
+    });
     
-    try {
-      await sleep(2000); // Rate limiting
-      const osmData = await queryOverpassForCountry(countryIso2, level);
+    // Step 2: Convert to GeoJSON using osmium export
+    console.log(`  🔄 Converting to GeoJSON...`);
+    execSync(`osmium export "${tempPbfPath}" -o "${tempGeojsonPath}"`, {
+      stdio: 'inherit'
+    });
+    
+    // Step 3: Read, compress, and save
+    if (fs.existsSync(tempGeojsonPath)) {
+      const geojson = JSON.parse(fs.readFileSync(tempGeojsonPath, 'utf8'));
       
-      if (!osmData || !osmData.elements || osmData.elements.length === 0) {
-        console.log(`  ⚠️  No admin_level ${level} boundaries found`);
-        continue;
+      // Filter to only include features with admin_level
+      if (geojson.features) {
+        geojson.features = geojson.features.filter(f => {
+          const adminLevelTag = f.properties?.['boundary:administrative'] || 
+                               f.properties?.admin_level ||
+                               f.properties?.['admin_level'];
+          return adminLevelTag === adminLevel || adminLevelTag === String(adminLevel);
+        });
       }
       
-      console.log(`  ✅ Found ${osmData.elements.filter(e => e.type === 'relation').length} relations`);
-      
-      const geojson = convertOSMToGeoJSON(osmData, level);
-      
-      if (!geojson || !geojson.features || geojson.features.length === 0) {
-        console.warn(`  ⚠️  Could not convert to GeoJSON (geometry reconstruction issues)`);
-        continue;
-      }
-      
-      const outputPath = path.join(outputDir, `adm${level}-geofabrik.json.gz`);
       const compressed = zlib.gzipSync(JSON.stringify(geojson));
-      fs.writeFileSync(outputPath, compressed);
+      fs.writeFileSync(finalPath, compressed);
       
-      const stats = fs.statSync(outputPath);
-      console.log(`  💾 Saved: ${geojson.features.length} features (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
-    } catch (error) {
-      console.error(`  ❌ Failed: ${error.message}`);
+      // Cleanup temp files
+      if (fs.existsSync(tempPbfPath)) fs.unlinkSync(tempPbfPath);
+      if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
+      
+      const stats = fs.statSync(finalPath);
+      console.log(`  ✅ Saved: ${geojson.features?.length || 0} features (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    // Cleanup on error
+    if (fs.existsSync(tempPbfPath)) fs.unlinkSync(tempPbfPath);
+    if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
+    throw error;
+  }
+}
+
+async function buildGeofabrikPack(countryIso2) {
+  console.log(`\n🌍 Building Geofabrik packs for ${countryIso2.toUpperCase()}...`);
+  
+  const hasOsmium = checkOsmiumTool();
+  
+  if (hasOsmium) {
+    console.log(`  ✅ Using osmium-tool (fast local processing)`);
+    
+    // Download PBF file
+    const pbfPath = await downloadGeofabrikExtract(countryIso2);
+    if (!pbfPath) {
+      return;
+    }
+    
+    const outputDir = path.join(ADM_PACK_DIR, countryIso2);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    // Extract admin_level 4 and 5 using osmium-tool
+    for (const level of [4, 5]) {
+      try {
+        await extractWithOsmium(pbfPath, countryIso2, level);
+      } catch (error) {
+        console.error(`  ❌ Failed admin_level ${level}: ${error.message}`);
+      }
+    }
+  } else {
+    console.log(`  💡 Using Overpass API (install osmium-tool for faster processing)`);
+    console.log(`  📝 Install: sudo apt-get install osmium-tool`);
+    
+    const outputDir = path.join(ADM_PACK_DIR, countryIso2);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+    
+    // Extract admin_level 4 and 5 using Overpass API
+    for (const level of [4, 5]) {
+      console.log(`  📥 Querying admin_level ${level}...`);
+      
+      try {
+        await sleep(2000); // Rate limiting
+        const osmData = await queryOverpassForCountry(countryIso2, level);
+        
+        if (!osmData || !osmData.elements || osmData.elements.length === 0) {
+          console.log(`  ⚠️  No admin_level ${level} boundaries found`);
+          continue;
+        }
+        
+        console.log(`  ✅ Found ${osmData.elements.filter(e => e.type === 'relation').length} relations`);
+        
+        const geojson = convertOSMToGeoJSON(osmData, level);
+        
+        if (!geojson || !geojson.features || geojson.features.length === 0) {
+          console.warn(`  ⚠️  Could not convert to GeoJSON (geometry reconstruction issues)`);
+          continue;
+        }
+        
+        const outputPath = path.join(outputDir, `adm${level}-geofabrik.json.gz`);
+        const compressed = zlib.gzipSync(JSON.stringify(geojson));
+        fs.writeFileSync(outputPath, compressed);
+        
+        const stats = fs.statSync(outputPath);
+        console.log(`  💾 Saved: ${geojson.features.length} features (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
+      } catch (error) {
+        console.error(`  ❌ Failed: ${error.message}`);
+      }
     }
   }
 }
