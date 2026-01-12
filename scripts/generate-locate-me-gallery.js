@@ -580,27 +580,29 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       }
     }
     
-    // If GADM doesn't have ADM4, try OSM Overpass as fallback
-    if (!localFeature || localLevel === 3) {
-      try {
-        const osmFeature = await queryOSMOverpassAdminBoundary(lat, lon, countryIso2Lower);
-        if (osmFeature && osmFeature.geometry) {
-          // Check if OSM feature contains the point and is more granular than GADM ADM3
-          const pt = [lon, lat];
-          if (pointInPolygon(pt, osmFeature.geometry)) {
-            const osmArea = polygonArea(osmFeature.geometry);
-            const gadmArea = localFeature ? polygonArea(localFeature.geometry) : Infinity;
-            
-            // Use OSM if it's admin_level 4+ and (we don't have GADM ADM3 OR OSM is smaller/more granular)
-            if (osmFeature.properties.admin_level >= 4 && (!localFeature || osmArea < gadmArea)) {
-              localFeature = osmFeature;
-              localLevel = osmFeature.properties.admin_level;
-              console.log(`  ✅ OSM Overpass: Found admin_level ${localLevel} boundary (${osmFeature.properties.name})`);
-            }
+    // Always try OSM Overpass for ADM4+ (even if we have GADM ADM3, OSM might have ADM4/5)
+    // This gives us more granular boundaries
+    try {
+      const osmFeature = await queryOSMOverpassAdminBoundary(lat, lon, countryIso2Lower);
+      if (osmFeature && osmFeature.geometry) {
+        // Check if OSM feature contains the point
+        const pt = [lon, lat];
+        if (pointInPolygon(pt, osmFeature.geometry)) {
+          const osmArea = polygonArea(osmFeature.geometry);
+          const gadmArea = localFeature ? polygonArea(localFeature.geometry) : Infinity;
+          
+          // Use OSM if it's admin_level 4+ and (we don't have GADM OR OSM is smaller/more granular)
+          if (osmFeature.properties.admin_level >= 4 && (!localFeature || osmArea < gadmArea)) {
+            localFeature = osmFeature;
+            localLevel = osmFeature.properties.admin_level;
+            console.log(`  ✅ OSM Overpass: Found admin_level ${localLevel} boundary (${osmFeature.properties.name})`);
           }
         }
-      } catch (error) {
-        // Silently fail - OSM is just a fallback
+      }
+    } catch (error) {
+      // Silently fail - OSM is just a fallback
+      // Only log if we don't have any local feature (to avoid spam)
+      if (!localFeature) {
         console.warn(`  ⚠️  OSM Overpass fallback failed: ${error.message}`);
       }
     }

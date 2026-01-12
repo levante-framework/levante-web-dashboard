@@ -76,7 +76,15 @@ function queryOverpass(query) {
       
       res.on('end', () => {
         if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode}: ${data.slice(0, 200)}`));
+          // Show more of the error for debugging
+          const errorPreview = data.slice(0, 500);
+          reject(new Error(`HTTP ${res.statusCode}: ${errorPreview}`));
+          return;
+        }
+        
+        // Check if response is XML (error) instead of JSON
+        if (data.trim().startsWith('<?xml') || data.trim().startsWith('<!DOCTYPE')) {
+          reject(new Error(`Overpass returned XML error: ${data.slice(0, 500)}`));
           return;
         }
         
@@ -84,7 +92,7 @@ function queryOverpass(query) {
           const json = JSON.parse(data);
           resolve(json);
         } catch (error) {
-          reject(new Error(`Failed to parse JSON: ${error.message}`));
+          reject(new Error(`Failed to parse JSON: ${error.message}. Response preview: ${data.slice(0, 200)}`));
         }
       });
     });
@@ -107,21 +115,36 @@ function convertOSMToGeoJSON(osmData) {
   for (const relation of relations) {
     if (!relation.tags) continue;
     
-    // Overpass with 'out geom;' returns geometry directly in relation.geometry
-    // This is an array of {lat, lon} objects forming the polygon boundary
-    if (!relation.geometry || relation.geometry.length < 3) {
+    // Overpass with 'out geom;' returns geometry in relation.geometry
+    // For relations, geometry is an array of {lat, lon} objects
+    if (!relation.geometry || !Array.isArray(relation.geometry) || relation.geometry.length < 3) {
+      // Debug: log first relation structure if conversion fails
+      if (relations.indexOf(relation) === 0) {
+        console.log(`    Debug: First relation structure - has geometry: ${!!relation.geometry}, geometry type: ${typeof relation.geometry}, geometry length: ${relation.geometry?.length || 'N/A'}`);
+        if (relation.geometry && Array.isArray(relation.geometry) && relation.geometry.length > 0) {
+          console.log(`    Debug: First geometry point: ${JSON.stringify(relation.geometry[0])}`);
+        }
+      }
       continue; // Need at least 3 points for a polygon
     }
     
     // Convert OSM geometry format to GeoJSON Polygon
     const coordinates = [];
     for (const geom of relation.geometry) {
-      if (geom.lat !== undefined && geom.lon !== undefined) {
-        coordinates.push([geom.lon, geom.lat]);
+      if (geom && typeof geom === 'object' && geom.lat !== undefined && geom.lon !== undefined) {
+        coordinates.push([Number(geom.lon), Number(geom.lat)]);
+      } else if (Array.isArray(geom) && geom.length >= 2) {
+        // Handle array format [lon, lat] or [lat, lon]
+        coordinates.push([Number(geom[0]), Number(geom[1])]);
       }
     }
     
-    if (coordinates.length < 3) continue;
+    if (coordinates.length < 3) {
+      if (relations.indexOf(relation) === 0) {
+        console.log(`    Debug: Only ${coordinates.length} valid coordinates extracted`);
+      }
+      continue;
+    }
     
     // Close the polygon if not already closed
     const first = coordinates[0];
@@ -163,11 +186,14 @@ async function downloadOSMAdminBoundaries(countryIso2, adminLevel) {
     return null;
   }
 
+  // Overpass bounding box format: (south,west,north,east)
+  // For relations, we need to recurse down to ways and nodes to get geometry
   const query = `[out:json][timeout:300];
 (
   relation["admin_level"="${adminLevel}"]["boundary"="administrative"]
-    [${bbox.minLat},${bbox.minLon},${bbox.maxLat},${bbox.maxLon}];
+    (${bbox.minLat},${bbox.minLon},${bbox.maxLat},${bbox.maxLon});
 );
+(._;>;);
 out geom;`;
 
   console.log(`  📥 Downloading admin_level ${adminLevel} for ${countryIso2}...`);
@@ -186,6 +212,13 @@ out geom;`;
     console.log(`  ✅ Found ${data.elements.length} admin_level ${adminLevel} boundaries`);
     
     const geojson = convertOSMToGeoJSON(data);
+    
+    if (!geojson || !geojson.features || geojson.features.length === 0) {
+      console.warn(`  ⚠️  Conversion resulted in 0 features (might be geometry issues)`);
+      return null;
+    }
+    
+    console.log(`  ✅ Converted to ${geojson.features.length} GeoJSON features`);
     
     return geojson;
   } catch (error) {
