@@ -1,12 +1,11 @@
 # Exclude large data directories from Vercel deployment
-# These are not needed for serverless functions (they use GCS or are generated)
-
 data/tiger/
 data/population/worldpop/
 data/geoboundaries/
 data/geonames/
 data/geocoder/
 data/validation/
+data/geofabrik/
 venv/
 __pycache__/
 *.pyc
