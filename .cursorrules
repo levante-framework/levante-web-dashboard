@@ -200,9 +200,52 @@ node -e "const booleanPointInPolygon=require('@turf/boolean-point-in-polygon').d
 - Fixed: Population calculation caps ADM4/5/6/7/8/9/10 to ≤ ADM2
 - Check logs for warnings: "⚠️ ADM10 population > ADM2, capping to ADM2"
 
+## Rebuilding Boundary Packs
+
+### Full Rebuild Process
+```bash
+# 1. Install osmium-tool (recommended for faster processing)
+sudo apt-get install -y osmium-tool
+
+# 2. Build Geofabrik packs (admin_level 4-10)
+node scripts/adm/build-geofabrik-packs.js ca,nl,de,us,gb,co,ch,ar
+
+# 3. Build city boundaries (optional - often larger than ADM3)
+node scripts/adm/build-city-boundaries.js ca,nl,de,us,gb
+
+# 4. Regenerate gallery data
+USE_GEOBOUNDARIES=false node scripts/generate-locate-me-gallery.js
+
+# 5. Generate gallery images
+node scripts/generate-gallery-images.js
+
+# 6. Deploy
+npm run deploy
+```
+
+### Testing Boundary Selection
+```bash
+# Check what boundaries match a point
+node -e "
+const fs=require('fs');
+const zlib=require('zlib');
+const booleanPointInPolygon=require('@turf/boolean-point-in-polygon').default;
+const polygonArea=require('@turf/area').default;
+const torontoPt=[-79.3832,43.6532];
+for(const lvl of['adm3','adm9','adm10']){
+  const pack=zlib.gunzipSync(fs.readFileSync('public/adm-packs/ca/'+lvl+(lvl==='adm3'?'.json.gz':'-geofabrik.json.gz')));
+  const data=JSON.parse(pack);
+  const matches=data.features.filter(f=>booleanPointInPolygon(torontoPt,f.geometry)).map(f=>({name:f.properties.name,area:polygonArea(f.geometry)})).sort((a,b)=>a.area-b.area);
+  console.log(lvl+':',matches.length,'matches');
+  matches.forEach(m=>console.log('  -',m.name+':',(m.area/1e6).toFixed(2),'km²'));
+}
+"
+```
+
 ## Related Documentation
 
 - `docs/gallery-adm4-adm5-status.md` - Full status and implementation history
 - `docs/install-osmium-tool.md` - osmium-tool installation guide
 - `docs/locate-me/README.md` - Locate Me feature docs
 - `public/gallery/locate-me/README.md` - Gallery docs
+- `README.md` - Main project README with gallery status
