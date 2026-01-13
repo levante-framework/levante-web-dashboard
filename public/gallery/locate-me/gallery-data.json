@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-12T23:44:51.305Z",
+  "generated": "2026-01-13T01:37:15.466Z",
   "baseUrl": "https://levante-pitwall.vercel.app",
   "total": 46,
   "results": [
@@ -1580,7 +1580,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 0,
+          "lookupMs": 1,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -2700,7 +2700,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 0,
+        "lookupMs": 1,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"
@@ -40780,7 +40780,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 0,
+          "lookupMs": 1,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -41400,7 +41400,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 0,
+        "lookupMs": 1,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"
@@ -42742,7 +42742,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 0,
+          "lookupMs": 1,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -52690,7 +52690,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 0,
+        "lookupMs": 1,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"
@@ -57267,7 +57267,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 0,
+          "lookupMs": 1,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -58835,7 +58835,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 0,
+        "lookupMs": 1,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"
@@ -60626,7 +60626,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 1,
+          "lookupMs": 0,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -62650,7 +62650,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 1,
+        "lookupMs": 0,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"

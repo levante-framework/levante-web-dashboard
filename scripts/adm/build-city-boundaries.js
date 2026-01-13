@@ -147,12 +147,14 @@ async function buildCityBoundariesPack(countryIso2) {
   }
   
   // Query for boundary=administrative relations with place=city or place=town
+  // Include ways and nodes for geometry reconstruction
   const query = `
 [out:json][timeout:60];
 (
   relation["boundary"="administrative"]["place"="city"](bbox:${bbox.minLat},${bbox.minLon},${bbox.maxLat},${bbox.maxLon});
   relation["boundary"="administrative"]["place"="town"](bbox:${bbox.minLat},${bbox.minLon},${bbox.maxLat},${bbox.maxLon});
 );
+(._;>;);
 out geom;
 `;
   
