@@ -1676,6 +1676,7 @@
 					detailsLink.style.display = '';
 					fixBtn.style.display = '';
 					detailsLink.onclick = () => { alert('PNGs without WEBP (first 200 shown):\n- ' + missing.slice(0,200).join('\n- ')); };
+					fixBtn.onclick = () => fixVisualAssets('dev', 'visual/');
 				} else {
 					detailsLink.style.display = 'none';
 					fixBtn.style.display = 'none';
@@ -1720,6 +1721,7 @@
 					if (detailsLink) detailsLink.style.display = '';
 					if (fixBtn) fixBtn.style.display = '';
 					if (detailsLink) detailsLink.onclick = () => { alert('PNGs without WEBP (first 200 shown):\n- ' + missing.slice(0,200).join('\n- ')); };
+					if (fixBtn) fixBtn.onclick = () => fixVisualAssets('prod', 'visual/');
 				} else {
 					if (detailsLink) detailsLink.style.display = 'none';
 					if (fixBtn) fixBtn.style.display = 'none';
@@ -1731,6 +1733,69 @@
 				const el = document.getElementById('visualSummaryProd'); if (el) el.textContent = 'Visual audit (prod) unavailable';
 				const gifEl = document.getElementById('visualGifSummaryProd'); if (gifEl) gifEl.textContent = 'Visual audit (prod) unavailable';
 				window.visualProdMissing = null;
+			}
+		}
+
+		// Fix Visual Assets - Convert PNGs to WEBP
+		async function fixVisualAssets(env, prefix) {
+			const envLabel = env === 'prod' ? 'Prod' : 'Dev';
+			const fixBtn = env === 'prod' ? document.getElementById('visualFixBtnProd') : document.getElementById('visualFixBtn');
+			const summaryEl = env === 'prod' ? document.getElementById('visualSummaryProd') : document.getElementById('visualSummary');
+			
+			if (!fixBtn || !summaryEl) return;
+			
+			// Disable button and show loading state
+			const originalText = fixBtn.textContent;
+			fixBtn.disabled = true;
+			fixBtn.textContent = 'Fixing...';
+			summaryEl.textContent = 'Converting PNGs to WEBP...';
+			
+			try {
+				const response = await fetch(`/api/visual-fix?env=${env}&prefix=${encodeURIComponent(prefix)}&limit=200`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					cache: 'no-cache'
+				});
+				
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(`API error: ${response.status} - ${errorText}`);
+				}
+				
+				const result = await response.json();
+				
+				if (result.success) {
+					const successMsg = `${envLabel}: Created ${result.created} WEBP files`;
+					const failedMsg = result.failed > 0 ? ` · ${result.failed} failed` : '';
+					const remainingMsg = result.remainingEstimate > 0 ? ` · ~${result.remainingEstimate} remaining` : '';
+					summaryEl.textContent = successMsg + failedMsg + remainingMsg;
+					
+					// Show detailed results if there are failures
+					if (result.failed > 0 && result.topReasons && result.topReasons.length > 0) {
+						const reasons = result.topReasons.map(r => `${r.reason} (${r.count}x)`).join(', ');
+						console.warn(`Visual fix failures (${env}):`, reasons);
+					}
+					
+					// Refresh the audit to update counts
+					if (env === 'prod') {
+						await refreshVisualAuditProd();
+					} else {
+						await refreshVisualAudit();
+					}
+					
+					// Show success message
+					alert(`${envLabel}: Successfully converted ${result.created} PNG files to WEBP${result.failed > 0 ? `\n\nNote: ${result.failed} files failed to convert. Check console for details.` : ''}`);
+				} else {
+					throw new Error(result.error || 'Unknown error');
+				}
+			} catch (error) {
+				console.error(`Visual fix error (${env}):`, error);
+				summaryEl.textContent = `${envLabel}: Fix failed - ${error.message}`;
+				alert(`Failed to fix visual assets (${env}): ${error.message}`);
+			} finally {
+				// Restore button state
+				fixBtn.disabled = false;
+				fixBtn.textContent = originalText;
 			}
 		}
 
