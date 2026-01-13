@@ -653,19 +653,53 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       }
     }
     
-    // Select smallest boundary (most granular)
-    // Prefer place boundaries over admin boundaries when similar size (they're actual city boundaries)
+    // Select boundary - prefer city boundaries over admin divisions
+    // City boundaries represent actual city/town boundaries, which are more meaningful
+    // than admin divisions (which might be neighborhoods/districts)
     if (candidates.length > 0) {
-      candidates.sort((a, b) => {
-        // Sort by area first
-        if (Math.abs(a.area - b.area) / Math.max(a.area, b.area) > 0.1) {
-          return a.area - b.area;
+      // Find city boundary candidate if it exists
+      const cityBoundaryCandidate = candidates.find(c => c.type === 'city-boundary');
+      
+      if (cityBoundaryCandidate) {
+        // Prefer city boundary unless admin boundary is significantly smaller (< 50% of city boundary)
+        const smallestAdmin = candidates
+          .filter(c => c.type === 'admin')
+          .sort((a, b) => a.area - b.area)[0];
+        
+        if (!smallestAdmin || smallestAdmin.area >= cityBoundaryCandidate.area * 0.5) {
+          // Use city boundary (it's the actual city boundary, more meaningful)
+          const best = cityBoundaryCandidate;
+          localFeature = best.feature;
+          localLevel = best.level;
+          const levelLabel = best.levelName === 'city-boundary' ? `city (${best.feature.properties?.place || 'boundary'})` : best.levelName;
+          console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
+          if (candidates.length > 1) {
+            console.log(`  ℹ️  Preferring city boundary over ${candidates.length - 1} admin boundary/boundaries`);
+          }
+        } else {
+          // Admin boundary is much smaller, use it
+          candidates.sort((a, b) => a.area - b.area);
+          const best = candidates[0];
+          localFeature = best.feature;
+          localLevel = typeof best.level === 'number' ? best.level : best.level;
+          const levelLabel = best.type === 'city-boundary' ? `city (${best.feature.properties?.place || 'boundary'})` : `${best.levelName.toUpperCase()} (admin_level ${localLevel})`;
+          console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
+          if (candidates.length > 1) {
+            console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
+          }
         }
-        // If similar size, prefer place boundaries over admin boundaries
-        if (a.type === 'place' && b.type === 'admin') return -1;
-        if (a.type === 'admin' && b.type === 'place') return 1;
-        return a.area - b.area;
-      });
+      } else {
+        // No city boundary, use smallest admin boundary
+        candidates.sort((a, b) => a.area - b.area);
+        const best = candidates[0];
+        localFeature = best.feature;
+        localLevel = typeof best.level === 'number' ? best.level : best.level;
+        const levelLabel = typeof best.level === 'number' ? `${best.levelName.toUpperCase()} (admin_level ${localLevel})` : best.levelName;
+        console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
+        if (candidates.length > 1) {
+          console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
+        }
+      }
       
       const best = candidates[0];
       localFeature = best.feature;
