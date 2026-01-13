@@ -370,7 +370,13 @@ function loadAdmPack(countryCode, level) {
   const gadmPath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
   
   let filePath = null;
-  if (lvl.startsWith('place-')) {
+  if (lvl === 'city-boundaries-osm') {
+    // City boundaries from OSM - special filename
+    const cityBoundariesPath = path.join(ADM_PACK_DIR, code, 'city-boundaries-osm.json.gz');
+    if (fs.existsSync(cityBoundariesPath)) {
+      filePath = cityBoundariesPath;
+    }
+  } else if (lvl.startsWith('place-')) {
     // For place boundaries, only Geofabrik
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
