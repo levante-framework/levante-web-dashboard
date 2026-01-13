@@ -1,6 +1,7 @@
 /**
  * Visual Assets Fix API
  * Converts PNGs under visual/ in levante-assets-(dev|prod) to WEBP when missing.
+ * Original PNG files are preserved (not deleted).
  */
 
 import { Storage } from '@google-cloud/storage';
@@ -33,6 +34,7 @@ async function listMissingWebp(storage, bucketName, prefix) {
 }
 
 async function convertPngToWebp(storage, bucketName, pngPath, quality = 80) {
+  // Creates a WEBP version alongside the original PNG (PNG is preserved, not deleted)
   const bucket = storage.bucket(bucketName);
   const pngFile = bucket.file(pngPath);
   const webpPath = pngPath.replace(/\.png$/i, '.webp');
