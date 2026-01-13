@@ -431,6 +431,10 @@
         <div class="stat-value" id="newerInDevCount">0</div>
         <div class="stat-label">Newer in Dev</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-value" id="identicalCount">0</div>
+        <div class="stat-label">Identical (excluded)</div>
+      </div>
     </div>
     
     <div id="errorMessage" class="error" style="display: none;"></div>
@@ -507,6 +511,7 @@
         document.getElementById('prodFileCount').textContent = data.prodFileCount.toLocaleString();
         document.getElementById('onlyInDevCount').textContent = data.summary.onlyInDevCount.toLocaleString();
         document.getElementById('newerInDevCount').textContent = data.summary.newerInDevCount.toLocaleString();
+        document.getElementById('identicalCount').textContent = (data.summary.identicalCount || 0).toLocaleString();
         
         document.getElementById('statusSection').style.display = 'grid';
         renderResults(data);
