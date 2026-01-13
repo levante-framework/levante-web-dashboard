@@ -72,6 +72,9 @@
     "api/tasks-comparison.js": {
       "maxDuration": 30
     },
+    "api/asset-audit.js": {
+      "maxDuration": 60
+    },
     "api/geoboundaries-polygon.js": {
       "maxDuration": 60,
       "excludeFiles": "data/**"
