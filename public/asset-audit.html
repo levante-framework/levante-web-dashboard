@@ -303,6 +303,80 @@
     .back-link:hover {
       color: #ff7b00;
     }
+    
+    /* Folder tree styles */
+    .folder-tree {
+      font-size: 13px;
+    }
+    
+    .folder-node {
+      margin-bottom: 4px;
+    }
+    
+    .folder-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    
+    .folder-header:hover {
+      background: rgba(255, 123, 0, 0.1);
+    }
+    
+    .folder-toggle {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ff7b00;
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+    
+    .folder-toggle.expanded {
+      transform: rotate(90deg);
+    }
+    
+    .folder-icon {
+      color: #ff7b00;
+      font-size: 14px;
+    }
+    
+    .folder-name {
+      font-weight: 600;
+      color: #cbd5e1;
+      flex: 1;
+    }
+    
+    .folder-count {
+      font-size: 11px;
+      color: #94a3b8;
+      background: rgba(255, 123, 0, 0.2);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    
+    .folder-children {
+      margin-left: 24px;
+      margin-top: 4px;
+      display: none;
+      border-left: 2px solid rgba(255, 123, 0, 0.2);
+      padding-left: 8px;
+    }
+    
+    .folder-children.expanded {
+      display: block;
+    }
+    
+    .file-item {
+      margin-left: 0;
+    }
   </style>
 </head>
 <body>
@@ -470,53 +544,175 @@
       renderResults(currentData);
     }
     
+    // Build folder tree structure
+    function buildTree(files) {
+      const tree = {};
+      
+      files.forEach(file => {
+        const parts = file.name.split('/');
+        let current = tree;
+        
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          const isFile = i === parts.length - 1;
+          
+          if (!current[part]) {
+            current[part] = {
+              name: part,
+              fullPath: parts.slice(0, i + 1).join('/'),
+              isFile: isFile,
+              children: {},
+              files: []
+            };
+          }
+          
+          if (isFile) {
+            current[part].fileData = file;
+            current[part].files.push(file);
+          } else {
+            if (!current[part].children) {
+              current[part].children = {};
+            }
+            current = current[part].children;
+          }
+        }
+      });
+      
+      return tree;
+    }
+    
+    // Render folder tree
+    function renderTree(node, level = 0, textFilter = '', type = 'only') {
+      const entries = Object.values(node).sort((a, b) => {
+        // Folders first, then files
+        if (a.isFile !== b.isFile) return a.isFile ? 1 : -1;
+        return a.name.localeCompare(b.name);
+      });
+      
+      if (entries.length === 0) return '';
+      
+      return entries.map(entry => {
+        const nodeId = `node-${type}-${entry.fullPath.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        
+        if (entry.isFile) {
+          // Render file
+          const file = entry.fileData;
+          if (type === 'only') {
+            return `
+              <div class="file-item only-in-dev">
+                <div class="file-name">${highlightText(file.name, textFilter)}</div>
+                <div class="file-meta">
+                  <span><i class="fas fa-calendar"></i> ${formatDate(file.updated)}</span>
+                  <span><i class="fas fa-file"></i> ${formatBytes(file.size)}</span>
+                  <span class="badge only">Only in Dev</span>
+                </div>
+              </div>
+            `;
+          } else {
+            return `
+              <div class="file-item newer-in-dev">
+                <div class="file-name">${highlightText(file.name, textFilter)}</div>
+                <div class="file-meta">
+                  <span><i class="fas fa-calendar-check"></i> Dev: ${formatDate(file.devUpdated)}</span>
+                  <span><i class="fas fa-calendar-times"></i> Prod: ${formatDate(file.prodUpdated)}</span>
+                  <span><i class="fas fa-clock"></i> ${file.ageDiffDays} days newer</span>
+                  <span><i class="fas fa-file"></i> ${formatBytes(file.devSize)}</span>
+                  <span class="badge newer">Newer</span>
+                </div>
+              </div>
+            `;
+          }
+        } else {
+          // Render folder
+          const childCount = countFiles(entry);
+          const childrenHtml = renderTree(entry.children, level + 1, textFilter, type);
+          
+          return `
+            <div class="folder-node">
+              <div class="folder-header" onclick="toggleFolder('${nodeId}')">
+                <span class="folder-toggle" id="toggle-${nodeId}"><i class="fas fa-caret-right"></i></span>
+                <span class="folder-icon"><i class="fas fa-folder"></i></span>
+                <span class="folder-name">${highlightText(entry.name, textFilter)}</span>
+                <span class="folder-count">${childCount}</span>
+              </div>
+              <div class="folder-children" id="${nodeId}">
+                ${childrenHtml}
+              </div>
+            </div>
+          `;
+        }
+      }).join('');
+    }
+    
+    function countFiles(node) {
+      let count = 0;
+      Object.values(node).forEach(entry => {
+        if (entry.isFile) {
+          count++;
+        } else {
+          count += countFiles(entry.children) + entry.files.length;
+        }
+      });
+      return count;
+    }
+    
+    function toggleFolder(nodeId) {
+      const children = document.getElementById(nodeId);
+      const toggle = document.getElementById(`toggle-${nodeId}`);
+      
+      if (children.classList.contains('expanded')) {
+        children.classList.remove('expanded');
+        toggle.classList.remove('expanded');
+      } else {
+        children.classList.add('expanded');
+        toggle.classList.add('expanded');
+      }
+    }
+    
     function renderResults(data) {
       const textFilter = textFilterValue;
       
-      // Filter and render "Only in Dev"
+      // Filter files
       const onlyInDev = textFilter 
         ? data.onlyInDev.filter(f => f.name.toLowerCase().includes(textFilter))
         : data.onlyInDev;
       
-      const onlyInDevHtml = onlyInDev.length > 0
-        ? onlyInDev.map(file => `
-          <div class="file-item only-in-dev">
-            <div class="file-name">${highlightText(file.name, textFilter)}</div>
-            <div class="file-meta">
-              <span><i class="fas fa-calendar"></i> ${formatDate(file.updated)}</span>
-              <span><i class="fas fa-file"></i> ${formatBytes(file.size)}</span>
-              <span class="badge only">Only in Dev</span>
-            </div>
-          </div>
-        `).join('')
-        : '<div class="empty">No files found</div>';
-      
-      document.getElementById('onlyInDevList').innerHTML = onlyInDevHtml;
-      
-      // Filter and render "Newer in Dev"
       const newerInDev = textFilter
         ? data.newerInDev.filter(f => f.name.toLowerCase().includes(textFilter))
         : data.newerInDev;
       
-      const newerInDevHtml = newerInDev.length > 0
-        ? newerInDev.map(file => `
-          <div class="file-item newer-in-dev">
-            <div class="file-name">${highlightText(file.name, textFilter)}</div>
-            <div class="file-meta">
-              <span><i class="fas fa-calendar-check"></i> Dev: ${formatDate(file.devUpdated)}</span>
-              <span><i class="fas fa-calendar-times"></i> Prod: ${formatDate(file.prodUpdated)}</span>
-              <span><i class="fas fa-clock"></i> ${file.ageDiffDays} days newer</span>
-              <span><i class="fas fa-file"></i> ${formatBytes(file.devSize)}</span>
-              <span class="badge newer">Newer</span>
-            </div>
-          </div>
-        `).join('')
+      // Build trees
+      const onlyInDevTree = buildTree(onlyInDev);
+      const newerInDevTree = buildTree(newerInDev);
+      
+      // Render trees
+      const onlyInDevHtml = onlyInDev.length > 0
+        ? `<div class="folder-tree">${renderTree(onlyInDevTree, 0, textFilter, 'only')}</div>`
         : '<div class="empty">No files found</div>';
       
+      const newerInDevHtml = newerInDev.length > 0
+        ? `<div class="folder-tree">${renderTree(newerInDevTree, 0, textFilter, 'newer')}</div>`
+        : '<div class="empty">No files found</div>';
+      
+      document.getElementById('onlyInDevList').innerHTML = onlyInDevHtml;
       document.getElementById('newerInDevList').innerHTML = newerInDevHtml;
+      
+      // Expand first level folders by default
+      setTimeout(() => {
+        document.querySelectorAll('.folder-children').forEach(children => {
+          if (children.parentElement?.querySelector('.folder-header')) {
+            children.classList.add('expanded');
+            const toggle = children.parentElement.querySelector('.folder-toggle');
+            if (toggle) toggle.classList.add('expanded');
+          }
+        });
+      }, 100);
       
       document.getElementById('resultsSection').style.display = 'grid';
     }
+    
+    // Make toggleFolder available globally
+    window.toggleFolder = toggleFolder;
   </script>
 </body>
 </html>
