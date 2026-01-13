@@ -2,39 +2,87 @@
 
 This file contains important context and rules for working with the Levante Web Dashboard codebase.
 
-## Gallery ADM4/ADM5 Implementation
+## Gallery Administrative Boundaries System
 
-### Current Status
-- Gallery is deployed at: https://levante-pitwall.vercel.app/gallery/locate-me/
-- ADM2/ADM3 boundaries work for all countries
-- ADM4 boundaries work **only for India** (uses GeoBoundaries API)
-- ADM4/ADM5 boundaries **do not work** for other countries (DE, NL, CA, US, GB, CO, CH, AR)
+### Current Status (January 2025)
+- ✅ **Gallery deployed**: https://levante-pitwall.vercel.app/gallery/locate-me/
+- ✅ **ADM2/ADM3 boundaries** work for all countries (GADM - reliable)
+- ✅ **ADM6/7/8/9/10 boundaries** available for many countries (OSM Geofabrik - very granular!)
+- ✅ **City boundaries** available from OSM (boundary=administrative + place=city/town)
+- ✅ **US Census tracts** - very granular boundaries for US cities
+- ✅ **Selection logic** - Always picks the smallest (most granular) boundary available
 
-### Root Cause
-Geofabrik packs are built using Overpass API fallback (osmium-tool not installed). Overpass geometry reconstruction is incomplete:
-- Only uses first outer ring from relations
-- Doesn't handle multipolygons correctly
-- Creates incomplete polygons that don't match points
+### Boundary Hierarchy (Most Granular First)
+The system tries boundaries in this order and selects the **smallest** one:
 
-### Solution
-Install osmium-tool and rebuild packs:
-```bash
-sudo apt-get install -y osmium-tool
-node scripts/adm/build-geofabrik-packs.js de,nl,ca,us,gb,co,ch,ar
-USE_GEOBOUNDARIES=false node scripts/generate-locate-me-gallery.js
-npm run deploy
-```
+1. **ADM10** - Very small administrative units (electoral districts, neighborhoods)
+   - Example: Toronto → "Yonge-Bay Corridor" (0.65 km²)
+   - Source: OSM Geofabrik packs (`adm10-geofabrik.json.gz`)
+
+2. **ADM9** - Small administrative units (electoral districts)
+   - Example: Toronto → "Spadina—Fort York" (24.50 km²)
+   - Source: OSM Geofabrik packs (`adm9-geofabrik.json.gz`)
+
+3. **ADM8** - Wards/districts
+   - Example: Toronto → "Old Toronto" (120.57 km²)
+   - Source: OSM Geofabrik packs (`adm8-geofabrik.json.gz`)
+
+4. **City boundaries** - Actual city/town boundaries from OSM
+   - Example: Toronto → "Toronto" (664.66 km²) - but usually skipped if ADM8/9/10 exist
+   - Source: OSM Overpass queries (`city-boundaries-osm.json.gz`)
+
+5. **ADM3** - Districts/municipalities (GADM) - reliable fallback
+   - Example: Toronto → "Toronto" (633.24 km²)
+   - Source: GADM packs (`adm3.json.gz`)
+
+6. **ADM2** - Regional boundaries (counties, provinces)
+   - Source: GADM packs (`adm2.json.gz`)
+
+### Key Design Decisions
+
+**Why ADM4/ADM5 were removed:**
+- ADM4/ADM5 from Geofabrik often represent different admin concepts than GADM ADM3
+- ADM4 might be "provinces" while ADM3 is "districts" - not directly comparable
+- ADM6/7/8/9/10 are more granular and consistently smaller than ADM3
+
+**Why city boundaries aren't preferred:**
+- City boundaries are often **LARGER** than ADM3 (e.g., Toronto city: 664 km² vs ADM3: 633 km²)
+- They represent entire city boundaries, not neighborhoods/districts
+- Selection logic always picks the **smallest** boundary for maximum granularity
+
+**Why smallest boundary is selected:**
+- More granular = more precise localization
+- ADM10 (0.65 km²) is much more useful than ADM3 (633 km²) for Toronto
+- Ensures users get the most precise boundary available
 
 ### Important Files
-- `scripts/adm/build-geofabrik-packs.js` - Builds Geofabrik packs (detects osmium-tool, falls back to Overpass)
-- `scripts/generate-locate-me-gallery.js` - Generates gallery data (prioritizes Geofabrik → OSM → GADM packs)
-- `public/adm-packs/{country}/adm4-geofabrik.json.gz` - Geofabrik ADM4 packs
+- `scripts/adm/build-geofabrik-packs.js` - Builds Geofabrik packs (extracts admin_level 4-10)
+  - Uses osmium-tool if available (fast), falls back to Overpass API
+  - Downloads PBF files from Geofabrik, extracts boundaries, converts to GeoJSON
+- `scripts/adm/build-city-boundaries.js` - Builds city boundary packs from OSM
+  - Queries Overpass for boundary=administrative + place=city/town relations
+  - Reconstructs geometry from relations, ways, and nodes
+- `scripts/generate-locate-me-gallery.js` - Generates gallery data
+  - Tries ADM3 → City boundaries → ADM6/7/8/9/10
+  - Always selects the **smallest** boundary (most granular)
+- `scripts/generate-gallery-images.js` - Generates gallery images with Mapbox
+- `public/adm-packs/{country}/` - Boundary packs (gzipped GeoJSON)
+  - `adm2.json.gz`, `adm3.json.gz` - GADM packs
+  - `adm6-geofabrik.json.gz` through `adm10-geofabrik.json.gz` - OSM Geofabrik packs
+  - `city-boundaries-osm.json.gz` - OSM city boundaries
 - `docs/gallery-adm4-adm5-status.md` - Full status and history
 
 ### Key Functions
 - `loadAdmPack(countryCode, level)` - Loads ADM pack with priority order
+  - For ADM2/3: Prefers GADM packs
+  - For ADM6-10: Prefers Geofabrik packs, then OSM packs
+  - For city-boundaries-osm: Loads city boundary pack
 - `lookupTwoLevelAreas(lat, lon, country, admin1Hint)` - Finds ADM2 and local boundary
-- `convertOSMToGeoJSON(osmData, adminLevel, countryIso2)` - Converts Overpass to GeoJSON (has geometry issues)
+  - Collects all matching boundaries (ADM3, city boundaries, ADM6-10)
+  - Selects the **smallest** one (most granular)
+- `bestContaining(pack)` - Finds smallest boundary containing a point
+  - Uses point-in-polygon to find all containing boundaries
+  - Returns the one with smallest area
 
 ## Vercel Deployment Constraints
 
@@ -52,14 +100,22 @@ npm run deploy
 
 When looking up admin boundaries, the system uses this priority order:
 
-1. **For ADM4/ADM5**:
-   - Geofabrik packs (`adm4-geofabrik.json.gz`) - Preferred (if built with osmium-tool)
-   - OSM Overpass packs (`adm4-osm.json.gz`) - Fallback (has geometry issues)
-   - GADM packs (`adm4.json.gz`) - Rarely available
-
-2. **For ADM2/ADM3**:
-   - GADM packs (`adm2.json.gz`, `adm3.json.gz`) - Primary source
+1. **For ADM2/ADM3**:
+   - GADM packs (`adm2.json.gz`, `adm3.json.gz`) - Primary source (most reliable)
    - Geofabrik packs - Fallback
+
+2. **For ADM6/7/8/9/10**:
+   - Geofabrik packs (`adm6-geofabrik.json.gz` through `adm10-geofabrik.json.gz`) - Preferred
+   - OSM Overpass packs (`adm6-osm.json.gz` through `adm10-osm.json.gz`) - Fallback
+
+3. **For City Boundaries**:
+   - OSM city boundaries (`city-boundaries-osm.json.gz`) - From Overpass queries
+
+**Selection Logic:**
+- Collects ALL matching boundaries (ADM3, city boundaries, ADM6-10)
+- Sorts by area (smallest first)
+- Selects the **smallest** boundary (most granular)
+- This ensures maximum precision (e.g., ADM10 0.65 km² vs ADM3 633 km²)
 
 ## Country Filtering
 
@@ -73,14 +129,22 @@ Geofabrik packs built via Overpass API need country filtering because:
 
 ### Process
 1. Load seed points from `public/gallery/locate-me/seed-points.json`
-2. For each point, find ADM2 (regional) and ADM3-5 (local) boundaries
+2. For each point, find ADM2 (regional) and local boundary (ADM3-10 or city boundary)
 3. Generate `gallery-data.json` with boundary polygons
-4. Generate `.webp` images with `generate-gallery-images.js`
+4. Generate `.webp` images with `generate-gallery-images.js` (includes population, weather)
 5. Deploy to Vercel
 
 ### Key Variables
-- `cityArea`: ADM2 boundary (regional, blue polygon)
-- `adminArea`: ADM3-5 boundary (local, red polygon)
+- `cityArea`: ADM2 boundary (regional, blue polygon) - Always ADM2
+- `adminArea`: Local boundary (red polygon) - Can be ADM3, ADM6-10, or city boundary
+  - Selection: Always the **smallest** available boundary
+  - Examples: ADM10 (0.65 km²), ADM9 (24.50 km²), ADM8 (120.57 km²), ADM3 (633 km²)
+
+### Population Calculation
+- Uses WorldPop API (gridded population data) with GeoNames fallback
+- **Important**: ADM4/5/6/7/8/9/10 population is capped to ≤ ADM2 population
+  - Prevents logical inconsistencies (smaller boundaries shouldn't have more population)
+  - Logs warnings when capping occurs
 
 ## Debugging Tips
 
@@ -102,23 +166,39 @@ node -e "const booleanPointInPolygon=require('@turf/boolean-point-in-polygon').d
 
 ## Common Issues
 
-### "No ADM4/ADM5 boundaries showing"
-- Check if packs exist: `ls public/adm-packs/{country}/adm4-geofabrik.json.gz`
+### "No ADM6/7/8/9/10 boundaries showing"
+- Check if packs exist: `ls public/adm-packs/{country}/adm9-geofabrik.json.gz`
 - Check if osmium-tool is installed: `osmium --version`
-- Rebuild packs with osmium-tool if available
+- Rebuild packs: `node scripts/adm/build-geofabrik-packs.js {country}`
+- Check gallery generation logs for "📦 Loaded N ADM9 features"
+
+### "ADM3 being selected instead of ADM9/10"
+- ADM9/10 packs might not exist for that country
+- ADM9/10 boundaries might not contain the point (geometry issues)
+- Check: `node -e "const fs=require('fs');const zlib=require('zlib');const pack=zlib.gunzipSync(fs.readFileSync('public/adm-packs/ca/adm10-geofabrik.json.gz'));const data=JSON.parse(pack);console.log('Features:', data.features.length);"`
+
+### "City boundaries not being selected"
+- City boundaries are often LARGER than ADM3 (not more granular)
+- Selection logic picks smallest boundary, so ADM3 might be selected if it's smaller
+- This is correct behavior - city boundaries aren't always more granular
 
 ### "Cross-border regions in packs"
-- Country filtering should remove these
+- Country filtering should remove these (checks polygon centroid within country bbox)
 - Check `convertOSMToGeoJSON` function has country filtering logic
 
 ### "Point-in-polygon not matching"
 - Likely Overpass geometry reconstruction issue
-- Install osmium-tool and rebuild packs
+- Install osmium-tool and rebuild packs (much more reliable)
 
 ### "Gallery not showing images"
 - Check CORS issues (view via HTTP, not file://)
 - Verify `gallery-data.json` exists and has valid data
 - Check browser console for errors
+- Ensure images were generated: `ls public/gallery/locate-me/images/`
+
+### "Population higher for ADM4/5 than ADM2"
+- Fixed: Population calculation caps ADM4/5/6/7/8/9/10 to ≤ ADM2
+- Check logs for warnings: "⚠️ ADM10 population > ADM2, capping to ADM2"
 
 ## Related Documentation
 

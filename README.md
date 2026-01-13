@@ -24,20 +24,35 @@ The Locate Me feature (`public/locate-me.html`) allows users to discover their n
 The Locate Me Gallery (`public/gallery/locate-me/`) displays administrative boundaries for seed GPS points across multiple countries.
 
 **Current Status:**
-- ✅ ADM2/ADM3 boundaries work for all countries
-- ✅ ADM4 boundaries work for **India only** (uses GeoBoundaries API)
-- ⚠️ ADM4/ADM5 boundaries **not working** for other countries (requires osmium-tool installation)
+- ✅ **ADM2/ADM3 boundaries** work for all countries (GADM)
+- ✅ **ADM6/7/8/9/10 boundaries** available for many countries (OSM Geofabrik) - very granular!
+- ✅ **City boundaries** available from OSM (boundary=administrative + place=city/town)
+- ✅ **US Census tracts** - very granular boundaries for US cities
+- ✅ **Selection logic** - Always picks the smallest (most granular) boundary available
+
+**Boundary Hierarchy (most granular first):**
+1. **ADM10** - Very small administrative units (electoral districts, neighborhoods) - e.g., 0.65 km² for Toronto
+2. **ADM9** - Small administrative units (electoral districts) - e.g., 24.50 km² for Toronto
+3. **ADM8** - Wards/districts - e.g., 120.57 km² for Toronto
+4. **City boundaries** - Actual city/town boundaries from OSM
+5. **ADM3** - Districts/municipalities (GADM) - reliable fallback
+6. **ADM2** - Regional boundaries (counties, provinces)
 
 **Documentation:**
 - **Full status and history**: `docs/gallery-adm4-adm5-status.md`
 - **osmium-tool installation**: `docs/install-osmium-tool.md`
 - **Gallery README**: `public/gallery/locate-me/README.md`
 
-**To Fix ADM4/ADM5 for All Countries:**
-1. Install osmium-tool: `sudo apt-get install -y osmium-tool`
-2. Rebuild packs: `node scripts/adm/build-geofabrik-packs.js de,nl,ca,us,gb,co,ch,ar`
-3. Regenerate gallery: `USE_GEOBOUNDARIES=false node scripts/generate-locate-me-gallery.js`
-4. Deploy: `npm run deploy`
+**To Rebuild Boundary Packs:**
+1. Install osmium-tool (recommended for faster processing): `sudo apt-get install -y osmium-tool`
+2. Build Geofabrik packs: `node scripts/adm/build-geofabrik-packs.js ca,nl,de,us,gb,co,ch,ar`
+   - Extracts admin_level 4-10 boundaries from Geofabrik PBF files
+   - Uses osmium-tool if available, falls back to Overpass API
+3. Build city boundaries: `node scripts/adm/build-city-boundaries.js ca,nl,de,us,gb`
+   - Queries OSM for boundary=administrative + place=city/town relations
+4. Regenerate gallery: `USE_GEOBOUNDARIES=false node scripts/generate-locate-me-gallery.js`
+5. Generate images: `node scripts/generate-gallery-images.js`
+6. Deploy: `npm run deploy`
 
 ### How It Works
 
@@ -45,8 +60,12 @@ The Locate Me Gallery (`public/gallery/locate-me/`) displays administrative boun
    - Uses a compact GeoNames-derived dataset (`data/geocoder/cities.min.json.gz`) loaded in the browser.
 
 2. **On-device admin boundary lookup**
-   - Uses offline gzipped packs in `public/adm-packs/**` (GeoBoundaries gbOpen).
-   - For the US, prefers “place/city” boundaries in `public/adm-packs/us/adm3-place/**` with tract fallback.
+   - Uses offline gzipped packs in `public/adm-packs/**`:
+     - **GADM packs** (`adm2.json.gz`, `adm3.json.gz`) - Reliable, well-defined hierarchy
+     - **Geofabrik packs** (`adm6-geofabrik.json.gz` through `adm10-geofabrik.json.gz`) - Very granular OSM boundaries
+     - **City boundaries** (`city-boundaries-osm.json.gz`) - Actual city/town boundaries from OSM
+     - **US Census tracts** (`public/adm-packs/us/adm3-place/**`) - Very granular for US cities
+   - Selection logic: Always picks the **smallest** (most granular) boundary available
 
 3. **Weather (privacy-preserving)**
    - Uses Open‑Meteo with a coarse query point (e.g., ADM2 bbox center) and caching.
