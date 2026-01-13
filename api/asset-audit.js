@@ -4,70 +4,41 @@
  */
 
 import { Storage } from '@google-cloud/storage';
-import { readFileSync } from 'fs';
-import { existsSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import dotenv from 'dotenv';
-
-// Load .env files
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const envLocalPath = join(__dirname, '..', '.env.local');
-const envPath = join(__dirname, '..', '.env');
-
-try {
-  if (existsSync(envLocalPath)) {
-    dotenv.config({ path: envLocalPath, override: false });
-  }
-  if (existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: true });
-  }
-} catch (e) {
-  // dotenv not installed or .env file doesn't exist - that's okay
-}
 
 const DEV_BUCKET = 'levante-assets-dev';
 const PROD_BUCKET = 'levante-assets-prod';
 
 function getStorageClient() {
-  // Try multiple credential sources
-  let serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  
-  // First, try file path if available
-  if (credentialsPath) {
+  const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  if (!serviceAccountJson) {
+    // Try default application credentials (works in Vercel with service account)
     try {
-      const credentials = JSON.parse(readFileSync(credentialsPath, 'utf8'));
-      return new Storage({ credentials });
+      return new Storage();
     } catch (e) {
-      console.error('Warning: Could not load credentials from file:', e.message);
+      console.warn('No GCS credentials available');
+      return null;
     }
   }
   
-  // Then try environment variable JSON
-  if (serviceAccountJson) {
-    serviceAccountJson = serviceAccountJson.trim();
-    if ((serviceAccountJson.startsWith('"') && serviceAccountJson.endsWith('"')) ||
-        (serviceAccountJson.startsWith("'") && serviceAccountJson.endsWith("'"))) {
-      serviceAccountJson = serviceAccountJson.slice(1, -1);
-    }
-    serviceAccountJson = serviceAccountJson.replace(/\\n/g, '\n');
-    
-    try {
-      const credentials = JSON.parse(serviceAccountJson);
-      return new Storage({ credentials });
-    } catch (e) {
-      console.error('Error parsing credentials JSON:', e.message);
-    }
-  }
-  
-  // Last resort: try default application credentials
   try {
-    return new Storage();
+    // Handle .env file formatting: strip surrounding quotes and handle escaped newlines
+    let json = serviceAccountJson.trim();
+    if ((json.startsWith('"') && json.endsWith('"')) ||
+        (json.startsWith("'") && json.endsWith("'"))) {
+      json = json.slice(1, -1);
+    }
+    json = json.replace(/\\n/g, '\n');
+    
+    const credentials = JSON.parse(json);
+    return new Storage({ credentials });
   } catch (e) {
-    console.error('Error: No GCS credentials found');
-    return null;
+    console.warn('GCS credentials env is not valid JSON:', e.message);
+    // Fallback to default credentials
+    try {
+      return new Storage();
+    } catch (e2) {
+      return null;
+    }
   }
 }
 
