@@ -681,27 +681,6 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       if (candidates.length > 1) {
         console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
       }
-      } else {
-        // No city boundary, use smallest admin boundary
-        candidates.sort((a, b) => a.area - b.area);
-        const best = candidates[0];
-        localFeature = best.feature;
-        localLevel = typeof best.level === 'number' ? best.level : best.level;
-        const levelLabel = typeof best.level === 'number' ? `${best.levelName.toUpperCase()} (admin_level ${localLevel})` : best.levelName;
-        console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
-        if (candidates.length > 1) {
-          console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
-        }
-      }
-      
-      const best = candidates[0];
-      localFeature = best.feature;
-      localLevel = typeof best.level === 'number' ? best.level : best.level;
-      const levelLabel = best.type === 'place' ? best.levelName : `${best.levelName.toUpperCase()} (admin_level ${localLevel})`;
-      console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
-      if (candidates.length > 1) {
-        console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
-      }
     } else if (adm3Feature) {
       // Fallback to ADM3 if no other boundaries found
       localFeature = adm3Feature;
