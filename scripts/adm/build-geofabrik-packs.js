@@ -515,10 +515,10 @@ async function buildGeofabrikPack(countryIso2) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
     
-    // Extract admin_level 4, 5, 6, 7, 8 using osmium-tool
+    // Extract admin_level 4, 5, 6, 7, 8, 9, 10 using osmium-tool
     // Note: ADM4/5 removed from gallery lookup, but keeping in pack builder for testing
-    // ADM6/7/8 are more granular (towns, neighborhoods, wards)
-    for (const level of [4, 5, 6, 7, 8]) {
+    // ADM6/7/8/9/10 are more granular (towns, neighborhoods, wards, electoral districts)
+    for (const level of [4, 5, 6, 7, 8, 9, 10]) {
       try {
         await extractWithOsmium(pbfPath, countryIso2, level);
       } catch (error) {

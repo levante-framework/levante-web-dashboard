@@ -381,8 +381,8 @@ function loadAdmPack(countryCode, level) {
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
     }
-  } else if ((lvl === 'adm6' || lvl === 'adm7' || lvl === 'adm8')) {
-    // For ADM6/7/8, prefer Geofabrik, then OSM
+  } else if ((lvl === 'adm6' || lvl === 'adm7' || lvl === 'adm8' || lvl === 'adm9' || lvl === 'adm10')) {
+    // For ADM6/7/8/9/10, prefer Geofabrik, then OSM
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
     } else if (fs.existsSync(osmPath)) {
@@ -634,8 +634,9 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       });
     }
     
-    // Try ADM6/7/8 (admin divisions: towns, neighborhoods, wards)
-    for (const lvl of ['adm6', 'adm7', 'adm8']) {
+    // Try ADM6/7/8/9/10 (admin divisions: towns, neighborhoods, wards, electoral districts)
+    // ADM9/10 are very granular (electoral districts, small neighborhoods)
+    for (const lvl of ['adm6', 'adm7', 'adm8', 'adm9', 'adm10']) {
       const pack = loadAdmPack(countryIso2Lower, lvl);
       if (pack && pack.features && pack.features.length > 0) {
         console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
@@ -645,7 +646,7 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
         const area = polygonArea(f.geometry);
         candidates.push({
           feature: f,
-          level: lvl === 'adm6' ? 6 : (lvl === 'adm7' ? 7 : 8),
+          level: lvl === 'adm6' ? 6 : (lvl === 'adm7' ? 7 : (lvl === 'adm8' ? 8 : (lvl === 'adm9' ? 9 : 10))),
           area: area,
           levelName: lvl,
           type: 'admin'
@@ -660,19 +661,26 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       // Find city boundary candidate if it exists
       const cityBoundaryCandidate = candidates.find(c => c.type === 'city-boundary');
       
-      if (cityBoundaryCandidate) {
-        // Always prefer city boundary - it represents the actual city/town boundary
-        // Admin divisions (ADM6/7/8) are often neighborhoods/districts within cities,
-        // so city boundaries are more meaningful for localization
-        const best = cityBoundaryCandidate;
-        localFeature = best.feature;
-        localLevel = best.level;
-        const levelLabel = `city (${best.feature.properties?.place || 'boundary'})`;
-        console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
-        if (candidates.length > 1) {
-          const adminCount = candidates.filter(c => c.type === 'admin').length;
-          console.log(`  ℹ️  Preferring city boundary over ${adminCount} admin boundary/boundaries`);
-        }
+      // Don't prefer city boundaries - they're often LARGER than ADM3
+      // Instead, select the SMALLEST boundary (most granular)
+      candidates.sort((a, b) => a.area - b.area);
+      const best = candidates[0];
+      localFeature = best.feature;
+      localLevel = typeof best.level === 'number' ? best.level : best.level;
+      
+      let levelLabel;
+      if (best.type === 'city-boundary') {
+        levelLabel = `city (${best.feature.properties?.place || 'boundary'})`;
+      } else if (typeof best.level === 'number') {
+        levelLabel = `${best.levelName.toUpperCase()} (admin_level ${localLevel})`;
+      } else {
+        levelLabel = best.levelName;
+      }
+      
+      console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
+      if (candidates.length > 1) {
+        console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
+      }
       } else {
         // No city boundary, use smallest admin boundary
         candidates.sort((a, b) => a.area - b.area);
