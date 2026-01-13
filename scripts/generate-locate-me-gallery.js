@@ -661,32 +661,17 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
       const cityBoundaryCandidate = candidates.find(c => c.type === 'city-boundary');
       
       if (cityBoundaryCandidate) {
-        // Prefer city boundary unless admin boundary is significantly smaller (< 50% of city boundary)
-        const smallestAdmin = candidates
-          .filter(c => c.type === 'admin')
-          .sort((a, b) => a.area - b.area)[0];
-        
-        if (!smallestAdmin || smallestAdmin.area >= cityBoundaryCandidate.area * 0.5) {
-          // Use city boundary (it's the actual city boundary, more meaningful)
-          const best = cityBoundaryCandidate;
-          localFeature = best.feature;
-          localLevel = best.level;
-          const levelLabel = best.levelName === 'city-boundary' ? `city (${best.feature.properties?.place || 'boundary'})` : best.levelName;
-          console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
-          if (candidates.length > 1) {
-            console.log(`  ℹ️  Preferring city boundary over ${candidates.length - 1} admin boundary/boundaries`);
-          }
-        } else {
-          // Admin boundary is much smaller, use it
-          candidates.sort((a, b) => a.area - b.area);
-          const best = candidates[0];
-          localFeature = best.feature;
-          localLevel = typeof best.level === 'number' ? best.level : best.level;
-          const levelLabel = best.type === 'city-boundary' ? `city (${best.feature.properties?.place || 'boundary'})` : `${best.levelName.toUpperCase()} (admin_level ${localLevel})`;
-          console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
-          if (candidates.length > 1) {
-            console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
-          }
+        // Always prefer city boundary - it represents the actual city/town boundary
+        // Admin divisions (ADM6/7/8) are often neighborhoods/districts within cities,
+        // so city boundaries are more meaningful for localization
+        const best = cityBoundaryCandidate;
+        localFeature = best.feature;
+        localLevel = best.level;
+        const levelLabel = `city (${best.feature.properties?.place || 'boundary'})`;
+        console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
+        if (candidates.length > 1) {
+          const adminCount = candidates.filter(c => c.type === 'admin').length;
+          console.log(`  ℹ️  Preferring city boundary over ${adminCount} admin boundary/boundaries`);
         }
       } else {
         // No city boundary, use smallest admin boundary
