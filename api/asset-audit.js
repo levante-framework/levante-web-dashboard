@@ -47,47 +47,66 @@ function shouldExclude(name, excludePatterns) {
   return excludePatterns.some(pattern => name.includes(pattern));
 }
 
-async function listAllFiles(storage, bucketName, prefix = '') {
+async function listAllFiles(storage, bucketName, prefix = '', fetchChecksums = false) {
   const bucket = storage.bucket(bucketName);
   const [files] = await bucket.getFiles({ prefix, autoPaginate: true });
   
   const fileMap = new Map();
   
-  // Fetch metadata for all files in parallel batches
-  const batchSize = 100;
-  for (let i = 0; i < files.length; i += batchSize) {
-    const batch = files.slice(i, i + batchSize);
-    const metadataPromises = batch.map(async (file) => {
-      try {
-        const [metadata] = await file.getMetadata();
-        return {
-          file,
-          metadata
-        };
-      } catch (e) {
-        // Fallback to file.metadata if getMetadata fails
-        return {
-          file,
-          metadata: file.metadata || {}
-        };
+  if (fetchChecksums) {
+    // Fetch full metadata including checksums (slower but more accurate)
+    const batchSize = 100;
+    for (let i = 0; i < files.length; i += batchSize) {
+      const batch = files.slice(i, i + batchSize);
+      const metadataPromises = batch.map(async (file) => {
+        try {
+          const [metadata] = await file.getMetadata();
+          return {
+            file,
+            metadata
+          };
+        } catch (e) {
+          // Fallback to file.metadata if getMetadata fails
+          return {
+            file,
+            metadata: file.metadata || {}
+          };
+        }
+      });
+      
+      const results = await Promise.all(metadataPromises);
+      
+      for (const { file, metadata } of results) {
+        const name = file.name;
+        const updated = metadata.updated || metadata.timeCreated || new Date().toISOString();
+        const size = Number(metadata.size || file.size || 0);
+        const md5Hash = metadata.md5Hash || metadata.md5 || null;
+        const crc32c = metadata.crc32c || null;
+        
+        fileMap.set(name, {
+          name,
+          updated: new Date(updated),
+          size,
+          md5Hash,
+          crc32c,
+          bucket: bucketName
+        });
       }
-    });
-    
-    const results = await Promise.all(metadataPromises);
-    
-    for (const { file, metadata } of results) {
+    }
+  } else {
+    // Fast path: just use basic metadata (size and date)
+    for (const file of files) {
       const name = file.name;
+      const metadata = file.metadata || {};
       const updated = metadata.updated || metadata.timeCreated || new Date().toISOString();
       const size = Number(metadata.size || file.size || 0);
-      const md5Hash = metadata.md5Hash || metadata.md5 || null;
-      const crc32c = metadata.crc32c || null;
       
       fileMap.set(name, {
         name,
         updated: new Date(updated),
         size,
-        md5Hash,
-        crc32c,
+        md5Hash: null,
+        crc32c: null,
         bucket: bucketName
       });
     }
@@ -96,8 +115,13 @@ async function listAllFiles(storage, bucketName, prefix = '') {
   return fileMap;
 }
 
-function filesAreIdentical(devFile, prodFile) {
-  // Compare MD5 hash first (most reliable)
+function filesAreIdentical(devFile, prodFile, useChecksum = false) {
+  // Default: simple size comparison
+  if (!useChecksum) {
+    return devFile.size === prodFile.size && devFile.size > 0;
+  }
+  
+  // Optional: Compare MD5 hash (more reliable but slower)
   if (devFile.md5Hash && prodFile.md5Hash) {
     return devFile.md5Hash === prodFile.md5Hash;
   }
@@ -107,21 +131,11 @@ function filesAreIdentical(devFile, prodFile) {
     return devFile.crc32c === prodFile.crc32c;
   }
   
-  // Fallback to size comparison (less reliable but better than nothing)
-  // Only consider identical if size matches AND timestamps are very close (within 1 second)
-  // This handles cases where files are identical but uploaded at slightly different times
-  if (devFile.size === prodFile.size && devFile.size > 0) {
-    const timeDiff = Math.abs(devFile.updated.getTime() - prodFile.updated.getTime());
-    // If sizes match and timestamps are within 1 second, likely identical
-    if (timeDiff < 1000) {
-      return true;
-    }
-  }
-  
-  return false;
+  // Final fallback: size comparison
+  return devFile.size === prodFile.size && devFile.size > 0;
 }
 
-function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = '') {
+function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = '', useChecksum = false) {
   const onlyInDev = [];
   const newerInDev = [];
   let identicalCount = 0;
@@ -141,7 +155,7 @@ function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = 
       onlyInDev.push(devFile);
     } else {
       // File exists in both - check if identical
-      if (filesAreIdentical(devFile, prodFile)) {
+      if (filesAreIdentical(devFile, prodFile, useChecksum)) {
         identicalCount++;
         continue; // Skip identical files
       }
@@ -177,6 +191,7 @@ export default async function handler(req, res) {
   const prefix = (req.query.prefix || '').toString();
   const exclude = (req.query.exclude || '').toString();
   const excludePatterns = exclude ? exclude.split(',').map(p => p.trim()).filter(p => p) : [];
+  const useChecksum = req.query.checksum === 'true' || req.query.checksum === '1';
 
   try {
     const storage = getStorageClient();
@@ -188,12 +203,13 @@ export default async function handler(req, res) {
       });
     }
 
+    // Only fetch checksums if requested (saves time and API calls)
     const [devFiles, prodFiles] = await Promise.all([
-      listAllFiles(storage, DEV_BUCKET, prefix),
-      listAllFiles(storage, PROD_BUCKET, prefix)
+      listAllFiles(storage, DEV_BUCKET, prefix, useChecksum),
+      listAllFiles(storage, PROD_BUCKET, prefix, useChecksum)
     ]);
 
-    const results = compareFiles(devFiles, prodFiles, excludePatterns, prefix);
+    const results = compareFiles(devFiles, prodFiles, excludePatterns, prefix, useChecksum);
 
     return res.status(200).json({
       success: true,

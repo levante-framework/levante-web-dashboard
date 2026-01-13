@@ -407,6 +407,13 @@
         <input type="text" id="excludeFilter" placeholder="pt-PT, downex (comma-separated)" />
       </div>
       
+      <div class="control-group">
+        <label for="useChecksum" style="flex-direction: row; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="useChecksum" style="width: auto; margin: 0;" />
+          <span>Use checksum comparison (slower, more accurate)</span>
+        </label>
+      </div>
+      
       <div class="control-group" style="justify-content: flex-end;">
         <button id="refreshBtn" onclick="loadAudit()">
           <i class="fas fa-sync-alt"></i> Refresh Audit
@@ -483,6 +490,7 @@
     async function loadAudit() {
       const prefix = document.getElementById('prefixFilter').value.trim();
       const exclude = document.getElementById('excludeFilter').value.trim();
+      const useChecksum = document.getElementById('useChecksum').checked;
       
       // Show loading
       document.getElementById('loadingMessage').style.display = 'block';
@@ -495,6 +503,7 @@
         const params = new URLSearchParams();
         if (prefix) params.append('prefix', prefix);
         if (exclude) params.append('exclude', exclude);
+        if (useChecksum) params.append('checksum', 'true');
         
         const response = await fetch(`/api/asset-audit?${params.toString()}`, { cache: 'no-cache' });
         
@@ -588,6 +597,8 @@
     
     // Render folder tree
     function renderTree(node, level = 0, textFilter = '', type = 'only') {
+      if (!node || typeof node !== 'object') return '';
+      
       const entries = Object.values(node).sort((a, b) => {
         // Folders first, then files
         if (a.isFile !== b.isFile) return a.isFile ? 1 : -1;
@@ -650,12 +661,13 @@
     }
     
     function countFiles(node) {
+      if (!node || typeof node !== 'object') return 0;
       let count = 0;
       Object.values(node).forEach(entry => {
         if (entry.isFile) {
           count++;
         } else {
-          count += countFiles(entry.children) + entry.files.length;
+          count += countFiles(entry.children) + (entry.files ? entry.files.length : 0);
         }
       });
       return count;
