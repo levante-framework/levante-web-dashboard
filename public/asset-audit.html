@@ -582,6 +582,9 @@
           
           if (isFile) {
             current[part].fileData = file;
+            if (!current[part].files) {
+              current[part].files = [];
+            }
             current[part].files.push(file);
           } else {
             if (!current[part].children) {
@@ -640,7 +643,7 @@
           }
         } else {
           // Render folder
-          const childCount = countFiles(entry);
+          const childCount = countFilesInFolder(entry);
           const childrenHtml = renderTree(entry.children, level + 1, textFilter, type);
           
           return `
@@ -670,6 +673,23 @@
           count += countFiles(entry.children) + (entry.files ? entry.files.length : 0);
         }
       });
+      return count;
+    }
+    
+    function countFilesInFolder(folderEntry) {
+      if (!folderEntry || folderEntry.isFile) return 0;
+      let count = 0;
+      
+      // Count files directly in this folder
+      if (folderEntry.files && Array.isArray(folderEntry.files)) {
+        count += folderEntry.files.length;
+      }
+      
+      // Count files in subfolders recursively
+      if (folderEntry.children && typeof folderEntry.children === 'object') {
+        count += countFiles(folderEntry.children);
+      }
+      
       return count;
     }
     
