@@ -9,3 +9,17 @@ data/geofabrik/
 venv/
 __pycache__/
 *.pyc
+
+# Exclude large ADM packs (available via GCS)
+public/adm-packs/us/adm6/
+public/adm-packs/us/adm7/
+public/adm-packs/us/adm8/
+public/adm-packs/us/adm9/
+public/adm-packs/us/adm10/
+public/adm-packs/us/adm4-geofabrik.json.gz
+public/adm-packs/us/adm5-geofabrik.json.gz
+public/adm-packs/us/adm6-geofabrik.json.gz
+public/adm-packs/us/adm7-geofabrik.json.gz
+public/adm-packs/us/adm8-geofabrik.json.gz
+public/adm-packs/us/adm9-geofabrik.json.gz
+public/adm-packs/us/adm10-geofabrik.json.gz

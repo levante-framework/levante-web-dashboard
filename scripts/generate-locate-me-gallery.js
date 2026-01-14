@@ -538,6 +538,54 @@ async function loadUsAdm3Pack(stateAbbr) {
   return data;
 }
 
+async function loadUsAdmPackFromGCS(level, stateAbbr) {
+  const storage = initializeGCS();
+  if (!storage) return null;
+  
+  const st = (stateAbbr || '').toString().trim().toLowerCase();
+  if (!st) return null;
+  
+  const bucket = storage.bucket(BOUNDARY_PACKS_BUCKET);
+  const remotePath = `${BOUNDARY_PACKS_PREFIX}/us/adm${level}/${st}.json.gz`;
+  
+  try {
+    const [exists] = await bucket.file(remotePath).exists();
+    if (!exists) return null;
+    
+    const [file] = await bucket.file(remotePath).download();
+    const raw = zlib.gunzipSync(file).toString();
+    return JSON.parse(raw);
+  } catch (error) {
+    // Silently fail - will fall back to local files
+    return null;
+  }
+}
+
+async function loadUsAdmPack(level, stateAbbr) {
+  const st = (stateAbbr || '').toString().trim().toLowerCase();
+  if (!st) return null;
+  const key = `us|adm${level}|${st}`;
+  if (admPackCache.has(key)) return admPackCache.get(key);
+  
+  // Try GCS first
+  const gcsData = await loadUsAdmPackFromGCS(level, st);
+  if (gcsData) {
+    admPackCache.set(key, gcsData);
+    return gcsData;
+  }
+  
+  // Fall back to local file
+  const filePath = path.join(ADM_PACK_DIR, 'us', `adm${level}`, `${st}.json.gz`);
+  if (!fs.existsSync(filePath)) {
+    admPackCache.set(key, null);
+    return null;
+  }
+  const raw = zlib.gunzipSync(fs.readFileSync(filePath)).toString();
+  const data = JSON.parse(raw);
+  admPackCache.set(key, data);
+  return data;
+}
+
 function lookupAdmPolygon(countryCode, level, lat, lon) {
   const pack = loadAdmPack(countryCode, level);
   if (!pack || !pack.features) return null;
@@ -757,11 +805,27 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
   
   // Try ADM6/7/8/9/10 (admin divisions: towns, neighborhoods, wards, electoral districts)
   // ADM9/10 are very granular (electoral districts, small neighborhoods)
+  // For US, use state-specific packs (like ADM3)
   for (const lvl of ['adm6', 'adm7', 'adm8', 'adm9', 'adm10']) {
-    const pack = await loadAdmPack(countryIso2Lower, lvl);
-    if (pack && pack.features && pack.features.length > 0) {
-      console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
+    let pack = null;
+    
+    if (countryIso2Lower === 'us' && hintAdmin1) {
+      // For US, try state-specific packs first
+      const levelNum = lvl === 'adm6' ? 6 : (lvl === 'adm7' ? 7 : (lvl === 'adm8' ? 8 : (lvl === 'adm9' ? 9 : 10)));
+      pack = await loadUsAdmPack(levelNum, hintAdmin1);
+      if (pack && pack.features && pack.features.length > 0) {
+        console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features for ${hintAdmin1.toUpperCase()} from state pack`);
+      }
     }
+    
+    // Fall back to country-wide pack if state-specific not available
+    if (!pack || !pack.features || pack.features.length === 0) {
+      pack = await loadAdmPack(countryIso2Lower, lvl);
+      if (pack && pack.features && pack.features.length > 0) {
+        console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
+      }
+    }
+    
     const f = bestContaining(pack);
     if (f) {
       const area = polygonArea(f.geometry);
@@ -936,12 +1000,34 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
   const blue = adm2 || null;                // Regional (ADM2)
   const red = localFeature || adm2 || null; // Local, fallback to ADM2 so red is always present when ADM2 exists
 
+  // Determine level name for local boundary
+  let localLevelName = null;
+  if (localFeature && localLevel) {
+    if (typeof localLevel === 'number') {
+      localLevelName = `adm${localLevel}`;
+    } else {
+      localLevelName = String(localLevel);
+    }
+  }
+  
   return {
-    local: red  // Local = ADM3/4 (red)
-      ? { polygon: red, adminLevel: localFeature ? localLevel : 2, name: red?.properties?.name || 'Unknown' }
+    local: red  // Local = ADM3/4/6/7/8/9/10 (red)
+      ? { 
+          polygon: red, 
+          adminLevel: localFeature ? localLevel : 2, 
+          level: localFeature ? localLevel : 2,
+          levelName: localLevelName || 'adm3',
+          name: red?.properties?.name || 'Unknown' 
+        }
       : null,
     regional: blue  // Regional = ADM2 (blue)
-      ? { polygon: blue, adminLevel: 2, name: blue?.properties?.name || 'Unknown' }
+      ? { 
+          polygon: blue, 
+          adminLevel: 2, 
+          level: 2,
+          levelName: 'adm2',
+          name: blue?.properties?.name || 'Unknown' 
+        }
       : null
   };
 }

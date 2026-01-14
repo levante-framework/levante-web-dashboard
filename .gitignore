@@ -39,3 +39,10 @@ data/geofabrik/**/*.tmp
 
 # Geofabrik boundary packs (stored in GCS bucket, not in repo)
 public/adm-packs/**/*geofabrik*.json.gz
+
+# US ADM6-10 state-specific packs (stored in GCS bucket, not in repo)
+public/adm-packs/us/adm6/
+public/adm-packs/us/adm7/
+public/adm-packs/us/adm8/
+public/adm-packs/us/adm9/
+public/adm-packs/us/adm10/
