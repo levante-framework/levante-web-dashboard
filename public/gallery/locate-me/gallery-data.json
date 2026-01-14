@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-14T06:33:58.169Z",
+  "generated": "2026-01-14T19:21:18.530Z",
   "baseUrl": "https://levante-pitwall.vercel.app",
   "total": 46,
   "results": [
@@ -703,7 +703,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 1,
+          "lookupMs": 2,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -1543,7 +1543,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 1,
+        "lookupMs": 2,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"
@@ -38993,7 +38993,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 0,
+          "lookupMs": 1,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -40249,7 +40249,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 0,
+        "lookupMs": 1,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"
