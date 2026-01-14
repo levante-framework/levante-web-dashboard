@@ -80,6 +80,10 @@ async function listAllFiles(storage, bucketName, prefix = '', fetchChecksums = f
         const name = file.name;
         const updated = metadata.updated || metadata.timeCreated || new Date().toISOString();
         const size = Number(metadata.size || file.size || 0);
+        
+        // Skip 0-byte files
+        if (size === 0) continue;
+        
         const md5Hash = metadata.md5Hash || metadata.md5 || null;
         const crc32c = metadata.crc32c || null;
         
@@ -100,6 +104,9 @@ async function listAllFiles(storage, bucketName, prefix = '', fetchChecksums = f
       const metadata = file.metadata || {};
       const updated = metadata.updated || metadata.timeCreated || new Date().toISOString();
       const size = Number(metadata.size || file.size || 0);
+      
+      // Skip 0-byte files
+      if (size === 0) continue;
       
       fileMap.set(name, {
         name,
@@ -143,6 +150,9 @@ function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = 
   
   // Check files in dev
   for (const [name, devFile] of devFiles) {
+    // Skip 0-byte files
+    if (devFile.size === 0) continue;
+    
     // Apply prefix filter
     if (prefixFilter && !name.startsWith(prefixFilter)) continue;
     
@@ -200,6 +210,9 @@ function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = 
   // Also check for files only in prod
   const onlyInProd = [];
   for (const [name, prodFile] of prodFiles) {
+    // Skip 0-byte files
+    if (prodFile.size === 0) continue;
+    
     // Apply prefix filter
     if (prefixFilter && !name.startsWith(prefixFilter)) continue;
     

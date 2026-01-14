@@ -715,6 +715,10 @@
         } else {
           // Render folder
           const childCount = countFilesInFolder(entry);
+          
+          // Skip empty folders
+          if (childCount === 0) return '';
+          
           const childrenHtml = renderTree(entry.children, level + 1, textFilter, type);
           
           return `
