@@ -9,6 +9,12 @@ Web dashboard application for managing Levante audio content, translations, and 
 - **Pitwall** – Real-time monitoring and analytics
   - **Audio Validation (ASR)** – Quantitative metrics per language (pass rates, needs review counts)
   - **Audio Validation by Language** – Detailed breakdown table showing validation status by language
+  - **Asset Audit** – Compare files between `levante-assets-dev` and `levante-assets-prod` GCS buckets
+    - Interactive folder tree view with expand/collapse
+    - Three-column comparison: Files Only in Dev, Files Newer in Dev, Files Newer in Prod
+    - Checksum comparison option (MD5/CRC32C) - ignores file dates when enabled
+    - Text filtering and exclude patterns
+    - Automatically filters out 0-byte files and empty folders
 - **Locate Me** – GPS-based city discovery with interactive map visualization
 
 ## Locate Me Feature
@@ -60,12 +66,13 @@ The Locate Me Gallery (`public/gallery/locate-me/`) displays administrative boun
    - Uses a compact GeoNames-derived dataset (`data/geocoder/cities.min.json.gz`) loaded in the browser.
 
 2. **On-device admin boundary lookup**
-   - Uses offline gzipped packs in `public/adm-packs/**`:
-     - **GADM packs** (`adm2.json.gz`, `adm3.json.gz`) - Reliable, well-defined hierarchy
-     - **Geofabrik packs** (`adm6-geofabrik.json.gz` through `adm10-geofabrik.json.gz`) - Very granular OSM boundaries
+   - Uses boundary packs loaded from GCS (`levante-assets-draft/maps/boundaries/`) via `/api/adm-pack`:
+     - **GADM packs** (`adm2.json.gz`, `adm3.json.gz`) - Reliable, well-defined hierarchy (also available locally)
+     - **Geofabrik packs** (`adm6-geofabrik.json.gz` through `adm10-geofabrik.json.gz`) - Very granular OSM boundaries (stored in GCS)
      - **City boundaries** (`city-boundaries-osm.json.gz`) - Actual city/town boundaries from OSM
-     - **US Census tracts** (`public/adm-packs/us/adm3-place/**`) - Very granular for US cities
+     - **US Census tracts** (`us/adm3-place/**` and `us/adm6-10/**`) - Very granular for US cities (stored in GCS)
    - Selection logic: Always picks the **smallest** (most granular) boundary available
+   - Note: Geofabrik packs are stored in GCS to avoid large files in git (2.36 GB saved)
 
 3. **Weather (privacy-preserving)**
    - Uses Open‑Meteo with a coarse query point (e.g., ADM2 bbox center) and caching.
@@ -85,6 +92,8 @@ Full documentation is available at `/docs/locate-me-doc.html` or via the Documen
   - `reverse-geocode.js` – Reverse geocoding API
   - `gadm-polygon.js` – Administrative boundary polygon API
   - `visual-audit.js` – Visual assets audit
+  - `asset-audit.js` – Asset comparison API (compares files between dev and prod GCS buckets)
+  - `adm-pack.js` – Loads administrative boundary packs from GCS
   - `crowdin-*.js` – Crowdin integration APIs
   - `audio-validation-summary.js` – Stores/loads aggregated audio validation summaries (GCS-backed)
   - `list-validation-files.js` – Lists available validation result files (GCS-backed)
@@ -182,6 +191,40 @@ Retrieves administrative boundary polygons.
 curl "https://levante-audio-dashboard.vercel.app/api/gadm-polygon?country=USA&lat=37.424&lon=-122.166"
 ```
 
+### `/api/asset-audit`
+Compares files between `levante-assets-dev` and `levante-assets-prod` GCS buckets.
+
+**Parameters:**
+- `prefix` (optional) – Folder prefix filter (e.g., `audio/`, `visual/`)
+- `exclude` (optional) – Comma-separated exclude patterns (e.g., `pt-PT,downex`)
+- `checksum` (optional) – Use checksum comparison (`true`/`1` to enable)
+
+**Response:**
+- `onlyInDev` – Files that only exist in dev bucket
+- `newerInDev` – Files newer in dev than prod (date comparison)
+- `newerInProd` – Files newer in prod than dev (date comparison)
+- `onlyInProd` – Files that only exist in prod bucket
+- `summary` – Counts for each category and identical files
+
+**Note:** When `checksum=true`, file dates are ignored and only checksums (MD5/CRC32C) are used to determine if files are identical. 0-byte files and empty folders are automatically excluded.
+
+**Example:**
+```bash
+curl "https://levante-pitwall.vercel.app/api/asset-audit?prefix=audio/&exclude=pt-PT&checksum=false"
+```
+
+### `/api/adm-pack`
+Loads administrative boundary packs from GCS bucket (`levante-assets-draft/maps/boundaries/`).
+
+**Parameters:**
+- `country` (required) – Country code (e.g., `ca`, `us`, `nl`)
+- `file` (required) – Pack filename (e.g., `adm6-geofabrik.json.gz`, `adm3/ca.json.gz`)
+
+**Example:**
+```bash
+curl "https://levante-pitwall.vercel.app/api/adm-pack?country=ca&file=adm6-geofabrik.json.gz"
+```
+
 ## Audio Validation
 
 The Pitwall dashboard includes comprehensive audio validation reporting:
@@ -212,6 +255,22 @@ The Pitwall dashboard includes comprehensive audio validation reporting:
 See `README_VALIDATION.md` for detailed validation system documentation.
 
 ## Recent Improvements
+
+### Asset Audit (January 2025)
+- **New Feature**: Interactive asset comparison tool comparing files between `levante-assets-dev` and `levante-assets-prod` GCS buckets
+- Three-column view: Files Only in Dev, Files Newer in Dev, Files Newer in Prod
+- Checksum comparison option (MD5/CRC32C) - when enabled, ignores file dates and only uses checksums
+- Folder tree view with expand/collapse functionality
+- Text filtering and exclude patterns support
+- Automatically filters out 0-byte files and empty folders
+- Accessible via Pitwall → "Audit Asset Files" button
+
+### Boundary Pack Storage (January 2025)
+- Moved geofabrik boundary packs (ADM6-10) to GCS bucket (`levante-assets-draft/maps/boundaries/`)
+- Removed large geofabrik files from git tracking (2.36 GB freed)
+- Added `/api/adm-pack` endpoint to load boundary packs from GCS
+- Updated frontend to load geofabrik files from GCS instead of local filesystem
+- US ADM6-10 state-specific packs also stored in GCS
 
 ### Audio Validation
 - Added Pitwall component with quantitative metrics (pass rates, needs review counts per language)
