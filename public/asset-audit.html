@@ -146,9 +146,15 @@
     
     .results {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 20px;
       margin-bottom: 20px;
+    }
+    
+    @media (max-width: 1200px) {
+      .results {
+        grid-template-columns: 1fr 1fr;
+      }
     }
     
     @media (max-width: 1024px) {
@@ -181,6 +187,14 @@
       color: #f59e0b;
     }
     
+    .result-section.newer-in-prod h2 {
+      color: #3b82f6;
+    }
+    
+    .result-section.only-in-prod h2 {
+      color: #8b5cf6;
+    }
+    
     .file-list {
       max-height: 600px;
       overflow-y: auto;
@@ -207,6 +221,14 @@
     
     .file-item.newer-in-dev {
       border-left-color: #f59e0b;
+    }
+    
+    .file-item.newer-in-prod {
+      border-left-color: #3b82f6;
+    }
+    
+    .file-item.only-in-prod {
+      border-left-color: #8b5cf6;
     }
     
     .file-name {
@@ -249,6 +271,16 @@
     .badge.newer {
       background: rgba(245, 158, 11, 0.2);
       color: #fcd34d;
+    }
+    
+    .badge.newer-prod {
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+    
+    .badge.only-prod {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
     }
     
     .loading {
@@ -439,6 +471,14 @@
         <div class="stat-label">Newer in Dev</div>
       </div>
       <div class="stat-card">
+        <div class="stat-value" id="newerInProdCount">0</div>
+        <div class="stat-label">Newer in Prod</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="onlyInProdCount">0</div>
+        <div class="stat-label">Only in Prod</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-value" id="identicalCount">0</div>
         <div class="stat-label">Identical (excluded)</div>
       </div>
@@ -460,6 +500,11 @@
       <div class="result-section newer-in-dev">
         <h2><i class="fas fa-clock"></i> Files Newer in Dev</h2>
         <div id="newerInDevList" class="file-list"></div>
+      </div>
+      
+      <div class="result-section newer-in-prod">
+        <h2><i class="fas fa-clock"></i> Files Newer in Prod</h2>
+        <div id="newerInProdList" class="file-list"></div>
       </div>
     </div>
   </div>
@@ -520,6 +565,8 @@
         document.getElementById('prodFileCount').textContent = data.prodFileCount.toLocaleString();
         document.getElementById('onlyInDevCount').textContent = data.summary.onlyInDevCount.toLocaleString();
         document.getElementById('newerInDevCount').textContent = data.summary.newerInDevCount.toLocaleString();
+        document.getElementById('newerInProdCount').textContent = (data.summary.newerInProdCount || 0).toLocaleString();
+        document.getElementById('onlyInProdCount').textContent = (data.summary.onlyInProdCount || 0).toLocaleString();
         document.getElementById('identicalCount').textContent = (data.summary.identicalCount || 0).toLocaleString();
         
         document.getElementById('statusSection').style.display = 'grid';
@@ -627,7 +674,7 @@
                 </div>
               </div>
             `;
-          } else {
+          } else if (type === 'newer-dev') {
             return `
               <div class="file-item newer-in-dev">
                 <div class="file-name">${highlightText(file.name, textFilter)}</div>
@@ -636,7 +683,31 @@
                   <span><i class="fas fa-calendar-times"></i> Prod: ${formatDate(file.prodUpdated)}</span>
                   <span><i class="fas fa-clock"></i> ${file.ageDiffDays} days newer</span>
                   <span><i class="fas fa-file"></i> ${formatBytes(file.devSize)}</span>
-                  <span class="badge newer">Newer</span>
+                  <span class="badge newer">Newer in Dev</span>
+                </div>
+              </div>
+            `;
+          } else if (type === 'newer-prod') {
+            return `
+              <div class="file-item newer-in-prod">
+                <div class="file-name">${highlightText(file.name, textFilter)}</div>
+                <div class="file-meta">
+                  <span><i class="fas fa-calendar-check"></i> Dev: ${formatDate(file.devUpdated)}</span>
+                  <span><i class="fas fa-calendar-times"></i> Prod: ${formatDate(file.prodUpdated)}</span>
+                  <span><i class="fas fa-clock"></i> ${file.ageDiffDays} days newer</span>
+                  <span><i class="fas fa-file"></i> ${formatBytes(file.prodSize)}</span>
+                  <span class="badge newer-prod">Newer in Prod</span>
+                </div>
+              </div>
+            `;
+          } else if (type === 'only-prod') {
+            return `
+              <div class="file-item only-in-prod">
+                <div class="file-name">${highlightText(file.name, textFilter)}</div>
+                <div class="file-meta">
+                  <span><i class="fas fa-calendar"></i> ${formatDate(file.updated)}</span>
+                  <span><i class="fas fa-file"></i> ${formatBytes(file.size)}</span>
+                  <span class="badge only-prod">Only in Prod</span>
                 </div>
               </div>
             `;
@@ -711,16 +782,25 @@
       
       // Filter files
       const onlyInDev = textFilter 
-        ? data.onlyInDev.filter(f => f.name.toLowerCase().includes(textFilter))
-        : data.onlyInDev;
+        ? (data.onlyInDev || []).filter(f => f.name.toLowerCase().includes(textFilter))
+        : (data.onlyInDev || []);
       
       const newerInDev = textFilter
-        ? data.newerInDev.filter(f => f.name.toLowerCase().includes(textFilter))
-        : data.newerInDev;
+        ? (data.newerInDev || []).filter(f => f.name.toLowerCase().includes(textFilter))
+        : (data.newerInDev || []);
+      
+      const newerInProd = textFilter
+        ? ((data.newerInProd || [])).filter(f => f.name.toLowerCase().includes(textFilter))
+        : (data.newerInProd || []);
+      
+      const onlyInProd = textFilter
+        ? (data.onlyInProd || []).filter(f => f.name.toLowerCase().includes(textFilter))
+        : (data.onlyInProd || []);
       
       // Build trees
       const onlyInDevTree = buildTree(onlyInDev);
       const newerInDevTree = buildTree(newerInDev);
+      const newerInProdTree = buildTree(newerInProd);
       
       // Render trees
       const onlyInDevHtml = onlyInDev.length > 0
@@ -728,11 +808,16 @@
         : '<div class="empty">No files found</div>';
       
       const newerInDevHtml = newerInDev.length > 0
-        ? `<div class="folder-tree">${renderTree(newerInDevTree, 0, textFilter, 'newer')}</div>`
+        ? `<div class="folder-tree">${renderTree(newerInDevTree, 0, textFilter, 'newer-dev')}</div>`
         : '<div class="empty">No files found</div>';
+      
+      const newerInProdHtml = newerInProd.length > 0
+        ? `<div class="folder-tree">${renderTree(newerInProdTree, 0, textFilter, 'newer-prod')}</div>`
+        : '<div class="empty">No files newer in Prod</div>';
       
       document.getElementById('onlyInDevList').innerHTML = onlyInDevHtml;
       document.getElementById('newerInDevList').innerHTML = newerInDevHtml;
+      document.getElementById('newerInProdList').innerHTML = newerInProdHtml;
       
       // All folders start collapsed by default
       document.getElementById('resultsSection').style.display = 'grid';

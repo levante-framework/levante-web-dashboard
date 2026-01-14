@@ -138,6 +138,7 @@ function filesAreIdentical(devFile, prodFile, useChecksum = false) {
 function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = '', useChecksum = false) {
   const onlyInDev = [];
   const newerInDev = [];
+  const newerInProd = [];
   let identicalCount = 0;
   
   // Check files in dev
@@ -160,7 +161,14 @@ function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = 
         continue; // Skip identical files
       }
       
-      // Files differ - check if dev is newer
+      // Files differ - compare dates only if not using checksum
+      if (useChecksum) {
+        // When using checksum, ignore dates - files are different if checksums don't match
+        // We don't know which is "newer" based on checksum alone, so skip date comparison
+        continue;
+      }
+      
+      // Compare dates to determine which is newer
       if (devFile.updated > prodFile.updated) {
         newerInDev.push({
           name: devFile.name,
@@ -173,11 +181,38 @@ function compareFiles(devFiles, prodFiles, excludePatterns = [], prefixFilter = 
           ageDiffMs: devFile.updated.getTime() - prodFile.updated.getTime(),
           ageDiffDays: Math.round((devFile.updated.getTime() - prodFile.updated.getTime()) / (1000 * 60 * 60 * 24))
         });
+      } else if (prodFile.updated > devFile.updated) {
+        newerInProd.push({
+          name: prodFile.name,
+          devUpdated: devFile.updated,
+          prodUpdated: prodFile.updated,
+          devSize: devFile.size,
+          prodSize: prodFile.size,
+          devMd5: devFile.md5Hash,
+          prodMd5: prodFile.md5Hash,
+          ageDiffMs: prodFile.updated.getTime() - devFile.updated.getTime(),
+          ageDiffDays: Math.round((prodFile.updated.getTime() - devFile.updated.getTime()) / (1000 * 60 * 60 * 24))
+        });
       }
     }
   }
   
-  return { onlyInDev, newerInDev, identicalCount };
+  // Also check for files only in prod
+  const onlyInProd = [];
+  for (const [name, prodFile] of prodFiles) {
+    // Apply prefix filter
+    if (prefixFilter && !name.startsWith(prefixFilter)) continue;
+    
+    // Skip excluded patterns
+    if (shouldExclude(name, excludePatterns)) continue;
+    
+    if (!devFiles.has(name)) {
+      // File only exists in prod
+      onlyInProd.push(prodFile);
+    }
+  }
+  
+  return { onlyInDev, newerInDev, newerInProd, onlyInProd, identicalCount };
 }
 
 export default async function handler(req, res) {
@@ -232,11 +267,26 @@ export default async function handler(req, res) {
         prodSize: f.prodSize,
         ageDiffDays: f.ageDiffDays
       })),
+      newerInProd: results.newerInProd.map(f => ({
+        name: f.name,
+        devUpdated: f.devUpdated.toISOString(),
+        prodUpdated: f.prodUpdated.toISOString(),
+        devSize: f.devSize,
+        prodSize: f.prodSize,
+        ageDiffDays: f.ageDiffDays
+      })),
+      onlyInProd: results.onlyInProd.map(f => ({
+        name: f.name,
+        updated: f.updated.toISOString(),
+        size: f.size
+      })),
       summary: {
         onlyInDevCount: results.onlyInDev.length,
         newerInDevCount: results.newerInDev.length,
+        newerInProdCount: results.newerInProd.length,
+        onlyInProdCount: results.onlyInProd.length,
         identicalCount: results.identicalCount,
-        total: results.onlyInDev.length + results.newerInDev.length
+        total: results.onlyInDev.length + results.newerInDev.length + results.newerInProd.length + results.onlyInProd.length
       },
       timestamp: new Date().toISOString()
     });
