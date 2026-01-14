@@ -1,0 +1,1595 @@
+(node:1717953) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/david/levante/levante-web-dashboard/scripts/compare-bucket-files.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/david/levante/levante-web-dashboard/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[dotenv@17.2.3] injecting env (6) from .env.local -- tip: ⚙️  write to custom object with { processEnv: myObject }
+[dotenv@17.2.3] injecting env (1) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
+Error: GCS credentials env is not valid JSON: Bad control character in string literal in JSON at position 180
+Position: 180
+
+Tip: In .env files, JSON should be on a single line or use \n for newlines
+Alternatively, set GOOGLE_APPLICATION_CREDENTIALS to a file path
+Attempting to use default application credentials...
+🔍 Comparing buckets...
+   Dev:  levante-assets-dev
+   Prod: levante-assets-prod
+   Excluding: pt-PT
+📦 Listing files from levante-assets-dev...
+📦 Listing files from levante-assets-prod...
+   Found 10038 files
+   Found 10003 files
+
+📁 Files only in DEV (278):
+────────────────────────────────────────────────────────────────────────────────
+  LICENSE
+    Updated: 2025-10-08T23:09:10.896Z | Size: 1.2 KB
+  README.md
+    Updated: 2025-10-08T23:09:10.654Z | Size: 0.5 KB
+  audio/de/child-survey-intro-no-responses.mp3
+    Updated: 2025-12-27T18:38:17.343Z | Size: 58.6 KB
+  audio/de/child-survey-response1.mp3
+    Updated: 2025-10-16T20:04:30.566Z | Size: 6.1 KB
+  audio/de/child-survey-response2.mp3
+    Updated: 2025-10-16T20:04:30.580Z | Size: 7.9 KB
+  audio/de/child-survey-response3.mp3
+    Updated: 2025-10-16T20:04:30.548Z | Size: 6.6 KB
+  audio/de/child-survey-response4.mp3
+    Updated: 2025-10-16T20:04:30.928Z | Size: 6.3 KB
+  audio/de/vocab-item-171.mp3
+    Updated: 2025-10-02T01:52:58.687Z | Size: 6.1 KB
+  audio/en/child-survey-intro-no-responses.mp3
+    Updated: 2025-12-05T18:50:16.857Z | Size: 49.5 KB
+  audio/en/child-survey-response1.mp3
+    Updated: 2025-11-04T19:05:30.242Z | Size: 5.3 KB
+  audio/en/child-survey-response2.mp3
+    Updated: 2025-10-16T20:02:39.234Z | Size: 9.1 KB
+  audio/en/child-survey-response3.mp3
+    Updated: 2025-11-04T19:05:46.786Z | Size: 6.5 KB
+  audio/en/child-survey-response4.mp3
+    Updated: 2025-11-04T19:05:35.332Z | Size: 6.8 KB
+  audio/en/feedback-right-one.mp3
+    Updated: 2025-10-28T20:18:30.658Z | Size: 11.8 KB
+  audio/en/matrix-reasoning-feedback-incorrect-downex.mp3
+    Updated: 2025-10-27T18:26:31.590Z | Size: 11.5 KB
+  audio/en/matrix-reasoning-feedback-sm-blue-downex.mp3
+    Updated: 2025-10-27T18:26:31.590Z | Size: 23.0 KB
+  audio/en/matrix-reasoning-instruct1-part1-downex.mp3
+    Updated: 2025-10-27T18:26:31.567Z | Size: 6.4 KB
+  audio/en/matrix-reasoning-instruct1-part2-downex.mp3
+    Updated: 2025-10-27T18:26:31.933Z | Size: 7.3 KB
+  audio/en/matrix-reasoning-instruct1-part3-downex.mp3
+    Updated: 2025-10-27T18:26:31.969Z | Size: 23.5 KB
+  audio/en/matrix-reasoning-instruct1-part4-downex.mp3
+    Updated: 2025-10-27T18:26:31.954Z | Size: 9.8 KB
+  audio/en/matrix-reasoning-instruct2-part1-downex.mp3
+    Updated: 2025-10-27T18:26:32.277Z | Size: 8.0 KB
+  audio/en/matrix-reasoning-instruct2-part2-downex.mp3
+    Updated: 2025-10-27T18:26:32.314Z | Size: 23.7 KB
+  audio/en/matrix-reasoning-instruct2-part3-downex.mp3
+    Updated: 2025-10-31T21:14:21.243Z | Size: 25.1 KB
+  audio/en/matrix-reasoning-instruct2-part4-downex.mp3
+    Updated: 2025-10-27T18:26:32.338Z | Size: 16.5 KB
+  audio/en/matrix-reasoning-instruct2-part5-downex.mp3
+    Updated: 2025-10-27T18:26:32.663Z | Size: 24.4 KB
+  audio/en/matrix-reasoning-instruct3-downex.mp3
+    Updated: 2025-10-27T18:26:32.674Z | Size: 46.9 KB
+  audio/en/matrix-reasoning-instruct4-downex.mp3
+    Updated: 2025-12-04T03:36:41.369Z | Size: 22.0 KB
+  audio/en/matrix-reasoning-instruct5-part1-downex.mp3
+    Updated: 2025-12-04T03:36:41.968Z | Size: 8.9 KB
+  audio/en/matrix-reasoning-instruct5-part2-downex.mp3
+    Updated: 2025-12-04T03:36:40.756Z | Size: 11.1 KB
+  audio/en/matrix-reasoning-prompt1-part1-downex.mp3
+    Updated: 2025-10-27T18:26:33.019Z | Size: 7.8 KB
+  audio/en/matrix-reasoning-prompt1-part2-downex.mp3
+    Updated: 2025-10-27T18:26:33.052Z | Size: 7.1 KB
+  audio/en/memory-game-feedback-incorrect-downex.mp3
+    Updated: 2025-12-05T21:12:45.405Z | Size: 16.4 KB
+  audio/en/memory-game-instruct1-downex.mp3
+    Updated: 2025-12-05T18:50:16.877Z | Size: 7.1 KB
+  audio/en/memory-game-instruct10-downex.mp3
+    Updated: 2025-12-05T18:50:18.243Z | Size: 41.9 KB
+  audio/en/memory-game-instruct11-downex.mp3
+    Updated: 2025-11-21T16:05:04.192Z | Size: 10.0 KB
+  audio/en/memory-game-instruct2-downex.mp3
+    Updated: 2025-12-05T18:50:16.871Z | Size: 9.4 KB
+  audio/en/memory-game-instruct3-downex.mp3
+    Updated: 2025-12-05T18:50:17.343Z | Size: 9.1 KB
+  audio/en/memory-game-instruct4-downex.mp3
+    Updated: 2025-12-05T18:50:17.327Z | Size: 11.3 KB
+  audio/en/memory-game-instruct5-downex.mp3
+    Updated: 2025-12-05T18:50:17.354Z | Size: 12.2 KB
+  audio/en/memory-game-instruct6-downex.mp3
+    Updated: 2025-12-05T18:50:17.801Z | Size: 35.1 KB
+  audio/en/memory-game-instruct7-downex.mp3
+    Updated: 2025-12-05T18:50:17.771Z | Size: 6.0 KB
+  audio/en/memory-game-instruct8-downex.mp3
+    Updated: 2025-12-05T18:50:17.782Z | Size: 10.4 KB
+  audio/en/memory-game-instruct9-downex.mp3
+    Updated: 2025-12-05T18:50:18.219Z | Size: 12.9 KB
+  audio/en/mental-rotation-feedback-incorrect-downex.mp3
+    Updated: 2025-12-05T18:50:18.224Z | Size: 28.8 KB
+  audio/en/mental-rotation-instruct-3D-downex.mp3
+    Updated: 2025-11-19T15:13:47.956Z | Size: 24.4 KB
+  audio/en/mental-rotation-instruct-polygon-downex.mp3
+    Updated: 2025-11-19T15:13:47.986Z | Size: 20.9 KB
+  audio/en/mental-rotation-instruct1-part1-downex.mp3
+    Updated: 2025-11-21T16:05:09.846Z | Size: 7.3 KB
+  audio/en/mental-rotation-instruct1-part2-downex.mp3
+    Updated: 2025-11-21T16:05:09.834Z | Size: 7.5 KB
+  audio/en/mental-rotation-instruct2-downex.mp3
+    Updated: 2025-11-21T16:05:10.342Z | Size: 9.7 KB
+  audio/en/mental-rotation-instruct3-downex.mp3
+    Updated: 2025-11-21T16:05:10.520Z | Size: 8.3 KB
+  audio/en/mental-rotation-instruct4-downex.mp3
+    Updated: 2025-11-21T16:05:10.369Z | Size: 8.3 KB
+  audio/en/mental-rotation-instruct5-downex.mp3
+    Updated: 2025-11-21T16:05:10.863Z | Size: 34.8 KB
+  audio/en/mental-rotation-instruct6-downex.mp3
+    Updated: 2025-11-19T15:13:49.095Z | Size: 23.3 KB
+  audio/en/mental-rotation-prompt1-downex.mp3
+    Updated: 2025-11-19T17:52:18.240Z | Size: 8.5 KB
+  audio/en/mental-rotation-prompt2-downex.mp3
+    Updated: 2025-11-21T16:05:10.840Z | Size: 14.6 KB
+  audio/en/same-different-selection-highlight-1.mp3
+    Updated: 2025-12-05T18:50:18.662Z | Size: 6.6 KB
+  audio/en/same-different-selection-highlight-2.mp3
+    Updated: 2025-12-05T18:50:19.085Z | Size: 5.3 KB
+  audio/en/sds-prompt3-demo-heavy-part1.mp3
+    Updated: 2025-12-27T18:38:18.126Z | Size: 21.4 KB
+  audio/en/sds-prompt3-demo-heavy-part2.mp3
+    Updated: 2025-12-27T18:38:18.806Z | Size: 10.2 KB
+  audio/en/sdsFeedbackBothBlue.mp3
+    Updated: 2025-12-05T21:17:15.777Z | Size: 29.8 KB
+  audio/en/sdsFeedbackBothLarge.mp3
+    Updated: 2025-12-05T21:17:15.761Z | Size: 29.8 KB
+  audio/en/vocab-item-171.mp3
+    Updated: 2025-10-02T01:53:00.304Z | Size: 6.5 KB
+  audio/es-CO/child-survey-intro-no-responses.mp3
+    Updated: 2025-12-05T18:51:25.181Z | Size: 46.3 KB
+  audio/es-CO/child-survey-response1.mp3
+    Updated: 2025-10-16T21:48:48.010Z | Size: 4.9 KB
+  audio/es-CO/child-survey-response2.mp3
+    Updated: 2025-10-16T21:48:47.994Z | Size: 7.3 KB
+  audio/es-CO/child-survey-response3.mp3
+    Updated: 2025-10-16T21:48:47.983Z | Size: 7.3 KB
+  audio/es-CO/child-survey-response4.mp3
+    Updated: 2025-10-16T21:48:48.567Z | Size: 6.5 KB
+  corpus/adult-reasoning/
+    Updated: 2025-11-04T20:55:22.692Z | Size: 0.0 KB
+  corpus/adult-reasoning/adult-reasoning-item-bank.csv
+    Updated: 2025-11-04T20:55:52.883Z | Size: 6.4 KB
+  corpus/hostile-attribution/hostile-attribution-item-bank.csv
+    Updated: 2025-09-29T20:37:58.087Z | Size: 5.1 KB
+  corpus/matrix-reasoning/matrix-reasoning-downex-test.csv
+    Updated: 2025-12-04T03:50:11.445Z | Size: 25.6 KB
+  corpus/mental-rotation/mental-rotation-item-bank-downex-test.csv
+    Updated: 2025-12-01T16:27:27.153Z | Size: 22.4 KB
+  corpus/same-different-selection/same-different-selection-item-bank-spark-test.csv
+    Updated: 2026-01-09T19:34:08.174Z | Size: 35.4 KB
+  logs/locations.json
+    Updated: 2025-12-22T19:44:12.184Z | Size: 21.8 KB
+  maps/gadm/ARG/level2/gadm41_ARG_2.zip
+    Updated: 2025-11-26T23:44:12.573Z | Size: 3954.3 KB
+  maps/gadm/ARG/snippets/gadm_ARG_snippets.json
+    Updated: 2025-11-26T23:44:13.962Z | Size: 0.0 KB
+  maps/gadm/CAN/level3/gadm41_CAN_3.zip
+    Updated: 2025-11-26T23:44:26.818Z | Size: 54538.2 KB
+  maps/gadm/CAN/snippets/gadm_CAN_snippets.json
+    Updated: 2025-11-26T23:44:28.228Z | Size: 0.0 KB
+  maps/gadm/CHE/level3/gadm41_CHE_3.zip
+    Updated: 2025-11-26T23:44:30.535Z | Size: 4018.5 KB
+  maps/gadm/CHE/snippets/gadm_CHE_snippets.json
+    Updated: 2025-11-26T23:44:31.931Z | Size: 0.0 KB
+  maps/gadm/COL/level2/gadm41_COL_2.zip
+    Updated: 2025-11-26T23:44:39.954Z | Size: 30341.9 KB
+  maps/gadm/COL/snippets/gadm_COL_snippets.json
+    Updated: 2025-11-26T23:44:41.383Z | Size: 0.0 KB
+  maps/gadm/DEU/level4/gadm41_DEU_4.zip
+    Updated: 2025-11-26T23:44:47.149Z | Size: 20444.7 KB
+  maps/gadm/DEU/snippets/gadm_DEU_snippets.json
+    Updated: 2025-11-26T23:44:48.595Z | Size: 0.0 KB
+  maps/gadm/GBR/level4/gadm41_GBR_4.zip
+    Updated: 2025-11-26T23:45:18.379Z | Size: 138398.5 KB
+  maps/gadm/GBR/snippets/gadm_GBR_snippets.json
+    Updated: 2025-11-26T23:45:19.830Z | Size: 0.0 KB
+  maps/gadm/GHA/level2/gadm41_GHA_2.zip
+    Updated: 2025-11-26T23:45:22.887Z | Size: 7565.2 KB
+  maps/gadm/GHA/snippets/gadm_GHA_snippets.json
+    Updated: 2025-11-26T23:45:24.285Z | Size: 0.0 KB
+  maps/gadm/IND/level3/gadm41_IND_3.zip
+    Updated: 2025-11-26T23:45:27.553Z | Size: 9237.9 KB
+  maps/gadm/IND/snippets/gadm_IND_snippets.json
+    Updated: 2025-11-26T23:45:29.051Z | Size: 0.0 KB
+  maps/gadm/NLD/level2/gadm41_NLD_2.zip
+    Updated: 2025-11-26T23:45:30.505Z | Size: 528.7 KB
+  maps/gadm/NLD/snippets/gadm_NLD_snippets.json
+    Updated: 2025-11-26T23:45:31.847Z | Size: 0.0 KB
+  maps/gadm/USA/level2/gadm41_USA_2.zip
+    Updated: 2025-11-26T23:45:37.468Z | Size: 19829.7 KB
+  maps/gadm/USA/snippets/gadm_USA_snippets.json
+    Updated: 2025-11-26T23:45:38.873Z | Size: 0.0 KB
+  maps/gadm41_ARG_shp.zip
+    Updated: 2025-11-25T20:35:52.344Z | Size: 8378.9 KB
+  maps/gadm41_CAN_shp.zip
+    Updated: 2025-11-25T20:36:21.547Z | Size: 135241.1 KB
+  maps/gadm41_CHE_shp.zip
+    Updated: 2025-11-25T20:36:23.293Z | Size: 6373.4 KB
+  maps/gadm41_COL_shp.zip
+    Updated: 2025-11-25T20:36:31.066Z | Size: 36986.3 KB
+  maps/gadm41_DEU_shp.zip
+    Updated: 2025-11-25T20:36:41.858Z | Size: 49408.0 KB
+  maps/gadm41_GBR_shp.zip
+    Updated: 2025-11-25T20:37:42.981Z | Size: 278541.9 KB
+  maps/gadm41_GHA_shp.zip
+    Updated: 2025-11-25T20:37:45.569Z | Size: 10437.6 KB
+  maps/gadm41_IND_shp.zip
+    Updated: 2025-11-25T20:37:51.002Z | Size: 24122.5 KB
+  maps/gadm41_NLD_shp.zip
+    Updated: 2025-11-25T20:37:51.592Z | Size: 955.1 KB
+  maps/gadm41_USA_shp.zip
+    Updated: 2025-11-25T20:38:01.978Z | Size: 49423.3 KB
+  preflight/language-selection.json
+    Updated: 2025-12-06T21:09:34.719Z | Size: 0.1 KB
+  surveys/parent_survey_child.es-co.json
+    Updated: 2025-11-08T02:54:51.915Z | Size: 485.3 KB
+  surveys/parent_survey_family.es-co.json
+    Updated: 2025-11-08T02:54:52.761Z | Size: 485.3 KB
+  task-logos/
+    Updated: 2026-01-09T23:50:26.477Z | Size: 0.0 KB
+  task-logos/child-survey-logo.png
+    Updated: 2026-01-09T23:55:31.485Z | Size: 45.3 KB
+  task-logos/hearts-and-flowers-logo.png
+    Updated: 2026-01-09T23:55:30.290Z | Size: 46.4 KB
+  task-logos/intro-logo.png
+    Updated: 2026-01-09T23:55:30.195Z | Size: 214.5 KB
+  task-logos/math-logo.png
+    Updated: 2026-01-09T23:55:32.503Z | Size: 22.2 KB
+  task-logos/matrix-reasoning-logo.png
+    Updated: 2026-01-09T23:55:31.083Z | Size: 54.5 KB
+  task-logos/mefs-logo.png
+    Updated: 2026-01-09T23:55:29.298Z | Size: 186.5 KB
+  task-logos/memory-game-logo.png
+    Updated: 2026-01-09T23:55:29.186Z | Size: 20.6 KB
+  task-logos/mental-rotation-logo.png
+    Updated: 2026-01-09T23:55:32.584Z | Size: 30.6 KB
+  task-logos/phoneme-logo.png
+    Updated: 2026-01-09T23:55:32.232Z | Size: 57.4 KB
+  task-logos/same-different-selection-logo.png
+    Updated: 2026-01-09T23:55:30.396Z | Size: 65.1 KB
+  task-logos/sre-logo.png
+    Updated: 2026-01-09T23:55:32.605Z | Size: 147.1 KB
+  task-logos/survey-logo.jpg
+    Updated: 2026-01-09T23:55:28.717Z | Size: 116.2 KB
+  task-logos/swr-logo.png
+    Updated: 2026-01-09T23:55:29.497Z | Size: 163.6 KB
+  task-logos/theory-of-mind-logo.png
+    Updated: 2026-01-09T23:55:29.996Z | Size: 284.3 KB
+  task-logos/trog-logo.png
+    Updated: 2026-01-09T23:55:31.782Z | Size: 214.2 KB
+  task-logos/vocab-logo.png
+    Updated: 2026-01-09T23:55:32.085Z | Size: 370.2 KB
+  visual/adult-reasoning/
+    Updated: 2025-11-06T18:24:23.183Z | Size: 0.0 KB
+  visual/dashboard/add_users_example.webp
+    Updated: 2026-01-13T21:38:28.842Z | Size: 10.5 KB
+  visual/dashboard/add_users_example_with_permissions.webp
+    Updated: 2026-01-13T21:38:28.959Z | Size: 36.2 KB
+  visual/dashboard/edit_users_example.webp
+    Updated: 2026-01-13T21:38:28.933Z | Size: 31.0 KB
+  visual/dashboard/link_users_example.webp
+    Updated: 2026-01-13T21:38:29.142Z | Size: 14.6 KB
+  visual/dashboard/link_users_example_with_permissions.webp
+    Updated: 2026-01-13T21:38:29.260Z | Size: 53.8 KB
+  visual/hostile-attribution/hostile-attribution-1a.webp
+    Updated: 2025-09-29T19:20:33.923Z | Size: 105.9 KB
+  visual/hostile-attribution/hostile-attribution-1b.webp
+    Updated: 2025-09-29T19:20:32.281Z | Size: 100.3 KB
+  visual/hostile-attribution/hostile-attribution-2a.webp
+    Updated: 2025-09-29T19:20:34.473Z | Size: 258.4 KB
+  visual/hostile-attribution/hostile-attribution-2b.webp
+    Updated: 2025-09-29T19:20:34.090Z | Size: 374.4 KB
+  visual/hostile-attribution/hostile-attribution-3a.webp
+    Updated: 2025-09-29T19:20:35.089Z | Size: 159.0 KB
+  visual/hostile-attribution/hostile-attribution-3b.webp
+    Updated: 2025-09-29T19:20:32.279Z | Size: 110.3 KB
+  visual/hostile-attribution/hostile-attribution-3c.webp
+    Updated: 2025-09-29T19:20:32.805Z | Size: 124.3 KB
+  visual/hostile-attribution/hostile-attribution-scene1-by-accident.webp
+    Updated: 2025-09-29T19:20:32.062Z | Size: 125.4 KB
+  visual/hostile-attribution/hostile-attribution-scene1-on-purpose.webp
+    Updated: 2025-09-29T19:20:32.708Z | Size: 98.4 KB
+  visual/hostile-attribution/hostile-attribution-scene1-q2-ans1.webp
+    Updated: 2025-09-29T19:20:33.751Z | Size: 87.9 KB
+  visual/hostile-attribution/hostile-attribution-scene1-q2-ans2.webp
+    Updated: 2025-09-29T19:20:32.260Z | Size: 128.1 KB
+  visual/hostile-attribution/hostile-attribution-scene1-q2-ans3.webp
+    Updated: 2025-09-29T19:20:33.895Z | Size: 84.4 KB
+  visual/hostile-attribution/hostile-attribution-scene2-by-accident.webp
+    Updated: 2025-09-29T19:20:33.127Z | Size: 259.4 KB
+  visual/hostile-attribution/hostile-attribution-scene2-on-purpose.webp
+    Updated: 2025-09-29T19:20:31.672Z | Size: 144.5 KB
+  visual/hostile-attribution/hostile-attribution-scene2-q2-ans1.webp
+    Updated: 2025-09-29T19:20:32.377Z | Size: 251.4 KB
+  visual/hostile-attribution/hostile-attribution-scene2-q2-ans2.webp
+    Updated: 2025-09-29T19:20:32.986Z | Size: 9.5 KB
+  visual/hostile-attribution/hostile-attribution-scene2-q2-ans3.webp
+    Updated: 2025-09-29T19:20:33.206Z | Size: 74.4 KB
+  visual/hostile-attribution/hostile-attribution-scene3-by-accident.webp
+    Updated: 2025-09-29T19:20:33.909Z | Size: 98.4 KB
+  visual/hostile-attribution/hostile-attribution-scene3-on-purpose.webp
+    Updated: 2025-09-29T19:20:35.283Z | Size: 77.4 KB
+  visual/hostile-attribution/hostile-attribution-scene3-q2-ans1.webp
+    Updated: 2025-09-29T19:20:36.191Z | Size: 9.5 KB
+  visual/hostile-attribution/hostile-attribution-scene3-q2-ans2.webp
+    Updated: 2025-09-29T19:20:33.709Z | Size: 189.3 KB
+  visual/hostile-attribution/hostile-attribution-scene3-q2-ans3.webp
+    Updated: 2025-09-29T19:20:33.974Z | Size: 4.6 KB
+  visual/matrix-reasoning/black-arrow-135.webp
+    Updated: 2025-10-27T18:27:55.797Z | Size: 0.4 KB
+  visual/matrix-reasoning/black-arrow-225.webp
+    Updated: 2025-10-27T18:27:55.774Z | Size: 0.5 KB
+  visual/matrix-reasoning/black-arrow-315.webp
+    Updated: 2025-10-27T18:27:56.144Z | Size: 0.5 KB
+  visual/matrix-reasoning/black-arrow-45.webp
+    Updated: 2025-10-27T18:27:55.800Z | Size: 0.5 KB
+  visual/matrix-reasoning/black-blue-diamond-90.webp
+    Updated: 2025-10-27T18:27:56.167Z | Size: 0.5 KB
+  visual/matrix-reasoning/black-circle.webp
+    Updated: 2025-10-27T18:27:56.175Z | Size: 0.5 KB
+  visual/matrix-reasoning/black-square.webp
+    Updated: 2025-10-27T18:27:56.521Z | Size: 0.2 KB
+  visual/matrix-reasoning/black-star.webp
+    Updated: 2025-10-27T18:27:56.547Z | Size: 0.6 KB
+  visual/matrix-reasoning/black-triangle-270.webp
+    Updated: 2025-10-27T18:27:56.905Z | Size: 0.4 KB
+  visual/matrix-reasoning/black-triangle-90.webp
+    Updated: 2025-10-27T18:27:56.544Z | Size: 0.4 KB
+  visual/matrix-reasoning/black-triangle.webp
+    Updated: 2025-10-27T18:27:56.886Z | Size: 0.4 KB
+  visual/matrix-reasoning/blue-arrow-45.webp
+    Updated: 2025-10-27T18:27:56.906Z | Size: 0.6 KB
+  visual/matrix-reasoning/blue-black-diamond-180.webp
+    Updated: 2025-10-27T18:27:57.270Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-black-diamond-270.webp
+    Updated: 2025-10-27T18:56:09.592Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-black-diamond-90.webp
+    Updated: 2025-10-27T18:27:57.273Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-black-diamond.webp
+    Updated: 2025-10-27T18:27:57.247Z | Size: 0.4 KB
+  visual/matrix-reasoning/blue-circle.webp
+    Updated: 2025-10-27T18:27:57.602Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-pointer-135.webp
+    Updated: 2025-10-27T18:27:57.945Z | Size: 0.4 KB
+  visual/matrix-reasoning/blue-pointer-225.webp
+    Updated: 2025-10-27T18:27:57.970Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-pointer-270.webp
+    Updated: 2025-10-27T18:27:57.991Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-pointer-315.webp
+    Updated: 2025-10-27T18:27:58.296Z | Size: 0.4 KB
+  visual/matrix-reasoning/blue-pointer-45.webp
+    Updated: 2025-10-27T18:27:57.624Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-pointer-90.webp
+    Updated: 2025-10-27T18:27:57.647Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-pointer45.webp
+    Updated: 2025-10-27T18:27:58.318Z | Size: 0.5 KB
+  visual/matrix-reasoning/blue-square.webp
+    Updated: 2025-10-27T18:27:58.336Z | Size: 0.2 KB
+  visual/matrix-reasoning/blue-star.webp
+    Updated: 2025-10-27T18:27:58.675Z | Size: 0.6 KB
+  visual/matrix-reasoning/blue-triangle.webp
+    Updated: 2025-10-27T18:27:58.686Z | Size: 0.4 KB
+  visual/matrix-reasoning/downex_item_1.webp
+    Updated: 2025-10-27T18:27:58.691Z | Size: 0.6 KB
+  visual/matrix-reasoning/downex_item_10.webp
+    Updated: 2025-10-27T18:27:59.745Z | Size: 0.9 KB
+  visual/matrix-reasoning/downex_item_11.webp
+    Updated: 2025-10-27T18:28:00.076Z | Size: 1.4 KB
+  visual/matrix-reasoning/downex_item_12.webp
+    Updated: 2025-10-27T18:28:00.099Z | Size: 1.5 KB
+  visual/matrix-reasoning/downex_item_13.webp
+    Updated: 2025-10-27T18:28:00.109Z | Size: 1.5 KB
+  visual/matrix-reasoning/downex_item_14.webp
+    Updated: 2025-10-27T18:28:00.424Z | Size: 1.2 KB
+  visual/matrix-reasoning/downex_item_15.webp
+    Updated: 2025-10-27T18:28:00.447Z | Size: 1.2 KB
+  visual/matrix-reasoning/downex_item_16.webp
+    Updated: 2025-10-27T18:28:00.463Z | Size: 1.3 KB
+  visual/matrix-reasoning/downex_item_17.webp
+    Updated: 2025-10-27T18:28:00.816Z | Size: 1.2 KB
+  visual/matrix-reasoning/downex_item_18.webp
+    Updated: 2025-10-27T18:28:00.818Z | Size: 1.0 KB
+  visual/matrix-reasoning/downex_item_2.webp
+    Updated: 2025-10-27T18:27:59.035Z | Size: 1.3 KB
+  visual/matrix-reasoning/downex_item_3.webp
+    Updated: 2025-10-27T18:27:59.012Z | Size: 1.5 KB
+  visual/matrix-reasoning/downex_item_4.webp
+    Updated: 2025-10-27T18:27:59.012Z | Size: 1.1 KB
+  visual/matrix-reasoning/downex_item_5.webp
+    Updated: 2025-10-27T18:27:59.370Z | Size: 1.6 KB
+  visual/matrix-reasoning/downex_item_6.webp
+    Updated: 2025-10-27T18:27:59.393Z | Size: 1.1 KB
+  visual/matrix-reasoning/downex_item_7.webp
+    Updated: 2025-10-27T18:27:59.404Z | Size: 1.5 KB
+  visual/matrix-reasoning/downex_item_7_gif1.gif
+    Updated: 2025-12-04T20:09:19.852Z | Size: 110.7 KB
+  visual/matrix-reasoning/downex_item_7_gif2.gif
+    Updated: 2025-12-04T20:09:20.927Z | Size: 113.2 KB
+  visual/matrix-reasoning/downex_item_8.webp
+    Updated: 2025-10-27T18:27:59.712Z | Size: 0.8 KB
+  visual/matrix-reasoning/downex_item_9.webp
+    Updated: 2025-10-27T18:27:59.750Z | Size: 1.1 KB
+  visual/matrix-reasoning/green-arrow-180.webp
+    Updated: 2025-10-27T18:28:01.164Z | Size: 0.3 KB
+  visual/matrix-reasoning/green-arrow-90.webp
+    Updated: 2025-10-27T18:28:00.793Z | Size: 0.3 KB
+  visual/matrix-reasoning/green-circle.webp
+    Updated: 2025-10-27T18:28:01.143Z | Size: 0.5 KB
+  visual/matrix-reasoning/green-pointer-225.webp
+    Updated: 2025-10-27T18:28:01.181Z | Size: 0.4 KB
+  visual/matrix-reasoning/green-square.webp
+    Updated: 2025-10-27T18:28:01.515Z | Size: 0.2 KB
+  visual/matrix-reasoning/green-star.webp
+    Updated: 2025-10-27T18:28:01.500Z | Size: 0.6 KB
+  visual/matrix-reasoning/green-triangle.webp
+    Updated: 2025-10-27T18:28:01.532Z | Size: 0.4 KB
+  visual/matrix-reasoning/matrix-example-rsp1.webp
+    Updated: 2025-10-31T19:29:55.710Z | Size: 1.0 KB
+  visual/matrix-reasoning/matrix-example-rsp2.webp
+    Updated: 2025-10-31T19:29:55.717Z | Size: 2.2 KB
+  visual/matrix-reasoning/matrix-example-rsp3.webp
+    Updated: 2025-10-31T19:29:55.721Z | Size: 0.8 KB
+  visual/matrix-reasoning/matrixExampleDownex.webp
+    Updated: 2025-10-31T21:11:52.278Z | Size: 12.6 KB
+  visual/matrix-reasoning/matrixExampleGif1Downex.gif
+    Updated: 2025-10-31T21:01:34.732Z | Size: 35.0 KB
+  visual/matrix-reasoning/matrixExampleGif2Downex.gif
+    Updated: 2025-10-31T21:01:34.755Z | Size: 33.7 KB
+  visual/matrix-reasoning/matrixExampleGif3Downex.gif
+    Updated: 2025-10-31T21:01:34.755Z | Size: 32.4 KB
+  visual/matrix-reasoning/matrixExampleSlice1.webp
+    Updated: 2025-10-31T19:30:16.460Z | Size: 6.2 KB
+  visual/matrix-reasoning/matrixExampleSlice2.webp
+    Updated: 2025-10-31T19:30:16.488Z | Size: 2.6 KB
+  visual/matrix-reasoning/matrixExampleSlice3.webp
+    Updated: 2025-10-31T19:30:16.437Z | Size: 1.4 KB
+  visual/matrix-reasoning/orange-black-circle-180.webp
+    Updated: 2025-10-27T18:28:01.841Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-black-circle.webp
+    Updated: 2025-10-27T18:28:01.874Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-black-square.webp
+    Updated: 2025-10-27T18:28:01.882Z | Size: 0.2 KB
+  visual/matrix-reasoning/orange-blue-circle.webp
+    Updated: 2025-10-27T18:28:02.188Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-blue-square.webp
+    Updated: 2025-10-27T18:28:02.227Z | Size: 0.2 KB
+  visual/matrix-reasoning/orange-circle.webp
+    Updated: 2025-10-27T18:28:02.221Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-crecent-90.webp
+    Updated: 2025-10-27T18:28:02.574Z | Size: 0.5 KB
+  visual/matrix-reasoning/orange-crescent-135.webp
+    Updated: 2025-10-27T18:28:02.628Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-crescent-225.webp
+    Updated: 2025-10-27T18:28:02.887Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-crescent-270.webp
+    Updated: 2025-10-27T18:28:02.910Z | Size: 0.5 KB
+  visual/matrix-reasoning/orange-crescent-315.webp
+    Updated: 2025-10-27T18:28:02.999Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-crescent-45.webp
+    Updated: 2025-10-27T18:28:02.577Z | Size: 0.6 KB
+  visual/matrix-reasoning/orange-square.webp
+    Updated: 2025-10-27T18:28:03.264Z | Size: 0.2 KB
+  visual/matrix-reasoning/orange-star.webp
+    Updated: 2025-10-27T18:28:03.231Z | Size: 0.7 KB
+  visual/matrix-reasoning/orange-triangle-270.webp
+    Updated: 2025-10-27T18:28:03.603Z | Size: 0.5 KB
+  visual/matrix-reasoning/orange-triangle-90.webp
+    Updated: 2025-10-27T18:28:03.314Z | Size: 0.5 KB
+  visual/matrix-reasoning/orange-triangle.webp
+    Updated: 2025-10-27T18:28:03.580Z | Size: 0.5 KB
+  visual/memory-game/cursor.webp
+    Updated: 2025-11-10T19:41:45.658Z | Size: 0.9 KB
+  visual/mental-rotation/P1n-000-silh.webp
+    Updated: 2025-11-23T20:14:56.662Z | Size: 9.4 KB
+  visual/mental-rotation/P1n-000.webp
+    Updated: 2025-11-23T20:14:56.660Z | Size: 9.3 KB
+  visual/mental-rotation/P1n-040.webp
+    Updated: 2025-11-23T20:14:56.633Z | Size: 9.1 KB
+  visual/mental-rotation/P1n-080.webp
+    Updated: 2025-11-23T20:14:57.217Z | Size: 9.0 KB
+  visual/mental-rotation/P1n-120.webp
+    Updated: 2025-11-23T20:14:57.170Z | Size: 8.8 KB
+  visual/mental-rotation/P1n-160.webp
+    Updated: 2025-11-23T20:14:57.217Z | Size: 9.7 KB
+  visual/mental-rotation/P1n-200.webp
+    Updated: 2025-11-23T20:14:57.646Z | Size: 9.5 KB
+  visual/mental-rotation/P1n-240.webp
+    Updated: 2025-11-23T20:14:57.668Z | Size: 9.2 KB
+  visual/mental-rotation/P1n-280.webp
+    Updated: 2025-11-23T20:14:57.674Z | Size: 8.9 KB
+  visual/mental-rotation/P1n-320.webp
+    Updated: 2025-11-23T20:14:58.137Z | Size: 9.3 KB
+  visual/mental-rotation/P1p-000-silh.webp
+    Updated: 2025-11-23T20:14:58.158Z | Size: 9.3 KB
+  visual/mental-rotation/P1p-000.webp
+    Updated: 2025-11-23T20:14:58.161Z | Size: 9.3 KB
+  visual/mental-rotation/P1p-040.webp
+    Updated: 2025-11-23T20:14:58.610Z | Size: 9.2 KB
+  visual/mental-rotation/P1p-080.webp
+    Updated: 2025-11-23T20:14:58.643Z | Size: 9.0 KB
+  visual/mental-rotation/P1p-120.webp
+    Updated: 2025-11-23T20:14:58.649Z | Size: 9.0 KB
+  visual/mental-rotation/P1p-160.webp
+    Updated: 2025-11-23T20:14:59.139Z | Size: 9.3 KB
+  visual/mental-rotation/P1p-200.webp
+    Updated: 2025-11-23T20:14:59.078Z | Size: 9.5 KB
+  visual/mental-rotation/P1p-240.webp
+    Updated: 2025-11-23T20:14:59.094Z | Size: 9.1 KB
+  visual/mental-rotation/P1p-280.webp
+    Updated: 2025-11-23T20:14:59.651Z | Size: 9.2 KB
+  visual/mental-rotation/P1p-320.webp
+    Updated: 2025-11-23T20:14:59.669Z | Size: 9.1 KB
+  visual/mental-rotation/P2n-000-silh.webp
+    Updated: 2025-11-23T20:14:59.664Z | Size: 11.4 KB
+  visual/mental-rotation/P2n-000.webp
+    Updated: 2025-11-23T20:15:00.165Z | Size: 11.4 KB
+  visual/mental-rotation/P2n-040.webp
+    Updated: 2025-11-23T20:15:00.143Z | Size: 12.5 KB
+  visual/mental-rotation/P2n-080.webp
+    Updated: 2025-11-23T20:15:00.183Z | Size: 11.8 KB
+  visual/mental-rotation/P2n-120.webp
+    Updated: 2025-11-23T20:15:00.618Z | Size: 12.7 KB
+  visual/mental-rotation/P2n-160.webp
+    Updated: 2025-11-23T20:15:00.605Z | Size: 12.1 KB
+  visual/mental-rotation/P2n-200.webp
+    Updated: 2025-11-23T20:15:00.652Z | Size: 12.9 KB
+  visual/mental-rotation/P2n-240.webp
+    Updated: 2025-11-23T20:15:01.088Z | Size: 12.5 KB
+  visual/mental-rotation/P2n-280.webp
+    Updated: 2025-11-23T20:15:01.084Z | Size: 12.1 KB
+  visual/mental-rotation/P2n-320.webp
+    Updated: 2025-11-23T20:15:01.112Z | Size: 12.4 KB
+  visual/mental-rotation/P2p-000-silh.webp
+    Updated: 2025-11-23T20:15:01.575Z | Size: 11.3 KB
+  visual/mental-rotation/P2p-000.webp
+    Updated: 2025-11-23T20:15:01.563Z | Size: 11.3 KB
+  visual/mental-rotation/P2p-040.webp
+    Updated: 2025-11-23T20:15:01.589Z | Size: 12.9 KB
+  visual/mental-rotation/P2p-080.webp
+    Updated: 2025-11-23T20:15:02.044Z | Size: 12.3 KB
+  visual/mental-rotation/P2p-120.webp
+    Updated: 2025-11-23T20:15:02.020Z | Size: 12.6 KB
+  visual/mental-rotation/P2p-160.webp
+    Updated: 2025-11-23T20:15:02.032Z | Size: 12.3 KB
+  visual/mental-rotation/P2p-200.webp
+    Updated: 2025-11-23T20:15:02.504Z | Size: 12.0 KB
+  visual/mental-rotation/P2p-240.webp
+    Updated: 2025-11-23T20:15:02.542Z | Size: 12.7 KB
+  visual/mental-rotation/P2p-280.webp
+    Updated: 2025-11-23T20:15:02.533Z | Size: 11.9 KB
+  visual/mental-rotation/P2p-320.webp
+    Updated: 2025-11-23T20:15:02.973Z | Size: 12.3 KB
+  visual/mental-rotation/Rn-000-gray.webp
+    Updated: 2025-11-16T02:35:44.437Z | Size: 23.6 KB
+  visual/mental-rotation/Rp-000-gray.webp
+    Updated: 2025-11-21T19:00:44.469Z | Size: 25.8 KB
+  visual/mental-rotation/Rp-000-no-bg.webp
+    Updated: 2025-11-16T02:35:44.207Z | Size: 7.5 KB
+  visual/mental-rotation/black_background.webp
+    Updated: 2025-11-21T19:40:05.273Z | Size: 0.9 KB
+
+🔄 Files newer in DEV (252):
+────────────────────────────────────────────────────────────────────────────────
+  audio/assets-per-task.json
+    Dev:  2025-12-04T18:45:09.375Z (35.7 KB)
+    Prod: 2025-09-30T13:52:57.940Z (32.4 KB)
+    Diff: 65 days newer in dev
+  audio/child-survey/es/ChildSurveyIntro.mp3
+    Dev:  2025-09-25T22:11:16.060Z (76.0 KB)
+    Prod: 2025-09-12T22:08:08.894Z (76.0 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/ClassFriends.mp3
+    Dev:  2025-09-25T22:11:17.730Z (19.1 KB)
+    Prod: 2025-09-12T17:43:03.005Z (19.1 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/ClassHelp.mp3
+    Dev:  2025-09-25T22:11:13.435Z (28.4 KB)
+    Prod: 2025-09-12T17:43:03.039Z (28.4 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/ClassNice.mp3
+    Dev:  2025-09-25T22:11:17.964Z (26.2 KB)
+    Prod: 2025-09-12T17:43:03.044Z (26.2 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/ClassPlay.mp3
+    Dev:  2025-09-25T22:11:15.268Z (23.9 KB)
+    Prod: 2025-09-12T17:43:03.047Z (23.9 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/Example1Comic.mp3
+    Dev:  2025-09-25T22:11:14.777Z (20.8 KB)
+    Prod: 2025-09-12T17:43:03.063Z (20.8 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/Example2Neat.mp3
+    Dev:  2025-09-25T22:11:17.398Z (19.5 KB)
+    Prod: 2025-09-12T17:43:03.078Z (19.5 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/GrowthMindMath.mp3
+    Dev:  2025-09-25T22:11:17.120Z (62.2 KB)
+    Prod: 2025-09-12T17:43:03.046Z (62.2 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/GrowthMindRead.mp3
+    Dev:  2025-09-25T22:11:17.993Z (58.6 KB)
+    Prod: 2025-09-12T17:43:03.076Z (58.6 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/GrowthMindSmart.mp3
+    Dev:  2025-09-25T22:11:16.101Z (60.3 KB)
+    Prod: 2025-09-12T17:43:03.079Z (60.3 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/LearningGood.mp3
+    Dev:  2025-09-25T22:11:15.698Z (19.1 KB)
+    Prod: 2025-09-12T17:43:03.074Z (19.1 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/LonelySchool.mp3
+    Dev:  2025-09-25T22:11:16.202Z (19.0 KB)
+    Prod: 2025-09-12T17:43:03.081Z (19.0 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/MathEnjoy.mp3
+    Dev:  2025-09-25T22:11:13.455Z (24.9 KB)
+    Prod: 2025-09-12T17:43:03.082Z (24.9 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/MathGood.mp3
+    Dev:  2025-09-25T22:11:13.692Z (21.5 KB)
+    Prod: 2025-09-12T17:43:03.053Z (21.5 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/ReadingEnjoy.mp3
+    Dev:  2025-09-25T22:11:16.141Z (22.1 KB)
+    Prod: 2025-09-12T17:43:03.058Z (22.1 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/ReadingGood.mp3
+    Dev:  2025-09-25T22:11:16.911Z (18.4 KB)
+    Prod: 2025-09-12T17:43:03.082Z (18.4 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/SchoolEnjoy.mp3
+    Dev:  2025-09-25T22:11:13.782Z (12.8 KB)
+    Prod: 2025-09-12T17:43:03.039Z (12.8 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/SchoolFun.mp3
+    Dev:  2025-09-25T22:11:13.339Z (15.8 KB)
+    Prod: 2025-09-12T17:43:03.055Z (15.8 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/SchoolGiveUp.mp3
+    Dev:  2025-09-25T22:11:16.391Z (30.9 KB)
+    Prod: 2025-09-12T17:43:03.054Z (30.9 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/SchoolHappy.mp3
+    Dev:  2025-09-25T22:11:14.403Z (16.0 KB)
+    Prod: 2025-09-12T17:43:03.022Z (16.0 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/SchoolSafe.mp3
+    Dev:  2025-09-25T22:11:17.751Z (20.4 KB)
+    Prod: 2025-09-12T17:43:03.073Z (20.4 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/TeacherLike.mp3
+    Dev:  2025-09-25T22:11:15.899Z (15.5 KB)
+    Prod: 2025-09-12T17:43:03.052Z (15.5 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/TeacherListen.mp3
+    Dev:  2025-09-25T22:11:13.311Z (13.9 KB)
+    Prod: 2025-09-12T17:43:03.039Z (13.9 KB)
+    Diff: 13 days newer in dev
+  audio/child-survey/es/TeacherNice.mp3
+    Dev:  2025-09-25T22:11:14.218Z (15.0 KB)
+    Prod: 2025-09-12T17:43:03.094Z (15.0 KB)
+    Diff: 13 days newer in dev
+  audio/de/general-intro1.mp3
+    Dev:  2025-12-27T18:38:17.390Z (21.0 KB)
+    Prod: 2025-11-05T22:38:09.526Z (19.7 KB)
+    Diff: 52 days newer in dev
+  audio/de/memory-game-instruct6-heavy.mp3
+    Dev:  2025-10-02T01:52:57.815Z (15.2 KB)
+    Prod: 2025-09-08T22:03:43.669Z (11.5 KB)
+    Diff: 23 days newer in dev
+  audio/de/vocab-item-001.mp3
+    Dev:  2025-12-27T18:38:17.419Z (6.3 KB)
+    Prod: 2025-11-07T21:58:08.767Z (5.0 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-002.mp3
+    Dev:  2025-12-27T18:38:17.456Z (24.5 KB)
+    Prod: 2025-11-07T21:58:08.768Z (23.3 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-025.mp3
+    Dev:  2025-12-27T18:38:17.507Z (7.2 KB)
+    Prod: 2025-11-06T21:45:56.355Z (6.0 KB)
+    Diff: 51 days newer in dev
+  audio/de/vocab-item-040.mp3
+    Dev:  2025-12-27T18:38:17.416Z (7.2 KB)
+    Prod: 2025-11-07T21:58:08.783Z (6.0 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-045.mp3
+    Dev:  2025-12-27T18:38:17.420Z (6.8 KB)
+    Prod: 2025-11-06T21:02:45.869Z (5.6 KB)
+    Diff: 51 days newer in dev
+  audio/de/vocab-item-059.mp3
+    Dev:  2025-12-27T18:38:17.435Z (7.9 KB)
+    Prod: 2025-11-07T21:58:09.192Z (6.7 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-061.mp3
+    Dev:  2025-12-27T18:38:17.401Z (5.5 KB)
+    Prod: 2025-11-07T21:58:09.162Z (4.3 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-066.mp3
+    Dev:  2025-12-27T18:38:17.418Z (6.6 KB)
+    Prod: 2025-11-14T00:18:22.836Z (20.5 KB)
+    Diff: 44 days newer in dev
+  audio/de/vocab-item-076.mp3
+    Dev:  2025-12-27T18:38:17.439Z (6.8 KB)
+    Prod: 2025-11-05T22:38:09.533Z (5.6 KB)
+    Diff: 52 days newer in dev
+  audio/de/vocab-item-088.mp3
+    Dev:  2025-12-27T18:38:18.079Z (5.8 KB)
+    Prod: 2025-11-05T22:38:09.959Z (4.6 KB)
+    Diff: 52 days newer in dev
+  audio/de/vocab-item-095.mp3
+    Dev:  2025-12-27T18:38:17.508Z (6.0 KB)
+    Prod: 2025-11-07T21:58:09.186Z (4.8 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-099.mp3
+    Dev:  2025-12-27T18:38:17.514Z (19.2 KB)
+    Prod: 2025-11-06T21:02:47.860Z (18.0 KB)
+    Diff: 51 days newer in dev
+  audio/de/vocab-item-100.mp3
+    Dev:  2025-12-27T18:38:17.499Z (6.6 KB)
+    Prod: 2025-11-07T21:58:09.601Z (5.3 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-127.mp3
+    Dev:  2025-12-27T18:38:17.525Z (11.9 KB)
+    Prod: 2025-11-10T23:29:51.644Z (10.7 KB)
+    Diff: 47 days newer in dev
+  audio/de/vocab-item-131.mp3
+    Dev:  2025-12-27T18:38:17.489Z (20.5 KB)
+    Prod: 2025-11-10T23:29:51.670Z (19.2 KB)
+    Diff: 47 days newer in dev
+  audio/de/vocab-item-135.mp3
+    Dev:  2025-12-27T18:38:17.508Z (6.4 KB)
+    Prod: 2025-11-07T21:58:09.582Z (5.1 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-142.mp3
+    Dev:  2025-12-27T18:38:17.525Z (25.8 KB)
+    Prod: 2025-11-10T23:29:51.647Z (24.5 KB)
+    Diff: 47 days newer in dev
+  audio/de/vocab-item-145.mp3
+    Dev:  2025-12-27T18:38:17.509Z (6.3 KB)
+    Prod: 2025-11-07T21:58:09.586Z (5.0 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-149.mp3
+    Dev:  2025-12-27T18:38:17.501Z (7.7 KB)
+    Prod: 2025-11-07T21:58:09.970Z (6.5 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-152.mp3
+    Dev:  2025-12-27T18:38:17.525Z (30.7 KB)
+    Prod: 2025-11-10T23:29:52.055Z (29.4 KB)
+    Diff: 47 days newer in dev
+  audio/de/vocab-item-154.mp3
+    Dev:  2025-12-27T18:38:17.500Z (5.3 KB)
+    Prod: 2025-11-05T22:38:10.365Z (4.1 KB)
+    Diff: 52 days newer in dev
+  audio/de/vocab-item-155.mp3
+    Dev:  2025-12-27T18:38:17.491Z (6.4 KB)
+    Prod: 2025-11-07T21:58:09.988Z (5.1 KB)
+    Diff: 50 days newer in dev
+  audio/de/vocab-item-157.mp3
+    Dev:  2025-12-27T18:38:17.511Z (7.5 KB)
+    Prod: 2025-11-06T21:02:52.376Z (6.3 KB)
+    Diff: 51 days newer in dev
+  audio/de/vocab-item-166.mp3
+    Dev:  2025-12-27T18:38:18.098Z (24.5 KB)
+    Prod: 2025-11-10T23:29:52.030Z (23.3 KB)
+    Diff: 47 days newer in dev
+  audio/en/Example1Comic.mp3
+    Dev:  2025-10-02T01:52:58.911Z (9.6 KB)
+    Prod: 2025-09-26T01:10:45.438Z (9.8 KB)
+    Diff: 6 days newer in dev
+  audio/en/feedback-try-again.mp3
+    Dev:  2025-12-27T18:38:18.092Z (6.9 KB)
+    Prod: 2025-09-26T01:10:46.992Z (7.6 KB)
+    Diff: 93 days newer in dev
+  audio/en/general-device-type.mp3
+    Dev:  2025-10-02T01:52:58.960Z (27.3 KB)
+    Prod: 2025-09-26T01:10:47.068Z (28.8 KB)
+    Diff: 6 days newer in dev
+  audio/en/math-intro1.mp3
+    Dev:  2025-10-02T01:52:59.059Z (16.5 KB)
+    Prod: 2025-09-26T01:10:47.484Z (18.1 KB)
+    Diff: 6 days newer in dev
+  audio/en/mental-rotation.mp3
+    Dev:  2025-09-19T00:25:31.271Z (129.5 KB)
+    Prod: 2025-09-08T22:03:41.801Z (129.5 KB)
+    Diff: 10 days newer in dev
+  audio/en/number-identification-45.mp3
+    Dev:  2025-10-02T01:52:59.235Z (6.5 KB)
+    Prod: 2025-09-26T00:58:57.381Z (5.6 KB)
+    Diff: 6 days newer in dev
+  audio/en/same-different-selection-both-blue.mp3
+    Dev:  2025-12-27T18:38:18.109Z (24.0 KB)
+    Prod: 2025-09-26T01:10:48.260Z (24.0 KB)
+    Diff: 93 days newer in dev
+  audio/en/same-different-selection-both-large.mp3
+    Dev:  2025-12-27T18:38:18.144Z (22.8 KB)
+    Prod: 2025-09-26T01:10:48.309Z (22.8 KB)
+    Diff: 93 days newer in dev
+  audio/en/vocab-item-045.mp3
+    Dev:  2025-11-06T21:03:43.471Z (6.6 KB)
+    Prod: 2025-09-26T01:10:50.040Z (6.6 KB)
+    Diff: 42 days newer in dev
+  audio/en/vocab-item-099.mp3
+    Dev:  2025-11-06T21:05:44.629Z (6.1 KB)
+    Prod: 2025-09-26T01:10:50.353Z (6.1 KB)
+    Diff: 42 days newer in dev
+  audio/en/vocab-item-142.mp3
+    Dev:  2025-11-06T21:04:48.725Z (5.8 KB)
+    Prod: 2025-09-26T01:10:50.696Z (5.8 KB)
+    Diff: 42 days newer in dev
+  audio/en/vocab-item-152.mp3
+    Dev:  2025-11-06T21:04:27.051Z (8.2 KB)
+    Prod: 2025-09-26T01:10:50.735Z (8.2 KB)
+    Diff: 42 days newer in dev
+  audio/en/vocab-item-157.mp3
+    Dev:  2025-11-06T21:05:08.442Z (6.6 KB)
+    Prod: 2025-09-26T01:10:50.787Z (6.6 KB)
+    Diff: 42 days newer in dev
+  audio/es-CO/SchoolGiveUp.mp3
+    Dev:  2025-10-05T22:39:09.831Z (15.8 KB)
+    Prod: 2025-09-27T15:41:13.714Z (15.1 KB)
+    Diff: 8 days newer in dev
+  audio/es-CO/ToM-intro.mp3
+    Dev:  2025-10-05T22:39:10.041Z (32.2 KB)
+    Prod: 2025-09-08T22:03:44.887Z (33.7 KB)
+    Diff: 27 days newer in dev
+  audio/es-CO/number-identification-10.mp3
+    Dev:  2025-09-19T00:25:34.118Z (7.3 KB)
+    Prod: 2025-09-08T22:03:31.890Z (7.3 KB)
+    Diff: 10 days newer in dev
+  audio/es-CO/number-identification-45.mp3
+    Dev:  2025-12-27T18:38:19.183Z (6.0 KB)
+    Prod: 2025-09-26T01:10:50.966Z (4.8 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-instruct-1.mp3
+    Dev:  2025-09-26T00:44:47.836Z (31.0 KB)
+    Prod: 2025-09-08T22:03:31.691Z (31.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-instruct-2.mp3
+    Dev:  2025-09-26T00:44:47.781Z (23.5 KB)
+    Prod: 2025-09-08T22:03:32.311Z (23.5 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-instruct-3.mp3
+    Dev:  2025-09-26T00:44:47.779Z (18.8 KB)
+    Prod: 2025-09-08T22:03:30.199Z (18.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-001.mp3
+    Dev:  2025-09-26T00:44:47.797Z (5.6 KB)
+    Prod: 2025-09-08T22:03:32.037Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-002.mp3
+    Dev:  2025-09-26T00:44:47.806Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.197Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-003.mp3
+    Dev:  2025-09-26T00:44:47.809Z (5.0 KB)
+    Prod: 2025-09-08T22:03:33.595Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-004.mp3
+    Dev:  2025-09-26T00:44:47.827Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.726Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-005.mp3
+    Dev:  2025-09-26T00:44:47.670Z (4.5 KB)
+    Prod: 2025-09-08T22:03:34.001Z (4.5 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-006.mp3
+    Dev:  2025-09-26T00:44:47.824Z (5.2 KB)
+    Prod: 2025-09-08T22:03:31.806Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-007.mp3
+    Dev:  2025-09-26T00:44:47.816Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.726Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-008.mp3
+    Dev:  2025-09-26T00:44:47.805Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.128Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-009.mp3
+    Dev:  2025-09-26T00:44:47.841Z (4.7 KB)
+    Prod: 2025-09-08T22:03:30.199Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-010.mp3
+    Dev:  2025-09-26T00:44:47.806Z (4.3 KB)
+    Prod: 2025-09-08T22:03:33.667Z (4.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-011.mp3
+    Dev:  2025-09-26T00:44:47.810Z (5.9 KB)
+    Prod: 2025-09-08T22:03:30.195Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-012.mp3
+    Dev:  2025-09-26T00:44:47.824Z (5.4 KB)
+    Prod: 2025-09-08T22:03:31.619Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-013.mp3
+    Dev:  2025-09-26T00:44:47.835Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.123Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-014.mp3
+    Dev:  2025-09-26T00:44:47.830Z (5.6 KB)
+    Prod: 2025-09-08T22:03:33.714Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-015.mp3
+    Dev:  2025-09-26T00:44:47.832Z (5.8 KB)
+    Prod: 2025-09-08T22:03:31.011Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-016.mp3
+    Dev:  2025-09-26T00:44:47.836Z (5.2 KB)
+    Prod: 2025-09-08T22:03:31.011Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-017.mp3
+    Dev:  2025-09-26T00:44:47.800Z (4.7 KB)
+    Prod: 2025-09-08T22:03:30.124Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-018.mp3
+    Dev:  2025-09-26T00:44:47.833Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.911Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-019.mp3
+    Dev:  2025-09-26T00:44:47.824Z (7.3 KB)
+    Prod: 2025-09-08T22:03:31.011Z (7.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-020.mp3
+    Dev:  2025-09-26T00:44:47.821Z (5.8 KB)
+    Prod: 2025-09-08T22:03:33.893Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-021.mp3
+    Dev:  2025-09-26T00:44:47.815Z (4.9 KB)
+    Prod: 2025-09-08T22:03:30.197Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-022.mp3
+    Dev:  2025-09-26T00:44:47.832Z (6.1 KB)
+    Prod: 2025-09-08T22:03:32.610Z (6.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-023.mp3
+    Dev:  2025-09-26T00:44:47.887Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.655Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-024.mp3
+    Dev:  2025-09-26T00:44:47.822Z (5.6 KB)
+    Prod: 2025-09-08T22:03:31.816Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-025.mp3
+    Dev:  2025-09-26T00:44:47.870Z (5.0 KB)
+    Prod: 2025-09-08T22:03:32.600Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-026.mp3
+    Dev:  2025-09-26T00:44:47.879Z (5.8 KB)
+    Prod: 2025-09-08T22:03:33.192Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-027.mp3
+    Dev:  2025-09-26T00:44:47.858Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.573Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-028.mp3
+    Dev:  2025-09-26T00:44:47.905Z (5.6 KB)
+    Prod: 2025-09-08T22:03:32.978Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-029.mp3
+    Dev:  2025-09-26T00:44:48.103Z (6.9 KB)
+    Prod: 2025-09-08T22:03:30.396Z (6.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-030.mp3
+    Dev:  2025-09-26T00:44:48.150Z (5.8 KB)
+    Prod: 2025-09-08T22:03:30.277Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-031.mp3
+    Dev:  2025-09-26T00:44:48.002Z (5.4 KB)
+    Prod: 2025-09-08T22:03:32.845Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-032.mp3
+    Dev:  2025-09-26T00:44:48.018Z (4.7 KB)
+    Prod: 2025-09-08T22:03:32.120Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-033.mp3
+    Dev:  2025-09-26T00:44:48.030Z (5.6 KB)
+    Prod: 2025-09-08T22:03:32.605Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-034.mp3
+    Dev:  2025-09-26T00:44:48.052Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.903Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-035.mp3
+    Dev:  2025-09-26T00:44:48.036Z (5.0 KB)
+    Prod: 2025-09-08T22:03:30.946Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-036.mp3
+    Dev:  2025-09-26T00:44:48.064Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.198Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-037.mp3
+    Dev:  2025-09-26T00:44:48.053Z (6.1 KB)
+    Prod: 2025-09-08T22:03:30.278Z (6.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-038.mp3
+    Dev:  2025-09-26T00:44:48.047Z (5.8 KB)
+    Prod: 2025-09-08T22:03:30.316Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-039.mp3
+    Dev:  2025-09-26T00:44:48.051Z (4.3 KB)
+    Prod: 2025-09-08T22:03:31.736Z (4.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-040.mp3
+    Dev:  2025-09-26T00:44:48.067Z (5.9 KB)
+    Prod: 2025-09-08T22:03:30.125Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-041.mp3
+    Dev:  2025-09-26T00:44:48.054Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.991Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-042.mp3
+    Dev:  2025-09-26T00:44:48.071Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.794Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-043.mp3
+    Dev:  2025-09-26T00:44:48.069Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.394Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-044.mp3
+    Dev:  2025-09-26T00:44:48.087Z (4.7 KB)
+    Prod: 2025-09-08T22:03:34.311Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-045.mp3
+    Dev:  2025-09-26T00:44:48.069Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.044Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-046.mp3
+    Dev:  2025-09-26T00:44:48.081Z (4.9 KB)
+    Prod: 2025-09-08T22:03:31.393Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-047.mp3
+    Dev:  2025-09-26T00:44:48.084Z (4.7 KB)
+    Prod: 2025-09-08T22:03:32.009Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-048.mp3
+    Dev:  2025-09-26T00:44:48.094Z (5.2 KB)
+    Prod: 2025-09-08T22:03:31.502Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-049.mp3
+    Dev:  2025-09-26T00:44:48.084Z (4.7 KB)
+    Prod: 2025-09-08T22:03:30.197Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-050.mp3
+    Dev:  2025-09-26T00:44:48.099Z (6.6 KB)
+    Prod: 2025-09-08T22:03:34.039Z (6.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-051.mp3
+    Dev:  2025-09-26T00:44:48.109Z (4.5 KB)
+    Prod: 2025-09-08T22:03:31.011Z (4.5 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-052.mp3
+    Dev:  2025-09-26T00:44:48.102Z (6.7 KB)
+    Prod: 2025-09-08T22:03:31.505Z (6.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-053.mp3
+    Dev:  2025-09-26T00:44:48.102Z (6.6 KB)
+    Prod: 2025-09-08T22:03:31.296Z (6.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-054.mp3
+    Dev:  2025-09-26T00:44:48.097Z (5.0 KB)
+    Prod: 2025-09-08T22:03:33.013Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-055.mp3
+    Dev:  2025-09-26T00:44:48.106Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.077Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-056.mp3
+    Dev:  2025-09-26T00:44:48.095Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.124Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-057.mp3
+    Dev:  2025-09-26T00:44:48.112Z (4.7 KB)
+    Prod: 2025-09-08T22:03:31.810Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-058.mp3
+    Dev:  2025-09-26T00:44:48.111Z (4.5 KB)
+    Prod: 2025-09-08T22:03:31.423Z (4.5 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-059.mp3
+    Dev:  2025-09-26T00:44:48.108Z (6.1 KB)
+    Prod: 2025-09-08T22:03:30.195Z (6.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-060.mp3
+    Dev:  2025-09-26T00:44:48.132Z (5.8 KB)
+    Prod: 2025-09-08T22:03:34.218Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-061.mp3
+    Dev:  2025-09-26T00:44:48.150Z (4.7 KB)
+    Prod: 2025-09-08T22:03:33.313Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-062.mp3
+    Dev:  2025-09-26T00:44:48.151Z (6.1 KB)
+    Prod: 2025-09-08T22:03:33.719Z (6.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-063.mp3
+    Dev:  2025-09-26T00:44:48.236Z (5.4 KB)
+    Prod: 2025-09-08T22:03:31.696Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-064.mp3
+    Dev:  2025-09-26T00:44:48.272Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.394Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-065.mp3
+    Dev:  2025-09-26T00:44:48.247Z (5.8 KB)
+    Prod: 2025-09-08T22:03:30.910Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-066.mp3
+    Dev:  2025-09-26T00:44:48.261Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.194Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-067.mp3
+    Dev:  2025-09-26T00:44:48.371Z (5.6 KB)
+    Prod: 2025-09-08T22:03:31.606Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-068.mp3
+    Dev:  2025-09-26T00:44:48.330Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.662Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-069.mp3
+    Dev:  2025-09-26T00:44:48.313Z (4.5 KB)
+    Prod: 2025-09-08T22:03:30.891Z (4.5 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-070.mp3
+    Dev:  2025-09-26T00:44:48.316Z (6.6 KB)
+    Prod: 2025-09-08T22:03:34.008Z (6.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-071.mp3
+    Dev:  2025-09-26T00:44:48.308Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.206Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-072.mp3
+    Dev:  2025-09-26T00:44:48.329Z (5.0 KB)
+    Prod: 2025-09-08T22:03:30.715Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-073.mp3
+    Dev:  2025-09-26T00:44:48.344Z (5.9 KB)
+    Prod: 2025-09-08T22:03:30.508Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-074.mp3
+    Dev:  2025-09-26T00:44:48.344Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.519Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-075.mp3
+    Dev:  2025-09-26T00:44:48.336Z (6.3 KB)
+    Prod: 2025-09-08T22:03:33.044Z (6.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-076.mp3
+    Dev:  2025-09-26T00:44:48.327Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.089Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-077.mp3
+    Dev:  2025-09-26T00:44:48.329Z (4.5 KB)
+    Prod: 2025-09-08T22:03:31.411Z (4.5 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-078.mp3
+    Dev:  2025-09-26T00:44:48.337Z (5.0 KB)
+    Prod: 2025-09-08T22:03:30.786Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-079.mp3
+    Dev:  2025-09-26T00:44:48.348Z (5.8 KB)
+    Prod: 2025-09-08T22:03:30.715Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-080.mp3
+    Dev:  2025-09-26T00:44:48.347Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.013Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-081.mp3
+    Dev:  2025-09-26T00:44:48.350Z (5.4 KB)
+    Prod: 2025-09-08T22:03:31.736Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-082.mp3
+    Dev:  2025-09-26T00:44:48.385Z (5.0 KB)
+    Prod: 2025-09-08T22:03:34.254Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-083.mp3
+    Dev:  2025-09-26T00:44:48.363Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.491Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-084.mp3
+    Dev:  2025-09-26T00:44:48.380Z (7.3 KB)
+    Prod: 2025-09-08T22:03:32.713Z (7.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-085.mp3
+    Dev:  2025-09-26T00:44:48.381Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.606Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-086.mp3
+    Dev:  2025-09-26T00:44:48.383Z (7.1 KB)
+    Prod: 2025-09-08T22:03:31.594Z (7.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-087.mp3
+    Dev:  2025-09-26T00:44:48.359Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.794Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-088.mp3
+    Dev:  2025-09-26T00:44:48.373Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.617Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-089.mp3
+    Dev:  2025-09-26T00:44:48.377Z (4.3 KB)
+    Prod: 2025-09-08T22:03:33.987Z (4.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-090.mp3
+    Dev:  2025-09-26T00:44:48.375Z (5.0 KB)
+    Prod: 2025-09-08T22:03:31.517Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-091.mp3
+    Dev:  2025-09-26T00:44:48.371Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.796Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-092.mp3
+    Dev:  2025-09-26T00:44:48.369Z (5.0 KB)
+    Prod: 2025-09-08T22:03:33.170Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-093.mp3
+    Dev:  2025-09-26T00:44:48.391Z (5.4 KB)
+    Prod: 2025-09-08T22:03:31.864Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-094.mp3
+    Dev:  2025-09-26T00:44:48.393Z (5.6 KB)
+    Prod: 2025-09-08T22:03:32.107Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-095.mp3
+    Dev:  2025-09-26T00:44:48.406Z (4.9 KB)
+    Prod: 2025-09-08T22:03:32.605Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-096.mp3
+    Dev:  2025-09-26T00:44:48.404Z (4.7 KB)
+    Prod: 2025-09-08T22:03:31.507Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-097.mp3
+    Dev:  2025-09-26T00:44:48.446Z (5.0 KB)
+    Prod: 2025-09-08T22:03:30.126Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-098.mp3
+    Dev:  2025-09-26T00:44:48.503Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.198Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-099.mp3
+    Dev:  2025-09-26T00:44:48.524Z (6.3 KB)
+    Prod: 2025-09-08T22:03:34.258Z (6.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-100.mp3
+    Dev:  2025-09-26T00:44:48.513Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.395Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-101.mp3
+    Dev:  2025-09-26T00:44:48.540Z (4.9 KB)
+    Prod: 2025-09-08T22:03:30.597Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-102.mp3
+    Dev:  2025-12-27T18:38:19.167Z (14.3 KB)
+    Prod: 2025-09-26T00:58:57.400Z (13.1 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-103.mp3
+    Dev:  2025-09-26T00:44:48.561Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.115Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-104.mp3
+    Dev:  2025-09-26T00:44:48.554Z (5.0 KB)
+    Prod: 2025-09-08T22:03:31.497Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-105.mp3
+    Dev:  2025-09-26T00:44:48.586Z (4.9 KB)
+    Prod: 2025-09-08T22:03:34.475Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-106.mp3
+    Dev:  2025-09-26T00:44:48.573Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.816Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-107.mp3
+    Dev:  2025-09-26T00:44:48.581Z (5.9 KB)
+    Prod: 2025-09-08T22:03:30.622Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-108.mp3
+    Dev:  2025-09-26T00:44:48.581Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.705Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-109.mp3
+    Dev:  2025-09-26T00:44:48.583Z (5.4 KB)
+    Prod: 2025-09-08T22:03:32.809Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-110.mp3
+    Dev:  2025-09-26T00:44:48.578Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.196Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-111.mp3
+    Dev:  2025-12-27T18:38:19.194Z (14.7 KB)
+    Prod: 2025-09-26T00:58:58.209Z (13.5 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-112.mp3
+    Dev:  2025-09-26T00:44:48.590Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.278Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-113.mp3
+    Dev:  2025-12-27T18:38:19.197Z (14.7 KB)
+    Prod: 2025-09-26T00:58:58.374Z (13.5 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-114.mp3
+    Dev:  2025-12-27T18:38:19.150Z (13.1 KB)
+    Prod: 2025-09-26T00:58:55.779Z (11.9 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-115.mp3
+    Dev:  2025-09-26T00:44:48.608Z (5.0 KB)
+    Prod: 2025-09-08T22:03:32.622Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-116.mp3
+    Dev:  2025-09-26T00:44:48.596Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.195Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-117.mp3
+    Dev:  2025-12-27T18:38:18.854Z (13.5 KB)
+    Prod: 2025-09-26T00:58:58.311Z (12.3 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-118.mp3
+    Dev:  2025-09-26T00:44:48.625Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.013Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-119.mp3
+    Dev:  2025-09-26T00:44:48.614Z (4.7 KB)
+    Prod: 2025-09-08T22:03:32.084Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-120.mp3
+    Dev:  2025-09-26T00:44:48.628Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.911Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-121.mp3
+    Dev:  2025-09-26T00:44:48.620Z (5.6 KB)
+    Prod: 2025-09-08T22:03:31.926Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-122.mp3
+    Dev:  2025-09-26T00:44:48.627Z (5.0 KB)
+    Prod: 2025-09-08T22:03:30.408Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-123.mp3
+    Dev:  2025-12-27T18:38:19.161Z (15.5 KB)
+    Prod: 2025-09-26T00:58:57.504Z (14.3 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-124.mp3
+    Dev:  2025-09-26T00:44:48.634Z (5.2 KB)
+    Prod: 2025-09-08T22:03:34.100Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-125.mp3
+    Dev:  2025-09-26T00:44:48.635Z (4.9 KB)
+    Prod: 2025-09-08T22:03:31.376Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-126.mp3
+    Dev:  2025-09-26T00:44:48.638Z (5.8 KB)
+    Prod: 2025-09-08T22:03:32.961Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-127.mp3
+    Dev:  2025-09-26T00:44:48.648Z (4.9 KB)
+    Prod: 2025-09-08T22:03:30.505Z (4.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-128.mp3
+    Dev:  2025-09-26T00:44:48.651Z (5.8 KB)
+    Prod: 2025-09-08T22:03:31.139Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-129.mp3
+    Dev:  2025-09-26T00:44:48.646Z (6.3 KB)
+    Prod: 2025-09-08T22:03:30.786Z (6.3 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-130.mp3
+    Dev:  2025-09-26T00:44:48.649Z (5.6 KB)
+    Prod: 2025-09-08T22:03:33.511Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-131.mp3
+    Dev:  2025-09-26T00:44:48.678Z (5.4 KB)
+    Prod: 2025-09-08T22:03:31.097Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-132.mp3
+    Dev:  2025-09-26T00:44:48.723Z (5.0 KB)
+    Prod: 2025-09-08T22:03:31.407Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-133.mp3
+    Dev:  2025-09-26T00:44:48.741Z (5.2 KB)
+    Prod: 2025-09-08T22:03:34.118Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-134.mp3
+    Dev:  2025-09-26T00:44:48.757Z (7.1 KB)
+    Prod: 2025-09-08T22:03:33.477Z (7.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-135.mp3
+    Dev:  2025-09-26T00:44:48.793Z (5.4 KB)
+    Prod: 2025-09-08T22:03:31.577Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-136.mp3
+    Dev:  2025-12-27T18:38:19.185Z (14.7 KB)
+    Prod: 2025-09-26T00:58:56.147Z (13.5 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-137.mp3
+    Dev:  2025-09-26T00:44:48.789Z (5.9 KB)
+    Prod: 2025-09-08T22:03:33.082Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-138.mp3
+    Dev:  2025-12-27T18:38:19.179Z (11.8 KB)
+    Prod: 2025-09-26T00:58:59.983Z (10.7 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-139.mp3
+    Dev:  2025-12-27T18:38:19.163Z (19.2 KB)
+    Prod: 2025-09-26T00:58:59.240Z (18.0 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-140.mp3
+    Dev:  2025-09-26T00:44:48.815Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.277Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-141.mp3
+    Dev:  2025-09-26T00:44:48.824Z (5.9 KB)
+    Prod: 2025-09-08T22:03:34.007Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-142.mp3
+    Dev:  2025-09-26T00:44:48.818Z (5.0 KB)
+    Prod: 2025-09-08T22:03:33.614Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-143.mp3
+    Dev:  2025-09-26T00:44:48.844Z (6.4 KB)
+    Prod: 2025-09-08T22:03:31.334Z (6.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-144.mp3
+    Dev:  2025-09-26T00:44:48.829Z (5.8 KB)
+    Prod: 2025-09-08T22:03:32.997Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-145.mp3
+    Dev:  2025-09-26T00:44:48.821Z (4.7 KB)
+    Prod: 2025-09-08T22:03:32.311Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-146.mp3
+    Dev:  2025-09-26T00:44:48.832Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.277Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-147.mp3
+    Dev:  2025-09-26T00:44:48.851Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.608Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-148.mp3
+    Dev:  2025-09-26T00:44:48.845Z (5.4 KB)
+    Prod: 2025-09-08T22:03:33.307Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-149.mp3
+    Dev:  2025-09-26T00:44:48.835Z (4.7 KB)
+    Prod: 2025-09-08T22:03:30.809Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-150.mp3
+    Dev:  2025-12-27T18:38:19.233Z (18.0 KB)
+    Prod: 2025-09-26T00:58:59.149Z (16.8 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-151.mp3
+    Dev:  2025-09-26T00:44:48.835Z (5.6 KB)
+    Prod: 2025-09-08T22:03:30.610Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-152.mp3
+    Dev:  2025-09-26T00:44:48.857Z (5.9 KB)
+    Prod: 2025-09-08T22:03:30.197Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-153.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.9 KB)
+    Prod: 2025-09-08T22:03:30.421Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-154.mp3
+    Dev:  2025-09-26T00:44:48.871Z (5.8 KB)
+    Prod: 2025-09-08T22:03:34.036Z (5.8 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-155.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.0 KB)
+    Prod: 2025-09-08T22:03:32.304Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-156.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.0 KB)
+    Prod: 2025-09-08T22:03:32.503Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-157.mp3
+    Dev:  2025-09-26T00:44:48.869Z (6.1 KB)
+    Prod: 2025-09-08T22:03:31.110Z (6.1 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-158.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.6 KB)
+    Prod: 2025-09-08T22:03:31.483Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-159.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.2 KB)
+    Prod: 2025-09-08T22:03:30.277Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-160.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.628Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-161.mp3
+    Dev:  2025-12-27T18:38:19.163Z (23.3 KB)
+    Prod: 2025-09-26T00:58:58.469Z (22.1 KB)
+    Diff: 93 days newer in dev
+  audio/es-CO/vocab-item-162.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.6 KB)
+    Prod: 2025-09-08T22:03:31.802Z (5.6 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-163.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.0 KB)
+    Prod: 2025-09-08T22:03:33.258Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-164.mp3
+    Dev:  2025-09-26T00:44:48.905Z (5.9 KB)
+    Prod: 2025-09-08T22:03:34.232Z (5.9 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-165.mp3
+    Dev:  2025-09-26T00:44:48.962Z (5.2 KB)
+    Prod: 2025-09-08T22:03:32.611Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-166.mp3
+    Dev:  2025-09-26T00:44:48.970Z (5.2 KB)
+    Prod: 2025-09-08T22:03:34.039Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-167.mp3
+    Dev:  2025-09-26T00:44:48.998Z (5.0 KB)
+    Prod: 2025-09-08T22:03:33.454Z (5.0 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-168.mp3
+    Dev:  2025-09-26T00:44:48.986Z (4.7 KB)
+    Prod: 2025-09-08T22:03:31.037Z (4.7 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-169.mp3
+    Dev:  2025-09-26T00:44:49.023Z (5.4 KB)
+    Prod: 2025-09-08T22:03:30.278Z (5.4 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-170.mp3
+    Dev:  2025-09-26T00:44:49.013Z (5.2 KB)
+    Prod: 2025-09-08T22:03:33.382Z (5.2 KB)
+    Diff: 17 days newer in dev
+  audio/es-CO/vocab-item-171.mp3
+    Dev:  2025-12-27T18:38:19.215Z (30.6 KB)
+    Prod: 2025-09-26T00:58:59.217Z (29.4 KB)
+    Diff: 93 days newer in dev
+  audio/shared/coin.mp3
+    Dev:  2025-09-19T17:00:15.153Z (4.1 KB)
+    Prod: 2025-09-08T22:03:41.740Z (4.1 KB)
+    Diff: 11 days newer in dev
+  audio/shared/nullAudio.mp3
+    Dev:  2025-09-19T17:00:27.401Z (35.8 KB)
+    Prod: 2025-09-08T22:03:43.322Z (35.8 KB)
+    Diff: 11 days newer in dev
+  audio/shared/select.mp3
+    Dev:  2025-09-19T17:00:36.921Z (27.1 KB)
+    Prod: 2025-09-08T22:03:44.497Z (27.1 KB)
+    Diff: 11 days newer in dev
+  child_survey.json
+    Dev:  2025-09-27T16:25:40.220Z (78.0 KB)
+    Prod: 2025-09-27T16:19:26.793Z (78.0 KB)
+    Diff: 0 days newer in dev
+  corpus/child-survey/child-survey-item-bank.csv
+    Dev:  2025-11-04T18:25:20.679Z (4.7 KB)
+    Prod: 2025-09-08T22:03:42.874Z (5.0 KB)
+    Diff: 57 days newer in dev
+  corpus/hostile-attribution/
+    Dev:  2025-09-29T18:04:52.344Z (0.0 KB)
+    Prod: 2025-09-19T23:57:30.123Z (0.0 KB)
+    Diff: 10 days newer in dev
+  corpus/trog/trog-item-bank-full-params.csv
+    Dev:  2025-09-15T18:47:59.817Z (28.4 KB)
+    Prod: 2025-09-15T18:46:41.810Z (28.4 KB)
+    Diff: 0 days newer in dev
+  surveys/parent_survey_family.json
+    Dev:  2025-11-09T03:53:41.552Z (153.4 KB)
+    Prod: 2025-11-09T03:53:37.901Z (153.4 KB)
+    Diff: 0 days newer in dev
+  translations/item-bank-translations.csv
+    Dev:  2025-12-04T18:51:57.324Z (209.3 KB)
+    Prod: 2025-11-05T23:00:14.992Z (358.3 KB)
+    Diff: 29 days newer in dev
+  visual/hostile-attribution/
+    Dev:  2025-09-29T18:04:21.959Z (0.0 KB)
+    Prod: 2025-09-19T23:58:04.955Z (0.0 KB)
+    Diff: 10 days newer in dev
+
+📊 Summary:
+   Only in Dev: 278
+   Newer in Dev: 252
+   Total: 530

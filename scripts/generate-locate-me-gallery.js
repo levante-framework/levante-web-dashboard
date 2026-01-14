@@ -5,6 +5,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const zlib = require('zlib');
+const { Storage } = require('@google-cloud/storage');
 
 const MAX_DISTANCE_KM = 20; // Filter out results where nearest city is > 20km (unless seed point has allowFar=true)
 // Throttling / retry tuning for Overpass-backed endpoints
@@ -23,6 +24,78 @@ const GEOCODER_PATH_GZ = `${GEOCODER_PATH}.gz`;
 const MAX_LOCALITY_CANDIDATES = 6000; // cap per-country locality sample to stay compact
 const ADM_PACK_DIR = path.join(process.cwd(), 'public', 'adm-packs');
 const ADM0_PATH_GZ = path.join(process.cwd(), 'public', 'adm0', 'countries.min.json.gz');
+
+// GCS configuration for boundary packs
+const BOUNDARY_PACKS_BUCKET = process.env.BOUNDARY_PACKS_BUCKET || 'levante-assets-draft';
+const BOUNDARY_PACKS_PREFIX = process.env.BOUNDARY_PACKS_PREFIX || 'maps/boundaries';
+let gcsStorage = null;
+let gcsInitialized = false;
+
+function initializeGCS() {
+  if (gcsInitialized) return gcsStorage;
+  gcsInitialized = true;
+  
+  try {
+    const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (serviceAccountJson) {
+      const credentials = JSON.parse(serviceAccountJson);
+      gcsStorage = new Storage({
+        projectId: credentials.project_id,
+        credentials: credentials
+      });
+    } else {
+      // Fallback to Application Default Credentials
+      gcsStorage = new Storage();
+    }
+  } catch (error) {
+    // GCS not available, will use local files only
+    gcsStorage = null;
+  }
+  return gcsStorage;
+}
+
+async function loadAdmPackFromGCS(countryCode, level, relativePath) {
+  const storage = initializeGCS();
+  if (!storage) return null;
+  
+  const bucket = storage.bucket(BOUNDARY_PACKS_BUCKET);
+  // Handle both direct files and subdirectories (e.g., us/adm3/ca.json.gz)
+  const remotePath = `${BOUNDARY_PACKS_PREFIX}/${countryCode}/${relativePath}`;
+  
+  try {
+    const [exists] = await bucket.file(remotePath).exists();
+    if (!exists) return null;
+    
+    const [file] = await bucket.file(remotePath).download();
+    return zlib.gunzipSync(file).toString();
+  } catch (error) {
+    // Silently fail - will fall back to local files
+    return null;
+  }
+}
+
+async function loadUsAdm3PackFromGCS(stateAbbr) {
+  const storage = initializeGCS();
+  if (!storage) return null;
+  
+  const st = (stateAbbr || '').toString().trim().toLowerCase();
+  if (!st) return null;
+  
+  const bucket = storage.bucket(BOUNDARY_PACKS_BUCKET);
+  const remotePath = `${BOUNDARY_PACKS_PREFIX}/us/adm3/${st}.json.gz`;
+  
+  try {
+    const [exists] = await bucket.file(remotePath).exists();
+    if (!exists) return null;
+    
+    const [file] = await bucket.file(remotePath).download();
+    const raw = zlib.gunzipSync(file).toString();
+    return JSON.parse(raw);
+  } catch (error) {
+    // Silently fail - will fall back to local files
+    return null;
+  }
+}
 
 const ALLOWED_COUNTRY_SLUGS = new Set([
   'scotland',
@@ -354,7 +427,7 @@ function adm0CountryLookup(lat, lon) {
   return iso2 ? String(iso2).trim().toUpperCase() : null;
 }
 
-function loadAdmPack(countryCode, level) {
+async function loadAdmPack(countryCode, level) {
   const code = (countryCode || '').toString().trim().toLowerCase();
   const lvl = (level || '').toString().trim().toLowerCase(); // adm1|adm2|adm3|adm4|adm5|adm6|adm7|adm8|place-city|place-town|place-village
   if (!code || !lvl) return null;
@@ -370,35 +443,65 @@ function loadAdmPack(countryCode, level) {
   const gadmPath = path.join(ADM_PACK_DIR, code, `${lvl}.json.gz`);
   
   let filePath = null;
+  let relativePath = null;
+  
   if (lvl === 'city-boundaries-osm') {
     // City boundaries from OSM - special filename
     const cityBoundariesPath = path.join(ADM_PACK_DIR, code, 'city-boundaries-osm.json.gz');
     if (fs.existsSync(cityBoundariesPath)) {
       filePath = cityBoundariesPath;
+      relativePath = 'city-boundaries-osm.json.gz';
     }
   } else if (lvl.startsWith('place-')) {
     // For place boundaries, only Geofabrik
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
+      relativePath = `${lvl}-geofabrik.json.gz`;
     }
   } else if ((lvl === 'adm6' || lvl === 'adm7' || lvl === 'adm8' || lvl === 'adm9' || lvl === 'adm10')) {
     // For ADM6/7/8/9/10, prefer Geofabrik, then OSM
     if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
+      relativePath = `${lvl}-geofabrik.json.gz`;
     } else if (fs.existsSync(osmPath)) {
       filePath = osmPath;
+      relativePath = `${lvl}-osm.json.gz`;
     }
   } else {
     // For ADM2/3, prefer GADM
     if (fs.existsSync(gadmPath)) {
       filePath = gadmPath;
+      relativePath = `${lvl}.json.gz`;
     } else if (fs.existsSync(geofabrikPath)) {
       filePath = geofabrikPath;
+      relativePath = `${lvl}-geofabrik.json.gz`;
     } else if (fs.existsSync(osmPath)) {
       filePath = osmPath;
+      relativePath = `${lvl}-osm.json.gz`;
     }
   }
   
+  // Try GCS first if we have a relative path
+  if (relativePath) {
+    const gcsData = await loadAdmPackFromGCS(code, lvl, relativePath);
+    if (gcsData) {
+      try {
+        const data = JSON.parse(gcsData);
+        admPackCache.set(key, data);
+        return data;
+      } catch (error) {
+        // GCS data invalid, fall through to local file
+      }
+    }
+    
+    // For geofabrik files, require GCS - don't fall back to local
+    if (relativePath.includes('geofabrik')) {
+      admPackCache.set(key, null);
+      return null;
+    }
+  }
+  
+  // Fall back to local file (only for non-geofabrik files)
   if (!filePath) {
     admPackCache.set(key, null);
     return null;
@@ -410,11 +513,20 @@ function loadAdmPack(countryCode, level) {
   return data;
 }
 
-function loadUsAdm3Pack(stateAbbr) {
+async function loadUsAdm3Pack(stateAbbr) {
   const st = (stateAbbr || '').toString().trim().toLowerCase();
   if (!st) return null;
   const key = `us|adm3|${st}`;
   if (admPackCache.has(key)) return admPackCache.get(key);
+  
+  // Try GCS first
+  const gcsData = await loadUsAdm3PackFromGCS(st);
+  if (gcsData) {
+    admPackCache.set(key, gcsData);
+    return gcsData;
+  }
+  
+  // Fall back to local file
   const filePath = path.join(ADM_PACK_DIR, 'us', 'adm3', `${st}.json.gz`);
   if (!fs.existsSync(filePath)) {
     admPackCache.set(key, null);
@@ -565,7 +677,7 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
   // Regional boundary = ADM2.
   const pt = [lon, lat];
 
-  const adm2Pack = loadAdmPack(countryIso2Lower, 'adm2');
+  const adm2Pack = await loadAdmPack(countryIso2Lower, 'adm2');
 
   const bestContaining = (pack) => {
     if (!pack || !pack.features) return null;
@@ -587,14 +699,118 @@ async function lookupTwoLevelAreas(countryIso2Lower, lat, lon, hintAdmin1 = null
   const adm2 = bestContaining(adm2Pack);
   let localFeature = null;
   let localLevel = null;
+  
+  // Try ADM3 first (GADM - reliable, well-defined hierarchy)
+  // Then try ADM6/7/8/9/10 (Geofabrik) if available - more granular
+  // ADM6/7/8/9/10 represent towns/neighborhoods/wards/electoral districts - more granular than ADM3
+  let candidates = [];
+  
+  // For US, try state-specific ADM3 packs first
   if (countryIso2Lower === 'us') {
-    const usPack = loadUsAdm3Pack(hintAdmin1);
+    const usPack = await loadUsAdm3Pack(hintAdmin1);
     const f = bestContaining(usPack);
     if (f) {
-      localFeature = f;
-      localLevel = 3;
+      const area = polygonArea(f.geometry);
+      candidates.push({
+        feature: f,
+        level: 3,
+        area: area,
+        levelName: 'adm3',
+        type: 'admin'
+      });
     }
   } else {
+    // For other countries, try GADM ADM3
+    const adm3Pack = await loadAdmPack(countryIso2Lower, 'adm3');
+    if (adm3Pack && adm3Pack.features && adm3Pack.features.length > 0) {
+      console.log(`  📦 Loaded ${adm3Pack.features.length} ADM3 features from ${adm3Pack.features[0]?.properties?.source || 'unknown'} pack`);
+    }
+    const adm3Feature = bestContaining(adm3Pack);
+    if (adm3Feature) {
+      const area = polygonArea(adm3Feature.geometry);
+      candidates.push({
+        feature: adm3Feature,
+        level: 3,
+        area: area,
+        levelName: 'adm3',
+        type: 'admin'
+      });
+    }
+  }
+  
+  // Try city boundaries (actual city/town boundaries from OSM - often more accurate than admin divisions)
+  const cityBoundariesPack = await loadAdmPack(countryIso2Lower, 'city-boundaries-osm');
+  if (cityBoundariesPack && cityBoundariesPack.features && cityBoundariesPack.features.length > 0) {
+    console.log(`  📦 Loaded ${cityBoundariesPack.features.length} city boundary features`);
+  }
+  const cityBoundaryFeature = bestContaining(cityBoundariesPack);
+  if (cityBoundaryFeature) {
+    const area = polygonArea(cityBoundaryFeature.geometry);
+    candidates.push({
+      feature: cityBoundaryFeature,
+      level: cityBoundaryFeature.properties?.place || 'city',
+      area: area,
+      levelName: 'city-boundary',
+      type: 'city-boundary'
+    });
+  }
+  
+  // Try ADM6/7/8/9/10 (admin divisions: towns, neighborhoods, wards, electoral districts)
+  // ADM9/10 are very granular (electoral districts, small neighborhoods)
+  for (const lvl of ['adm6', 'adm7', 'adm8', 'adm9', 'adm10']) {
+    const pack = await loadAdmPack(countryIso2Lower, lvl);
+    if (pack && pack.features && pack.features.length > 0) {
+      console.log(`  📦 Loaded ${pack.features.length} ${lvl.toUpperCase()} features from ${pack.features[0]?.properties?.source || 'unknown'} pack`);
+    }
+    const f = bestContaining(pack);
+    if (f) {
+      const area = polygonArea(f.geometry);
+      candidates.push({
+        feature: f,
+        level: lvl === 'adm6' ? 6 : (lvl === 'adm7' ? 7 : (lvl === 'adm8' ? 8 : (lvl === 'adm9' ? 9 : 10))),
+        area: area,
+        levelName: lvl,
+        type: 'admin'
+      });
+    }
+  }
+  
+  // Select boundary - always pick the SMALLEST (most granular)
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => a.area - b.area);
+    const best = candidates[0];
+    localFeature = best.feature;
+    localLevel = typeof best.level === 'number' ? best.level : best.level;
+    
+    let levelLabel;
+    if (best.type === 'city-boundary') {
+      levelLabel = `city (${best.feature.properties?.place || 'boundary'})`;
+    } else if (typeof best.level === 'number') {
+      levelLabel = `${best.levelName.toUpperCase()} (admin_level ${localLevel})`;
+    } else {
+      levelLabel = best.levelName;
+    }
+    
+    console.log(`  ✅ Selected ${levelLabel} boundary: ${best.feature.properties?.name || 'Unknown'} (${(best.area / 1e6).toFixed(2)} km²)`);
+    if (candidates.length > 1) {
+      console.log(`  ℹ️  Skipped ${candidates.length - 1} larger boundary/boundaries`);
+    }
+  } else {
+    // Fallback: if we had ADM3 but no candidates, use it
+    if (countryIso2Lower === 'us') {
+      const usPack = loadUsAdm3Pack(hintAdmin1);
+      const f = bestContaining(usPack);
+      if (f) {
+        localFeature = f;
+        localLevel = 3;
+        const area = polygonArea(f.geometry);
+        console.log(`  ✅ Selected ADM3 boundary: ${f.properties?.name || 'Unknown'} (admin_level 3, ${(area / 1e6).toFixed(2)} km²)`);
+      }
+    }
+  }
+  
+  // Legacy code path removed - unified logic above handles all countries including US
+  if (false) {
     // Try ADM3 first (GADM - reliable, well-defined hierarchy)
     // Then try ADM6/7/8 (Geofabrik) if ADM3 isn't available or if ADM6/7/8 is smaller
     // ADM6/7/8 represent towns/neighborhoods/wards - more granular than ADM3

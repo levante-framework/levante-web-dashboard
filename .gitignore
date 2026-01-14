@@ -36,3 +36,6 @@ data/geoboundaries/**/*.tmp
 # Geofabrik PBF cache (large files, can be re-downloaded)
 data/geofabrik/**/*.osm.pbf
 data/geofabrik/**/*.tmp
+
+# Geofabrik boundary packs (stored in GCS bucket, not in repo)
+public/adm-packs/**/*geofabrik*.json.gz

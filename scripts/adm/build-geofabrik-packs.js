@@ -27,10 +27,13 @@ const path = require('path');
 const zlib = require('zlib');
 const https = require('https');
 const { execSync } = require('child_process');
+const { Storage } = require('@google-cloud/storage');
 
 const ADM_PACK_DIR = path.join(process.cwd(), 'public', 'adm-packs');
 const GEOFABRIK_CACHE_DIR = path.join(process.cwd(), 'data', 'geofabrik');
 const GEOFABRIK_BASE_URL = 'https://download.geofabrik.de';
+const BOUNDARY_PACKS_BUCKET = process.env.BOUNDARY_PACKS_BUCKET || 'levante-assets-draft';
+const BOUNDARY_PACKS_PREFIX = process.env.BOUNDARY_PACKS_PREFIX || 'maps/boundaries';
 
 // Check if osmium-tool is available
 function checkOsmiumTool() {
@@ -463,28 +466,82 @@ async function extractWithOsmium(pbfPath, countryIso2, adminLevel) {
     
     // Step 3: Read, compress, and save
     if (fs.existsSync(tempGeojsonPath)) {
-      const geojson = JSON.parse(fs.readFileSync(tempGeojsonPath, 'utf8'));
+      // Check file size first - if too large, use streaming approach
+      const stats = fs.statSync(tempGeojsonPath);
+      const fileSizeMB = stats.size / 1024 / 1024;
       
-      // Filter to only include features with admin_level
-      if (geojson.features) {
-        geojson.features = geojson.features.filter(f => {
-          const adminLevelTag = f.properties?.['boundary:administrative'] || 
-                               f.properties?.admin_level ||
-                               f.properties?.['admin_level'];
-          return adminLevelTag === adminLevel || adminLevelTag === String(adminLevel);
+      if (fileSizeMB > 400) {
+        // File is too large for JSON.parse - use streaming compression instead
+        console.log(`  ⚠️  File is very large (${fileSizeMB.toFixed(2)}MB), using streaming compression...`);
+        
+        // Use gzip directly on the file
+        const readStream = fs.createReadStream(tempGeojsonPath);
+        const writeStream = fs.createWriteStream(finalPath);
+        const gzip = zlib.createGzip();
+        
+        await new Promise((resolve, reject) => {
+          readStream.pipe(gzip).pipe(writeStream);
+          writeStream.on('finish', resolve);
+          writeStream.on('error', reject);
         });
+        
+        // Cleanup temp files
+        if (fs.existsSync(tempPbfPath)) fs.unlinkSync(tempPbfPath);
+        if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
+        
+        const finalStats = fs.statSync(finalPath);
+        console.log(`  ✅ Saved: Large file compressed (${(finalStats.size / 1024 / 1024).toFixed(2)}MB)`);
+        return true;
       }
       
-      const compressed = zlib.gzipSync(JSON.stringify(geojson));
-      fs.writeFileSync(finalPath, compressed);
-      
-      // Cleanup temp files
-      if (fs.existsSync(tempPbfPath)) fs.unlinkSync(tempPbfPath);
-      if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
-      
-      const stats = fs.statSync(finalPath);
-      console.log(`  ✅ Saved: ${geojson.features?.length || 0} features (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
-      return true;
+      // For smaller files, parse and filter as before
+      try {
+        const geojson = JSON.parse(fs.readFileSync(tempGeojsonPath, 'utf8'));
+        
+        // Filter to only include features with admin_level
+        if (geojson.features) {
+          geojson.features = geojson.features.filter(f => {
+            const adminLevelTag = f.properties?.['boundary:administrative'] || 
+                                 f.properties?.admin_level ||
+                                 f.properties?.['admin_level'];
+            return adminLevelTag === adminLevel || adminLevelTag === String(adminLevel);
+          });
+        }
+        
+        const compressed = zlib.gzipSync(JSON.stringify(geojson));
+        fs.writeFileSync(finalPath, compressed);
+        
+        // Cleanup temp files
+        if (fs.existsSync(tempPbfPath)) fs.unlinkSync(tempPbfPath);
+        if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
+        
+        const finalStats = fs.statSync(finalPath);
+        console.log(`  ✅ Saved: ${geojson.features?.length || 0} features (${(finalStats.size / 1024 / 1024).toFixed(2)}MB)`);
+        return true;
+      } catch (error) {
+        if (error.message.includes('string longer than')) {
+          // Fallback to streaming compression if JSON.parse fails
+          console.log(`  ⚠️  JSON.parse failed (file too large), using streaming compression...`);
+          const readStream = fs.createReadStream(tempGeojsonPath);
+          const writeStream = fs.createWriteStream(finalPath);
+          const gzip = zlib.createGzip();
+          
+          await new Promise((resolve, reject) => {
+            readStream.pipe(gzip).pipe(writeStream);
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+          });
+          
+          // Cleanup temp files
+          if (fs.existsSync(tempPbfPath)) fs.unlinkSync(tempPbfPath);
+          if (fs.existsSync(tempGeojsonPath)) fs.unlinkSync(tempGeojsonPath);
+          
+          const finalStats = fs.statSync(finalPath);
+          console.log(`  ✅ Saved: Large file compressed (${(finalStats.size / 1024 / 1024).toFixed(2)}MB)`);
+          return true;
+        }
+        throw error;
+      }
     }
     
     return false;
@@ -596,9 +653,78 @@ async function main() {
   }
   
   console.log('\n✅ Pack building complete!');
+  
+  // Upload geofabrik files to GCS
+  console.log('\n📤 Uploading geofabrik packs to GCS...');
+  await uploadGeofabrikPacksToGCS(countries);
+  
   console.log('\nNext steps:');
-  console.log('  1. Update loadAdmPack to try Geofabrik packs');
+  console.log('  1. Geofabrik packs uploaded to GCS bucket');
   console.log('  2. Regenerate gallery data');
+}
+
+function getStorageClient() {
+  try {
+    const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+    if (serviceAccountJson) {
+      const credentials = JSON.parse(serviceAccountJson);
+      return new Storage({
+        projectId: credentials.project_id,
+        credentials: credentials
+      });
+    }
+    return new Storage();
+  } catch (error) {
+    console.warn('⚠️  GCS not available, skipping upload:', error.message);
+    return null;
+  }
+}
+
+async function uploadGeofabrikPacksToGCS(countries) {
+  const storage = getStorageClient();
+  if (!storage) {
+    console.log('   ⚠️  GCS not configured, skipping upload');
+    return;
+  }
+  
+  const bucket = storage.bucket(BOUNDARY_PACKS_BUCKET);
+  const [exists] = await bucket.exists();
+  if (!exists) {
+    console.log(`   ⚠️  Bucket ${BOUNDARY_PACKS_BUCKET} does not exist, skipping upload`);
+    return;
+  }
+  
+  let uploaded = 0;
+  let skipped = 0;
+  
+  for (const country of countries) {
+    const countryDir = path.join(ADM_PACK_DIR, country);
+    if (!fs.existsSync(countryDir)) continue;
+    
+    const files = fs.readdirSync(countryDir).filter(f => f.includes('geofabrik') && f.endsWith('.json.gz'));
+    
+    for (const fileName of files) {
+      const localPath = path.join(countryDir, fileName);
+      const remotePath = `${BOUNDARY_PACKS_PREFIX}/${country}/${fileName}`;
+      
+      try {
+        await bucket.upload(localPath, {
+          destination: remotePath,
+          metadata: {
+            cacheControl: 'public, max-age=31536000',
+            contentType: 'application/gzip',
+          },
+        });
+        uploaded++;
+        console.log(`   ✅ Uploaded ${country}/${fileName}`);
+      } catch (error) {
+        skipped++;
+        console.warn(`   ⚠️  Failed to upload ${country}/${fileName}: ${error.message}`);
+      }
+    }
+  }
+  
+  console.log(`\n   📊 Uploaded: ${uploaded}, Failed: ${skipped}`);
 }
 
 main().catch(console.error);

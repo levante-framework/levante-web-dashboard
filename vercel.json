@@ -147,6 +147,11 @@
       ]
     },
     {
+      "source": "/api/adm-pack",
+      "destination": "/api/adm-pack.js",
+      "maxDuration": 30
+    },
+    {
       "source": "/adm-packs/(.*)",
       "headers": [
         {

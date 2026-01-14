@@ -705,8 +705,19 @@ createApp({
       if (!code) return null;
       if (this.admPackCache[code] !== undefined) return this.admPackCache[code];
       try {
-        const fetchGzJson = async (url) => {
-          const res = await fetch(url, { cache: 'force-cache' });
+        const fetchPack = async (fileName) => {
+          // Try API endpoint first (loads from GCS)
+          try {
+            const res = await fetch(`${apiUrl('/api/adm-pack')}?country=${encodeURIComponent(code)}&file=${encodeURIComponent(fileName)}`, { cache: 'force-cache' });
+            if (res.ok) {
+              return await res.json();
+            }
+          } catch (e) {
+            // Fall back to direct file access
+          }
+          
+          // Fallback to direct file access (for non-geofabrik files)
+          const res = await fetch(`/adm-packs/${code}/${fileName}`, { cache: 'force-cache' });
           if (!res.ok) throw new Error(`pack missing (${res.status})`);
           const buf = await res.arrayBuffer();
           if (typeof DecompressionStream === 'undefined') {
@@ -717,9 +728,9 @@ createApp({
           return stream.json();
         };
 
-        const adm2 = await fetchGzJson(`/adm-packs/${code}/adm2.json.gz`);
+        const adm2 = await fetchPack('adm2.json.gz');
         // ADM3 is optional; for US we use per-state tract packs (downloaded on demand).
-        const adm3 = code === 'us' ? null : await fetchGzJson(`/adm-packs/${code}/adm3.json.gz`).catch(() => null);
+        const adm3 = code === 'us' ? null : await fetchPack('adm3.json.gz').catch(() => null);
 
         const bundle = { adm2, adm3 };
         this.admPackCache[code] = bundle;
@@ -736,6 +747,19 @@ createApp({
       const key = `us:adm3:${st}`;
       if (this.admPackCache[key] !== undefined) return this.admPackCache[key];
       try {
+        // Try API endpoint first (loads from GCS)
+        try {
+          const res = await fetch(`${apiUrl('/api/adm-pack')}?country=us&file=adm3/${st}.json.gz`, { cache: 'force-cache' });
+          if (res.ok) {
+            const json = await res.json();
+            this.admPackCache[key] = json;
+            return json;
+          }
+        } catch (e) {
+          // Fall back to direct file access
+        }
+        
+        // Fallback to direct file access
         const json = await this.fetchGzJson(`/adm-packs/us/adm3/${st}.json.gz`);
         this.admPackCache[key] = json;
         return json;
@@ -750,6 +774,19 @@ createApp({
       const key = `us:adm3-place:${st}`;
       if (this.admPackCache[key] !== undefined) return this.admPackCache[key];
       try {
+        // Try API endpoint first (loads from GCS)
+        try {
+          const res = await fetch(`${apiUrl('/api/adm-pack')}?country=us&file=adm3-place/${st}.json.gz`, { cache: 'force-cache' });
+          if (res.ok) {
+            const json = await res.json();
+            this.admPackCache[key] = json;
+            return json;
+          }
+        } catch (e) {
+          // Fall back to direct file access
+        }
+        
+        // Fallback to direct file access
         const json = await this.fetchGzJson(`/adm-packs/us/adm3-place/${st}.json.gz`);
         this.admPackCache[key] = json;
         return json;
