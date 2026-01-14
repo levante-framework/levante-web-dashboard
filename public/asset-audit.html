@@ -734,17 +734,7 @@
       document.getElementById('onlyInDevList').innerHTML = onlyInDevHtml;
       document.getElementById('newerInDevList').innerHTML = newerInDevHtml;
       
-      // Expand first level folders by default
-      setTimeout(() => {
-        document.querySelectorAll('.folder-children').forEach(children => {
-          if (children.parentElement?.querySelector('.folder-header')) {
-            children.classList.add('expanded');
-            const toggle = children.parentElement.querySelector('.folder-toggle');
-            if (toggle) toggle.classList.add('expanded');
-          }
-        });
-      }, 100);
-      
+      // All folders start collapsed by default
       document.getElementById('resultsSection').style.display = 'grid';
     }
     
