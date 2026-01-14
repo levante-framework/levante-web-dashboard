@@ -83,6 +83,33 @@ function formatPopulation(n) {
   }
 }
 
+function roundCoordFixed(value, decimals = 6) {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
+function kmToLatDelta(km) {
+  return km / 111.0;
+}
+
+function kmToLonDelta(km, lat) {
+  const denom = 111.0 * Math.cos(lat * Math.PI / 180);
+  return denom ? (km / denom) : 0;
+}
+
+function buildKmSquareGeometry(centerLon, centerLat, halfKm) {
+  const latOffset = kmToLatDelta(halfKm);
+  const lonOffset = kmToLonDelta(halfKm, centerLat);
+  const ring = [
+    [roundCoordFixed(centerLon - lonOffset), roundCoordFixed(centerLat - latOffset)],
+    [roundCoordFixed(centerLon + lonOffset), roundCoordFixed(centerLat - latOffset)],
+    [roundCoordFixed(centerLon + lonOffset), roundCoordFixed(centerLat + latOffset)],
+    [roundCoordFixed(centerLon - lonOffset), roundCoordFixed(centerLat + latOffset)],
+    [roundCoordFixed(centerLon - lonOffset), roundCoordFixed(centerLat - latOffset)]
+  ];
+  return { type: 'Polygon', coordinates: [ring] };
+}
+
 // --- WorldPop Population Cache ---
 const WORLDPOP_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'worldpop-cache.json');
 let worldPopCache = null;
@@ -288,6 +315,28 @@ async function estimatePopulationFromWorldPop(geometry, countryCode) {
     }
     return null;
   }
+}
+
+async function estimatePopulationFromWorldPopTiles(point, countryCode) {
+  if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lon)) return null;
+  const offsets = [-1, 0, 1];
+  let total = 0;
+  let hasAny = false;
+
+  for (const dy of offsets) {
+    const tileLat = point.lat + kmToLatDelta(dy);
+    for (const dx of offsets) {
+      const tileLon = point.lon + kmToLonDelta(dx, tileLat);
+      const geom = buildKmSquareGeometry(tileLon, tileLat, 0.5);
+      const tilePop = await estimatePopulationFromWorldPop(geom, countryCode);
+      if (typeof tilePop === 'number' && tilePop >= 0) {
+        total += tilePop;
+        hasAny = true;
+      }
+    }
+  }
+
+  return hasAny ? total : null;
 }
 
 // --- Weather (Open-Meteo) ---
@@ -1560,6 +1609,8 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
             
             const localPopText = localPopEst ? formatPopulation(localPopEst) : 'Unknown';
             const bluePopText = bluePopEst ? formatPopulation(bluePopEst) : 'Unknown';
+            const gridPopEst = await estimatePopulationFromWorldPopTiles(point, point?.country);
+            const gridPopText = gridPopEst ? formatPopulation(gridPopEst) : 'Unknown';
 
             // Polygon pack download estimate (not basemap tiles)
             const dl = estimatePolygonPackDownload(point, adminArea, cityArea, polygons, usLocalSource);
@@ -1642,24 +1693,25 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     <text x="${Math.round(labelX + labelW/2)}" y="${Math.round(labelY + labelH/2) + 5}" text-anchor="middle">${escapeXml(labelText)}</text>
   </g>
 </svg>`);
-            const legendSvg = Buffer.from(`<svg width="780" height="820" viewBox="0 0 260 276" xmlns="http://www.w3.org/2000/svg">
+            const legendSvg = Buffer.from(`<svg width="780" height="850" viewBox="0 0 260 286" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: 'Inter', 'Helvetica', 'Arial', sans-serif; font-size: 11px; fill: #111827; }
   </style>
-  <rect x="12" y="12" width="236" height="252" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
+  <rect x="12" y="12" width="236" height="262" rx="10" ry="10" fill="white" fill-opacity="0.85" stroke="#e5e7eb" stroke-width="1" />
   <rect x="24" y="32" width="18" height="18" fill="#da3d16" stroke="#da3d16" stroke-width="2" />
   <text x="50" y="46">GPS point</text>
   <rect x="24" y="62" width="18" height="18" fill="#22c55e" fill-opacity="0.26" stroke="#16a34a" stroke-width="2" />
   <text x="50" y="76">1 &amp; 5-mile radius circles</text>
-  <rect x="24" y="92" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
-  <text x="50" y="106">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
-  <text x="50" y="120">Pop: ${escapeXml(localPopText)}</text>
-  <rect x="24" y="140" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
-  <text x="50" y="154">Blue: Regional (ADM${escapeXml(String(cityLevel || '2'))}) ${escapeXml(cityAreaName)}</text>
-  <text x="50" y="168">Pop: ${escapeXml(bluePopText)}</text>
-  <text x="50" y="198">Polygons downloaded: ${escapeXml(dlText)}</text>
-  <text x="50" y="224">${escapeXml(weatherLine)}</text>
-  <text x="50" y="240">${escapeXml(weatherTimeLine)}</text>
+  <text x="50" y="94">Pop (3km x 3km): ${escapeXml(gridPopText)}</text>
+  <rect x="24" y="106" width="18" height="18" fill="none" stroke="#dc2626" stroke-width="3" />
+  <text x="50" y="120">Red: Local (ADM${escapeXml(String(localLevel || ''))}) ${escapeXml(localName)}</text>
+  <text x="50" y="134">Pop: ${escapeXml(localPopText)}</text>
+  <rect x="24" y="146" width="18" height="18" fill="none" stroke="#2563eb" stroke-width="3" />
+  <text x="50" y="160">Blue: Regional (ADM${escapeXml(String(cityLevel || '2'))}) ${escapeXml(cityAreaName)}</text>
+  <text x="50" y="174">Pop: ${escapeXml(bluePopText)}</text>
+  <text x="50" y="206">Polygons downloaded: ${escapeXml(dlText)}</text>
+  <text x="50" y="232">${escapeXml(weatherLine)}</text>
+  <text x="50" y="248">${escapeXml(weatherTimeLine)}</text>
 </svg>`);
             await sharp(buffer)
               .composite([
