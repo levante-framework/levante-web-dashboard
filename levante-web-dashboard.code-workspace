@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "workbench.colorTheme": "Default Light+",
+    "workbench.sideBar.location": "left",
+    "workbench.panel.defaultLocation": "bottom",
+    "workbench.editor.restoreViewState": true,
+    "workbench.stateService.enabled": true,
+    "cursor.chat.panelLocation": "right"
+  }
+}

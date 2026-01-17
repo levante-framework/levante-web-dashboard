@@ -1,0 +1,38 @@
+{
+  // Theme - Light
+  "workbench.colorTheme": "Default Light+",
+  
+  // Panel layout
+  "workbench.panel.defaultLocation": "bottom",
+  "workbench.sideBar.location": "left",
+  
+  // View locations - persist layout
+  "workbench.view.alwaysShowHeaderActions": true,
+  
+  // Editor layout
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.showTabs": "multiple",
+  
+  // Persist editor layout and panel positions
+  "workbench.editor.restoreViewState": true,
+  "workbench.panel.opensMaximized": "never",
+  
+  // Explorer (folder view) on left sidebar
+  "explorer.sortOrder": "type",
+  "explorer.fileNesting.enabled": true,
+  
+  // Source control on left sidebar
+  "scm.diffDecorations": "all",
+  
+  // Search on left sidebar
+  "search.useGlobalIgnoreFiles": true,
+  
+  // Chat panel - Cursor-specific settings
+  "cursor.chat.defaultLocation": "editor",
+  "cursor.chat.panelLocation": "right",
+  
+  // Persist workspace state
+  "workbench.stateService.enabled": true,
+  
+  // This ensures the standard panels (explorer, source control, search) stay on the left
+}
