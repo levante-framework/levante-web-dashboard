@@ -1,0 +1,2524 @@
+{
+  "generatedAt": "2026-01-16T02:08:00.901Z",
+  "sourceSeedFile": "public/gallery/locate-me/seed-points.json",
+  "populationThreshold": 50000,
+  "shiftKm": 1,
+  "tiles": {
+    "tileKm": 1,
+    "sizes": [
+      1,
+      3,
+      5,
+      7
+    ],
+    "gridSize": 7
+  },
+  "points": [
+    {
+      "id": "US-sf",
+      "label": "San Francisco, CA",
+      "country": "US",
+      "gps": {
+        "lat": 37.7749,
+        "lon": -122.4194
+      },
+      "fauxLocation": {
+        "lat": 37.76853,
+        "lon": -122.411341,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 78470,
+        "areaKm2": 9,
+        "totals": {
+          "1": 2551,
+          "3": 78470,
+          "5": 250597,
+          "7": 411132
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "San Francisco",
+          "population": 834146
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 12.9,
+        "description": "Clear",
+        "observedAt": "2026-01-15T17:30",
+        "query": {
+          "lat": 37.7749,
+          "lon": -122.4194,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 18,
+      "populationDensityPerKm2": 31832,
+      "nearestSchool": null
+    },
+    {
+      "id": "US-portland",
+      "label": "Portland, OR",
+      "country": "US",
+      "gps": {
+        "lat": 45.5231,
+        "lon": -122.6765
+      },
+      "fauxLocation": {
+        "lat": 45.5231,
+        "lon": -122.689359,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 61619,
+        "areaKm2": 25,
+        "totals": {
+          "1": 4176,
+          "3": 44930,
+          "5": 61619,
+          "7": 112388
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Multnomah",
+          "population": 823391
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 10,
+        "description": "Clear",
+        "observedAt": "2026-01-15T17:30",
+        "query": {
+          "lat": 45.5231,
+          "lon": -122.6765,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 13,
+      "populationDensityPerKm2": 5179,
+      "nearestSchool": {
+        "name": "Metropolitan Learning Center",
+        "distanceKm": 0.5002911229866125,
+        "source": "overpass",
+        "lat": 45.5266876,
+        "lon": -122.6932345
+      }
+    },
+    {
+      "id": "US-miami",
+      "label": "Miami, FL",
+      "country": "US",
+      "gps": {
+        "lat": 25.7617,
+        "lon": -80.1918
+      },
+      "fauxLocation": {
+        "lat": 25.752691,
+        "lon": -80.1918,
+        "direction": "S",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 69174,
+        "areaKm2": 25,
+        "totals": {
+          "1": 811,
+          "3": 30123,
+          "5": 69174,
+          "7": 118918
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Miami-Dade",
+          "population": 2765321
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 11.4,
+        "description": "Clear",
+        "observedAt": "2026-01-15T20:30",
+        "query": {
+          "lat": 25.7617,
+          "lon": -80.1918,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 5,
+      "populationDensityPerKm2": 7459,
+      "nearestSchool": {
+        "name": "Brickell Christian School",
+        "distanceKm": 0.9393952253427076,
+        "source": "overpass",
+        "lat": 25.7587107,
+        "lon": -80.1983813
+      }
+    },
+    {
+      "id": "CA-vancouver",
+      "label": "Vancouver, BC",
+      "country": "CA",
+      "gps": {
+        "lat": 49.2827,
+        "lon": -123.1207
+      },
+      "fauxLocation": {
+        "lat": 49.2827,
+        "lon": -123.106889,
+        "direction": "E",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 70658,
+        "areaKm2": 9,
+        "totals": {
+          "1": 19211,
+          "3": 70658,
+          "5": 190015,
+          "7": 287839
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Lower Mainland--Southwest / L*",
+          "population": 3017847
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Vancouver",
+          "population": 666661
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 6.5,
+        "description": "Clear",
+        "observedAt": "2026-01-15T17:30",
+        "query": {
+          "lat": 49.2827,
+          "lon": -123.1207,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 40,
+      "populationDensityPerKm2": 22204,
+      "nearestSchool": {
+        "name": "Vancouver Film School",
+        "distanceKm": 0.09006414019004483,
+        "source": "overpass",
+        "lat": 49.2832374,
+        "lon": -123.107818
+      }
+    },
+    {
+      "id": "CA-toronto",
+      "label": "Toronto, ON",
+      "country": "CA",
+      "gps": {
+        "lat": 43.6532,
+        "lon": -79.3832
+      },
+      "fauxLocation": {
+        "lat": 43.64683,
+        "lon": -79.374395,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 61898,
+        "areaKm2": 9,
+        "totals": {
+          "1": 13264,
+          "3": 61898,
+          "5": 175885,
+          "7": 288995
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Toronto",
+          "population": 6849228
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Toronto",
+          "population": 2807772
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -12.6,
+        "description": "Partly cloudy",
+        "observedAt": "2026-01-15T20:30",
+        "query": {
+          "lat": 43.6532,
+          "lon": -79.3832,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 99,
+      "populationDensityPerKm2": 10906,
+      "nearestSchool": {
+        "name": "Downtown Alternative School",
+        "distanceKm": 0.33880379050569953,
+        "source": "overpass",
+        "lat": 43.6477437,
+        "lon": -79.370378
+      }
+    },
+    {
+      "id": "CO-bogota",
+      "label": "Bogotá",
+      "country": "CO",
+      "gps": {
+        "lat": 4.711,
+        "lon": -74.0721
+      },
+      "fauxLocation": {
+        "lat": 4.70463,
+        "lon": -74.065708,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 181967,
+        "areaKm2": 9,
+        "totals": {
+          "1": 20516,
+          "3": 181967,
+          "5": 505660,
+          "7": 1144931
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Bogotá, D.c.",
+          "population": 10210987
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 13.1,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T20:30",
+        "query": {
+          "lat": 4.711,
+          "lon": -74.0721,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 2557,
+      "populationDensityPerKm2": 21139,
+      "nearestSchool": {
+        "name": "IED Prado Veraniego I",
+        "distanceKm": 1.3130158148257907,
+        "source": "overpass",
+        "lat": 4.7150116,
+        "lon": -74.0713535
+      }
+    },
+    {
+      "id": "CO-medellin",
+      "label": "Medellín",
+      "country": "CO",
+      "gps": {
+        "lat": 6.2518,
+        "lon": -75.5636
+      },
+      "fauxLocation": {
+        "lat": 6.24543,
+        "lon": -75.570008,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 143914,
+        "areaKm2": 9,
+        "totals": {
+          "1": 16302,
+          "3": 143914,
+          "5": 396915,
+          "7": 868259
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Medellín",
+          "population": 3097870
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 18.4,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T21:00",
+        "query": {
+          "lat": 6.2518,
+          "lon": -75.5636,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 1493,
+      "populationDensityPerKm2": 15664,
+      "nearestSchool": {
+        "name": "Instituto Ferrini",
+        "distanceKm": 0.8121573573469486,
+        "source": "overpass",
+        "lat": 6.2446418,
+        "lon": -75.5627034
+      }
+    },
+    {
+      "id": "CO-cartagena",
+      "label": "Cartagena",
+      "country": "CO",
+      "gps": {
+        "lat": 10.391,
+        "lon": -75.4794
+      },
+      "fauxLocation": {
+        "lat": 10.38463,
+        "lon": -75.472923,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 77509,
+        "areaKm2": 9,
+        "totals": {
+          "1": 8755,
+          "3": 77509,
+          "5": 202844,
+          "7": 386611
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Cartagena De Indias",
+          "population": 1209856
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 27.3,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T20:30",
+        "query": {
+          "lat": 10.391,
+          "lon": -75.4794,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 13,
+      "populationDensityPerKm2": 19137,
+      "nearestSchool": null
+    },
+    {
+      "id": "DE-berlin",
+      "label": "Berlin",
+      "country": "DE",
+      "gps": {
+        "lat": 52.52,
+        "lon": 13.405
+      },
+      "fauxLocation": {
+        "lat": 52.52637,
+        "lon": 13.415469,
+        "direction": "NE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 52584,
+        "areaKm2": 9,
+        "totals": {
+          "1": 5801,
+          "3": 52584,
+          "5": 116217,
+          "7": 275151
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Berlin",
+          "population": 3229613
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Berlin",
+          "population": 3229763
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 3,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T03:00",
+        "query": {
+          "lat": 52.52,
+          "lon": 13.405,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 37,
+      "populationDensityPerKm2": 5677,
+      "nearestSchool": {
+        "name": "Unnamed school",
+        "distanceKm": 0.6320841543125559,
+        "source": "overpass",
+        "lat": 52.5273506,
+        "lon": 13.4062656
+      }
+    },
+    {
+      "id": "DE-munich",
+      "label": "Munich",
+      "country": "DE",
+      "gps": {
+        "lat": 48.1374,
+        "lon": 11.5755
+      },
+      "fauxLocation": {
+        "lat": 48.1374,
+        "lon": 11.589,
+        "direction": "E",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 54985,
+        "areaKm2": 9,
+        "totals": {
+          "1": 6107,
+          "3": 54985,
+          "5": 147787,
+          "7": 293190
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Oberbayern",
+          "population": 4551952
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "München, Kreisfreie Stadt",
+          "population": 1500316
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 1.6,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T02:30",
+        "query": {
+          "lat": 48.1374,
+          "lon": 11.5755,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 524,
+      "populationDensityPerKm2": 8055,
+      "nearestSchool": {
+        "name": "Otto-Falckenberg-Schule",
+        "distanceKm": 0.46967657994834583,
+        "source": "overpass",
+        "lat": 48.1368214,
+        "lon": 11.5827303
+      }
+    },
+    {
+      "id": "DE-cologne",
+      "label": "Cologne",
+      "country": "DE",
+      "gps": {
+        "lat": 50.9375,
+        "lon": 6.9603
+      },
+      "fauxLocation": {
+        "lat": 50.9375,
+        "lon": 6.946004,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 100037,
+        "areaKm2": 25,
+        "totals": {
+          "1": 4860,
+          "3": 35006,
+          "5": 100037,
+          "7": 186338
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Köln",
+          "population": 4251103
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Köln, Kreisfreie Stadt",
+          "population": 1051792
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 9.9,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T03:00",
+        "query": {
+          "lat": 50.9375,
+          "lon": 6.9603,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 55,
+      "populationDensityPerKm2": 2005,
+      "nearestSchool": {
+        "name": "Englisches Institut Köln",
+        "distanceKm": 0.06558622320456242,
+        "source": "overpass",
+        "lat": 50.9380732,
+        "lon": 6.9457833
+      }
+    },
+    {
+      "id": "DE-trier",
+      "label": "Trier, Germany",
+      "country": "DE",
+      "gps": {
+        "lat": 49.7557,
+        "lon": 6.6394
+      },
+      "fauxLocation": {
+        "lat": 49.76207,
+        "lon": 6.62954,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 59224,
+        "areaKm2": 49,
+        "totals": {
+          "1": 2396,
+          "3": 14125,
+          "5": 34176,
+          "7": 59224
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Trier",
+          "population": 519686
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Trier, Kreisfreie Stadt",
+          "population": 110287
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 9.2,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T02:30",
+        "query": {
+          "lat": 49.7557,
+          "lon": 6.6394,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 144,
+      "populationDensityPerKm2": 3226,
+      "nearestSchool": {
+        "name": "Ausonius-Grundschule",
+        "distanceKm": 0.4568956308358784,
+        "source": "overpass",
+        "lat": 49.7597531,
+        "lon": 6.6347932
+      }
+    },
+    {
+      "id": "US-nyc",
+      "label": "New York, NY",
+      "country": "US",
+      "gps": {
+        "lat": 40.7128,
+        "lon": -74.006
+      },
+      "fauxLocation": {
+        "lat": 40.703791,
+        "lon": -74.006,
+        "direction": "S",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 115982,
+        "areaKm2": 9,
+        "totals": {
+          "1": 9534,
+          "3": 115982,
+          "5": 271047,
+          "7": 499101
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "New York",
+          "population": 1642504
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -3.5,
+        "description": "Clear",
+        "observedAt": "2026-01-15T21:00",
+        "query": {
+          "lat": 40.7128,
+          "lon": -74.006,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 32,
+      "populationDensityPerKm2": 15564,
+      "nearestSchool": {
+        "name": "Public School 124",
+        "distanceKm": 1.3844126821119513,
+        "source": "overpass",
+        "lat": 40.7144444,
+        "lon": -73.9975
+      }
+    },
+    {
+      "id": "US-chicago",
+      "label": "Chicago, IL",
+      "country": "US",
+      "gps": {
+        "lat": 41.8781,
+        "lon": -87.6298
+      },
+      "fauxLocation": {
+        "lat": 41.88447,
+        "lon": -87.638356,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 70287,
+        "areaKm2": 9,
+        "totals": {
+          "1": 4273,
+          "3": 70287,
+          "5": 170546,
+          "7": 273591
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Cook",
+          "population": 4970412
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -7.5,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T19:45",
+        "query": {
+          "lat": 41.8781,
+          "lon": -87.6298,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 241,
+      "populationDensityPerKm2": 3890,
+      "nearestSchool": {
+        "name": "National College of Education Urban Campus",
+        "distanceKm": 1.1789426857192489,
+        "source": "overpass",
+        "lat": 41.8813543,
+        "lon": -87.6247439
+      }
+    },
+    {
+      "id": "US-soldotna",
+      "label": "Soldotna, AK",
+      "country": "US",
+      "gps": {
+        "lat": 60.4878,
+        "lon": -151.0583
+      },
+      "fauxLocation": {
+        "lat": 60.49417,
+        "lon": -151.071232,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 6602,
+        "areaKm2": 49,
+        "totals": {
+          "1": 287,
+          "3": 4177,
+          "5": 5406,
+          "7": 6602
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Kenai Peninsula",
+          "population": 60833
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 0.7,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T17:00",
+        "query": {
+          "lat": 60.4878,
+          "lon": -151.0583,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 37,
+      "populationDensityPerKm2": 229,
+      "nearestSchool": {
+        "name": "Soldotna Elementary School",
+        "distanceKm": 0.30406711179925167,
+        "source": "overpass",
+        "lat": 60.4915955,
+        "lon": -151.0693605
+      }
+    },
+    {
+      "id": "US-billings",
+      "label": "Billings, MT",
+      "country": "US",
+      "gps": {
+        "lat": 45.7833,
+        "lon": -108.5007
+      },
+      "fauxLocation": {
+        "lat": 45.77693,
+        "lon": -108.491565,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 31241,
+        "areaKm2": 49,
+        "totals": {
+          "1": 697,
+          "3": 5950,
+          "5": 20322,
+          "7": 31241
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Yellowstone",
+          "population": 169268
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 2.3,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T18:45",
+        "query": {
+          "lat": 45.7833,
+          "lon": -108.5007,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 954,
+      "populationDensityPerKm2": 1665,
+      "nearestSchool": {
+        "name": "Garfield School",
+        "distanceKm": 1.3040418585536118,
+        "source": "overpass",
+        "lat": 45.7764813,
+        "lon": -108.5083674
+      }
+    },
+    {
+      "id": "US-terlingua",
+      "label": "Terlingua, TX",
+      "country": "US",
+      "gps": {
+        "lat": 29.3216,
+        "lon": -103.616
+      },
+      "fauxLocation": {
+        "lat": 29.3216,
+        "lon": -103.626333,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 101,
+        "areaKm2": 49,
+        "totals": {
+          "1": 13,
+          "3": 61,
+          "5": 90,
+          "7": 101
+        }
+      },
+      "adm": {
+        "adm2": null,
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 14.2,
+        "description": "Clear",
+        "observedAt": "2026-01-15T19:45",
+        "query": {
+          "lat": 29.3216,
+          "lon": -103.616,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 884,
+      "populationDensityPerKm2": 13,
+      "nearestSchool": null
+    },
+    {
+      "id": "US-austin",
+      "label": "Austin, TX",
+      "country": "US",
+      "gps": {
+        "lat": 30.2672,
+        "lon": -97.7431
+      },
+      "fauxLocation": {
+        "lat": 30.2672,
+        "lon": -97.753531,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 73013,
+        "areaKm2": 25,
+        "totals": {
+          "1": 2129,
+          "3": 27346,
+          "5": 73013,
+          "7": 140927
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Travis",
+          "population": 1293392
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 14.5,
+        "description": "Clear",
+        "observedAt": "2026-01-15T19:45",
+        "query": {
+          "lat": 30.2672,
+          "lon": -97.7431,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 157,
+      "populationDensityPerKm2": 3227,
+      "nearestSchool": {
+        "name": "Alpha High School",
+        "distanceKm": 0.8471936618818003,
+        "source": "overpass",
+        "lat": 30.2648309,
+        "lon": -97.7451469
+      }
+    },
+    {
+      "id": "US-glencoe-il",
+      "label": "Glencoe, IL",
+      "country": "US",
+      "gps": {
+        "lat": 42.135,
+        "lon": -87.7581
+      },
+      "fauxLocation": {
+        "lat": 42.125991,
+        "lon": -87.7581,
+        "direction": "S",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 30975,
+        "areaKm2": 49,
+        "totals": {
+          "1": 1586,
+          "3": 8140,
+          "5": 17991,
+          "7": 30975
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Cook",
+          "population": 4970412
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -6.9,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T19:45",
+        "query": {
+          "lat": 42.135,
+          "lon": -87.7581,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 207,
+      "populationDensityPerKm2": 1522,
+      "nearestSchool": {
+        "name": "South School",
+        "distanceKm": 0.5769034042090555,
+        "source": "overpass",
+        "lat": 42.1241778,
+        "lon": -87.7515459
+      }
+    },
+    {
+      "id": "US-harbor-springs-lakeshore-2999",
+      "label": "2999 N Lakeshore Dr (approx), Harbor Springs, MI",
+      "country": "US",
+      "gps": {
+        "lat": 45.4317,
+        "lon": -84.992
+      },
+      "fauxLocation": {
+        "lat": 45.43807,
+        "lon": -85.001078,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 2560,
+        "areaKm2": 49,
+        "totals": {
+          "1": 383,
+          "3": 1183,
+          "5": 2175,
+          "7": 2560
+        }
+      },
+      "adm": {
+        "adm2": null,
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -11.9,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T20:45",
+        "query": {
+          "lat": 45.4317,
+          "lon": -84.992,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 213,
+      "populationDensityPerKm2": 246,
+      "nearestSchool": {
+        "name": "Harbor Springs Middle School",
+        "distanceKm": 0.9220160033981913,
+        "source": "overpass",
+        "lat": 45.4362605,
+        "lon": -84.9895458
+      }
+    },
+    {
+      "id": "US-minneapolis-pillsbury-3944",
+      "label": "3944 Pillsbury Ave S, Minneapolis, MN",
+      "country": "US",
+      "gps": {
+        "lat": 44.9315,
+        "lon": -93.2815
+      },
+      "fauxLocation": {
+        "lat": 44.9315,
+        "lon": -93.294225,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 91809,
+        "areaKm2": 25,
+        "totals": {
+          "1": 2432,
+          "3": 18053,
+          "5": 91809,
+          "7": 162551
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Hennepin",
+          "population": 1187473
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -2.6,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T20:00",
+        "query": {
+          "lat": 44.9315,
+          "lon": -93.2815,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 267,
+      "populationDensityPerKm2": 2106,
+      "nearestSchool": {
+        "name": "Stonebridge World School",
+        "distanceKm": 1.2986322816997822,
+        "source": "overpass",
+        "lat": 44.9204883,
+        "lon": -93.2887296
+      }
+    },
+    {
+      "id": "US-stanford",
+      "label": "Stanford University (campus center), CA",
+      "country": "US",
+      "gps": {
+        "lat": 37.4275,
+        "lon": -122.1697
+      },
+      "fauxLocation": {
+        "lat": 37.43387,
+        "lon": -122.161678,
+        "direction": "NE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 59333,
+        "areaKm2": 25,
+        "totals": {
+          "1": 42,
+          "3": 26428,
+          "5": 59333,
+          "7": 113045
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Santa Clara",
+          "population": 1888980
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 15,
+        "description": "Clear",
+        "observedAt": "2026-01-15T17:45",
+        "query": {
+          "lat": 37.4275,
+          "lon": -122.1697,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 32,
+      "populationDensityPerKm2": 362,
+      "nearestSchool": {
+        "name": "Palo Alto High School",
+        "distanceKm": 0.5646160245490079,
+        "source": "overpass",
+        "lat": 37.4358108,
+        "lon": -122.1557688
+      }
+    },
+    {
+      "id": "US-palo-alto",
+      "label": "Palo Alto, CA",
+      "country": "US",
+      "gps": {
+        "lat": 37.4419,
+        "lon": -122.143
+      },
+      "fauxLocation": {
+        "lat": 37.44827,
+        "lon": -122.151023,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 72854,
+        "areaKm2": 25,
+        "totals": {
+          "1": 5161,
+          "3": 22181,
+          "5": 72854,
+          "7": 127275
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Santa Clara",
+          "population": 1888980
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 14.5,
+        "description": "Clear",
+        "observedAt": "2026-01-15T18:00",
+        "query": {
+          "lat": 37.4419,
+          "lon": -122.143,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 11,
+      "populationDensityPerKm2": 3621,
+      "nearestSchool": null
+    },
+    {
+      "id": "US-portola-valley",
+      "label": "Portola Valley, CA",
+      "country": "US",
+      "gps": {
+        "lat": 37.3841,
+        "lon": -122.2352
+      },
+      "fauxLocation": {
+        "lat": 37.39047,
+        "lon": -122.243217,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 7,
+        "populationSelected": 7147,
+        "areaKm2": 49,
+        "totals": {
+          "1": 277,
+          "3": 1183,
+          "5": 2831,
+          "7": 7147
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "San Mateo",
+          "population": 721594
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 14.7,
+        "description": "Clear",
+        "observedAt": "2026-01-15T17:45",
+        "query": {
+          "lat": 37.3841,
+          "lon": -122.2352,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 162,
+      "populationDensityPerKm2": 354,
+      "nearestSchool": null
+    },
+    {
+      "id": "CA-montreal",
+      "label": "Montreal, QC",
+      "country": "CA",
+      "gps": {
+        "lat": 45.5017,
+        "lon": -73.5673
+      },
+      "fauxLocation": {
+        "lat": 45.49533,
+        "lon": -73.576389,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 53399,
+        "areaKm2": 9,
+        "totals": {
+          "1": 16351,
+          "3": 53399,
+          "5": 124406,
+          "7": 228375
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Montréal",
+          "population": 1903276
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "MontrÃ©al",
+          "population": 1670833
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -14.1,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T21:00",
+        "query": {
+          "lat": 45.5017,
+          "lon": -73.5673,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 76,
+      "populationDensityPerKm2": 5145,
+      "nearestSchool": {
+        "name": "Concordia CL",
+        "distanceKm": 0.23608280779214816,
+        "source": "overpass",
+        "lat": 45.4942367,
+        "lon": -73.5789854
+      }
+    },
+    {
+      "id": "CA-calgary",
+      "label": "Calgary, AB",
+      "country": "CA",
+      "gps": {
+        "lat": 51.0447,
+        "lon": -114.0719
+      },
+      "fauxLocation": {
+        "lat": 51.05107,
+        "lon": -114.061768,
+        "direction": "NE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 119493,
+        "areaKm2": 25,
+        "totals": {
+          "1": 5586,
+          "3": 39012,
+          "5": 119493,
+          "7": 163695
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Calgary",
+          "population": 1630735
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Calgary",
+          "population": 1366129
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 0.2,
+        "description": "Clear",
+        "observedAt": "2026-01-15T18:45",
+        "query": {
+          "lat": 51.0447,
+          "lon": -114.0719,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 1051,
+      "populationDensityPerKm2": 1021,
+      "nearestSchool": {
+        "name": "St. Angela School",
+        "distanceKm": 0.9503683777472088,
+        "source": "overpass",
+        "lat": 51.0542846,
+        "lon": -114.0491698
+      }
+    },
+    {
+      "id": "CO-cali",
+      "label": "Cali",
+      "country": "CO",
+      "gps": {
+        "lat": 3.4516,
+        "lon": -76.532
+      },
+      "fauxLocation": {
+        "lat": 3.44523,
+        "lon": -76.538382,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 135781,
+        "areaKm2": 9,
+        "totals": {
+          "1": 15576,
+          "3": 135781,
+          "5": 371085,
+          "7": 682985
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Cali",
+          "population": 2827067
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 17.5,
+        "description": "Overcast",
+        "observedAt": "2026-01-15T20:45",
+        "query": {
+          "lat": 3.4516,
+          "lon": -76.532,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 1009,
+      "populationDensityPerKm2": 15727,
+      "nearestSchool": {
+        "name": "Alfredo Vasquez Cobo",
+        "distanceKm": 1.6705437135077152,
+        "source": "overpass",
+        "lat": 3.4368674,
+        "lon": -76.5258785
+      }
+    },
+    {
+      "id": "DE-hamburg",
+      "label": "Hamburg",
+      "country": "DE",
+      "gps": {
+        "lat": 53.5511,
+        "lon": 9.9937
+      },
+      "fauxLocation": {
+        "lat": 53.54473,
+        "lon": 9.982977,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 75419,
+        "areaKm2": 25,
+        "totals": {
+          "1": 3580,
+          "3": 30474,
+          "5": 75419,
+          "7": 143871
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Hamburg",
+          "population": 1698096
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Hamburg",
+          "population": 1694943
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 5.2,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T03:00",
+        "query": {
+          "lat": 53.5511,
+          "lon": 9.9937,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 3,
+      "populationDensityPerKm2": 3676,
+      "nearestSchool": {
+        "name": "TANDEM Hamburg Language School",
+        "distanceKm": 0.1068656339732926,
+        "source": "overpass",
+        "lat": 53.5454733,
+        "lon": 9.9819517
+      }
+    },
+    {
+      "id": "GB-edinburgh",
+      "label": "Edinburgh",
+      "country": "GB",
+      "gps": {
+        "lat": 55.9533,
+        "lon": -3.1883
+      },
+      "fauxLocation": {
+        "lat": 55.95967,
+        "lon": -3.199678,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 55152,
+        "areaKm2": 9,
+        "totals": {
+          "1": 8461,
+          "3": 55152,
+          "5": 152955,
+          "7": 271847
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "City of Edinburgh",
+          "population": 500884
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "City of Edinburgh",
+          "population": 500884
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": -1,
+        "description": "Fog",
+        "observedAt": "2026-01-16T01:45",
+        "query": {
+          "lat": 55.9533,
+          "lon": -3.1883,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 69,
+      "populationDensityPerKm2": 3409,
+      "nearestSchool": {
+        "name": "Drummond Community High School",
+        "distanceKm": 0.6043553347952937,
+        "source": "overpass",
+        "lat": 55.9605629,
+        "lon": -3.1901004
+      }
+    },
+    {
+      "id": "GB-glasgow",
+      "label": "Glasgow",
+      "country": "GB",
+      "gps": {
+        "lat": 55.8642,
+        "lon": -4.2518
+      },
+      "fauxLocation": {
+        "lat": 55.85783,
+        "lon": -4.263152,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 133923,
+        "areaKm2": 25,
+        "totals": {
+          "1": 5992,
+          "3": 47614,
+          "5": 133923,
+          "7": 245463
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Glasgow City",
+          "population": 602743
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Glasgow City",
+          "population": 602743
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 0.8,
+        "description": "Clear",
+        "observedAt": "2026-01-16T02:00",
+        "query": {
+          "lat": 55.8642,
+          "lon": -4.2518,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 34,
+      "populationDensityPerKm2": 4365,
+      "nearestSchool": {
+        "name": "St Aloysius' College",
+        "distanceKm": 0.990298052215866,
+        "source": "overpass",
+        "lat": 55.866734,
+        "lon": -4.2634853
+      }
+    },
+    {
+      "id": "GB-aberdeen",
+      "label": "Aberdeen",
+      "country": "GB",
+      "gps": {
+        "lat": 57.1497,
+        "lon": -2.0943
+      },
+      "fauxLocation": {
+        "lat": 57.1497,
+        "lon": -2.110908,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 69125,
+        "areaKm2": 9,
+        "totals": {
+          "1": 15416,
+          "3": 69125,
+          "5": 121136,
+          "7": 163426
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Aberdeen City",
+          "population": 232295
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Aberdeen City",
+          "population": 232307
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 0.4,
+        "description": "Clear",
+        "observedAt": "2026-01-16T01:45",
+        "query": {
+          "lat": 57.1497,
+          "lon": -2.0943,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 20,
+      "populationDensityPerKm2": 10752,
+      "nearestSchool": {
+        "name": "Sunnybank School",
+        "distanceKm": 1.1847862726487695,
+        "source": "overpass",
+        "lat": 57.1597596,
+        "lon": -2.1044327
+      }
+    },
+    {
+      "id": "IN-delhi",
+      "label": "Delhi",
+      "country": "IN",
+      "gps": {
+        "lat": 28.6139,
+        "lon": 77.209
+      },
+      "fauxLocation": {
+        "lat": 28.62027,
+        "lon": 77.201743,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 161885,
+        "areaKm2": 25,
+        "totals": {
+          "1": 3118,
+          "3": 32785,
+          "5": 161885,
+          "7": 464325
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "New Delhi",
+          "population": 1213130
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Chanakya Puri",
+          "population": 170786
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 6.6,
+        "description": "Mostly clear",
+        "observedAt": "2026-01-16T07:30",
+        "query": {
+          "lat": 28.6139,
+          "lon": 77.209,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 214,
+      "populationDensityPerKm2": 1945,
+      "nearestSchool": {
+        "name": "Unnamed school",
+        "distanceKm": 1.03142485485635,
+        "source": "overpass",
+        "lat": 28.6256025,
+        "lon": 77.2103895
+      }
+    },
+    {
+      "id": "IN-mumbai",
+      "label": "Mumbai",
+      "country": "IN",
+      "gps": {
+        "lat": 19.076,
+        "lon": 72.8777
+      },
+      "fauxLocation": {
+        "lat": 19.06963,
+        "lon": 72.87096,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 367274,
+        "areaKm2": 9,
+        "totals": {
+          "1": 40309,
+          "3": 367274,
+          "5": 1145491,
+          "7": 2106831
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Mumbai Suburban",
+          "population": 10903633
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Mumbai Suburban",
+          "population": 10779000
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 22.5,
+        "description": "Mostly clear",
+        "observedAt": "2026-01-16T07:15",
+        "query": {
+          "lat": 19.076,
+          "lon": 72.8777,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 6,
+      "populationDensityPerKm2": 41053,
+      "nearestSchool": {
+        "name": "American School of Bombay",
+        "distanceKm": 0.22036279157204375,
+        "source": "overpass",
+        "lat": 19.067664,
+        "lon": 72.870696
+      }
+    },
+    {
+      "id": "IN-bengaluru",
+      "label": "Bengaluru",
+      "country": "IN",
+      "gps": {
+        "lat": 12.9716,
+        "lon": 77.5946
+      },
+      "fauxLocation": {
+        "lat": 12.9716,
+        "lon": 77.585355,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 344300,
+        "areaKm2": 9,
+        "totals": {
+          "1": 36581,
+          "3": 344300,
+          "5": 999469,
+          "7": 1812078
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Bangalore",
+          "population": 13286860
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Bengaluru North",
+          "population": 10492561
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 17.3,
+        "description": "Partly cloudy",
+        "observedAt": "2026-01-16T07:15",
+        "query": {
+          "lat": 12.9716,
+          "lon": 77.5946,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 910,
+      "populationDensityPerKm2": 31713,
+      "nearestSchool": {
+        "name": "Sacred Hearts Girls School",
+        "distanceKm": 1.9691539246093703,
+        "source": "overpass",
+        "lat": 12.9694218,
+        "lon": 77.6033897
+      }
+    },
+    {
+      "id": "AR-buenos-aires",
+      "label": "Buenos Aires",
+      "country": "AR",
+      "gps": {
+        "lat": -34.6037,
+        "lon": -58.3816
+      },
+      "fauxLocation": {
+        "lat": -34.61007,
+        "lon": -58.389339,
+        "direction": "SW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 205243,
+        "areaKm2": 9,
+        "totals": {
+          "1": 13786,
+          "3": 205243,
+          "5": 609931,
+          "7": 898048
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Comuna 1",
+          "population": 229546
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 24.3,
+        "description": "Partly cloudy",
+        "observedAt": "2026-01-15T22:45",
+        "query": {
+          "lat": -34.6037,
+          "lon": -58.3816,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 18,
+      "populationDensityPerKm2": 12421,
+      "nearestSchool": {
+        "name": "Escuela Primaria Común 05 Nicolás Rodríguez Peña",
+        "distanceKm": 1.09089380721052,
+        "source": "overpass",
+        "lat": -34.6003911,
+        "lon": -58.3912858
+      }
+    },
+    {
+      "id": "AR-cordoba",
+      "label": "Córdoba",
+      "country": "AR",
+      "gps": {
+        "lat": -31.4201,
+        "lon": -64.1888
+      },
+      "fauxLocation": {
+        "lat": -31.41373,
+        "lon": -64.181335,
+        "direction": "NE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 60484,
+        "areaKm2": 9,
+        "totals": {
+          "1": 5055,
+          "3": 60484,
+          "5": 162413,
+          "7": 278961
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Capital",
+          "population": 1375174
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 21.6,
+        "description": "Thunderstorm",
+        "observedAt": "2026-01-15T23:00",
+        "query": {
+          "lat": -31.4201,
+          "lon": -64.1888,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 403,
+      "populationDensityPerKm2": 5311,
+      "nearestSchool": null
+    },
+    {
+      "id": "AR-rosario",
+      "label": "Rosario",
+      "country": "AR",
+      "gps": {
+        "lat": -32.9587,
+        "lon": -60.6939
+      },
+      "fauxLocation": {
+        "lat": -32.96507,
+        "lon": -60.686308,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 114971,
+        "areaKm2": 25,
+        "totals": {
+          "1": 4093,
+          "3": 48111,
+          "5": 114971,
+          "7": 246347
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Rosario",
+          "population": 1278781
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 24,
+        "description": "Mostly clear",
+        "observedAt": "2026-01-15T22:45",
+        "query": {
+          "lat": -32.9587,
+          "lon": -60.6939,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 27,
+      "populationDensityPerKm2": 16327,
+      "nearestSchool": {
+        "name": "Escuela Técnica 2076 San Francisquito",
+        "distanceKm": 0.9328950942327019,
+        "source": "overpass",
+        "lat": -32.9626942,
+        "lon": -60.6767178
+      }
+    },
+    {
+      "id": "NL-amsterdam",
+      "label": "Amsterdam",
+      "country": "NL",
+      "gps": {
+        "lat": 52.3676,
+        "lon": 4.9041
+      },
+      "fauxLocation": {
+        "lat": 52.37397,
+        "lon": 4.893667,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 69601,
+        "areaKm2": 9,
+        "totals": {
+          "1": 3904,
+          "3": 69601,
+          "5": 179233,
+          "7": 334626
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Amsterdam",
+          "population": 826512
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 10.1,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T02:45",
+        "query": {
+          "lat": 52.3676,
+          "lon": 4.9041,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 5,
+      "populationDensityPerKm2": 6612,
+      "nearestSchool": {
+        "name": "Spirituele Akademie",
+        "distanceKm": 1.2106905311546619,
+        "source": "overpass",
+        "lat": 52.3836013,
+        "lon": 4.8853483
+      }
+    },
+    {
+      "id": "NL-rotterdam",
+      "label": "Rotterdam",
+      "country": "NL",
+      "gps": {
+        "lat": 51.9244,
+        "lon": 4.4777
+      },
+      "fauxLocation": {
+        "lat": 51.915391,
+        "lon": 4.4777,
+        "direction": "S",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 104718,
+        "areaKm2": 25,
+        "totals": {
+          "1": 2371,
+          "3": 40324,
+          "5": 104718,
+          "7": 181835
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Rotterdam",
+          "population": 617206
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 10.6,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T03:00",
+        "query": {
+          "lat": 51.9244,
+          "lon": 4.4777,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 2,
+      "populationDensityPerKm2": 5068,
+      "nearestSchool": {
+        "name": "Piet Zwart Institute",
+        "distanceKm": 0.3911089306410257,
+        "source": "overpass",
+        "lat": 51.9183588,
+        "lon": 4.4746394
+      }
+    },
+    {
+      "id": "NL-utrecht",
+      "label": "Utrecht",
+      "country": "NL",
+      "gps": {
+        "lat": 52.0907,
+        "lon": 5.1214
+      },
+      "fauxLocation": {
+        "lat": 52.0907,
+        "lon": 5.106737,
+        "direction": "W",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 84496,
+        "areaKm2": 9,
+        "totals": {
+          "1": 7891,
+          "3": 84496,
+          "5": 149371,
+          "7": 242553
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Utrecht",
+          "population": 361992
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 10.1,
+        "description": "Drizzle",
+        "observedAt": "2026-01-16T02:45",
+        "query": {
+          "lat": 52.0907,
+          "lon": 5.1214,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 10,
+      "populationDensityPerKm2": 7550,
+      "nearestSchool": {
+        "name": "Haarstylisten college",
+        "distanceKm": 0.4623474961686573,
+        "source": "overpass",
+        "lat": 52.0942594,
+        "lon": 5.1032387
+      }
+    },
+    {
+      "id": "GH-accra",
+      "label": "Accra",
+      "country": "GH",
+      "gps": {
+        "lat": 5.6037,
+        "lon": -0.187
+      },
+      "fauxLocation": {
+        "lat": 5.59733,
+        "lon": -0.180599,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 123204,
+        "areaKm2": 9,
+        "totals": {
+          "1": 15084,
+          "3": 123204,
+          "5": 338122,
+          "7": 703689
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Ayawaso East Municipal",
+          "population": 119820
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 26.6,
+        "description": "Partly cloudy",
+        "observedAt": "2026-01-16T01:45",
+        "query": {
+          "lat": 5.6037,
+          "lon": -0.187,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 56,
+      "populationDensityPerKm2": 12486,
+      "nearestSchool": {
+        "name": "Alliance Français",
+        "distanceKm": 0.1692063846512412,
+        "source": "overpass",
+        "lat": 5.5969429,
+        "lon": -0.1820777
+      }
+    },
+    {
+      "id": "GH-kumasi",
+      "label": "Kumasi",
+      "country": "GH",
+      "gps": {
+        "lat": 6.692,
+        "lon": -1.571
+      },
+      "fauxLocation": {
+        "lat": 6.69837,
+        "lon": -1.577414,
+        "direction": "NW",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 135727,
+        "areaKm2": 9,
+        "totals": {
+          "1": 13819,
+          "3": 135727,
+          "5": 430302,
+          "7": 781638
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Oforikrom Municipal",
+          "population": 406589
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 24.8,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T01:45",
+        "query": {
+          "lat": 6.692,
+          "lon": -1.571,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 273,
+      "populationDensityPerKm2": 10764,
+      "nearestSchool": {
+        "name": "Se Manhyia Royal International School",
+        "distanceKm": 1.4946434970787117,
+        "source": "overpass",
+        "lat": 6.6868277,
+        "lon": -1.5843499
+      }
+    },
+    {
+      "id": "GH-takoradi",
+      "label": "Takoradi",
+      "country": "GH",
+      "gps": {
+        "lat": 4.8845,
+        "lon": -1.7554
+      },
+      "fauxLocation": {
+        "lat": 4.8845,
+        "lon": -1.746358,
+        "direction": "E",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 5,
+        "populationSelected": 100970,
+        "areaKm2": 25,
+        "totals": {
+          "1": 5568,
+          "3": 42955,
+          "5": 100970,
+          "7": 167383
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Sekondi Takoradi Metropolis",
+          "population": 484907
+        },
+        "adm3": null,
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 25.2,
+        "description": "Fog",
+        "observedAt": "2026-01-16T02:00",
+        "query": {
+          "lat": 4.8845,
+          "lon": -1.7554,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 12,
+      "populationDensityPerKm2": 11274,
+      "nearestSchool": {
+        "name": "Chapel Hill School",
+        "distanceKm": 1.1058734802047872,
+        "source": "overpass",
+        "lat": 4.8867441,
+        "lon": -1.7560822
+      }
+    },
+    {
+      "id": "CH-zurich",
+      "label": "Zurich",
+      "country": "CH",
+      "gps": {
+        "lat": 47.3769,
+        "lon": 8.5417
+      },
+      "fauxLocation": {
+        "lat": 47.38327,
+        "lon": 8.551107,
+        "direction": "NE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 69375,
+        "areaKm2": 9,
+        "totals": {
+          "1": 8485,
+          "3": 69375,
+          "5": 165860,
+          "7": 268684
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Zürich",
+          "population": 420256
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Zürich",
+          "population": 406708
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 1.2,
+        "description": "Fog",
+        "observedAt": "2026-01-16T02:45",
+        "query": {
+          "lat": 47.3769,
+          "lon": 8.5417,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 409,
+      "populationDensityPerKm2": 10266,
+      "nearestSchool": {
+        "name": "Atelierschule Zürich",
+        "distanceKm": 1.1707099168578405,
+        "source": "overpass",
+        "lat": 47.3729757,
+        "lon": 8.5543678
+      }
+    },
+    {
+      "id": "CH-geneva",
+      "label": "Geneva",
+      "country": "CH",
+      "gps": {
+        "lat": 46.2044,
+        "lon": 6.1432
+      },
+      "fauxLocation": {
+        "lat": 46.19803,
+        "lon": 6.152405,
+        "direction": "SE",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 120946,
+        "areaKm2": 9,
+        "totals": {
+          "1": 11338,
+          "3": 120946,
+          "5": 228232,
+          "7": 328348
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Genève",
+          "population": 498013
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Genève",
+          "population": 209914
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 3.2,
+        "description": "Fog",
+        "observedAt": "2026-01-16T02:45",
+        "query": {
+          "lat": 46.2044,
+          "lon": 6.1432,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 368,
+      "populationDensityPerKm2": 9203,
+      "nearestSchool": null
+    },
+    {
+      "id": "CH-basel",
+      "label": "Basel",
+      "country": "CH",
+      "gps": {
+        "lat": 47.5596,
+        "lon": 7.5886
+      },
+      "fauxLocation": {
+        "lat": 47.5596,
+        "lon": 7.60195,
+        "direction": "E",
+        "shiftKm": 1
+      },
+      "tileGrid": {
+        "sizeSelected": 3,
+        "populationSelected": 59394,
+        "areaKm2": 9,
+        "totals": {
+          "1": 5586,
+          "3": 59394,
+          "5": 165168,
+          "7": 227310
+        }
+      },
+      "adm": {
+        "adm2": {
+          "level": "adm2",
+          "name": "Basel",
+          "population": 148337
+        },
+        "adm3": {
+          "level": "adm3",
+          "name": "Basel",
+          "population": 157689
+        },
+        "populationThreshold": 50000
+      },
+      "weather": {
+        "temperatureC": 3.8,
+        "description": "Overcast",
+        "observedAt": "2026-01-16T02:45",
+        "query": {
+          "lat": 47.5596,
+          "lon": 7.5886,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 247,
+      "populationDensityPerKm2": 7623,
+      "nearestSchool": {
+        "name": "Schule für Gestaltung",
+        "distanceKm": 0.5554787691747055,
+        "source": "overpass",
+        "lat": 47.5636426,
+        "lon": 7.6062991
+      }
+    }
+  ]
+}

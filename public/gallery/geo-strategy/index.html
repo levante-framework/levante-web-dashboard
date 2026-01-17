@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geo Strategy Gallery - Levante</title>
+    <link rel="icon" type="image/svg+xml" href="/images/location-pin.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+        background: radial-gradient(circle at 20% 20%, rgba(0, 160, 222, 0.22), rgba(15, 23, 42, 0.94)), #020617;
+        color: #e2e8f0;
+        padding: 28px 20px 48px;
+      }
+      header {
+        max-width: 1400px;
+        margin: 0 auto 28px;
+        padding: 26px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, rgba(0, 160, 222, 0.95), rgba(56, 189, 248, 0.9));
+        color: #03101f;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 20px 40px rgba(2, 6, 23, 0.5);
+      }
+      header h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      header p {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .header-actions a {
+        text-decoration: none;
+        background: rgba(255, 255, 255, 0.85);
+        color: #0b1220;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 600;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .stats {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+      .stat {
+        background: rgba(255, 255, 255, 0.85);
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        color: #0b1220;
+        font-weight: 600;
+      }
+      .filters {
+        max-width: 1400px;
+        margin: 0 auto 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .filter-btn {
+        padding: 8px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(0, 160, 222, 0.4);
+        background: rgba(7, 15, 28, 0.9);
+        color: #e2e8f0;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .filter-btn.active {
+        background: rgba(56, 189, 248, 0.85);
+        color: #03101f;
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+      .grid {
+        max-width: 1400px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      }
+      .card {
+        background: rgba(7, 15, 28, 0.95);
+        border-radius: 14px;
+        padding: 16px;
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        box-shadow: 0 18px 36px rgba(2, 6, 23, 0.45);
+      }
+      .card h3 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      .meta {
+        color: #cbd5e1;
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: #e2e8f0;
+        margin-bottom: 6px;
+      }
+      .pill {
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 999px;
+        padding: 4px 10px;
+      }
+      .label {
+        color: #94a3b8;
+      }
+      .note {
+        font-size: 12px;
+        color: #94a3b8;
+        margin-top: 8px;
+      }
+      .empty {
+        color: #94a3b8;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="header-actions">
+        <a href="/"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+        <a href="/gallery/locate-me/"><i class="fas fa-map"></i> Locate-Me Gallery</a>
+      </div>
+      <h1>Geo Strategy Gallery</h1>
+      <p>De-identified location strategy preview for the 46 demo sites. All raw GPS usage remains on-device; this gallery only uses curated seed points.</p>
+      <div class="stats" id="stats"></div>
+    </header>
+
+    <div class="filters" id="filters"></div>
+    <div class="grid" id="grid"></div>
+
+    <script>
+      const gridEl = document.getElementById('grid');
+      const filtersEl = document.getElementById('filters');
+      const statsEl = document.getElementById('stats');
+
+      const formatNumber = (n) => {
+        if (n === null || n === undefined || Number.isNaN(Number(n))) return 'N/A';
+        return Number(n).toLocaleString();
+      };
+      const formatCoord = (v) => Number.isFinite(Number(v)) ? Number(v).toFixed(4) : 'N/A';
+
+      function renderStats(data) {
+        statsEl.innerHTML = `
+          <div class="stat">Sites: ${data.points.length}</div>
+          <div class="stat">Shift: ${data.shiftKm} km</div>
+          <div class="stat">Pop threshold: ${formatNumber(data.populationThreshold)}</div>
+          <div class="stat">Tile grid: ${data.tiles.gridSize}x${data.tiles.gridSize}</div>
+        `;
+      }
+
+      function renderFilters(points, setFilter) {
+        const countries = Array.from(new Set(points.map((p) => p.country))).sort();
+        const buttons = ['ALL', ...countries];
+        filtersEl.innerHTML = '';
+        buttons.forEach((code) => {
+          const btn = document.createElement('button');
+          btn.className = 'filter-btn' + (code === 'ALL' ? ' active' : '');
+          btn.textContent = code;
+          btn.onclick = () => {
+            document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            setFilter(code === 'ALL' ? null : code);
+          };
+          filtersEl.appendChild(btn);
+        });
+      }
+
+      function renderCards(points) {
+        gridEl.innerHTML = '';
+        points.forEach((p) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const adm2 = p.adm?.adm2;
+          const adm3 = p.adm?.adm3;
+          const school = p.nearestSchool;
+          card.innerHTML = `
+            <h3>${p.label}</h3>
+            <div class="meta">${p.country} - ${p.id}</div>
+            <div class="row">
+              <div class="pill"><span class="label">GPS</span> ${formatCoord(p.gps?.lat)}, ${formatCoord(p.gps?.lon)}</div>
+              <div class="pill"><span class="label">Faux</span> ${formatCoord(p.fauxLocation?.lat)}, ${formatCoord(p.fauxLocation?.lon)} (${p.fauxLocation?.direction})</div>
+            </div>
+            <div class="row">
+              <div class="pill"><span class="label">Tiles</span> ${p.tileGrid?.sizeSelected || 'N/A'}x${p.tileGrid?.sizeSelected || 'N/A'}</div>
+              <div class="pill"><span class="label">Tile Pop</span> ${formatNumber(p.tileGrid?.populationSelected)}</div>
+              <div class="pill"><span class="label">Area</span> ${p.tileGrid?.areaKm2 || 'N/A'} km^2</div>
+            </div>
+            <div class="row">
+              <div class="pill"><span class="label">ADM2</span> ${adm2 ? `${adm2.name} (${formatNumber(adm2.population)})` : '<span class="empty">N/A</span>'}</div>
+              <div class="pill"><span class="label">ADM3</span> ${adm3 ? `${adm3.name} (${formatNumber(adm3.population)})` : '<span class="empty">N/A</span>'}</div>
+            </div>
+            <div class="row">
+              <div class="pill"><span class="label">Weather</span> ${p.weather ? `${Math.round(p.weather.temperatureC)}C - ${p.weather.description}` : 'N/A'}</div>
+              <div class="pill"><span class="label">Altitude</span> ${p.altitudeM !== null ? `${Math.round(p.altitudeM)} m` : 'N/A'}</div>
+              <div class="pill"><span class="label">Density</span> ${p.populationDensityPerKm2 !== null ? `${formatNumber(p.populationDensityPerKm2)} / km^2` : 'N/A'}</div>
+            </div>
+            <div class="row">
+              <div class="pill"><span class="label">Nearest School</span> ${
+                school ? `${school.name} - ${school.distanceKm.toFixed(1)} km` : '<span class="empty">N/A</span>'
+              }</div>
+            </div>
+            <div class="note">Raw GPS is used on-device only; all remote lookups use de-identified coordinates.</div>
+          `;
+          gridEl.appendChild(card);
+        });
+      }
+
+      fetch('./gallery-data.json')
+        .then((res) => res.json())
+        .then((data) => {
+          renderStats(data);
+          renderFilters(data.points, (country) => {
+            const filtered = country ? data.points.filter((p) => p.country === country) : data.points;
+            renderCards(filtered);
+          });
+          renderCards(data.points);
+        })
+        .catch((err) => {
+          gridEl.innerHTML = `<div class="card">Failed to load gallery data: ${err.message}</div>`;
+        });
+    </script>
+  </body>
+</html>
