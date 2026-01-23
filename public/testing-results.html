@@ -179,14 +179,6 @@
       background: rgba(0, 160, 222, 0.45);
       color: #03101f;
     }
-    .result-select {
-      background: rgba(2, 10, 22, 0.74);
-      border: 1px solid rgba(0, 160, 222, 0.35);
-      color: #f8fafc;
-      border-radius: 10px;
-      padding: 6px 10px;
-      font-size: 0.82rem;
-    }
     .inline-note {
       font-size: 0.8rem;
       color: rgba(148, 163, 184, 0.75);
@@ -294,7 +286,7 @@
       </div>
     </div>
     <p class="testing-subtitle">
-      Track core E2E runs for Levante Dashboard. Issue status is fetched from GitHub, results are stored in your browser.
+      Track core E2E runs for Levante Dashboard. Issue status is fetched from GitHub; results are read-only here.
     </p>
     <p class="inline-note">
       Need full runner + logs? Open the Levante Dashboard testing-results page and run from there.
@@ -310,7 +302,7 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>Run</th>
+              <th>Command</th>
               <th>Issue</th>
               <th>Result</th>
               <th>Last run</th>
@@ -332,7 +324,7 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>Run</th>
+              <th>Command</th>
               <th>Status</th>
               <th>Result</th>
               <th>Last run</th>
@@ -568,13 +560,8 @@
           <td>
             <div class="row-actions">
               <button class="btn btn-info btn-compact" data-action="copy" data-id="${entry.id}">
-                <i class="fas fa-copy"></i> Copy
+                <i class="fas fa-copy"></i> Copy command
               </button>
-              <select class="result-select" data-action="result" data-id="${entry.id}">
-                <option value="unknown"${result === 'unknown' ? ' selected' : ''}>Unknown</option>
-                <option value="pass"${result === 'pass' ? ' selected' : ''}>Pass</option>
-                <option value="fail"${result === 'fail' ? ' selected' : ''}>Fail</option>
-              </select>
             </div>
           </td>
           <td>${entry.category === 'bugs' ? issueCell : `<span class="inline-note">${statusCell}</span>`}</td>
@@ -606,17 +593,6 @@
           }
         })
       );
-      renderTableRows();
-    }
-
-    function updateResult(entryId, result) {
-      const localResults = loadLocalResults();
-      localResults[entryId] = {
-        ...(localResults[entryId] || {}),
-        result: result,
-        lastRunAt: new Date().toISOString()
-      };
-      saveLocalResults(localResults);
       renderTableRows();
     }
 
@@ -659,10 +635,31 @@
       detailsModal.setAttribute('aria-hidden', 'true');
     }
 
-    function copyRunCommand(entryId) {
+    async function copyRunCommand(entryId, buttonEl) {
       const entry = e2eCatalog.find((item) => item.id === entryId);
       if (!entry) return;
-      navigator.clipboard.writeText(entry.runScript).catch(() => {});
+      const command = entry.runScript;
+      const original = buttonEl ? buttonEl.innerHTML : '';
+      const setFeedback = (text, icon) => {
+        if (!buttonEl) return;
+        buttonEl.innerHTML = `<i class="fas fa-${icon}"></i> ${text}`;
+        setTimeout(() => {
+          buttonEl.innerHTML = original;
+        }, 1500);
+      };
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(command);
+          setFeedback('Copied', 'check');
+          return;
+        }
+        window.prompt('Copy the command below:', command);
+        setFeedback('Copied', 'check');
+      } catch {
+        window.prompt('Copy the command below:', command);
+        setFeedback('Copy', 'copy');
+      }
     }
 
     function resetLocalResults() {
@@ -676,18 +673,10 @@
       const entryId = action.getAttribute('data-id');
       const actionType = action.getAttribute('data-action');
       if (actionType === 'copy') {
-        copyRunCommand(entryId);
+        copyRunCommand(entryId, action);
       } else if (actionType === 'details') {
         openDetails(entryId);
       }
-    }
-
-    function handleResultChange(event) {
-      const target = event.target;
-      if (!target || target.getAttribute('data-action') !== 'result') return;
-      const entryId = target.getAttribute('data-id');
-      const value = target.value;
-      updateResult(entryId, value);
     }
 
     document.addEventListener('click', (event) => {
@@ -697,8 +686,6 @@
     detailsCloseBtn.addEventListener('click', closeDetails);
     bugsTableBody.addEventListener('click', handleTableClick);
     tasksTableBody.addEventListener('click', handleTableClick);
-    bugsTableBody.addEventListener('change', handleResultChange);
-    tasksTableBody.addEventListener('change', handleResultChange);
 
     refreshIssuesBtn.addEventListener('click', () => {
       refreshIssuesBtn.disabled = true;
