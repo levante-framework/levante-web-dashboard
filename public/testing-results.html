@@ -756,8 +756,10 @@
     }
 
     async function pollRunStatus(runId, token) {
+      const headers = { Accept: 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
       const response = await fetch(`${RUNNER_API_BASE}/api/e2e-status?runId=${encodeURIComponent(runId)}`, {
-        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }
+        headers
       });
       if (!response.ok) throw new Error(`Runner status failed: HTTP ${response.status}`);
       const data = await response.json();
@@ -850,21 +852,18 @@
       const entry = e2eCatalog.find((item) => item.id === entryId);
       if (!entry || runningById[entryId]) return;
       const token = await getAuthToken();
-      if (!token) {
-        showSignInModal(() => runTest(entryId));
-        return;
-      }
       runningById[entryId] = true;
       renderTableRows();
       try {
         const clientRunId = crypto.randomUUID();
+        const headers = {
+          'Content-Type': 'application/json',
+          Accept: 'application/json'
+        };
+        if (token) headers.Authorization = `Bearer ${token}`;
         const response = await fetch(`${RUNNER_API_BASE}/api/e2e-run`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`
-          },
+          headers,
           body: JSON.stringify({
             specId: entry.id,
             baseUrl: DASHBOARD_BASE_URL,
@@ -877,9 +876,9 @@
           if (response.status === 401 && text.includes('Requires super_admin')) {
             if (authWarning) {
               authWarning.style.display = 'flex';
-              authWarning.innerHTML = '<i class="fas fa-triangle-exclamation"></i> SuperAdmin access required. Please sign in with a SuperAdmin account.';
+              authWarning.innerHTML =
+                '<i class="fas fa-triangle-exclamation"></i> Runner auth failed. Confirm Pitwall has E2E_RUNNER_TOKEN set.';
             }
-            showSignInModal(() => runTest(entryId));
           }
           throw new Error(`Runner request failed: HTTP ${response.status} ${text}`);
         }

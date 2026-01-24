@@ -1,6 +1,7 @@
 const PROJECT_ID = process.env.E2E_PROJECT_ID || 'hs-levante-admin-dev';
 const FUNCTIONS_BASE_URL =
   process.env.E2E_FUNCTIONS_BASE_URL || `https://us-central1-${PROJECT_ID}.cloudfunctions.net/api`;
+const RUNNER_TOKEN = process.env.E2E_RUNNER_TOKEN || '';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -19,12 +20,13 @@ export default async function handler(req, res) {
 
   try {
     const authHeader = req.headers.authorization || '';
+    const runnerAuthHeader = RUNNER_TOKEN ? `Bearer ${RUNNER_TOKEN}` : authHeader;
     const response = await fetch(`${FUNCTIONS_BASE_URL}/e2e/run`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {})
+        ...(runnerAuthHeader ? { Authorization: runnerAuthHeader } : {})
       },
       body: JSON.stringify(req.body || {})
     });
