@@ -152,6 +152,11 @@
       color: rgba(226, 232, 240, 0.75);
       border-color: rgba(148, 163, 184, 0.4);
     }
+    .result-running {
+      background: rgba(250, 204, 21, 0.18);
+      color: #facc15;
+      border-color: rgba(250, 204, 21, 0.4);
+    }
     .issue-link {
       color: #38bdf8;
       text-decoration: none;
@@ -182,6 +187,89 @@
     .inline-note {
       font-size: 0.8rem;
       color: rgba(148, 163, 184, 0.75);
+    }
+    .signin-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .signin-form input {
+      background: rgba(7, 13, 24, 0.9);
+      border: 1px solid rgba(255, 123, 0, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      color: #f8fafc;
+      font-size: 1rem;
+    }
+    .signin-form input:focus {
+      outline: none;
+      border-color: rgba(255, 123, 0, 0.7);
+    }
+    .signin-form button {
+      background: rgba(255, 123, 0, 0.85);
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      color: #06141f;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .signin-form button:hover {
+      background: rgba(255, 123, 0, 1);
+    }
+    .signin-form button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .signin-divider {
+      text-align: center;
+      margin: 8px 0;
+      color: rgba(203, 213, 225, 0.6);
+      position: relative;
+    }
+    .signin-divider::before,
+    .signin-divider::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 40%;
+      height: 1px;
+      background: rgba(255, 123, 0, 0.2);
+    }
+    .signin-divider::before {
+      left: 0;
+    }
+    .signin-divider::after {
+      right: 0;
+    }
+    .signin-google-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 123, 0, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      color: #f8fafc;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .signin-google-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .signin-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fca5a5;
+      font-size: 0.9rem;
+      display: none;
     }
     .modal {
       display: none;
@@ -286,7 +374,8 @@
       </div>
     </div>
     <p class="testing-subtitle">
-      Track core E2E runs for Levante Dashboard. Issue status is fetched from GitHub; results are read-only here.
+      Track core E2E runs for Levante Dashboard. Issue status is fetched from GitHub and runs are executed via the
+      Levante Dashboard remote runner.
     </p>
     <p class="inline-note">
       Need full runner + logs? Open the Levante Dashboard testing-results page and run from there.
@@ -302,7 +391,7 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>Command</th>
+              <th>Run</th>
               <th>Issue</th>
               <th>Result</th>
               <th>Last run</th>
@@ -324,7 +413,7 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>Command</th>
+              <th>Run</th>
               <th>Status</th>
               <th>Result</th>
               <th>Last run</th>
@@ -348,6 +437,34 @@
       <div class="modal-body" id="detailsBody"></div>
     </div>
   </div>
+
+  <div class="modal" id="signInModal" aria-hidden="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Sign in required</h3>
+        <button class="modal-close" id="signInCloseBtn" aria-label="Close">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="inline-note">Sign in with your Firebase account to run tests.</p>
+        <div class="signin-form">
+          <input type="email" id="signInEmail" placeholder="Email address" autocomplete="email" />
+          <input type="password" id="signInPassword" placeholder="Password" autocomplete="current-password" />
+          <button id="signInSubmit"><i class="fas fa-envelope"></i> Sign in with email</button>
+          <div class="signin-divider">or</div>
+          <button id="signInGoogle" class="signin-google-btn">
+            <i class="fab fa-google"></i> Sign in with Google
+          </button>
+          <div id="signInError" class="signin-error"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="./firebase-config.js"></script>
 
   <script>
     const e2eCatalog = [
@@ -492,9 +609,12 @@
       }
     ];
 
+    const DASHBOARD_BASE_URL = 'https://hs-levante-admin-dev--ai-tests-dctel36u.web.app';
+    const RUNNER_API_BASE = DASHBOARD_BASE_URL;
     const issueStateById = {};
     const issueLinkById = {};
     const localKey = 'pitwall:e2eResults';
+    const runningById = {};
     const bugsTableBody = document.getElementById('bugsTableBody');
     const tasksTableBody = document.getElementById('tasksTableBody');
     const refreshIssuesBtn = document.getElementById('refreshIssuesBtn');
@@ -503,6 +623,14 @@
     const detailsTitle = document.getElementById('detailsTitle');
     const detailsBody = document.getElementById('detailsBody');
     const detailsCloseBtn = document.getElementById('detailsCloseBtn');
+    const signInModal = document.getElementById('signInModal');
+    const signInCloseBtn = document.getElementById('signInCloseBtn');
+    const signInEmail = document.getElementById('signInEmail');
+    const signInPassword = document.getElementById('signInPassword');
+    const signInSubmit = document.getElementById('signInSubmit');
+    const signInGoogle = document.getElementById('signInGoogle');
+    const signInError = document.getElementById('signInError');
+    let signInSuccessCallback = null;
 
     function loadLocalResults() {
       try {
@@ -524,6 +652,7 @@
     }
 
     function resultPill(result) {
+      if (result === 'running') return '<span class="result-pill result-running">Running</span>';
       const normalized = result === 'pass' || result === 'fail' ? result : 'unknown';
       const label = normalized === 'pass' ? 'Pass' : normalized === 'fail' ? 'Fail' : 'Unknown';
       return `<span class="result-pill result-${normalized}">${label}</span>`;
@@ -545,6 +674,7 @@
     function renderRow(entry, localResults) {
       const stored = localResults[entry.id] || {};
       const result = stored.result || 'unknown';
+      const isRunning = Boolean(runningById[entry.id]);
       const lastRunAt = stored.lastRunAt || null;
       const issueState = issueStateById[entry.id] || '...';
       const issueLink = issueLinkById[entry.id];
@@ -559,13 +689,15 @@
           <td><strong>${entry.name}</strong></td>
           <td>
             <div class="row-actions">
-              <button class="btn btn-info btn-compact" data-action="copy" data-id="${entry.id}">
-                <i class="fas fa-copy"></i> Copy command
+              <button class="btn btn-success btn-compact" data-action="run" data-id="${entry.id}" ${
+                isRunning ? 'disabled' : ''
+              }>
+                <i class="fas fa-play"></i> ${isRunning ? 'Running...' : 'Run'}
               </button>
             </div>
           </td>
           <td>${entry.category === 'bugs' ? issueCell : `<span class="inline-note">${statusCell}</span>`}</td>
-          <td>${resultPill(result)}</td>
+          <td>${resultPill(isRunning ? 'running' : result)}</td>
           <td>${formatDate(lastRunAt)}</td>
           <td>
             <button class="btn btn-compact details-button" data-action="details" data-id="${entry.id}">
@@ -596,6 +728,157 @@
       renderTableRows();
     }
 
+    function updateStoredResult(entryId, fields) {
+      const localResults = loadLocalResults();
+      localResults[entryId] = {
+        ...(localResults[entryId] || {}),
+        ...fields
+      };
+      saveLocalResults(localResults);
+      renderTableRows();
+    }
+
+    function delay(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function pollRunStatus(runId, token) {
+      const response = await fetch(`${RUNNER_API_BASE}/api/e2e/status?runId=${encodeURIComponent(runId)}`, {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error(`Runner status failed: HTTP ${response.status}`);
+      const data = await response.json();
+      if (data.status === 'completed') return data;
+      await delay(3000);
+      return pollRunStatus(runId, token);
+    }
+
+    function showSignInModal(onSuccess) {
+      signInSuccessCallback = onSuccess || null;
+      signInModal.classList.add('is-active');
+      signInModal.setAttribute('aria-hidden', 'false');
+      if (signInError) {
+        signInError.textContent = '';
+        signInError.style.display = 'none';
+      }
+      if (signInEmail) signInEmail.value = '';
+      if (signInPassword) signInPassword.value = '';
+    }
+
+    function closeSignInModal() {
+      signInModal.classList.remove('is-active');
+      signInModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function signInWithEmail() {
+      if (!signInEmail || !signInPassword || !signInError) return;
+      const email = signInEmail.value.trim();
+      const password = signInPassword.value;
+      if (!email || !password) {
+        signInError.textContent = 'Please enter both email and password.';
+        signInError.style.display = 'block';
+        return;
+      }
+      signInSubmit.disabled = true;
+      signInError.textContent = '';
+      signInError.style.display = 'none';
+      try {
+        if (typeof firebase === 'undefined' || !firebase.auth) throw new Error('Firebase not available');
+        const auth = firebase.auth();
+        await auth.signInWithEmailAndPassword(email, password);
+        closeSignInModal();
+        if (signInSuccessCallback) signInSuccessCallback();
+      } catch (error) {
+        signInError.textContent = error.message || 'Sign-in failed. Please try again.';
+        signInError.style.display = 'block';
+      } finally {
+        signInSubmit.disabled = false;
+      }
+    }
+
+    async function signInWithGoogle() {
+      if (!signInError) return;
+      signInGoogle.disabled = true;
+      signInError.textContent = '';
+      signInError.style.display = 'none';
+      try {
+        if (typeof firebase === 'undefined' || !firebase.auth) throw new Error('Firebase not available');
+        const auth = firebase.auth();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        closeSignInModal();
+        if (signInSuccessCallback) signInSuccessCallback();
+      } catch (error) {
+        signInError.textContent = error.message || 'Google sign-in failed. Please try again.';
+        signInError.style.display = 'block';
+      } finally {
+        signInGoogle.disabled = false;
+      }
+    }
+
+    async function getAuthToken() {
+      if (typeof firebase === 'undefined' || !firebase.auth) return null;
+      const user = firebase.auth().currentUser;
+      if (!user) return null;
+      try {
+        return await user.getIdToken();
+      } catch {
+        return null;
+      }
+    }
+
+    async function runTest(entryId) {
+      const entry = e2eCatalog.find((item) => item.id === entryId);
+      if (!entry || runningById[entryId]) return;
+      const token = await getAuthToken();
+      if (!token) {
+        showSignInModal(() => runTest(entryId));
+        return;
+      }
+      runningById[entryId] = true;
+      renderTableRows();
+      try {
+        const clientRunId = crypto.randomUUID();
+        const response = await fetch(`${RUNNER_API_BASE}/api/e2e/run`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            specId: entry.id,
+            baseUrl: DASHBOARD_BASE_URL,
+            gitRef: 'main',
+            clientRunId
+          })
+        });
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          throw new Error(`Runner request failed: HTTP ${response.status} ${text}`);
+        }
+        const data = await response.json();
+        const runId = data?.clientRunId || data?.runId || clientRunId;
+        const finished = await pollRunStatus(runId, token);
+        const exitCode = typeof finished.exitCode === 'number' ? finished.exitCode : 1;
+        const result = exitCode === 0 ? 'pass' : 'fail';
+        updateStoredResult(entryId, {
+          result,
+          lastRunAt: new Date().toISOString(),
+          lastExitCode: exitCode,
+          lastRunRunId: runId
+        });
+      } catch (error) {
+        updateStoredResult(entryId, {
+          result: 'fail',
+          lastRunAt: new Date().toISOString()
+        });
+      } finally {
+        runningById[entryId] = false;
+        renderTableRows();
+      }
+    }
+
     function openDetails(entryId) {
       const entry = e2eCatalog.find((item) => item.id === entryId);
       if (!entry) return;
@@ -614,6 +897,14 @@
         <div class="modal-row">
           <span>Run command</span>
           <div><code>${entry.runScript}</code></div>
+        </div>
+        <div class="modal-row">
+          <span>Copy</span>
+          <div class="row-actions">
+            <button class="btn btn-info btn-compact" data-action="copy" data-id="${entry.id}">
+              <i class="fas fa-copy"></i> Copy command
+            </button>
+          </div>
         </div>
         <div class="modal-row">
           <span>Issue</span>
@@ -672,20 +963,43 @@
       if (!action) return;
       const entryId = action.getAttribute('data-id');
       const actionType = action.getAttribute('data-action');
-      if (actionType === 'copy') {
+      if (actionType === 'run') {
+        runTest(entryId);
+      } else if (actionType === 'copy') {
         copyRunCommand(entryId, action);
       } else if (actionType === 'details') {
         openDetails(entryId);
       }
     }
 
+    if (typeof firebase !== 'undefined' && window.FIREBASE_CONFIG) {
+      try {
+        if (!firebase.apps || firebase.apps.length === 0) {
+          firebase.initializeApp(window.FIREBASE_CONFIG);
+        }
+        firebase.auth().onAuthStateChanged(() => {});
+      } catch {
+        // ignore
+      }
+    }
+
     document.addEventListener('click', (event) => {
       if (event.target === detailsModal) closeDetails();
+      if (event.target === signInModal) closeSignInModal();
     });
 
     detailsCloseBtn.addEventListener('click', closeDetails);
+    signInCloseBtn.addEventListener('click', closeSignInModal);
+    signInSubmit.addEventListener('click', signInWithEmail);
+    signInGoogle.addEventListener('click', signInWithGoogle);
+    if (signInPassword) {
+      signInPassword.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') signInWithEmail();
+      });
+    }
     bugsTableBody.addEventListener('click', handleTableClick);
     tasksTableBody.addEventListener('click', handleTableClick);
+    detailsBody.addEventListener('click', handleTableClick);
 
     refreshIssuesBtn.addEventListener('click', () => {
       refreshIssuesBtn.disabled = true;
