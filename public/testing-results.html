@@ -623,6 +623,7 @@
     ];
 
     const DASHBOARD_BASE_URL = 'https://hs-levante-admin-dev--ai-tests-dctel36u.web.app';
+    const DASHBOARD_TESTING_URL = `${DASHBOARD_BASE_URL}/testing-results`;
     const RUNNER_API_BASE = '';
     const issueStateById = {};
     const issueLinkById = {};
@@ -703,11 +704,9 @@
           <td><strong>${entry.name}</strong></td>
           <td>
             <div class="row-actions">
-              <button class="btn btn-success btn-compact" data-action="run" data-id="${entry.id}" ${
-                isRunning ? 'disabled' : ''
-              }>
-                <i class="fas fa-play"></i> ${isRunning ? 'Running...' : 'Run'}
-              </button>
+              <a class="btn btn-success btn-compact" href="${DASHBOARD_TESTING_URL}" target="_blank" rel="noreferrer">
+                <i class="fas fa-up-right-from-square"></i> Open
+              </a>
             </div>
           </td>
           <td>${entry.category === 'bugs' ? issueCell : `<span class="inline-note">${statusCell}</span>`}</td>
@@ -947,6 +946,12 @@
         </div>
         ` : ''}
         <div class="modal-row">
+          <span>Dashboard</span>
+          <div>
+            <a class="issue-link" href="${DASHBOARD_TESTING_URL}" target="_blank" rel="noreferrer">Open dashboard testing</a>
+          </div>
+        </div>
+        <div class="modal-row">
           <span>Copy</span>
           <div class="row-actions">
             <button class="btn btn-info btn-compact" data-action="copy" data-id="${entry.id}">
@@ -1011,9 +1016,7 @@
       if (!action) return;
       const entryId = action.getAttribute('data-id');
       const actionType = action.getAttribute('data-action');
-      if (actionType === 'run') {
-        runTest(entryId);
-      } else if (actionType === 'copy') {
+      if (actionType === 'copy') {
         copyRunCommand(entryId, action);
       } else if (actionType === 'details') {
         openDetails(entryId);
