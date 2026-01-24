@@ -1,4 +1,6 @@
-const DASHBOARD_BASE_URL = process.env.E2E_DASHBOARD_BASE_URL || 'https://hs-levante-admin-dev--ai-tests-dctel36u.web.app';
+const PROJECT_ID = process.env.E2E_PROJECT_ID || 'hs-levante-admin-dev';
+const FUNCTIONS_BASE_URL =
+  process.env.E2E_FUNCTIONS_BASE_URL || `https://us-central1-${PROJECT_ID}.cloudfunctions.net/api`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     const authHeader = req.headers.authorization || '';
-    const response = await fetch(`${DASHBOARD_BASE_URL}/api/e2e/run`, {
+    const response = await fetch(`${FUNCTIONS_BASE_URL}/e2e/run`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
