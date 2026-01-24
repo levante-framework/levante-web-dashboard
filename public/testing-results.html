@@ -386,8 +386,7 @@
       </div>
     </div>
     <p class="testing-subtitle">
-      Track core E2E runs for Levante Dashboard. Issue status is fetched from GitHub and runs are executed via the
-      Levante Dashboard remote runner.
+      Track core E2E runs for Levante Dashboard. Use Open to sign in and jump to the dashboard testing page.
     </p>
     <p class="inline-note">
       Need full runner + logs? Open the Levante Dashboard testing-results page and run from there.
@@ -704,9 +703,9 @@
           <td><strong>${entry.name}</strong></td>
           <td>
             <div class="row-actions">
-              <a class="btn btn-success btn-compact" href="${DASHBOARD_TESTING_URL}" target="_blank" rel="noreferrer">
+              <button class="btn btn-success btn-compact" data-action="open-dashboard" data-id="${entry.id}">
                 <i class="fas fa-up-right-from-square"></i> Open
-              </a>
+              </button>
             </div>
           </td>
           <td>${entry.category === 'bugs' ? issueCell : `<span class="inline-note">${statusCell}</span>`}</td>
@@ -1011,12 +1010,26 @@
       renderTableRows();
     }
 
+    function openDashboardTesting() {
+      const auth = typeof firebase !== 'undefined' && firebase.auth ? firebase.auth() : null;
+      const user = auth?.currentUser || null;
+      if (!user) {
+        showSignInModal(() => {
+          window.open(DASHBOARD_TESTING_URL, '_blank', 'noopener,noreferrer');
+        });
+        return;
+      }
+      window.open(DASHBOARD_TESTING_URL, '_blank', 'noopener,noreferrer');
+    }
+
     function handleTableClick(event) {
       const action = event.target.closest('[data-action]');
       if (!action) return;
       const entryId = action.getAttribute('data-id');
       const actionType = action.getAttribute('data-action');
-      if (actionType === 'copy') {
+      if (actionType === 'open-dashboard') {
+        openDashboardTesting();
+      } else if (actionType === 'copy') {
         copyRunCommand(entryId, action);
       } else if (actionType === 'details') {
         openDetails(entryId);
