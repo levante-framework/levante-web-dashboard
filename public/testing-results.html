@@ -188,6 +188,18 @@
       font-size: 0.8rem;
       color: rgba(148, 163, 184, 0.75);
     }
+    .testing-warning {
+      background: rgba(250, 204, 21, 0.12);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+      color: #fde68a;
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 16px 30px rgba(2, 6, 23, 0.35);
+    }
     .signin-form {
       display: flex;
       flex-direction: column;
@@ -380,6 +392,7 @@
     <p class="inline-note">
       Need full runner + logs? Open the Levante Dashboard testing-results page and run from there.
     </p>
+    <div id="authWarning" class="testing-warning" style="display: none;"></div>
 
     <section class="testing-section">
       <div class="section-header">
@@ -630,6 +643,7 @@
     const signInSubmit = document.getElementById('signInSubmit');
     const signInGoogle = document.getElementById('signInGoogle');
     const signInError = document.getElementById('signInError');
+    const authWarning = document.getElementById('authWarning');
     let signInSuccessCallback = null;
 
     function loadLocalResults() {
@@ -761,6 +775,10 @@
         signInError.textContent = '';
         signInError.style.display = 'none';
       }
+      if (authWarning) {
+        authWarning.style.display = 'flex';
+        authWarning.innerHTML = '<i class="fas fa-triangle-exclamation"></i> SuperAdmin access is required to run tests.';
+      }
       if (signInEmail) signInEmail.value = '';
       if (signInPassword) signInPassword.value = '';
     }
@@ -787,6 +805,7 @@
         const auth = firebase.auth();
         await auth.signInWithEmailAndPassword(email, password);
         closeSignInModal();
+        if (authWarning) authWarning.style.display = 'none';
         if (signInSuccessCallback) signInSuccessCallback();
       } catch (error) {
         signInError.textContent = error.message || 'Sign-in failed. Please try again.';
@@ -807,6 +826,7 @@
         const provider = new firebase.auth.GoogleAuthProvider();
         await auth.signInWithPopup(provider);
         closeSignInModal();
+        if (authWarning) authWarning.style.display = 'none';
         if (signInSuccessCallback) signInSuccessCallback();
       } catch (error) {
         signInError.textContent = error.message || 'Google sign-in failed. Please try again.';
@@ -855,6 +875,13 @@
         });
         if (!response.ok) {
           const text = await response.text().catch(() => '');
+          if (response.status === 401 && text.includes('Requires super_admin')) {
+            if (authWarning) {
+              authWarning.style.display = 'flex';
+              authWarning.innerHTML = '<i class="fas fa-triangle-exclamation"></i> SuperAdmin access required. Please sign in with a SuperAdmin account.';
+            }
+            showSignInModal(() => runTest(entryId));
+          }
           throw new Error(`Runner request failed: HTTP ${response.status} ${text}`);
         }
         const data = await response.json();
