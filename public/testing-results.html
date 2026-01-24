@@ -610,7 +610,7 @@
     ];
 
     const DASHBOARD_BASE_URL = 'https://hs-levante-admin-dev--ai-tests-dctel36u.web.app';
-    const RUNNER_API_BASE = DASHBOARD_BASE_URL;
+    const RUNNER_API_BASE = '';
     const issueStateById = {};
     const issueLinkById = {};
     const localKey = 'pitwall:e2eResults';
@@ -743,7 +743,7 @@
     }
 
     async function pollRunStatus(runId, token) {
-      const response = await fetch(`${RUNNER_API_BASE}/api/e2e/status?runId=${encodeURIComponent(runId)}`, {
+      const response = await fetch(`${RUNNER_API_BASE}/api/e2e-status?runId=${encodeURIComponent(runId)}`, {
         headers: { Accept: 'application/json', Authorization: `Bearer ${token}` }
       });
       if (!response.ok) throw new Error(`Runner status failed: HTTP ${response.status}`);
@@ -839,7 +839,7 @@
       renderTableRows();
       try {
         const clientRunId = crypto.randomUUID();
-        const response = await fetch(`${RUNNER_API_BASE}/api/e2e/run`, {
+        const response = await fetch(`${RUNNER_API_BASE}/api/e2e-run`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -866,12 +866,14 @@
           result,
           lastRunAt: new Date().toISOString(),
           lastExitCode: exitCode,
-          lastRunRunId: runId
+          lastRunRunId: runId,
+          lastError: ''
         });
       } catch (error) {
         updateStoredResult(entryId, {
           result: 'fail',
-          lastRunAt: new Date().toISOString()
+          lastRunAt: new Date().toISOString(),
+          lastError: error?.message || 'Run failed'
         });
       } finally {
         runningById[entryId] = false;
@@ -884,6 +886,7 @@
       if (!entry) return;
       const issueState = issueStateById[entry.id] || 'Unknown';
       const issueLink = issueLinkById[entry.id];
+      const stored = loadLocalResults()[entry.id] || {};
       detailsTitle.textContent = entry.name;
       detailsBody.innerHTML = `
         <div class="modal-row">
@@ -898,6 +901,24 @@
           <span>Run command</span>
           <div><code>${entry.runScript}</code></div>
         </div>
+        ${stored.lastRunRunId ? `
+        <div class="modal-row">
+          <span>Run ID</span>
+          <div><code>${stored.lastRunRunId}</code></div>
+        </div>
+        ` : ''}
+        ${stored.lastExitCode != null ? `
+        <div class="modal-row">
+          <span>Exit code</span>
+          <div>${stored.lastExitCode}</div>
+        </div>
+        ` : ''}
+        ${stored.lastError ? `
+        <div class="modal-row">
+          <span>Error</span>
+          <div>${stored.lastError}</div>
+        </div>
+        ` : ''}
         <div class="modal-row">
           <span>Copy</span>
           <div class="row-actions">
