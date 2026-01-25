@@ -392,6 +392,7 @@
     <p class="inline-note">
       Need full runner + logs? Open the Levante Dashboard testing-results page and run from there.
     </p>
+    <div id="runnerWarning" class="testing-warning" style="display: none;"></div>
     <div id="authWarning" class="testing-warning" style="display: none;"></div>
 
     <section class="testing-section">
@@ -644,6 +645,7 @@
     const signInSubmit = document.getElementById('signInSubmit');
     const signInGoogle = document.getElementById('signInGoogle');
     const signInError = document.getElementById('signInError');
+    const runnerWarning = document.getElementById('runnerWarning');
     const authWarning = document.getElementById('authWarning');
     let signInSuccessCallback = null;
 
@@ -704,9 +706,9 @@
           <td><strong>${entry.name}</strong></td>
           <td>
             <div class="row-actions">
-              <a class="btn btn-success btn-compact" href="${DASHBOARD_TESTING_URL}" target="_blank" rel="noreferrer">
-                <i class="fas fa-up-right-from-square"></i> Open
-              </a>
+              <button class="btn btn-success btn-compact" data-action="run" data-id="${entry.id}" ${isRunning ? 'disabled' : ''}>
+                <i class="fas fa-play"></i> ${isRunning ? 'Running' : 'Run'}
+              </button>
             </div>
           </td>
           <td>${entry.category === 'bugs' ? issueCell : `<span class="inline-note">${statusCell}</span>`}</td>
@@ -848,6 +850,13 @@
       }
     }
 
+    function showRunnerUnavailable(message) {
+      if (!runnerWarning) return;
+      runnerWarning.style.display = 'flex';
+      runnerWarning.innerHTML =
+        `<i class="fas fa-triangle-exclamation"></i> ${message || 'Remote runner unavailable. The workflow must be on main before Pitwall can dispatch runs.'}`;
+    }
+
     async function runTest(entryId) {
       const entry = e2eCatalog.find((item) => item.id === entryId);
       if (!entry || runningById[entryId]) return;
@@ -873,6 +882,11 @@
         });
         if (!response.ok) {
           const text = await response.text().catch(() => '');
+          if (response.status === 404 && text.includes('workflow')) {
+            showRunnerUnavailable(
+              'Remote runner unavailable (workflow not on main). Run locally for now or merge PR #748.',
+            );
+          }
           if (response.status === 401 && text.includes('Requires super_admin')) {
             if (authWarning) {
               authWarning.style.display = 'flex';
@@ -1017,6 +1031,8 @@
       const actionType = action.getAttribute('data-action');
       if (actionType === 'copy') {
         copyRunCommand(entryId, action);
+      } else if (actionType === 'run') {
+        runTest(entryId);
       } else if (actionType === 'details') {
         openDetails(entryId);
       }
