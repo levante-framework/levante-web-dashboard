@@ -207,11 +207,11 @@
                         <button id="loadValidations" class="btn btn-info btn-compact" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
                             <i class="fas fa-cloud-download-alt"></i> Load
                         </button>
+                        <button id="viewValidations" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="View summary of all validation results">
+                            <i class="fas fa-chart-bar"></i> View report
+                        </button>
                         <button id="exportValidations" class="btn btn-secondary btn-compact" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
-                        </button>
-                        <button id="viewValidations" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="View summary of all validation results">
-                            <i class="fas fa-chart-bar"></i> View
                         </button>
                         <button class="btn btn-warning btn-compact" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
                             <i class="fas fa-trash"></i> Clear Cache
@@ -223,6 +223,16 @@
                     <div id="validationSummary" style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
                             <h4 style="margin: 0; color: #333; font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" id="validationSummaryViewReportBtn" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
+                                    <i class="fas fa-chart-bar"></i> View report
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-compact" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
+                                    <i class="fas fa-list-alt"></i> Review table
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-top: 12px;">
                             <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <span style="font-size: 18px; font-weight: bold; color: #28a745;" id="goodCount">0</span>
@@ -329,6 +339,197 @@
         function closeValidationSummaryModal() {
             document.getElementById('validationSummaryModal').style.display = 'none';
         }
+
+        let _reviewTableLangCode = null;
+        let _reviewTableRows = [];
+        let _reviewTableSortBy = 'score';
+        let _reviewTableSortDir = 1;
+
+        function openValidationReviewTableForCurrentLanguage() {
+            const dash = window.dashboard;
+            if (!dash || !dash.currentLanguage) return;
+            const langCode = dash.languages[dash.currentLanguage].lang_code;
+            openValidationReviewTableModal(langCode);
+        }
+
+        function openValidationReviewTableModal(langCode) {
+            const modal = document.getElementById('validationReviewTableModal');
+            const titleEl = document.getElementById('validationReviewTableTitle');
+            const tbody = document.getElementById('validationReviewTableBody');
+            const emptyEl = document.getElementById('validationReviewTableEmpty');
+            const tableEl = document.getElementById('validationReviewTable');
+            const dash = window.dashboard;
+            if (!dash) return;
+            const results = dash.validation_results || {};
+            const langName = Object.keys(dash.languages || {}).find(k => dash.languages[k].lang_code === langCode) || langCode;
+            titleEl.innerHTML = `<i class="fas fa-list-alt"></i> Validation review – ${langName} (${langCode})`;
+            _reviewTableLangCode = langCode;
+            const rows = [];
+            Object.keys(results).forEach(itemId => {
+                const r = results[itemId][langCode];
+                if (!r) return;
+                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : 0;
+                rows.push({
+                    itemId,
+                    score: scoreVal,
+                    notes: r.notes || '',
+                    needsReview: r.needsReview === true,
+                    reason: r.reason || ''
+                });
+            });
+            _reviewTableRows = rows;
+            _reviewTableSortBy = 'score';
+            _reviewTableSortDir = 1;
+            sortReviewTableRows();
+            renderValidationReviewTableBody();
+            emptyEl.style.display = rows.length === 0 ? 'block' : 'none';
+            tableEl.style.display = rows.length === 0 ? 'none' : 'table';
+            document.getElementById('validationReviewTableDownloadCsv').disabled = rows.length === 0;
+            modal.style.display = 'block';
+            bindReviewTableSortOnce();
+        }
+
+        function refreshReviewTableRowsFromDashboard() {
+            const dash = window.dashboard;
+            if (!dash || !_reviewTableLangCode) return;
+            const results = dash.validation_results || {};
+            const rows = [];
+            Object.keys(results).forEach(itemId => {
+                const r = results[itemId][_reviewTableLangCode];
+                if (!r) return;
+                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : 0;
+                rows.push({
+                    itemId,
+                    score: scoreVal,
+                    notes: r.notes || '',
+                    needsReview: r.needsReview === true,
+                    reason: r.reason || ''
+                });
+            });
+            _reviewTableRows = rows;
+        }
+
+        function bindReviewTableSortOnce() {
+            if (window._reviewTableSortBound) return;
+            window._reviewTableSortBound = true;
+            const thead = document.querySelector('#validationReviewTable thead');
+            if (!thead) return;
+            thead.addEventListener('click', function(e) {
+                const th = e.target.closest('th.sortable');
+                if (!th || !th.dataset.sort) return;
+                const key = th.dataset.sort;
+                if (_reviewTableSortBy === key) _reviewTableSortDir = -_reviewTableSortDir;
+                else { _reviewTableSortBy = key; _reviewTableSortDir = 1; }
+                refreshReviewTableRowsFromDashboard();
+                sortReviewTableRows();
+                renderValidationReviewTableBody();
+            });
+        }
+
+        function sortReviewTableRows() {
+            const by = _reviewTableSortBy;
+            const dir = _reviewTableSortDir;
+            _reviewTableRows.sort((a, b) => {
+                let va = a[by], vb = b[by];
+                if (by === 'score') { va = Number(va); vb = Number(vb); return dir * (va - vb); }
+                if (by === 'needsReview') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
+                return dir * String(va).localeCompare(String(vb));
+            });
+        }
+
+        function renderValidationReviewTableBody() {
+            const tbody = document.getElementById('validationReviewTableBody');
+            const langCode = _reviewTableLangCode;
+            const dash = window.dashboard;
+            if (!dash) return;
+            tbody.innerHTML = '';
+            _reviewTableRows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.dataset.itemId = row.itemId;
+                const tdItem = document.createElement('td');
+                tdItem.textContent = row.itemId;
+                tr.appendChild(tdItem);
+                const tdScore = document.createElement('td');
+                tdScore.textContent = Math.round(row.score);
+                tr.appendChild(tdScore);
+                const tdNotes = document.createElement('td');
+                tdNotes.textContent = row.notes;
+                tdNotes.className = 'validation-review-notes-cell';
+                tr.appendChild(tdNotes);
+                const tdCheck = document.createElement('td');
+                const check = document.createElement('input');
+                check.type = 'checkbox';
+                check.checked = row.needsReview;
+                check.dataset.itemId = row.itemId;
+                check.addEventListener('change', function() {
+                    if (!dash.validation_results[row.itemId] || !dash.validation_results[row.itemId][langCode]) return;
+                    dash.validation_results[row.itemId][langCode].needsReview = check.checked;
+                });
+                tdCheck.appendChild(check);
+                tr.appendChild(tdCheck);
+                const tdReason = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = row.reason;
+                input.className = 'validation-review-reason-input';
+                input.placeholder = 'Reason';
+                input.dataset.itemId = row.itemId;
+                input.addEventListener('input', function() {
+                    if (!dash.validation_results[row.itemId] || !dash.validation_results[row.itemId][langCode]) return;
+                    dash.validation_results[row.itemId][langCode].reason = input.value;
+                });
+                tdReason.appendChild(input);
+                tr.appendChild(tdReason);
+                tbody.appendChild(tr);
+            });
+            updateReviewTableSortIndicators();
+        }
+
+        function updateReviewTableSortIndicators() {
+            const thead = document.querySelector('#validationReviewTable thead');
+            if (!thead) return;
+            thead.querySelectorAll('th.sortable').forEach(th => {
+                const label = th.dataset.label || th.textContent.replace(/ \u25b2|\u25bc/g, '').trim();
+                th.textContent = label + (th.dataset.sort === _reviewTableSortBy ? (_reviewTableSortDir === 1 ? ' \u25b2' : ' \u25bc') : '');
+            });
+        }
+
+        function closeValidationReviewTableModal() {
+            document.getElementById('validationReviewTableModal').style.display = 'none';
+        }
+
+        function downloadNeedsReviewCSVFromModal() {
+            if (_reviewTableLangCode) downloadNeedsReviewCSV(_reviewTableLangCode);
+        }
+
+        function downloadNeedsReviewCSV(langCode) {
+            const dash = window.dashboard;
+            if (!dash) return;
+            const results = dash.validation_results || {};
+            const rows = [];
+            Object.keys(results).forEach(itemId => {
+                const r = results[itemId][langCode];
+                if (!r || r.needsReview !== true) return;
+                const score = typeof r.score === 'number' ? (r.score <= 1 ? Math.round(r.score * 100) : Math.round(r.score)) : 0;
+                rows.push({ item_id: itemId, language: langCode, score, notes: r.notes || '', reason: r.reason || '' });
+            });
+            function csvEscape(s) {
+                const t = String(s);
+                if (t.includes(',') || t.includes('"') || t.includes('\n') || t.includes('\r')) return '"' + t.replace(/"/g, '""') + '"';
+                return t;
+            }
+            const header = 'item_id,language,score,notes,reason';
+            const lines = [header].concat(rows.map(r => [r.item_id, r.language, r.score, csvEscape(r.notes), csvEscape(r.reason)].join(',')));
+            const csv = lines.join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
         function openAudioCoverage() {
             window.open('./audio-coverage.html', '_blank');
         }
@@ -391,7 +592,8 @@
                         <div class="bar-seg bar-warning" style="width:${warnPct}%"></div>
                         <div class="bar-seg bar-error" style="width:${errPct}%"></div>
                         <div class="bar-seg bar-pending" style="width:${pendPct}%"></div>
-                    </div>`;
+                    </div>
+                    <button type="button" class="btn btn-link btn-compact summary-chip-review-btn" onclick="openValidationReviewTableModal('${code.replace(/'/g, "\\'")}')" title="Open review table for ${code}">Review table</button>`;
                 header.appendChild(chip);
             });
             

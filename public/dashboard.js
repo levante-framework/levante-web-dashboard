@@ -869,14 +869,15 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 if (!this.validation_results[itemId]) {
                     this.validation_results[itemId] = {};
                 }
-                
-                // Store the result
+                const existing = this.validation_results[itemId][langCode];
+                // Store the result; preserve needsReview and reason from existing entry
                 this.validation_results[itemId][langCode] = {
                     score: score,
                     notes: notes,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    needsReview: existing && existing.needsReview !== undefined ? existing.needsReview : false,
+                    reason: existing && existing.reason !== undefined ? existing.reason : ''
                 };
-                
                 console.log(`📝 Stored validation result: ${itemId}[${langCode}] = ${score}%`);
             }
             

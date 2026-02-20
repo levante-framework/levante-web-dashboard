@@ -5,24 +5,25 @@
 			if(applied) return;
 			const bar=document.querySelector('.validation-controls');
 			if(!bar) return;
-			// Prefer retarget existing View button
+			// Ensure View report button keeps correct label and action (in case of cached or old HTML)
 			const viewBtn=document.getElementById('viewValidations');
 			if(viewBtn){
-				viewBtn.innerHTML='<i class="fas fa-wave-square"></i> Audio Validation';
-				viewBtn.onclick=(e)=>{ e.preventDefault(); window.open('./audio-validation.html','_blank'); return false; };
-				applied=true; return;
+				viewBtn.innerHTML='<i class="fas fa-chart-bar"></i> View report';
+				viewBtn.onclick=function(){ if(typeof showValidationSummaryReport==='function') showValidationSummaryReport(); };
+				viewBtn.title='View summary of all validation results';
 			}
-			// Otherwise inject after Clear Cache
+			// Add separate Audio Validation button (do not replace View report)
 			if(!bar.querySelector('.audio-validation-btn')){
 				const btn=document.createElement('button');
 				btn.className='btn btn-info btn-compact audio-validation-btn';
 				btn.innerHTML='<i class="fas fa-wave-square"></i> Audio Validation';
+				btn.title='Open ASR/Whisper validation report in a new tab';
 				btn.onclick=(e)=>{ e.preventDefault(); window.open('./audio-validation.html','_blank'); return false; };
 				const clearBtn=bar.querySelector('button[onclick*="clearCacheAndReload"]');
 				if(clearBtn&&clearBtn.parentElement===bar){ clearBtn.insertAdjacentElement('afterend', btn); }
 				else { bar.appendChild(btn); }
-				applied=true; return;
 			}
+			applied=true; return;
 		}catch(e){ console.warn('audio-validation toolbar init error', e); }
 	}
 	// Try immediately, on DOM ready, and observe DOM mutations briefly

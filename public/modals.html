@@ -313,6 +313,38 @@
     </div>
 </div>
 
+<!-- Validation Review Table Modal -->
+<div id="validationReviewTableModal" class="modal">
+    <div class="modal-content validation-review-table-modal" style="max-width: 1100px; width: 90%;">
+        <div class="modal-header">
+            <h2 id="validationReviewTableTitle"><i class="fas fa-list-alt"></i> Validation review</h2>
+            <span class="close" onclick="closeValidationReviewTableModal()">&times;</span>
+        </div>
+        <div class="validation-review-table-toolbar">
+            <button type="button" id="validationReviewTableDownloadCsv" class="btn btn-info btn-compact" onclick="downloadNeedsReviewCSVFromModal()" title="Download CSV of rows marked Needs Review">
+                <i class="fas fa-download"></i> Download CSV (needs review)
+            </button>
+        </div>
+        <div class="validation-review-table-wrap">
+            <p id="validationReviewTableEmpty" class="validation-review-table-empty" style="display: none;">No validations for this language.</p>
+            <table class="validation-review-table" id="validationReviewTable">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="itemId" data-label="Item ID">Item ID</th>
+                        <th class="sortable" data-sort="score" data-label="Score">Score</th>
+                        <th>Notes</th>
+                        <th class="sortable" data-sort="needsReview" data-label="Needs Review">Needs Review</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody id="validationReviewTableBody">
+                    <!-- Filled by JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Help Modal -->
 <div id="helpModal" class="modal">
     <div class="modal-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
