@@ -147,6 +147,19 @@
                         </div>
                     </div>
                 </div>
+                <div class="control-group" style="margin-top: 8px;">
+                    <label><i class="fas fa-database"></i> Data source:</label>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <select id="dataSourceSelect" class="voice-select" style="max-width: 260px;" title="Source for source and translated strings">
+                            <option value="crowdin">Crowdin (approved only)</option>
+                            <option value="csv">Remote CSV</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary btn-compact" id="reloadDataBtn" title="Reload translation data from selected source">
+                            <i class="fas fa-sync-alt"></i> Reload data
+                        </button>
+                        <span id="dataSourceLabel" class="text-muted" style="font-size: 0.85em;"></span>
+                    </div>
+                </div>
             <!-- Locate Me panel hidden - not needed for translations dashboard workflow -->
             <div class="control-group location-panel" style="display: none;">
                 <label><i class="fas fa-location-dot"></i> Locate Me:</label>
@@ -366,7 +379,7 @@
             Object.keys(results).forEach(itemId => {
                 const r = results[itemId][langCode];
                 if (!r) return;
-                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : 0;
+                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
                     itemId,
                     score: scoreVal,
@@ -395,7 +408,7 @@
             Object.keys(results).forEach(itemId => {
                 const r = results[itemId][_reviewTableLangCode];
                 if (!r) return;
-                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : 0;
+                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
                     itemId,
                     score: scoreVal,
@@ -429,7 +442,11 @@
             const dir = _reviewTableSortDir;
             _reviewTableRows.sort((a, b) => {
                 let va = a[by], vb = b[by];
-                if (by === 'score') { va = Number(va); vb = Number(vb); return dir * (va - vb); }
+                if (by === 'score') {
+                    va = va == null ? -1 : Number(va);
+                    vb = vb == null ? -1 : Number(vb);
+                    return dir * (va - vb);
+                }
                 if (by === 'needsReview') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
                 return dir * String(va).localeCompare(String(vb));
             });
@@ -448,7 +465,8 @@
                 tdItem.textContent = row.itemId;
                 tr.appendChild(tdItem);
                 const tdScore = document.createElement('td');
-                tdScore.textContent = Math.round(row.score);
+                tdScore.textContent = row.score != null ? Math.round(row.score) : '—';
+                tdScore.className = row.score == null ? 'validation-review-score-empty' : '';
                 tr.appendChild(tdScore);
                 const tdNotes = document.createElement('td');
                 tdNotes.textContent = row.notes;
@@ -570,7 +588,8 @@
                 Object.keys(results).forEach(itemId => {
                     const r = results[itemId][code];
                     if (!r) { pending++; return; }
-                    const score = Math.round((r.score || 0) * 100);
+                    if (typeof r.score !== 'number') { pending++; return; }
+                    const score = Math.round((r.score <= 1 ? r.score * 100 : r.score));
                     if (score >= 85) good++; else if (score >= 70) warning++; else error++;
                 });
                 const chip = document.createElement('div');
@@ -615,14 +634,14 @@
                     const td = document.createElement('td');
                     const r = results[itemId][code];
                     let cls = 'dot-pending';
-                    if (r) {
-                        const score = Math.round((r.score || 0) * 100);
+                    if (r && typeof r.score === 'number') {
+                        const score = Math.round((r.score <= 1 ? r.score * 100 : r.score));
                         if (score >= 85) cls = 'dot-good'; else if (score >= 70) cls = 'dot-warning'; else cls = 'dot-error';
                         td.title = `${score}% - ${r.notes || ''}`;
                         td.style.cursor = 'pointer';
                         td.onclick = () => showValidationResults(itemId, code, r, score >= 85 ? '✅' : score >= 70 ? '⚠️' : '❌', score, score >= 85 ? 'status-good' : score >= 70 ? 'status-warning' : 'status-error');
                     } else {
-                        td.title = 'Pending - Not validated';
+                        td.title = r ? 'Pending - No score' : 'Pending - Not validated';
                     }
                     td.innerHTML = `<span class="status-dot ${cls}"></span>`;
                     tr.appendChild(td);

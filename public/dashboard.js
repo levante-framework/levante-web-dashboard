@@ -166,6 +166,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     
                     // Setup event listeners
                     this.setupEventListeners();
+                    this.setupDataSourceControl();
                     
                     // Load comprehensive voices
                     await this.loadComprehensiveVoices();
@@ -183,17 +184,93 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
             }
 
-            async loadData() {
+            getDataSourcePreference() {
                 try {
-                    // Try loading in order of preference:
-                    // 1. Remote CSV (config primary, then GitHub item-bank, then GitHub translated_prompts)
-                    // 2. Local complete CSV (if downloaded)
-                    // 3. localStorage cache
-                    // 4. Sample data fallback
-                    
+                    const stored = localStorage.getItem('levante_data_source');
+                    return (stored === 'crowdin' || stored === 'csv') ? stored : 'crowdin';
+                } catch (e) {
+                    return 'crowdin';
+                }
+            }
+            setDataSourcePreference(value) {
+                try {
+                    localStorage.setItem('levante_data_source', value);
+                } catch (e) { /* ignore */ }
+            }
+
+            setupDataSourceControl() {
+                const selectEl = document.getElementById('dataSourceSelect');
+                const reloadBtn = document.getElementById('reloadDataBtn');
+                if (selectEl) {
+                    selectEl.value = this.getDataSourcePreference();
+                    selectEl.addEventListener('change', () => {
+                        this.setDataSourcePreference(selectEl.value);
+                        this.loadData().then(() => {
+                            this.createTabs();
+                            this.setStatus('Data source changed. Table refreshed.', 'success');
+                        });
+                    });
+                }
+                if (reloadBtn) {
+                    reloadBtn.addEventListener('click', () => {
+                        this.loadData().then(() => {
+                            this.createTabs();
+                            this.setStatus('Data reloaded.', 'success');
+                        });
+                    });
+                }
+            }
+
+            async loadData() {
+                const dataSource = this.getDataSourcePreference();
+                const selectEl = document.getElementById('dataSourceSelect');
+                if (selectEl) selectEl.value = dataSource;
+                this.updateDataSourceLabel(null);
+
+                if (dataSource === 'crowdin') {
+                    const loaded = await this.loadDataFromCrowdin();
+                    if (loaded) return;
+                    console.warn('Crowdin load failed, falling back to CSV');
+                }
+
+                await this.loadDataFromCSV();
+            }
+
+            updateDataSourceLabel(source) {
+                const label = document.getElementById('dataSourceLabel');
+                if (!label) return;
+                if (source) label.textContent = `Last loaded: ${source}`;
+                else label.textContent = '';
+            }
+
+            async loadDataFromCrowdin() {
+                try {
+                    this.setStatus('Loading from Crowdin (approved only)...', 'loading');
+                    const response = await fetch('/api/crowdin-approved-translations', { cache: 'no-cache' });
+                    if (!response.ok) {
+                        const err = await response.json().catch(() => ({ details: response.statusText }));
+                        throw new Error(err.details || err.error || `HTTP ${response.status}`);
+                    }
+                    const json = await response.json();
+                    if (!Array.isArray(json.data)) throw new Error('Invalid response from Crowdin API');
+                    this.data = json.data;
+                    const source = json.source || 'Crowdin (approved only)';
+                    console.log(`Loaded ${this.data.length} items from ${source}`);
+                    this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
+                    this.updateDataSourceLabel(source);
+                    this.cacheDataLocally(null);
+                    return true;
+                } catch (error) {
+                    console.warn('Crowdin load failed:', error);
+                    this.setStatus(`Crowdin unavailable: ${error.message}. Trying CSV...`, 'warning');
+                    return false;
+                }
+            }
+
+            async loadDataFromCSV() {
+                try {
                     let csvText = null;
                     let source = '';
-                    
                     const remoteUrls = [
                         (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) || null,
                         'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv',
@@ -208,7 +285,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             if (response.ok) {
                                 csvText = await response.text();
                                 source = url.indexOf('github') !== -1 ? 'GitHub' : 'remote';
-                                console.log('Loaded CSV from:', url);
                                 break;
                             }
                         } catch (e) {
@@ -217,7 +293,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                     }
 
-                    // Fallback to local complete CSV if no remote succeeded
                     if (!csvText) {
                         try {
                             this.setStatus('Checking for local complete CSV...', 'loading');
@@ -230,42 +305,30 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             console.log('Local complete CSV not found.');
                         }
                     }
-                    
+
                     if (csvText) {
-                        console.log(`🔍 DEBUG: CSV text length: ${csvText.length} characters`);
-                        console.log(`🔍 DEBUG: CSV lines: ${csvText.split('\n').length}`);
-                        
-                    this.data = this.parseCSV(csvText);
-                        console.log(`🔍 DEBUG: Parsed data length: ${this.data.length}`);
-                        console.log(`🔍 DEBUG: First few items:`, this.data.slice(0, 3));
-                        console.log(`🔍 DEBUG: Unique identifiers:`, new Set(this.data.map(item => item.item_id)).size);
-                        
-                        console.log(`Loaded ${this.data.length} complete translation items from ${source}`);
-                        this.setStatus(`Loaded ${this.data.length} items from ${source} (complete dataset)`, 'success');
-                        
-                        // Cache for offline use
+                        this.data = this.parseCSV(csvText);
+                        console.log(`Loaded ${this.data.length} items from ${source}`);
+                        this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
+                        this.updateDataSourceLabel(source);
                         this.cacheDataLocally(csvText);
-                    } else {
-                        throw new Error('No CSV data source available');
+                        return;
                     }
-                    
+                    throw new Error('No CSV data source available');
                 } catch (error) {
                     console.warn('Could not load CSV data, trying cache...', error);
-                    
-                    // Try to load from localStorage cache if all else fails
                     try {
                         const cachedData = localStorage.getItem('levante_translations_cache');
                         if (cachedData) {
                             this.data = JSON.parse(cachedData);
-                            console.log(`🔍 DEBUG: Loaded ${this.data.length} items from cache`);
-                            console.log(`🔍 DEBUG: Cache unique identifiers:`, new Set(this.data.map(item => item.item_id)).size);
                             this.setStatus(`Loaded ${this.data.length} items from cache (offline)`, 'success');
+                            this.updateDataSourceLabel('cache');
                         } else {
                             throw new Error('No cached data available');
                         }
                     } catch (cacheError) {
                         console.warn('Cache also failed, using sample data:', cacheError);
-                    this.data = this.loadSampleData();
+                        this.data = this.loadSampleData();
                         this.setStatus('Using sample data - all sources failed', 'error');
                     }
                 }
