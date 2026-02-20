@@ -18,12 +18,15 @@ export default async function handler(req, res) {
         const { text, from, to } = req.query;
         const authHeader = req.headers.authorization;
 
+        const envKey = process.env.GOOGLE_TRANSLATE_APIKEY;
+        const bearerKey = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.replace('Bearer ', '').trim() : '';
+        const apiKey = (envKey && envKey.trim()) || bearerKey || null;
+
         console.log('🔍 Google Translate API request:', {
             textLength: text ? text.length : 0,
             from: from,
             to: to,
-            hasAuthHeader: !!authHeader,
-            authHeaderStart: authHeader ? authHeader.substring(0, 10) + '...' : 'none'
+            keySource: envKey ? 'GOOGLE_TRANSLATE_APIKEY' : (bearerKey ? 'Authorization' : 'none')
         });
 
         if (!text || !from || !to) {
@@ -31,12 +34,13 @@ export default async function handler(req, res) {
             return;
         }
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            res.status(401).json({ error: 'Missing or invalid Authorization header' });
+        if (!apiKey) {
+            res.status(401).json({
+                error: 'Google Translate API key required',
+                details: 'Set GOOGLE_TRANSLATE_APIKEY in Vercel, or sign in and add your key in Dashboard → Credentials.'
+            });
             return;
         }
-
-        const apiKey = authHeader.replace('Bearer ', '');
 
         // Call Google Translate API
         const translateUrl = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;

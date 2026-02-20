@@ -30,11 +30,6 @@ function toggleValidationPanel() {
 }
 
 function validateSelected() {
-    const credentials = getCredentials();
-    if (!credentials.google_translate_api_key) {
-        alert('Please add your Google Translate API key in the credentials manager.');
-        return;
-    }
     const selectedRows = document.querySelectorAll('.data-row.selected');
     if (selectedRows.length === 0) {
         alert('Please select one or more translations to validate.');
@@ -47,11 +42,6 @@ function validateSelected() {
 }
 
 function validateAll() {
-    const credentials = getCredentials();
-    if (!credentials.google_translate_api_key) {
-        alert('Please add your Google Translate API key in the credentials manager.');
-        return;
-    }
     const currentLanguage = window.dashboard?.currentLanguage;
     if (!currentLanguage) {
         alert('No active language found.');
@@ -132,18 +122,7 @@ async function loadValidationsFromShared() {
 
 async function validateSingle(itemId, originalText, translatedText, langCode) {
     const credentials = getCredentials();
-    console.log('🔍 Validation credentials check:', { 
-        hasGoogleKey: !!credentials.google_translate_api_key,
-        credentialsKeys: Object.keys(credentials),
-        langCode: langCode,
-        currentDashboardLanguage: window.dashboard?.currentLanguage,
-        itemId: itemId
-    });
-    
-    if (!credentials.google_translate_api_key) {
-        alert('Please add your Google Translate API key in the credentials manager.');
-        return;
-    }
+    const userKey = credentials.google_translate_api_key && credentials.google_translate_api_key.trim() ? credentials.google_translate_api_key.trim() : null;
 
     // Find the status indicator by data-item-id - but only in the current active tab
     const currentLanguage = window.dashboard?.currentLanguage;
@@ -252,12 +231,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         const googleLangCode = mapToGoogleTranslateCode(langCode);
         console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
 
-        // Call Google Translate API to back-translate from target language to English
+        // Call Google Translate API to back-translate from target language to English (uses server GOOGLE_TRANSLATE_APIKEY if user has no key)
+        const headers = {};
+        if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
         const response = await fetch(`/api/google-translate?text=${encodeURIComponent(translatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
             method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${credentials.google_translate_api_key}`
-            }
+            headers
         });
 
         if (!response.ok) {
