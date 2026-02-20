@@ -71,6 +71,12 @@ const CONFIG = {
             service: 'ElevenLabs',
             voice: 'Clara - Children\'s Storyteller',
             display_name: 'English (Ghana)'
+        },
+        'Portuguese': {
+            lang_code: 'pt-PT',
+            service: 'ElevenLabs',
+            voice: 'Liam',
+            display_name: 'Portuguese'
         }
     },
     
@@ -111,6 +117,10 @@ const CONFIG = {
             'de-CH': [
                 'German_Anke Narrative',
                 'German_Anke Conversational'
+            ],
+            'pt-PT': [
+                'Portuguese_Liam Narrative',
+                'Portuguese_Liam Conversational'
             ]
         },
         elevenlabs: {
@@ -157,6 +167,10 @@ const CONFIG = {
             'de-CH': [
                 'Julia',
                 'Claudia - Credible, Competent & Authentic'
+            ],
+            'pt-PT': [
+                'Liam',
+                'Claudia - Credible, Competent & Authentic'
             ]
         }
     },
@@ -183,10 +197,9 @@ const CONFIG = {
         statsFile: 'stats.csv'
     },
     
-    // Data sources
+    // Data sources (dashboard tries remoteCSV first, then GitHub fallbacks in dashboard.js)
     dataSources: {
-        // Load from deployed dev bucket (with proper item_id column mapping)
-        remoteCSV: 'https://storage.googleapis.com/levante-dashboard-dev/itembank_translations.csv'
+        remoteCSV: 'https://storage.googleapis.com/levante-assets-dev/translations/item-bank-translations.csv'
     }
 };
 

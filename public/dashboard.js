@@ -146,7 +146,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     // Regional variants
                     'German (Switzerland)': '<img src="https://flagcdn.com/24x18/ch.png" alt="CH" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
                     'Spanish (Argentina)': '<img src="https://flagcdn.com/24x18/ar.png" alt="AR" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
-                    'English (Ghana)': '<img src="https://flagcdn.com/24x18/gh.png" alt="GH" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">'
+                    'English (Ghana)': '<img src="https://flagcdn.com/24x18/gh.png" alt="GH" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+                    'Portuguese': '<img src="https://flagcdn.com/24x18/pt.png" alt="PT" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">'
                 };
                 return flagMap[language] || '🌐'; // fallback to globe emoji
             }
@@ -185,35 +186,38 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             async loadData() {
                 try {
                     // Try loading in order of preference:
-                    // 1. Local complete CSV (if downloaded)
-                    // 2. GitHub CSV (complete dataset)
+                    // 1. Remote CSV (config primary, then GitHub item-bank, then GitHub translated_prompts)
+                    // 2. Local complete CSV (if downloaded)
                     // 3. localStorage cache
                     // 4. Sample data fallback
                     
                     let csvText = null;
                     let source = '';
                     
-                    // Prefer remote CSV first (same URL as fetch_latest_translations.py)
-                    const primaryUrl = (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) 
-                        ? window.CONFIG.dataSources.remoteCSV 
-                        : 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv';
-                    const fallbackUrl = 'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/text/translated_prompts.csv';
+                    const remoteUrls = [
+                        (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) || null,
+                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv',
+                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/translations/item-bank-translations.csv',
+                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/text/translated_prompts.csv'
+                    ].filter(Boolean);
 
-                    try {
-                        this.setStatus('Loading complete translation data from GitHub...', 'loading');
-                        let githubResponse = await fetch(primaryUrl);
-                        if (!githubResponse.ok) {
-                            githubResponse = await fetch(fallbackUrl);
+                    for (const url of remoteUrls) {
+                        try {
+                            this.setStatus('Loading translation data...', 'loading');
+                            const response = await fetch(url);
+                            if (response.ok) {
+                                csvText = await response.text();
+                                source = url.indexOf('github') !== -1 ? 'GitHub' : 'remote';
+                                console.log('Loaded CSV from:', url);
+                                break;
+                            }
+                        } catch (e) {
+                            console.warn('Fetch failed for', url, e);
+                            continue;
                         }
-                        if (githubResponse.ok) {
-                            csvText = await githubResponse.text();
-                            source = 'GitHub';
-                        }
-                    } catch (e) {
-                        console.warn('Remote CSV fetch failed, will try local fallback...', e);
                     }
 
-                    // Fallback to local complete CSV if remote not available
+                    // Fallback to local complete CSV if no remote succeeded
                     if (!csvText) {
                         try {
                             this.setStatus('Checking for local complete CSV...', 'loading');
@@ -328,10 +332,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     // Handle different possible column names for task/labels
                     const task = item.task || item.labels || item.category || item.type || 'general';
                     
+                    // Normalize English/source string so dashboard always has item.en
+                    const en = (item.en || item.source || item.source_phrase || item.english || item['en-US'] || item['en_US'] || item.text || '').trim();
+                    
                     return {
                         ...item,
                         item_id: itemId,
-                        labels: task
+                        labels: task,
+                        en: en || item.en || ''
                     };
                 });
                 
