@@ -113,7 +113,8 @@ async function loadValidationsFromShared() {
         button.disabled = true;
         const success = await window.dashboard.loadFromSharedStorage();
         if (success) {
-            window.dashboard.applyStoredValidationResultsForCurrentLanguage();
+            // Re-render the table to show updated validation results (pre-computed in HTML)
+            window.dashboard.populateDataTable();
             button.innerHTML = '<i class="fas fa-check"></i> Loaded!';
             window.dashboard.setStatus('🌐 Successfully loaded validation results from shared session storage', 'success');
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
@@ -208,14 +209,15 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             indicator.className = 'status-indicator status-good';
             indicator.title = 'Source language - 100% accuracy';
 
-            // Add score badge
-            let scoreBadge = indicator.querySelector('.score-badge');
+            // Add score badge to parent container (not inside the indicator circle)
+            let scoreBadge = indicator.parentElement.querySelector('.score-badge');
             if (!scoreBadge) {
                 scoreBadge = document.createElement('span');
                 scoreBadge.className = 'score-badge';
-                indicator.appendChild(scoreBadge);
+                scoreBadge.style.cssText = 'font-size: 10px; font-weight: bold; margin-left: 4px; opacity: 0.9; color: #155724;';
+                indicator.parentElement.appendChild(scoreBadge);
             }
-            scoreBadge.textContent = '100';
+            scoreBadge.textContent = '100.00%';
 
             // Update the validate button text and functionality
             if (button) {
@@ -342,16 +344,16 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             updatedButtonText = true;
         }
         
-        // Update or create score badge
-        const existingBadge = indicator.parentElement.querySelector('.score-badge');
-        if (existingBadge) {
-            existingBadge.remove();
+        // Update or create score badge in parent container (not inside indicator circle)
+        let scoreBadge = indicator.parentElement.querySelector('.score-badge');
+        if (!scoreBadge) {
+            scoreBadge = document.createElement('span');
+            scoreBadge.className = 'score-badge';
+            scoreBadge.style.cssText = 'font-size: 10px; font-weight: bold; margin-left: 4px; opacity: 0.9;';
+            indicator.parentElement.appendChild(scoreBadge);
         }
-        
-        const scoreBadge = document.createElement('span');
-        scoreBadge.className = 'score-badge';
-        scoreBadge.textContent = score;
-        indicator.appendChild(scoreBadge);
+        scoreBadge.textContent = `${score}%`;
+        scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
 
         console.log('✅ Updated validation UI:', {
             indicatorClass: indicator.className,

@@ -842,23 +842,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
             
             applyStoredValidationResultsForCurrentLanguage() {
-                const currentLangCode = this.languages[this.currentLanguage].lang_code;
-                console.log(`🎯 Applying stored validation results for ${this.currentLanguage} (${currentLangCode})...`);
-                let appliedCount = 0;
-                
-                Object.keys(this.validation_results).forEach(itemId => {
-                    if (this.validation_results[itemId][currentLangCode]) {
-                        const result = this.validation_results[itemId][currentLangCode];
-                        if (result.score !== undefined) {
-                            this.updateValidationUI(itemId, currentLangCode, result.score, result.notes || '');
-                            appliedCount++;
-                        }
-                    }
-                });
-                
-                console.log(`✅ Applied ${appliedCount} stored validation results for ${this.currentLanguage}`);
-                
-                // Update summary for current language
+                // Validation results are now pre-computed in populateDataTable() HTML
+                // This function is kept for backward compatibility but does nothing
+                // to avoid duplicate DOM modifications that cause layout issues
+                const currentLangCode = this.languages[this.currentLanguage]?.lang_code || 'unknown';
+                console.log(`🎯 Applying stored validation results for ${this.currentLanguage} (${currentLangCode})... [SKIPPED - pre-computed in HTML]`);
                 if (typeof updateValidationSummary === 'function') {
                     updateValidationSummary();
                 }
@@ -937,21 +925,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 indicator.className = `status-indicator ${statusClass}`;
                 indicator.title = statusTitle;
                 
-                // Update or create score badge
-                const existingBadge = indicator.parentElement.querySelector('.score-badge');
-                if (existingBadge) existingBadge.remove();
-                
-                const scoreBadge = document.createElement('span');
-                scoreBadge.className = 'score-badge';
+                // Update or create score badge (reuse existing to avoid layout thrash)
+                let scoreBadge = indicator.parentElement.querySelector('.score-badge');
+                if (!scoreBadge) {
+                    scoreBadge = document.createElement('span');
+                    scoreBadge.className = 'score-badge';
+                    scoreBadge.style.cssText = 'font-size: 10px; font-weight: bold; margin-left: 4px; opacity: 0.9;';
+                    indicator.parentElement.appendChild(scoreBadge);
+                }
                 scoreBadge.textContent = `${scorePercent.toFixed(2)}%`;
-                scoreBadge.style.cssText = `
-                    font-size: 10px;
-                    font-weight: bold;
-                    color: ${scorePercent >= 85 ? '#155724' : scorePercent >= 70 ? '#856404' : '#721c24'};
-                    margin-left: 4px;
-                    opacity: 0.9;
-                `;
-                indicator.parentElement.appendChild(scoreBadge);
+                scoreBadge.style.color = scorePercent >= 85 ? '#155724' : scorePercent >= 70 ? '#856404' : '#721c24';
                 
                 // Update button if it exists
                 const button = indicator.parentElement.querySelector('.validate-btn');
@@ -1078,6 +1061,31 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const escapedOriginal = originalEnglish.replace(/'/g, "\\'").replace(/"/g, '\\"');
                     const escapedTranslation = text.replace(/'/g, "\\'").replace(/"/g, '\\"');
                     
+                    // Pre-compute validation state to include in initial HTML (avoids DOM updates later)
+                    let statusClass = 'status-pending';
+                    let statusTitle = 'Not validated yet';
+                    let buttonText = 'Validate';
+                    let scoreBadgeHtml = '';
+                    const storedResult = this.validation_results[itemId]?.[langCode];
+                    if (storedResult && storedResult.score !== undefined) {
+                        const scorePercent = Math.round((storedResult.score * 100) * 100) / 100;
+                        if (scorePercent >= 85) {
+                            statusClass = 'status-good';
+                            statusTitle = `✅ Excellent: ${scorePercent.toFixed(2)}% similarity`;
+                            buttonText = '✅ View Results';
+                        } else if (scorePercent >= 70) {
+                            statusClass = 'status-warning';
+                            statusTitle = `⚠️ Warning: ${scorePercent.toFixed(2)}% similarity`;
+                            buttonText = '⚠️ View Warning';
+                        } else {
+                            statusClass = 'status-error';
+                            statusTitle = `❌ Poor: ${scorePercent.toFixed(2)}% similarity`;
+                            buttonText = '❌ View Issues';
+                        }
+                        const badgeColor = scorePercent >= 85 ? '#155724' : scorePercent >= 70 ? '#856404' : '#721c24';
+                        scoreBadgeHtml = `<span class="score-badge" style="color: ${badgeColor}">${scorePercent.toFixed(2)}%</span>`;
+                    }
+                    
                     row.innerHTML = `
                         <div class="item_id">${itemId}</div>
                         <div class="item-task">${taskName}</div>
@@ -1085,9 +1093,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         <div class="item-text">
                             ${text}
                             <div class="validation-status">
-                                <div class="status-indicator status-pending" title="Not validated yet" data-item-id="${itemId}"></div>
-                                <button class="validate-btn" onclick="validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')">Validate</button>
+                                <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}"></div>
+                                <button class="validate-btn" onclick="validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')">${buttonText}</button>
                                 <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
+                                ${scoreBadgeHtml}
                             </div>
                         </div>
                         <div class="audio-controls">
@@ -1124,13 +1133,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     tableContent.appendChild(row);
                 });
                 
-                // Apply stored validation results after table is populated, but only for current language
-                setTimeout(() => {
-                    this.applyStoredValidationResultsForCurrentLanguage();
-                }, 100);
-                
-                // Update validation summary after populating table
-                updateValidationSummary();
+                // Validation results are now pre-computed and included in the initial row HTML
+                // No need for delayed DOM updates - just update the summary counts
+                if (typeof updateValidationSummary === 'function') {
+                    updateValidationSummary();
+                }
             }
 
             selectRow(rowElement, item) {
