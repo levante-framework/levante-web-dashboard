@@ -10,8 +10,10 @@ class AuthManager {
         this.db = null;
         this.currentUser = null;
         this.isSuperadmin = false;
-        this.superadminEmailOverride = null;
         this.superadminBypassInProgress = false;
+        
+        // Restore superadmin email override from localStorage (survives page refresh)
+        this.superadminEmailOverride = localStorage.getItem('levante_superadmin_email') || null;
         
         // Firebase configuration - loaded from external config
         this.firebaseConfig = window.FIREBASE_CONFIG || {
@@ -24,6 +26,16 @@ class AuthManager {
         };
         
         this.init();
+    }
+    
+    // Persist superadmin email override to survive page refreshes
+    setSuperadminEmailOverride(email) {
+        this.superadminEmailOverride = email;
+        if (email) {
+            localStorage.setItem('levante_superadmin_email', email);
+        } else {
+            localStorage.removeItem('levante_superadmin_email');
+        }
     }
 
     getActiveEmail() {
@@ -57,6 +69,15 @@ class AuthManager {
             this.db = this.firebase.firestore();
             
             console.log('✅ Firebase initialized successfully');
+            
+            // Set persistence to LOCAL - this ensures auth state survives browser restarts
+            // and prevents being kicked out after a few minutes
+            try {
+                await this.auth.setPersistence(this.firebase.auth.Auth.Persistence.LOCAL);
+                console.log('✅ Auth persistence set to LOCAL');
+            } catch (persistenceError) {
+                console.warn('⚠️ Could not set auth persistence:', persistenceError);
+            }
             
             // Set up auth state listener
             this.auth.onAuthStateChanged((user) => {
@@ -120,14 +141,14 @@ class AuthManager {
                 this.showDashboard();
             } else {
                 this.showError('Access denied. Superadmin privileges required.');
-                this.superadminEmailOverride = null;
+                this.setSuperadminEmailOverride(null);
                 await this.auth.signOut();
             }
         } else {
             this.currentUser = null;
             this.isSuperadmin = false;
             if (!this.superadminBypassInProgress) {
-                this.superadminEmailOverride = null;
+                this.setSuperadminEmailOverride(null);
             }
             this.showLogin();
         }
@@ -196,7 +217,7 @@ class AuthManager {
 
         try {
             await this.auth.signInWithEmailAndPassword(email, password);
-            this.superadminEmailOverride = null;
+            this.setSuperadminEmailOverride(null);
             this.showSuccess('Authentication successful!');
         } catch (error) {
             console.error('Login error:', error);
@@ -219,7 +240,7 @@ class AuthManager {
             this.clearMessages();
 
             const normalizedEmail = email.trim();
-            this.superadminEmailOverride = normalizedEmail;
+            this.setSuperadminEmailOverride(normalizedEmail);
 
             if (this.auth.currentUser) {
                 await this.auth.signOut();
@@ -239,7 +260,7 @@ class AuthManager {
             this.showSuccess('Superadmin access granted without password.');
         } catch (error) {
             console.error('Superadmin bypass login failed:', error);
-            this.superadminEmailOverride = null;
+            this.setSuperadminEmailOverride(null);
             this.showError('Unable to complete superadmin login without password.');
         } finally {
             this.superadminBypassInProgress = false;
@@ -288,7 +309,7 @@ class AuthManager {
 
     async handleLogout() {
         try {
-            this.superadminEmailOverride = null;
+            this.setSuperadminEmailOverride(null);
             this.superadminBypassInProgress = false;
             await this.auth.signOut();
             this.showLogin();

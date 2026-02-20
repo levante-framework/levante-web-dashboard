@@ -858,13 +858,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.validation_results[itemId] = {};
                 }
                 const existing = this.validation_results[itemId][langCode];
-                // Store the result; preserve needsReview and reason from existing entry
+                // Store the result; preserve needsReview, reason, and backTranslation from existing entry
                 this.validation_results[itemId][langCode] = {
                     score: score,
                     notes: notes,
                     timestamp: new Date().toISOString(),
                     needsReview: existing && existing.needsReview !== undefined ? existing.needsReview : false,
-                    reason: existing && existing.reason !== undefined ? existing.reason : ''
+                    reason: existing && existing.reason !== undefined ? existing.reason : '',
+                    backTranslation: existing && existing.backTranslation !== undefined ? existing.backTranslation : ''
                 };
                 console.log(`📝 Stored validation result: ${itemId}[${langCode}] = ${score}%`);
             }
@@ -986,7 +987,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         </div>
                         <div class="data-table">
                             <div class="table-header">
-                                <h4><i class="fas fa-table"></i> Translation Items <span id="item-count-${language}" class="item-count">(Loading...)</span></h4>
+                                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                                    <h4 style="margin: 0;"><i class="fas fa-table"></i> Translation Items <span id="item-count-${language}" class="item-count">(Loading...)</span></h4>
+                                    <div class="sort-controls" style="display: flex; gap: 6px; align-items: center;">
+                                        <span style="font-size: 0.85em; color: #6c757d;">Sort:</span>
+                                        <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="score-desc" title="Sort by score (highest first)" style="padding: 4px 8px; font-size: 0.8em;">
+                                            <i class="fas fa-sort-amount-down"></i> Score ↓
+                                        </button>
+                                        <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="score-asc" title="Sort by score (lowest first)" style="padding: 4px 8px; font-size: 0.8em;">
+                                            <i class="fas fa-sort-amount-up"></i> Score ↑
+                                        </button>
+                                        <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="id" title="Sort by Item ID" style="padding: 4px 8px; font-size: 0.8em;">
+                                            <i class="fas fa-sort-alpha-down"></i> ID
+                                        </button>
+                                        <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="review" title="Show items needing review first" style="padding: 4px 8px; font-size: 0.8em;">
+                                            <i class="fas fa-flag"></i> Review
+                                        </button>
+                                    </div>
+                                </div>
                                 <input type="text" class="search-box" placeholder="Search items..." id="search-${language}">
                             </div>
                             <div class="table-content" id="table-${language}">
@@ -1005,20 +1023,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             populateDataTable() {
-                // Ensure latest language map
                 this.refreshLanguagesFromConfig();
                 const langCode = this.languages[this.currentLanguage].lang_code;
                 const tableContent = document.getElementById(`table-${this.currentLanguage}`);
-                
                 if (!tableContent) return;
 
                 tableContent.innerHTML = '';
                 
-                console.log(`🔍 DEBUG: Populating table for ${this.getDisplayName(this.currentLanguage)} (${langCode}) with ${this.data.length} items`);
-                console.log(`🔍 DEBUG: Unique identifiers in data:`, new Set(this.data.map(item => item.item_id)).size);
-                console.log(`🔍 DEBUG: Sample identifiers:`, this.data.slice(0, 10).map(item => item.item_id));
-                
-                // Update item count in header
                 const itemCountSpan = document.getElementById(`item-count-${this.currentLanguage}`);
                 if (itemCountSpan) {
                     itemCountSpan.textContent = `(${this.data.length} items)`;
@@ -1026,32 +1037,44 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     itemCountSpan.style.fontSize = '0.9em';
                 }
                 
-                                    this.data.forEach((item, index) => {
-                        let text = item[langCode];
-                        if (!text && langCode.includes('-')) {
-                            const base = langCode.split('-')[0];
-                            text = item[base];
-                        }
-                        if (!text) {
-                            const keys = Object.keys(item);
-                            const match = keys.find(k => k.toLowerCase() === langCode.toLowerCase());
-                            text = match ? item[match] : null;
-                        }
-                        if (!text) text = item.en || 'No translation available';
-                    
+                // Render rows in batches so we don't block the main thread for 5+ seconds (keeps tab switch snappy)
+                const BATCH_SIZE = 45;
+                const self = this;
+                let offset = 0;
+                
+                function processBatch() {
+                    const batch = self.data.slice(offset, offset + BATCH_SIZE);
+                    const startIndex = offset;
+                    offset += batch.length;
+                    for (let i = 0; i < batch.length; i++) {
+                        const row = self.buildDataRow(batch[i], startIndex + i, langCode);
+                        if (row) tableContent.appendChild(row);
+                    }
+                    if (offset < self.data.length) {
+                        requestAnimationFrame(processBatch);
+                    } else {
+                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                        self.setupSortAndReviewHandlers();
+                    }
+                }
+                processBatch();
+            }
+            
+            buildDataRow(item, index, langCode) {
+                    let text = item[langCode];
+                    if (!text && langCode.includes('-')) {
+                        const base = langCode.split('-')[0];
+                        text = item[base];
+                    }
+                    if (!text) {
+                        const keys = Object.keys(item);
+                        const match = keys.find(k => k.toLowerCase() === langCode.toLowerCase());
+                        text = match ? item[match] : null;
+                    }
+                    if (!text) text = item.en || 'No translation available';
+                
                     const row = document.createElement('div');
                     row.className = 'data-row';
-                    
-                    // Debug logging for first few items
-                    if (index < 3) {
-                        console.log(`Item ${index}:`, {
-                            raw_item: item,
-                            item_id: item.item_id,
-                            labels: item.labels,
-                            available_keys: Object.keys(item)
-                        });
-                    }
-                    
                     const itemId = item.item_id || `fallback_${index}`;
                     const taskName = item.labels || item.task || 'general';
                     const originalEnglish = item.en || 'No English source';
@@ -1061,14 +1084,22 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const escapedOriginal = originalEnglish.replace(/'/g, "\\'").replace(/"/g, '\\"');
                     const escapedTranslation = text.replace(/'/g, "\\'").replace(/"/g, '\\"');
                     
-                    // Pre-compute validation state to include in initial HTML (avoids DOM updates later)
                     let statusClass = 'status-pending';
                     let statusTitle = 'Not validated yet';
                     let buttonText = 'Validate';
                     let scoreBadgeHtml = '';
+                    let scoreValue = -1;
                     const storedResult = this.validation_results[itemId]?.[langCode];
+                    const needsReview = storedResult?.needsReview || false;
+                    const reviewReason = storedResult?.reason || '';
+                    const backTranslation = storedResult?.backTranslation || '';
+                    const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    const backTranslationHtml = backTranslation
+                        ? `<div class="item-backtranslation" title="Back-translation">${escapeHtml(backTranslation)}</div>`
+                        : '';
                     if (storedResult && storedResult.score !== undefined) {
                         const scorePercent = Math.round((storedResult.score * 100) * 100) / 100;
+                        scoreValue = scorePercent;
                         if (scorePercent >= 85) {
                             statusClass = 'status-good';
                             statusTitle = `✅ Excellent: ${scorePercent.toFixed(2)}% similarity`;
@@ -1086,10 +1117,15 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         scoreBadgeHtml = `<span class="score-badge" style="color: ${badgeColor}">${scorePercent.toFixed(2)}%</span>`;
                     }
                     
+                    row.dataset.score = scoreValue;
+                    row.dataset.needsReview = needsReview ? '1' : '0';
                     row.innerHTML = `
                         <div class="item_id">${itemId}</div>
                         <div class="item-task">${taskName}</div>
-                        <div class="item-english">${originalEnglish}</div>
+                        <div class="item-english">
+                            <div class="item-english-source">${originalEnglish}</div>
+                            ${backTranslationHtml}
+                        </div>
                         <div class="item-text">
                             ${text}
                             <div class="validation-status">
@@ -1097,6 +1133,18 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 <button class="validate-btn" onclick="validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')">${buttonText}</button>
                                 <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
                                 ${scoreBadgeHtml}
+                            </div>
+                            <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
+                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? '#dc3545' : '#6c757d'};">
+                                    <input type="checkbox" class="needs-review-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${needsReview ? 'checked' : ''} style="cursor: pointer;">
+                                    <i class="fas fa-flag" style="color: ${needsReview ? '#dc3545' : '#adb5bd'};"></i> Needs Review
+                                </label>
+                                <div class="reason-container" style="display: ${needsReview ? 'flex' : 'none'}; align-items: center; gap: 4px; flex: 1; min-width: 150px;">
+                                    <input type="text" class="reason-input" data-item-id="${escapedItemId}" data-lang-code="${langCode}" value="${reviewReason.replace(/"/g, '&quot;')}" placeholder="Reason..." style="flex: 1; padding: 3px 6px; font-size: 0.8em; border: 1px solid #ced4da; border-radius: 4px; min-width: 100px;">
+                                    <button class="save-reason-btn" data-item-id="${escapedItemId}" data-lang-code="${langCode}" title="Save reason" style="padding: 3px 6px; font-size: 0.75em; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         <div class="audio-controls">
@@ -1128,16 +1176,134 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         saveButton.disabled = !isPending;
                         saveButton.title = isPending ? 'Save latest generated audio to draft bucket' : 'Generate audio before saving';
                     }
-                    
                     row.addEventListener('click', () => this.selectRow(row, item));
-                    tableContent.appendChild(row);
+                    return row;
+            }
+            
+            setupSortAndReviewHandlers() {
+                const self = this;
+                const langCode = this.languages[this.currentLanguage].lang_code;
+                const tableContent = document.getElementById(`table-${this.currentLanguage}`);
+                if (!tableContent) return;
+                
+                // Sort button handlers
+                document.querySelectorAll(`.sort-btn[data-lang="${this.currentLanguage}"]`).forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const sortType = btn.dataset.sort;
+                        self.sortTable(sortType);
+                    };
                 });
                 
-                // Validation results are now pre-computed and included in the initial row HTML
-                // No need for delayed DOM updates - just update the summary counts
-                if (typeof updateValidationSummary === 'function') {
-                    updateValidationSummary();
-                }
+                // Needs Review checkbox handlers
+                tableContent.querySelectorAll('.needs-review-checkbox').forEach(checkbox => {
+                    checkbox.onclick = (e) => e.stopPropagation(); // Prevent row selection
+                    checkbox.onchange = (e) => {
+                        const itemId = checkbox.dataset.itemId;
+                        const langCode = checkbox.dataset.langCode;
+                        const isChecked = checkbox.checked;
+                        const row = checkbox.closest('.data-row');
+                        const reasonContainer = row.querySelector('.reason-container');
+                        const reasonInput = row.querySelector('.reason-input');
+                        const label = checkbox.closest('label');
+                        const flagIcon = label.querySelector('.fa-flag');
+                        
+                        // Show/hide reason field
+                        reasonContainer.style.display = isChecked ? 'flex' : 'none';
+                        label.style.color = isChecked ? '#dc3545' : '#6c757d';
+                        flagIcon.style.color = isChecked ? '#dc3545' : '#adb5bd';
+                        row.dataset.needsReview = isChecked ? '1' : '0';
+                        
+                        // Update validation_results
+                        if (!self.validation_results[itemId]) {
+                            self.validation_results[itemId] = {};
+                        }
+                        if (!self.validation_results[itemId][langCode]) {
+                            self.validation_results[itemId][langCode] = {};
+                        }
+                        self.validation_results[itemId][langCode].needsReview = isChecked;
+                        
+                        // Clear reason if unchecked
+                        if (!isChecked) {
+                            reasonInput.value = '';
+                            self.validation_results[itemId][langCode].reason = '';
+                        }
+                        
+                        console.log(`📝 Needs Review ${isChecked ? 'set' : 'cleared'} for ${itemId}[${langCode}]`);
+                    };
+                });
+                
+                // Reason input handlers
+                tableContent.querySelectorAll('.reason-input').forEach(input => {
+                    input.onclick = (e) => e.stopPropagation(); // Prevent row selection
+                });
+                
+                // Save reason button handlers
+                tableContent.querySelectorAll('.save-reason-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const itemId = btn.dataset.itemId;
+                        const langCode = btn.dataset.langCode;
+                        const row = btn.closest('.data-row');
+                        const reasonInput = row.querySelector('.reason-input');
+                        const reason = reasonInput.value.trim();
+                        
+                        // Update validation_results
+                        if (!self.validation_results[itemId]) {
+                            self.validation_results[itemId] = {};
+                        }
+                        if (!self.validation_results[itemId][langCode]) {
+                            self.validation_results[itemId][langCode] = {};
+                        }
+                        self.validation_results[itemId][langCode].reason = reason;
+                        
+                        // Visual feedback
+                        btn.innerHTML = '<i class="fas fa-check"></i>';
+                        btn.style.background = '#28a745';
+                        setTimeout(() => {
+                            btn.innerHTML = '<i class="fas fa-check"></i>';
+                        }, 1000);
+                        
+                        console.log(`📝 Reason saved for ${itemId}[${langCode}]: "${reason}"`);
+                        self.setStatus(`Saved reason for ${itemId}`, 'success');
+                    };
+                });
+            }
+            
+            sortTable(sortType) {
+                const tableContent = document.getElementById(`table-${this.currentLanguage}`);
+                if (!tableContent) return;
+                
+                const rows = Array.from(tableContent.querySelectorAll('.data-row'));
+                
+                rows.sort((a, b) => {
+                    if (sortType === 'score-desc') {
+                        const scoreA = parseFloat(a.dataset.score) || -1;
+                        const scoreB = parseFloat(b.dataset.score) || -1;
+                        return scoreB - scoreA; // Highest first
+                    } else if (sortType === 'score-asc') {
+                        const scoreA = parseFloat(a.dataset.score) || -1;
+                        const scoreB = parseFloat(b.dataset.score) || -1;
+                        // Put -1 (not validated) at the end
+                        if (scoreA === -1 && scoreB !== -1) return 1;
+                        if (scoreB === -1 && scoreA !== -1) return -1;
+                        return scoreA - scoreB; // Lowest first
+                    } else if (sortType === 'id') {
+                        const idA = a.dataset.itemId || '';
+                        const idB = b.dataset.itemId || '';
+                        return idA.localeCompare(idB);
+                    } else if (sortType === 'review') {
+                        const reviewA = a.dataset.needsReview === '1' ? 1 : 0;
+                        const reviewB = b.dataset.needsReview === '1' ? 1 : 0;
+                        return reviewB - reviewA; // Needs review first
+                    }
+                    return 0;
+                });
+                
+                // Re-append rows in sorted order
+                rows.forEach(row => tableContent.appendChild(row));
+                
+                this.setStatus(`Sorted by ${sortType.replace('-', ' ')}`, 'success');
             }
 
             selectRow(rowElement, item) {
@@ -1169,20 +1335,27 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             switchTab(language, button) {
-                // Update active states
+                // Update active states immediately so INP stays low (tab switch is visible right away)
                 document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                
                 button.classList.add('active');
-                document.getElementById(`tab-${language}`).classList.add('active');
+                const tabEl = document.getElementById(`tab-${language}`);
+                if (tabEl) tabEl.classList.add('active');
                 
-                // Refresh languages in case remote config changed
-                this.refreshLanguagesFromConfig();
                 this.currentLanguage = language;
-                this.populateVoices();
-                this.populateDataTable();
-                updateValidationSummary(); // Update counts for new language tab
-                this.setStatus(`Switched to ${this.getDisplayName(language)} - ${this.languages[language].service} (${this.languages[language].lang_code})`, 'success');
+                
+                // Defer heavy work so the click handler returns quickly (fixes 5s+ INP)
+                requestAnimationFrame(() => {
+                    this.refreshLanguagesFromConfig();
+                    this.populateVoices();
+                    this.populateDataTable();
+                    if (typeof updateValidationSummary === 'function') {
+                        updateValidationSummary();
+                    }
+                    const langConfig = this.languages[language];
+                    const label = langConfig ? `${this.getDisplayName(language)} - ${langConfig.service} (${langConfig.lang_code})` : language;
+                    this.setStatus(`Switched to ${label}`, 'success');
+                });
             }
 
             populateVoices() {

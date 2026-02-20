@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Dashboard</title>
+    <title>Translations Dashboard</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -55,7 +55,7 @@
 
     <div class="dashboard-container" style="display: none;">
         <div class="header">
-            <h1><i class="fas fa-language"></i> <i class="fas fa-microphone"></i> Audio Dashboard</h1>
+            <h1><i class="fas fa-language"></i> <i class="fas fa-microphone"></i> Translations Dashboard</h1>
             <!-- Cache bust: v2.1 -->
             <div class="header-actions-left">
                 <a class="back-to-pitwall" href="./index.html" title="Back to Pitwall">
@@ -147,7 +147,8 @@
                         </div>
                     </div>
                 </div>
-            <div class="control-group location-panel">
+            <!-- Locate Me panel hidden - not needed for translations dashboard workflow -->
+            <div class="control-group location-panel" style="display: none;">
                 <label><i class="fas fa-location-dot"></i> Locate Me:</label>
                 <div class="location-wrapper">
                     <div class="location-actions">
@@ -204,13 +205,10 @@
                         <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
                             <i class="fas fa-save"></i> Save
                         </button>
-                        <button id="loadValidations" class="btn btn-info btn-compact" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
+                        <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
                             <i class="fas fa-cloud-download-alt"></i> Load
                         </button>
-                        <button id="viewValidations" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="View summary of all validation results">
-                            <i class="fas fa-chart-bar"></i> View report
-                        </button>
-                        <button id="exportValidations" class="btn btn-secondary btn-compact" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
+                        <button id="exportValidations" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
                         </button>
                         <button class="btn btn-warning btn-compact" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
@@ -224,10 +222,10 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
                             <h4 style="margin: 0; color: #333; font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
                             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                                <button type="button" id="validationSummaryViewReportBtn" class="btn btn-info btn-compact" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
+                                <button type="button" id="validationSummaryViewReportBtn" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
                                     <i class="fas fa-chart-bar"></i> View report
                                 </button>
-                                <button type="button" class="btn btn-secondary btn-compact" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
+                                <button type="button" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
                                     <i class="fas fa-list-alt"></i> Review table
                                 </button>
                             </div>
