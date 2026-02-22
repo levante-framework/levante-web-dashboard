@@ -51,6 +51,12 @@
     "api/crowdin-check-permissions.js": {
       "maxDuration": 30
     },
+    "api/crowdin-approved-translations.js": {
+      "maxDuration": 60
+    },
+    "api/crowdin-download-zip.js": {
+      "maxDuration": 30
+    },
     "api/deploy-bucket-docs.js": {
       "maxDuration": 60
     },

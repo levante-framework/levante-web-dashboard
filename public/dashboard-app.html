@@ -235,11 +235,22 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
                             <h4 style="margin: 0; color: #333; font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
                             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-compact" style="background: #5e35b1; color: white; border: 1px solid #4527a0;" onclick="showCrowdinFilesModal()" title="List CSV files from the last Crowdin export we used">
+                                    <i class="fas fa-file-csv"></i> Crowdin files
+                                </button>
                                 <button type="button" id="validationSummaryViewReportBtn" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
                                     <i class="fas fa-chart-bar"></i> View report
                                 </button>
                                 <button type="button" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
                                     <i class="fas fa-list-alt"></i> Review table
+                                </button>
+                                <select id="reviewTablePathFilter" title="Filter review table by filepath" onchange="if(typeof setValidationSummaryLoading==='function') setValidationSummaryLoading(true); if(window.dashboard) window.dashboard.populateDataTable(); if(document.getElementById('validationReviewTableModal').style.display==='block'){ refreshReviewTableRowsFromDashboard(); sortReviewTableRows(); renderValidationReviewTableBody(); document.getElementById('validationReviewTableEmpty').style.display=_reviewTableRows.length===0?'block':'none'; document.getElementById('validationReviewTable').style.display=_reviewTableRows.length===0?'none':'table'; }" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #37474f; background: #fff; font-size: 0.9em;">
+                                    <option value="all">All</option>
+                                    <option value="tasks">Tasks</option>
+                                    <option value="surveys">Surveys</option>
+                                </select>
+                                <button type="button" class="btn btn-compact" style="background: #2e7d32; color: white; border: 1px solid #1b5e20;" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Response)">
+                                    <i class="fas fa-download"></i> Download
                                 </button>
                             </div>
                         </div>
@@ -261,6 +272,7 @@
                                     <span style="font-size: 18px; font-weight: bold; color: #6c757d;" id="pendingCount">0</span>
                                     <span style="color: #6c757d; font-size: 0.9em;">Pending</span>
                                 </div>
+                                <button type="button" class="btn btn-link btn-compact" style="padding: 4px 8px; font-size: 0.85em;" onclick="showItemsByFileModal()" title="Show how many items (for current filter) come from each Crowdin file">By file</button>
                             </div>
                         </div>
                     </div>
@@ -351,6 +363,27 @@
             document.getElementById('validationSummaryModal').style.display = 'none';
         }
 
+        function showCrowdinFilesModal() {
+            const modal = document.getElementById('crowdinFilesModal');
+            const messageEl = document.getElementById('crowdinFilesMessage');
+            const listEl = document.getElementById('crowdinFilesList');
+            if (!modal || !messageEl || !listEl) return;
+            const dash = window.dashboard;
+            const files = dash && Array.isArray(dash.crowdinFilesUsed) ? dash.crowdinFilesUsed : null;
+            if (files && files.length > 0) {
+                messageEl.textContent = 'CSV files from the last Crowdin export (' + files.length + ' file(s)):';
+                listEl.innerHTML = files.map(function(path) { return '<li>' + path.replace(/</g, '&lt;') + '</li>'; }).join('');
+            } else {
+                messageEl.textContent = 'Data was not loaded from Crowdin, or the export had no CSV files. Load from Crowdin first to see the list.';
+                listEl.innerHTML = '';
+            }
+            modal.style.display = 'block';
+        }
+        function closeCrowdinFilesModal() {
+            const modal = document.getElementById('crowdinFilesModal');
+            if (modal) modal.style.display = 'none';
+        }
+
         let _reviewTableLangCode = null;
         let _reviewTableRows = [];
         let _reviewTableSortBy = 'score';
@@ -363,6 +396,89 @@
             openValidationReviewTableModal(langCode);
         }
 
+        function getReviewTableAllowedItemIds() {
+            const dash = window.dashboard;
+            const filterEl = document.getElementById('reviewTablePathFilter');
+            const filter = (filterEl && filterEl.value) ? filterEl.value.toLowerCase() : 'all';
+            if (!dash || !dash.data || !Array.isArray(dash.data)) return null;
+            const toId = function(item) { return String(item.item_id || item.identifier || ''); };
+            if (filter === 'all') return new Set(dash.data.map(toId).filter(Boolean));
+            var pathContains = null;
+            if (filter === 'tasks') pathContains = 'main/itembank_by_task';
+            else if (filter === 'surveys') pathContains = 'main/surveys';
+            if (!pathContains) return new Set(dash.data.map(toId).filter(Boolean));
+            const allowed = new Set();
+            const needle = pathContains.toLowerCase();
+            dash.data.forEach(function(item) {
+                const paths = item._sourcePaths || [];
+                if (paths.some(function(p) { return String(p).replace(/\\/g, '/').toLowerCase().indexOf(needle) !== -1; })) { const id = toId(item); if (id) allowed.add(id); }
+            });
+            return allowed;
+        }
+
+        function pathMatchesLanguage(path, langCode) {
+            if (!path || !langCode) return false;
+            const parts = String(path).replace(/\\/g, '/').split('/');
+            const first = (parts[0] || '').trim().toLowerCase();
+            const code = String(langCode).toLowerCase();
+            const codeBase = code.split('-')[0];
+            return first === code || first === codeBase || first === 'en-us' && code === 'en';
+        }
+
+        function getItemsBySourceFile(langCodeFilter) {
+            const dash = window.dashboard;
+            if (!dash || !dash.data || !Array.isArray(dash.data)) return { total: 0, byPath: {} };
+            const allowedIds = getReviewTableAllowedItemIds();
+            const byPath = {};
+            let total = 0;
+            dash.data.forEach(function(item) {
+                const id = String(item.item_id || item.identifier || '');
+                if (allowedIds && !allowedIds.has(id)) return;
+                total++;
+                const paths = item._sourcePaths || [];
+                paths.forEach(function(p) {
+                    const path = String(p || '').trim();
+                    if (!path) return;
+                    if (langCodeFilter && !pathMatchesLanguage(path, langCodeFilter)) return;
+                    byPath[path] = (byPath[path] || 0) + 1;
+                });
+            });
+            return { total, byPath };
+        }
+
+        function showItemsByFileModal() {
+            const modal = document.getElementById('itemsByFileModal');
+            const titleEl = document.getElementById('itemsByFileModalTitle');
+            const messageEl = document.getElementById('itemsByFileMessage');
+            const tbody = document.getElementById('itemsByFileBody');
+            const filterEl = document.getElementById('reviewTablePathFilter');
+            const filter = (filterEl && filterEl.value) ? filterEl.value : 'All';
+            if (!modal || !tbody) return;
+            const dash = window.dashboard;
+            const langName = dash && dash.currentLanguage ? dash.currentLanguage : '';
+            const langCode = (dash && dash.currentLanguage && dash.languages && dash.languages[dash.currentLanguage]) ? dash.languages[dash.currentLanguage].lang_code : '';
+            titleEl.innerHTML = '<i class="fas fa-list"></i> Items by source file';
+            var result = getItemsBySourceFile(langCode);
+            messageEl.textContent = 'Filter: ' + filter + (langName ? ' · Language tab: ' + langName + ' (' + langCode + ')' : '') + ' · Total items: ' + result.total + '. Showing only files for this language. Count = items that list this file.';
+            const entries = Object.entries(result.byPath || {}).sort(function(a, b) { return b[1] - a[1]; });
+            tbody.innerHTML = '';
+            entries.forEach(function(entry) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td style="padding:6px; border-bottom:1px solid #eee;">' + entry[1] + '</td><td style="padding:6px; border-bottom:1px solid #eee; font-family:monospace; font-size:0.85em; word-break:break-all;">' + String(entry[0]).replace(/</g, '&lt;') + '</td>';
+                tbody.appendChild(tr);
+            });
+            if (entries.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="2" style="padding:12px; color:#666;">No ' + (langCode ? langCode + ' ' : '') + 'source paths for this filter (data may not be from Crowdin, or no files for this language).</td>';
+                tbody.appendChild(tr);
+            }
+            modal.style.display = 'block';
+        }
+        function closeItemsByFileModal() {
+            const modal = document.getElementById('itemsByFileModal');
+            if (modal) modal.style.display = 'none';
+        }
+
         function openValidationReviewTableModal(langCode) {
             const modal = document.getElementById('validationReviewTableModal');
             const titleEl = document.getElementById('validationReviewTableTitle');
@@ -372,11 +488,13 @@
             const dash = window.dashboard;
             if (!dash) return;
             const results = dash.validation_results || {};
+            const allowedIds = getReviewTableAllowedItemIds();
             const langName = Object.keys(dash.languages || {}).find(k => dash.languages[k].lang_code === langCode) || langCode;
             titleEl.innerHTML = `<i class="fas fa-list-alt"></i> Validation review – ${langName} (${langCode})`;
             _reviewTableLangCode = langCode;
             const rows = [];
             Object.keys(results).forEach(itemId => {
+                if (allowedIds && !allowedIds.has(String(itemId))) return;
                 const r = results[itemId][langCode];
                 if (!r) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
@@ -404,8 +522,10 @@
             const dash = window.dashboard;
             if (!dash || !_reviewTableLangCode) return;
             const results = dash.validation_results || {};
+            const allowedIds = getReviewTableAllowedItemIds();
             const rows = [];
             Object.keys(results).forEach(itemId => {
+                if (allowedIds && !allowedIds.has(String(itemId))) return;
                 const r = results[itemId][_reviewTableLangCode];
                 if (!r) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
@@ -516,6 +636,62 @@
 
         function downloadNeedsReviewCSVFromModal() {
             if (_reviewTableLangCode) downloadNeedsReviewCSV(_reviewTableLangCode);
+        }
+
+        function downloadNeedsReviewCSVForCurrentLanguage() {
+            const dash = window.dashboard;
+            if (!dash || !dash.currentLanguage) return;
+            const langCode = dash.languages[dash.currentLanguage].lang_code;
+            downloadNeedsReviewCSVWithTranslations(langCode);
+        }
+
+        function downloadNeedsReviewCSVWithTranslations(langCode) {
+            const dash = window.dashboard;
+            if (!dash) return;
+            const results = dash.validation_results || {};
+            const dataRows = dash.data || [];
+            const byItemId = {};
+            dataRows.forEach(row => { byItemId[row.item_id] = row; });
+            const csvRows = [];
+            Object.keys(results).forEach(itemId => {
+                const r = results[itemId][langCode];
+                if (!r || r.needsReview !== true) return;
+                const row = byItemId[itemId];
+                const sourceString = (row && (row.en || row.source || row.text)) ? String(row.en || row.source || row.text).trim() : '';
+                const currentTranslation = (row && row[langCode]) ? String(row[langCode]).trim() : '';
+                const reason = r.reason || '';
+                const response = r.backTranslation != null ? String(r.backTranslation) : (r.notes != null ? String(r.notes) : '');
+                csvRows.push({
+                    itemId,
+                    sourceString,
+                    language: langCode,
+                    currentTranslation,
+                    reason,
+                    response
+                });
+            });
+            function csvEscape(s) {
+                const t = String(s ?? '');
+                if (t.includes(',') || t.includes('"') || t.includes('\n') || t.includes('\r')) return '"' + t.replace(/"/g, '""') + '"';
+                return t;
+            }
+            const header = 'Item ID,Source String,Language,Current Translation,Reason,Response';
+            const lines = [header].concat(csvRows.map(r => [
+                csvEscape(r.itemId),
+                csvEscape(r.sourceString),
+                csvEscape(r.language),
+                csvEscape(r.currentTranslation),
+                csvEscape(r.reason),
+                csvEscape(r.response)
+            ].join(',')));
+            const csv = '\uFEFF' + lines.join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         function downloadNeedsReviewCSV(langCode) {
@@ -666,6 +842,7 @@
     <script src="./js/validation.js"></script>
     <script src="./js-compiled/audio.js"></script>
     <script src="./js-compiled/language-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
     <script src="./dashboard.js"></script>
     <script src="./js-compiled/bootstrap.js"></script>
     

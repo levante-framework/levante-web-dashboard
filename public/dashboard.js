@@ -13,6 +13,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 };
                 
                 this.data = [];
+                this.crowdinFilesUsed = null;
                 this.currentLanguage = 'English';
                 this.selectedRow = null;
                 this.voices = { playht: [], elevenlabs: [] };
@@ -237,24 +238,98 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             updateDataSourceLabel(source) {
+                if (source !== undefined && source !== null) this.currentDataSource = source;
                 const label = document.getElementById('dataSourceLabel');
                 if (!label) return;
-                if (source) label.textContent = `Last loaded: ${source}`;
+                const displaySource = (source !== undefined && source !== null) ? source : this.currentDataSource;
+                if (displaySource) label.textContent = `Currently loaded: ${displaySource}`;
                 else label.textContent = '';
+            }
+
+            loadFflate() {
+                return new Promise((resolve, reject) => {
+                    const g = typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : {};
+                    if (g.fflate && g.fflate.unzipSync) {
+                        resolve();
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js';
+                    script.crossOrigin = 'anonymous';
+                    script.onload = () => resolve();
+                    script.onerror = () => reject(new Error('Could not load fflate from cdn.jsdelivr.net'));
+                    document.head.appendChild(script);
+                });
             }
 
             async loadDataFromCrowdin() {
                 try {
                     this.setStatus('Loading from Crowdin (approved only)...', 'loading');
                     const response = await fetch('/api/crowdin-approved-translations', { cache: 'no-cache' });
+                    const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
                     if (!response.ok) {
-                        const err = await response.json().catch(() => ({ details: response.statusText }));
-                        throw new Error(err.details || err.error || `HTTP ${response.status}`);
+                        const text = await response.text();
+                        let msg = `HTTP ${response.status}`;
+                        try {
+                            const err = JSON.parse(text);
+                            if (err.details || err.error) msg = err.details || err.error;
+                        } catch (_) {
+                            if (response.status === 504) {
+                                msg = 'Crowdin build took too long (timeout). Try again in a minute.';
+                            } else if (response.status === 500) {
+                                msg = 'Server error (500). Often caused by: Crowdin API token not set in Vercel (CROWDIN_API_TOKEN), or the build timed out.';
+                            }
+                        }
+                        throw new Error(msg);
                     }
-                    const json = await response.json();
-                    if (!Array.isArray(json.data)) throw new Error('Invalid response from Crowdin API');
-                    this.data = json.data;
-                    const source = json.source || 'Crowdin (approved only)';
+                    let zipBuffer;
+                    if (contentType.includes('application/json')) {
+                        const json = await response.json();
+                        if (json.details || json.error) throw new Error(json.details || json.error);
+                        if (!json.zipUrl) throw new Error('API did not return zipUrl');
+                        this.setStatus('Downloading Crowdin export...', 'loading');
+                        let zipRes;
+                        try {
+                            zipRes = await fetch(json.zipUrl, { cache: 'no-cache' });
+                        } catch (directErr) {
+                            zipRes = null;
+                        }
+                        if (!zipRes || !zipRes.ok) {
+                            const proxyRes = await fetch('/api/crowdin-download-zip', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ zipUrl: json.zipUrl }),
+                                cache: 'no-cache'
+                            });
+                            if (!proxyRes.ok) throw new Error(`ZIP download failed: ${proxyRes.status}`);
+                            zipBuffer = await proxyRes.arrayBuffer();
+                        } else {
+                            zipBuffer = await zipRes.arrayBuffer();
+                        }
+                    } else {
+                        zipBuffer = await response.arrayBuffer();
+                    }
+                    const getFflate = () => (typeof window !== 'undefined' && window.fflate) || (typeof globalThis !== 'undefined' && globalThis.fflate);
+                    let fflateLib = getFflate();
+                    if (!fflateLib) {
+                        await this.loadFflate();
+                        fflateLib = getFflate();
+                    }
+                    if (!fflateLib || !fflateLib.unzipSync) throw new Error('fflate library not loaded. Allow cdn.jsdelivr.net or check your network.');
+                    const nameLower = (f) => (f.name || '').toLowerCase().replace(/\\/g, '/');
+                    const unzipped = fflateLib.unzipSync(new Uint8Array(zipBuffer), {
+                        filter: (f) => {
+                            const n = nameLower(f);
+                            if (n.includes('archive')) return false;
+                            if (n.startsWith('main/')) return false;
+                            return n.endsWith('.csv') || n.endsWith('.xlf') || n.endsWith('.xliff');
+                        }
+                    });
+                    this.crowdinFilesUsed = Object.keys(unzipped).sort();
+                    const merged = this.parseCrowdinZipToMerged(unzipped);
+                    if (!Array.isArray(merged) || merged.length === 0) throw new Error('No CSV or XLIFF data in Crowdin export');
+                    this.data = merged;
+                    const source = 'Crowdin (approved only)';
                     console.log(`Loaded ${this.data.length} items from ${source}`);
                     this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
                     this.updateDataSourceLabel(source);
@@ -263,8 +338,239 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 } catch (error) {
                     console.warn('Crowdin load failed:', error);
                     this.setStatus(`Crowdin unavailable: ${error.message}. Trying CSV...`, 'warning');
+                    const message = error.message || String(error);
+                    alert(`Crowdin could not load: ${message}\n\nFalling back to CSV/remote data.`);
                     return false;
                 }
+            }
+
+            parseCrowdinZipToMerged(unzipped) {
+                const LANG_ID_TO_CODE = { en: 'en', 'es-CO': 'es-CO', es: 'es-CO', de: 'de', 'fr-CA': 'fr-CA', fr: 'fr-CA', nl: 'nl', 'de-CH': 'de-CH', 'es-AR': 'es-AR', 'en-GH': 'en-GH' };
+                function langFromFirstSegment(path) {
+                    const parts = String(path || '').replace(/\\/g, '/').split('/');
+                    const first = (parts[0] || '').trim();
+                    if (!first) return 'en';
+                    const lower = first.toLowerCase();
+                    return LANG_ID_TO_CODE[first] || LANG_ID_TO_CODE[lower] || (lower === 'en-us' ? 'en' : first);
+                }
+                function parseCSVSimple(text) {
+                    const rows = [];
+                    let row = [];
+                    let field = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < text.length; i++) {
+                        const c = text[i];
+                        const next = text[i + 1];
+                        if (c === '"') {
+                            if (inQuotes && next === '"') { field += '"'; i++; } else { inQuotes = !inQuotes; }
+                        } else if ((c === ',' && !inQuotes) || ((c === '\n' || c === '\r') && !inQuotes)) {
+                            row.push(field.trim());
+                            field = '';
+                            if (c === '\n' || c === '\r') {
+                                if (row.some(cell => cell.length > 0)) rows.push(row);
+                                row = [];
+                                if (c === '\r' && next === '\n') i++;
+                            }
+                        } else { field += c; }
+                    }
+                    if (field.trim() || row.length > 0) { row.push(field.trim()); if (row.some(cell => cell.length > 0)) rows.push(row); }
+                    return rows;
+                }
+                function rowsToObjects(rows) {
+                    if (rows.length < 2) return [];
+                    const headers = rows[0].map(h => (h || '').trim());
+                    const result = [];
+                    for (let i = 1; i < rows.length; i++) {
+                        const values = rows[i];
+                        const obj = {};
+                        headers.forEach((h, j) => {
+                            let v = values[j];
+                            if (v !== undefined && typeof v === 'string') v = v.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                            obj[h] = v ?? '';
+                        });
+                        result.push(obj);
+                    }
+                    return result;
+                }
+                function normalizeItem(item) {
+                    const itemId = item.identifier || item.item_id || item.id || item.ID || item.Item_ID || null;
+                    const task = item.task || item.labels || item.category || item.type || 'general';
+                    const en = (item.en || item.source || item.source_phrase || item.english || item['en-US'] || item['en_US'] || item.text || '').trim();
+                    return { ...item, item_id: itemId, labels: task, en: en || item.en || '' };
+                }
+                function getIdFromRow(row, headers) {
+                    const keys = headers && headers.length ? headers : Object.keys(row);
+                    const idKey = keys.find(h => {
+                        const s = String(h).trim();
+                        return /identifier|item_id|item\s*id|^id$|^ID$/i.test(s);
+                    });
+                    const key = idKey || keys[0];
+                    let v = row[key] ?? row.item_id ?? row.identifier ?? row.id ?? row.ID ?? (key ? row[key] : '');
+                    if (v === '' || v == null) {
+                        const altKey = keys.find(h => /item.?id|identifier/i.test(String(h)));
+                        if (altKey) v = row[altKey] ?? '';
+                    }
+                    return String(v).trim();
+                }
+                function getTextFromNode(el) {
+                    if (!el) return '';
+                    const t = el.textContent || '';
+                    return t.replace(/\s+/g, ' ').trim();
+                }
+                function parseXliffToUnits(text) {
+                    const units = [];
+                    try {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(text, 'text/xml');
+                        if (doc.querySelector('parsererror')) return units;
+                        function byLocalName(name) {
+                            try {
+                                const list = doc.getElementsByTagNameNS('*', name);
+                                if (list && list.length) return Array.from(list);
+                            } catch (_) {}
+                            const out = [];
+                            const walk = (node) => {
+                                if (node.nodeType === 1 && (node.localName || node.tagName).toLowerCase() === name.toLowerCase()) out.push(node);
+                                for (let i = 0; i < (node.childNodes?.length || 0); i++) walk(node.childNodes[i]);
+                            };
+                            walk(doc);
+                            return out;
+                        }
+                        function childByLocalName(el, name) {
+                            if (!el) return null;
+                            try {
+                                const list = el.getElementsByTagNameNS('*', name);
+                                if (list && list.length) return list[0];
+                            } catch (_) {}
+                            const n = name.toLowerCase();
+                            for (let i = 0; i < (el.childNodes?.length || 0); i++) {
+                                const c = el.childNodes[i];
+                                if (c.nodeType === 1 && (c.localName || c.tagName).toLowerCase() === n) return c;
+                            }
+                            return null;
+                        }
+                        let transUnits = doc.querySelectorAll('trans-unit');
+                        if (transUnits.length === 0) transUnits = byLocalName('trans-unit');
+                        if (transUnits.length) {
+                            transUnits.forEach(tu => {
+                                const id = tu.getAttribute('id') || '';
+                                const src = tu.querySelector('source') || childByLocalName(tu, 'source');
+                                const tgt = tu.querySelector('target') || childByLocalName(tu, 'target');
+                                units.push({ id, source: getTextFromNode(src), target: getTextFromNode(tgt) });
+                            });
+                            return units;
+                        }
+                        let unitEls = doc.querySelectorAll('unit');
+                        if (unitEls.length === 0) unitEls = byLocalName('unit');
+                        unitEls.forEach(unit => {
+                            const id = unit.getAttribute('id') || '';
+                            const seg = unit.querySelector('segment') || childByLocalName(unit, 'segment');
+                            const src = seg ? (seg.querySelector('source') || childByLocalName(seg, 'source')) : (unit.querySelector('source') || childByLocalName(unit, 'source'));
+                            const tgt = seg ? (seg.querySelector('target') || childByLocalName(seg, 'target')) : (unit.querySelector('target') || childByLocalName(unit, 'target'));
+                            units.push({ id, source: getTextFromNode(src), target: getTextFromNode(tgt) });
+                        });
+                    } catch (e) { console.warn('XLIFF parse error:', e); }
+                    return units;
+                }
+                function getLangFromXliffPath(path) {
+                    return langFromFirstSegment(path);
+                }
+                const byLang = {};
+                for (const [path, data] of Object.entries(unzipped)) {
+                    if (!path.toLowerCase().endsWith('.csv')) continue;
+                    const text = new TextDecoder('utf-8').decode(data);
+                    const rows = parseCSVSimple(text);
+                    if (rows.length < 2) continue;
+                    const objects = rowsToObjects(rows);
+                    objects.forEach(o => { o._path = path; });
+                    const lang = langFromFirstSegment(path);
+                    const headers = rows[0];
+                    if (!byLang[lang]) {
+                        byLang[lang] = { headers, objects };
+                    } else {
+                        const cur = byLang[lang];
+                        const merged = new Map();
+                        cur.objects.forEach(r => { const id = getIdFromRow(r, cur.headers); merged.set(id, r); });
+                        objects.forEach(r => {
+                            const id = getIdFromRow(r, headers);
+                            if (id && !merged.has(id)) merged.set(id, r);
+                        });
+                        byLang[lang] = { headers: cur.headers, objects: Array.from(merged.values()) };
+                    }
+                }
+                for (const [path, data] of Object.entries(unzipped)) {
+                    const pl = path.toLowerCase();
+                    if (!pl.endsWith('.xlf') && !pl.endsWith('.xliff')) continue;
+                    const text = new TextDecoder('utf-8').decode(data);
+                    const units = parseXliffToUnits(text);
+                    if (!units.length) {
+                        console.warn('Crowdin XLIFF (0 units):', path);
+                        continue;
+                    }
+                    const targetLang = getLangFromXliffPath(path);
+                    const enHeaders = ['identifier', 'en'];
+                    const tgtHeaders = ['identifier', targetLang];
+                    units.forEach(u => {
+                        if (!u.id) return;
+                        const enObj = { identifier: u.id, en: u.source, _path: path };
+                        const tgtObj = { identifier: u.id, [targetLang]: u.target, _path: path };
+                        if (!byLang.en) byLang.en = { headers: enHeaders, objects: [] };
+                        const hasEn = byLang.en.objects.some(r => getIdFromRow(r, byLang.en.headers) === u.id);
+                        if (!hasEn) byLang.en.objects.push(enObj);
+                        if (!byLang[targetLang]) byLang[targetLang] = { headers: tgtHeaders, objects: [] };
+                        const hasTgt = byLang[targetLang].objects.some(r => getIdFromRow(r, byLang[targetLang].headers) === u.id);
+                        if (!hasTgt) byLang[targetLang].objects.push(tgtObj);
+                    });
+                    console.log('Crowdin XLIFF:', path, '→', targetLang, units.length, 'units');
+                }
+                const baseLang = byLang.en ? 'en' : Object.keys(byLang)[0];
+                if (!baseLang || !byLang[baseLang]) return [];
+                // Union of all item ids across ALL language files (so we get 830 if any language has 830, not just base)
+                const allIds = new Set();
+                const langCounts = {};
+                Object.keys(byLang).forEach(lang => {
+                    const cur = byLang[lang];
+                    langCounts[lang] = cur.objects.length;
+                    cur.objects.forEach((r, i) => {
+                        const id = getIdFromRow(r, cur.headers) || `_row_${lang}_${i}`;
+                        allIds.add(id);
+                    });
+                });
+                console.log('Crowdin merge: byLang counts', langCounts, 'union size', allIds.size);
+                const idList = Array.from(allIds);
+                const baseHeaders = byLang[baseLang].headers || [];
+                function getRowByLang(lang, id) {
+                    if (String(id).startsWith('_row_')) {
+                        const parts = String(id).split('_');
+                        const langPart = parts[2];
+                        if (langPart !== lang) return null;
+                        const i = parseInt(parts[3], 10);
+                        if (byLang[langPart] && byLang[langPart].objects[i] !== undefined) return byLang[langPart].objects[i];
+                        return null;
+                    }
+                    return (byLang[lang] && byLang[lang].objects.find(r => getIdFromRow(r, byLang[lang].headers) === id)) || null;
+                }
+                return idList.map((id, idx) => {
+                    const baseRow = getRowByLang(baseLang, id) || Object.keys(byLang).map(lang => getRowByLang(lang, id)).find(Boolean);
+                    const row = baseRow || {};
+                    const enRow = byLang.en ? getRowByLang('en', id) : null;
+                    const enText = enRow ? (enRow.en || enRow.source || enRow.english || enRow.text || '') : (row.en || row.source || row.english || row.text || '');
+                    const out = { ...row, item_id: id, labels: row.task || row.labels || 'general', en: enText };
+                    const sourcePaths = [];
+                    if (baseRow && baseRow._path) sourcePaths.push(baseRow._path);
+                    Object.keys(byLang).forEach(lang => {
+                        const other = getRowByLang(lang, id);
+                        if (other) {
+                            if (other._path) sourcePaths.push(other._path);
+                            const otherHeaders = byLang[lang].headers || Object.keys(other);
+                            const textKey = otherHeaders.find(h => h && !/identifier|item_id|^id$/i.test(String(h)) && (h === lang || h.replace(/_/g, '-') === lang || h.toLowerCase() === lang.toLowerCase()));
+                            if (textKey) out[lang] = other[textKey] ?? '';
+                            else out[lang] = other.en || other.source || other.english || other.text || '';
+                        }
+                    });
+                    out._sourcePaths = [...new Set(sourcePaths)];
+                    return normalizeItem(out);
+                });
             }
 
             async loadDataFromCSV() {
@@ -307,6 +613,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     }
 
                     if (csvText) {
+                        this.crowdinFilesUsed = null;
                         this.data = this.parseCSV(csvText);
                         console.log(`Loaded ${this.data.length} items from ${source}`);
                         this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
@@ -320,6 +627,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     try {
                         const cachedData = localStorage.getItem('levante_translations_cache');
                         if (cachedData) {
+                            this.crowdinFilesUsed = null;
                             this.data = JSON.parse(cachedData);
                             this.setStatus(`Loaded ${this.data.length} items from cache (offline)`, 'success');
                             this.updateDataSourceLabel('cache');
@@ -328,8 +636,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                     } catch (cacheError) {
                         console.warn('Cache also failed, using sample data:', cacheError);
+                        this.crowdinFilesUsed = null;
                         this.data = this.loadSampleData();
                         this.setStatus('Using sample data - all sources failed', 'error');
+                        this.updateDataSourceLabel('sample data');
                     }
                 }
             }
@@ -1092,10 +1402,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 if (!tableContent) return;
 
                 tableContent.innerHTML = '';
+                const allowedIds = typeof window.getReviewTableAllowedItemIds === 'function' ? window.getReviewTableAllowedItemIds() : null;
+                const dataToShow = !allowedIds ? this.data : this.data.filter(item => allowedIds.has(String(item.item_id || item.identifier || '')));
                 
                 const itemCountSpan = document.getElementById(`item-count-${this.currentLanguage}`);
                 if (itemCountSpan) {
-                    itemCountSpan.textContent = `(${this.data.length} items)`;
+                    itemCountSpan.textContent = `(${dataToShow.length} items)`;
                     itemCountSpan.style.color = '#6c757d';
                     itemCountSpan.style.fontSize = '0.9em';
                 }
@@ -1106,16 +1418,17 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 let offset = 0;
                 
                 function processBatch() {
-                    const batch = self.data.slice(offset, offset + BATCH_SIZE);
+                    const batch = dataToShow.slice(offset, offset + BATCH_SIZE);
                     const startIndex = offset;
                     offset += batch.length;
                     for (let i = 0; i < batch.length; i++) {
                         const row = self.buildDataRow(batch[i], startIndex + i, langCode);
                         if (row) tableContent.appendChild(row);
                     }
-                    if (offset < self.data.length) {
+                    if (offset < dataToShow.length) {
                         requestAnimationFrame(processBatch);
                     } else {
+                        if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         self.setupSortAndReviewHandlers();
                     }
@@ -1183,8 +1496,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     row.dataset.score = scoreValue;
                     row.dataset.needsReview = needsReview ? '1' : '0';
                     row.innerHTML = `
-                        <div class="item_id">${itemId}</div>
-                        <div class="item-task">${taskName}</div>
+                        <div class="item-id-cell">
+                            <div class="item_id">${itemId}</div>
+                            <span class="item-task">${taskName}</span>
+                        </div>
                         <div class="item-english">
                             <div class="item-english-source">${originalEnglish}</div>
                             ${backTranslationHtml}
@@ -1291,7 +1606,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             reasonInput.value = '';
                             self.validation_results[itemId][langCode].reason = '';
                         }
-                        
+                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         console.log(`📝 Needs Review ${isChecked ? 'set' : 'cleared'} for ${itemId}[${langCode}]`);
                     };
                 });
@@ -1326,6 +1641,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         setTimeout(() => {
                             btn.innerHTML = '<i class="fas fa-check"></i>';
                         }, 1000);
+                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         
                         console.log(`📝 Reason saved for ${itemId}[${langCode}]: "${reason}"`);
                         self.setStatus(`Saved reason for ${itemId}`, 'success');
@@ -1408,13 +1724,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.currentLanguage = language;
                 
                 // Defer heavy work so the click handler returns quickly (fixes 5s+ INP)
+                if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(true);
                 requestAnimationFrame(() => {
                     this.refreshLanguagesFromConfig();
                     this.populateVoices();
                     this.populateDataTable();
-                    if (typeof updateValidationSummary === 'function') {
-                        updateValidationSummary();
-                    }
                     const langConfig = this.languages[language];
                     const label = langConfig ? `${this.getDisplayName(language)} - ${langConfig.service} (${langConfig.lang_code})` : language;
                     this.setStatus(`Switched to ${label}`, 'success');

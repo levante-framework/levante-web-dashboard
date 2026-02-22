@@ -390,22 +390,42 @@ function exportValidationsToJSONFile() {
     linkElement.click();
 }
 
+function setValidationSummaryLoading(loading) {
+    const ids = ['goodCount', 'warningCount', 'errorCount', 'pendingCount'];
+    const spinner = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (loading) el.innerHTML = spinner;
+            else if (el.querySelector && el.querySelector('.fa-spinner')) el.textContent = '0';
+        }
+    });
+}
+
 function updateValidationSummary() {
     const currentLanguage = window.dashboard?.currentLanguage;
     if (!currentLanguage) return;
     const currentTable = document.getElementById(`table-${currentLanguage}`);
     if (!currentTable) return;
     const indicators = currentTable.querySelectorAll('.status-indicator');
+    const allowedIds = typeof getReviewTableAllowedItemIds === 'function' ? getReviewTableAllowedItemIds() : null;
     let good = 0, warning = 0, error = 0, pending = 0;
     indicators.forEach(indicator => {
+        const row = indicator.closest('.data-row');
+        const itemId = row ? row.dataset.itemId : indicator.getAttribute('data-item-id');
+        if (allowedIds && itemId != null && !allowedIds.has(String(itemId))) return;
         if (indicator.classList.contains('status-good')) good++;
         else if (indicator.classList.contains('status-warning')) warning++;
         else if (indicator.classList.contains('status-error')) error++;
         else pending++;
     });
-    document.getElementById('goodCount').textContent = good;
-    document.getElementById('warningCount').textContent = warning;
-    document.getElementById('errorCount').textContent = error;
-    document.getElementById('pendingCount').textContent = pending;
+    const goodEl = document.getElementById('goodCount');
+    const warningEl = document.getElementById('warningCount');
+    const errorEl = document.getElementById('errorCount');
+    const pendingEl = document.getElementById('pendingCount');
+    if (goodEl) goodEl.textContent = good;
+    if (warningEl) warningEl.textContent = warning;
+    if (errorEl) errorEl.textContent = error;
+    if (pendingEl) pendingEl.textContent = pending;
 }
 

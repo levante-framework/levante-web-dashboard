@@ -29,26 +29,21 @@ function getCredentials(): Credentials {
 }
 
 /**
- * Updates the availability/state of validation buttons based on API key presence
+ * Updates the availability/state of validation buttons.
+ * Validation uses the server's GOOGLE_TRANSLATE_APIKEY when the user has no key,
+ * so we keep Validate Selected / Validate All enabled. Per-row validate buttons also enabled.
  */
 function updateValidationAvailability(): void {
-    const creds = getCredentials();
-    const hasGoogleTranslateKey = !!(creds.google_translate_api_key);
     const validateButtons = document.querySelectorAll<HTMLButtonElement>('.validation-button');
     const validateBtns = document.querySelectorAll<HTMLButtonElement>('.validate-btn');
-    
-    const enabledTitle = 'Validation enabled';
-    const disabledTitle = 'Add Google Translate API key';
-    const clickTitle = 'Click to validate';
-    
+    const title = 'Run back-translation validation (uses server API key if needed)';
     validateButtons.forEach((btn: HTMLButtonElement) => {
-        btn.disabled = !hasGoogleTranslateKey;
-        btn.title = hasGoogleTranslateKey ? enabledTitle : disabledTitle;
+        btn.disabled = false;
+        btn.title = title;
     });
-    
     validateBtns.forEach((btn: HTMLButtonElement) => {
-        btn.disabled = !hasGoogleTranslateKey;
-        btn.title = hasGoogleTranslateKey ? clickTitle : disabledTitle;
+        btn.disabled = false;
+        btn.title = 'Click to validate';
     });
 }
 

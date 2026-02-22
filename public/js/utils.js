@@ -9,14 +9,14 @@ function getCredentials() {
 function updateValidationAvailability(hasGoogleTranslateKey) {
     const validateButtons = document.querySelectorAll('.validation-button');
     const validateBtns = document.querySelectorAll('.validate-btn');
-    
+    const enabled = true;
     validateButtons.forEach(btn => {
-        btn.disabled = !hasGoogleTranslateKey;
-        btn.title = hasGoogleTranslateKey ? 'Validation enabled' : 'Add Google Translate API key';
+        btn.disabled = !enabled;
+        btn.title = 'Run back-translation validation (uses server API key if needed)';
     });
     validateBtns.forEach(btn => {
-        btn.disabled = !hasGoogleTranslateKey;
-        btn.title = hasGoogleTranslateKey ? 'Click to validate' : 'Add Google Translate API key';
+        btn.disabled = !enabled;
+        btn.title = 'Click to validate';
     });
 }
 
