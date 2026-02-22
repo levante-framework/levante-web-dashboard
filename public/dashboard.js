@@ -537,6 +537,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const normalizedPath = String(path).replace(/\\/g, '/');
                     const pathParts = normalizedPath.split('/');
                     const canonicalPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : normalizedPath;
+                    const sourceLangFromPath = langFromFirstSegment(path);
                     const enHeaders = ['identifier', 'en'];
                     const tgtHeaders = ['identifier', targetLang];
                     units.forEach(u => {
@@ -548,8 +549,17 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         const enObj = { identifier: stableId, en: u.source, _path: path };
                         const tgtObj = { identifier: stableId, [targetLang]: u.target, _path: path };
                         if (!byLang.en) byLang.en = { headers: enHeaders, objects: [] };
-                        const hasEn = byLang.en.objects.some(r => getIdFromRow(r, byLang.en.headers) === stableId);
-                        if (!hasEn) byLang.en.objects.push(enObj);
+                        const existingEnIdx = byLang.en.objects.findIndex(r => getIdFromRow(r, byLang.en.headers) === stableId);
+                        if (existingEnIdx === -1) {
+                            byLang.en.objects.push(enObj);
+                        } else {
+                            // Prefer true English source files for byLang.en when they exist.
+                            const existingPath = String(byLang.en.objects[existingEnIdx]._path || '');
+                            const existingLang = langFromFirstSegment(existingPath);
+                            if (sourceLangFromPath === 'en' && existingLang !== 'en') {
+                                byLang.en.objects[existingEnIdx] = enObj;
+                            }
+                        }
                         if (!byLang[targetLang]) byLang[targetLang] = { headers: tgtHeaders, objects: [] };
                         const hasTgt = byLang[targetLang].objects.some(r => getIdFromRow(r, byLang[targetLang].headers) === stableId);
                         if (!hasTgt) byLang[targetLang].objects.push(tgtObj);
