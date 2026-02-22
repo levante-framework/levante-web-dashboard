@@ -419,18 +419,32 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
                 function parseXliffToUnits(text) {
                     const units = [];
+                    const XLIFF_1_2_NS = 'urn:oasis:names:tc:xliff:document:1.2';
+                    const XLIFF_2_0_NS = 'urn:oasis:names:tc:xliff:document:2.0';
                     try {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(text, 'text/xml');
                         if (doc.querySelector('parsererror')) return units;
+                        function getLocalName(node) {
+                            if (!node) return '';
+                            return (node.localName || (node.baseName) || (node.tagName && String(node.tagName).split(':').pop()) || '').toLowerCase();
+                        }
                         function byLocalName(name) {
+                            const n = name.toLowerCase();
+                            const namespaces = [XLIFF_1_2_NS, XLIFF_2_0_NS];
+                            for (let i = 0; i < namespaces.length; i++) {
+                                try {
+                                    const list = doc.getElementsByTagNameNS(namespaces[i], name);
+                                    if (list && list.length) return Array.from(list);
+                                } catch (_) {}
+                            }
                             try {
                                 const list = doc.getElementsByTagNameNS('*', name);
                                 if (list && list.length) return Array.from(list);
                             } catch (_) {}
                             const out = [];
                             const walk = (node) => {
-                                if (node.nodeType === 1 && (node.localName || node.tagName).toLowerCase() === name.toLowerCase()) out.push(node);
+                                if (node.nodeType === 1 && getLocalName(node) === n) out.push(node);
                                 for (let i = 0; i < (node.childNodes?.length || 0); i++) walk(node.childNodes[i]);
                             };
                             walk(doc);
@@ -438,25 +452,36 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                         function childByLocalName(el, name) {
                             if (!el) return null;
+                            const n = name.toLowerCase();
                             try {
                                 const list = el.getElementsByTagNameNS('*', name);
                                 if (list && list.length) return list[0];
                             } catch (_) {}
-                            const n = name.toLowerCase();
                             for (let i = 0; i < (el.childNodes?.length || 0); i++) {
                                 const c = el.childNodes[i];
-                                if (c.nodeType === 1 && (c.localName || c.tagName).toLowerCase() === n) return c;
+                                if (c.nodeType === 1 && getLocalName(c) === n) return c;
                             }
                             return null;
+                        }
+                        function allDescendantsByLocalName(el, name) {
+                            const n = name.toLowerCase();
+                            const out = [];
+                            const walk = (node) => {
+                                if (node.nodeType === 1 && getLocalName(node) === n) out.push(node);
+                                for (let i = 0; i < (node.childNodes?.length || 0); i++) walk(node.childNodes[i]);
+                            };
+                            walk(el || doc);
+                            return out;
                         }
                         let transUnits = doc.querySelectorAll('trans-unit');
                         if (transUnits.length === 0) transUnits = byLocalName('trans-unit');
                         if (transUnits.length) {
                             transUnits.forEach(tu => {
                                 const id = tu.getAttribute('id') || '';
-                                const src = tu.querySelector('source') || childByLocalName(tu, 'source');
-                                const tgt = tu.querySelector('target') || childByLocalName(tu, 'target');
-                                units.push({ id, source: getTextFromNode(src), target: getTextFromNode(tgt) });
+                                const resname = tu.getAttribute('resname') || tu.getAttribute('name') || '';
+                                const src = tu.querySelector('source') || childByLocalName(tu, 'source') || allDescendantsByLocalName(tu, 'source')[0];
+                                const tgt = tu.querySelector('target') || childByLocalName(tu, 'target') || allDescendantsByLocalName(tu, 'target')[0];
+                                units.push({ id, resname, source: getTextFromNode(src), target: getTextFromNode(tgt) });
                             });
                             return units;
                         }
@@ -464,10 +489,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (unitEls.length === 0) unitEls = byLocalName('unit');
                         unitEls.forEach(unit => {
                             const id = unit.getAttribute('id') || '';
-                            const seg = unit.querySelector('segment') || childByLocalName(unit, 'segment');
-                            const src = seg ? (seg.querySelector('source') || childByLocalName(seg, 'source')) : (unit.querySelector('source') || childByLocalName(unit, 'source'));
-                            const tgt = seg ? (seg.querySelector('target') || childByLocalName(seg, 'target')) : (unit.querySelector('target') || childByLocalName(unit, 'target'));
-                            units.push({ id, source: getTextFromNode(src), target: getTextFromNode(tgt) });
+                            const resname = unit.getAttribute('name') || unit.getAttribute('resname') || '';
+                            const seg = unit.querySelector('segment') || childByLocalName(unit, 'segment') || allDescendantsByLocalName(unit, 'segment')[0];
+                            const src = seg ? (seg.querySelector('source') || childByLocalName(seg, 'source') || allDescendantsByLocalName(seg, 'source')[0]) : (unit.querySelector('source') || childByLocalName(unit, 'source') || allDescendantsByLocalName(unit, 'source')[0]);
+                            const tgt = seg ? (seg.querySelector('target') || childByLocalName(seg, 'target') || allDescendantsByLocalName(seg, 'target')[0]) : (unit.querySelector('target') || childByLocalName(unit, 'target') || allDescendantsByLocalName(unit, 'target')[0]);
+                            units.push({ id, resname, source: getTextFromNode(src), target: getTextFromNode(tgt) });
                         });
                     } catch (e) { console.warn('XLIFF parse error:', e); }
                     return units;
@@ -508,17 +534,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         continue;
                     }
                     const targetLang = getLangFromXliffPath(path);
+                    const normalizedPath = String(path).replace(/\\/g, '/');
+                    const pathParts = normalizedPath.split('/');
+                    const canonicalPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : normalizedPath;
                     const enHeaders = ['identifier', 'en'];
                     const tgtHeaders = ['identifier', targetLang];
                     units.forEach(u => {
-                        if (!u.id) return;
-                        const enObj = { identifier: u.id, en: u.source, _path: path };
-                        const tgtObj = { identifier: u.id, [targetLang]: u.target, _path: path };
+                        const unitLocalKey = (u.resname || u.id || '').trim();
+                        if (!unitLocalKey) return;
+                        // Prevent collisions across files (many XLIFFs reuse small numeric ids per file).
+                        // Use path without language prefix + local unit key so the same entry matches across languages.
+                        const stableId = `${canonicalPath}::${unitLocalKey}`;
+                        const enObj = { identifier: stableId, en: u.source, _path: path };
+                        const tgtObj = { identifier: stableId, [targetLang]: u.target, _path: path };
                         if (!byLang.en) byLang.en = { headers: enHeaders, objects: [] };
-                        const hasEn = byLang.en.objects.some(r => getIdFromRow(r, byLang.en.headers) === u.id);
+                        const hasEn = byLang.en.objects.some(r => getIdFromRow(r, byLang.en.headers) === stableId);
                         if (!hasEn) byLang.en.objects.push(enObj);
                         if (!byLang[targetLang]) byLang[targetLang] = { headers: tgtHeaders, objects: [] };
-                        const hasTgt = byLang[targetLang].objects.some(r => getIdFromRow(r, byLang[targetLang].headers) === u.id);
+                        const hasTgt = byLang[targetLang].objects.some(r => getIdFromRow(r, byLang[targetLang].headers) === stableId);
                         if (!hasTgt) byLang[targetLang].objects.push(tgtObj);
                     });
                     console.log('Crowdin XLIFF:', path, '→', targetLang, units.length, 'units');
@@ -1452,6 +1485,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const row = document.createElement('div');
                     row.className = 'data-row';
                     const itemId = item.item_id || `fallback_${index}`;
+                    const displayItemId = String(itemId).includes('::') ? String(itemId).split('::').pop() : String(itemId);
                     const taskName = item.labels || item.task || 'general';
                     const originalEnglish = item.en || 'No English source';
                     row.dataset.itemId = itemId;
@@ -1497,7 +1531,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     row.dataset.needsReview = needsReview ? '1' : '0';
                     row.innerHTML = `
                         <div class="item-id-cell">
-                            <div class="item_id">${itemId}</div>
+                            <div class="item_id">${escapeHtml(displayItemId)}</div>
                             <span class="item-task">${taskName}</span>
                         </div>
                         <div class="item-english">

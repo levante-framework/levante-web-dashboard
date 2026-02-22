@@ -52,7 +52,7 @@ async function runHandler(req, res) {
     const buildRes = await fetch(`${CROWDIN_API_BASE}/projects/${CROWDIN_PROJECT_ID}/translations/builds`, {
         method: 'POST',
         headers: authHeader,
-        body: JSON.stringify({ exportApprovedOnly: true })
+        body: JSON.stringify({ exportApprovedOnly: false })
     });
     if (!buildRes.ok) {
         const errText = await buildRes.text();
@@ -93,5 +93,5 @@ async function runHandler(req, res) {
     if (!zipUrl) throw new Error('No download URL');
 
     res.setHeader('Content-Type', 'application/json');
-    res.status(200).json({ zipUrl, source: 'Crowdin (approved only)' });
+    res.status(200).json({ zipUrl, source: 'Crowdin (all translations)' });
 }

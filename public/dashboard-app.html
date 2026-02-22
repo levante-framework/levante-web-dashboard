@@ -496,7 +496,7 @@
             Object.keys(results).forEach(itemId => {
                 if (allowedIds && !allowedIds.has(String(itemId))) return;
                 const r = results[itemId][langCode];
-                if (!r) return;
+                if (!r || r.needsReview !== true) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
                     itemId,
@@ -527,7 +527,7 @@
             Object.keys(results).forEach(itemId => {
                 if (allowedIds && !allowedIds.has(String(itemId))) return;
                 const r = results[itemId][_reviewTableLangCode];
-                if (!r) return;
+                if (!r || r.needsReview !== true) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
                     itemId,
