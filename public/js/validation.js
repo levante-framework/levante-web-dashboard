@@ -57,17 +57,63 @@ function validateAll() {
         alert('No translations available to validate in the current language.');
         return;
     }
-    if (confirm(`This will validate ${validateBtns.length} ${currentLanguage.toUpperCase()} translations. This may take some time. Continue?`)) {
-        let currentIndex = 0;
-        const validateNext = () => {
-            if (currentIndex < validateBtns.length) {
-                const btn = validateBtns[currentIndex];
-                if (btn && !btn.disabled) btn.click();
-                currentIndex++;
-                setTimeout(validateNext, 1000);
+    const dashboard = window.dashboard;
+    const langCode = dashboard.languages[currentLanguage].lang_code;
+    const itemById = new Map((dashboard.data || []).map(item => [String(item.item_id || item.identifier || ''), item]));
+    const visibleRows = Array.from(currentTable.querySelectorAll('.data-row'));
+    const jobs = [];
+    visibleRows.forEach(row => {
+        const itemId = String(row.dataset.itemId || '');
+        if (!itemId) return;
+        const existing = dashboard.validation_results?.[itemId]?.[langCode];
+        const alreadyValidated = existing && typeof existing.score === 'number';
+        if (alreadyValidated) return; // Skip rows already validated
+        const item = itemById.get(itemId);
+        if (!item) return;
+        let translatedText = item[langCode];
+        if (!translatedText && langCode.includes('-')) translatedText = item[langCode.split('-')[0]];
+        if (!translatedText) {
+            const key = Object.keys(item).find(k => k.toLowerCase() === langCode.toLowerCase());
+            translatedText = key ? item[key] : '';
+        }
+        if (!translatedText) translatedText = item.en || '';
+        jobs.push({
+            itemId,
+            originalText: item.en || '',
+            translatedText: String(translatedText || ''),
+            langCode
+        });
+    });
+
+    if (jobs.length === 0) {
+        alert('No pending translations to validate in the current language/filter.');
+        return;
+    }
+
+    const concurrency = Math.min(4, jobs.length);
+    if (confirm(`This will validate ${jobs.length} pending ${currentLanguage.toUpperCase()} translations (${validateBtns.length - jobs.length} already validated skipped). Continue?`)) {
+        let nextIndex = 0;
+        let completed = 0;
+        const total = jobs.length;
+        const worker = async () => {
+            while (nextIndex < total) {
+                const idx = nextIndex++;
+                const job = jobs[idx];
+                await validateSingle(job.itemId, job.originalText, job.translatedText, job.langCode);
+                completed++;
+                dashboard.setStatus(`Validating ${currentLanguage}: ${completed}/${total}`, 'loading');
+                // Small gap helps avoid API burst/rate limits while still much faster than 1-by-1.
+                await new Promise(r => setTimeout(r, 75));
             }
         };
-        validateNext();
+        Promise.all(Array.from({ length: concurrency }, () => worker()))
+            .then(() => {
+                if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                dashboard.setStatus(`✅ Validation complete: ${total} pending ${currentLanguage.toUpperCase()} items`, 'success');
+            })
+            .catch((err) => {
+                dashboard.setStatus(`⚠️ Validation finished with errors: ${err.message || err}`, 'warning');
+            });
     }
 }
 
@@ -187,6 +233,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             
             indicator.className = 'status-indicator status-good';
             indicator.title = 'Source language - 100% accuracy';
+            const rowEl = indicator.closest('.data-row');
+            if (rowEl) rowEl.dataset.score = '100';
 
             // Add score badge to parent container (not inside the indicator circle)
             let scoreBadge = indicator.parentElement.querySelector('.score-badge');
@@ -305,6 +353,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         
         indicator.className = `status-indicator ${statusClass}`;
         indicator.title = statusTitle;
+        const rowEl = indicator.closest('.data-row');
+        if (rowEl) rowEl.dataset.score = String(score);
         
         // Update the validate button text and functionality
         if (button) {

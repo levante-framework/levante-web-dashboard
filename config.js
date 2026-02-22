@@ -30,6 +30,12 @@ const CONFIG = {
             voice: 'Clara - Children\'s Storyteller',
             display_name: 'English'
         },
+        'Portuguese (Brazil)': {
+            lang_code: 'pt-BR',
+            service: 'ElevenLabs',
+            voice: 'Liam',
+            display_name: 'Portuguese (Brazil)'
+        },
         'Spanish': {
             lang_code: 'es-CO',
             service: 'ElevenLabs',
@@ -209,8 +215,9 @@ const ConfigHelper = {
         
         if (!key) {
             // Try to get from environment variables (if available)
-            if (typeof process !== 'undefined' && process.env) {
-                key = process.env[storageKey];
+            const env = (typeof process !== 'undefined' && process && process.env) ? process.env : null;
+            if (env && Object.prototype.hasOwnProperty.call(env, storageKey)) {
+                key = env[storageKey];
             }
         }
         

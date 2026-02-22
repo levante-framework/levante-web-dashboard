@@ -25,7 +25,11 @@ function loadRemoteLanguagesIntoConfig() {
             const data = await resp.json();
             if (data && data.languages && typeof data.languages === 'object') {
                 window.CONFIG = window.CONFIG || {};
-                window.CONFIG.languages = data.languages;
+                const localLanguages = (window.CONFIG && window.CONFIG.languages && typeof window.CONFIG.languages === 'object')
+                    ? window.CONFIG.languages
+                    : {};
+                // Merge remote over local defaults so missing remote entries (e.g. Portuguese) still appear.
+                window.CONFIG.languages = { ...localLanguages, ...data.languages };
                 console.log('Loaded languages from remote language_config.json');
             } else {
                 console.log('No remote language_config.json found; using local config.js');
