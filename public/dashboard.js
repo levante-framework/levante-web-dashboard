@@ -1091,14 +1091,19 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             async loadValidationResults() {
                 try {
                     console.log('🔄 Loading validation results...');
-                    
-                    // Try to load from shared storage first
+                    this.validation_results = {};
+
+                    // Load localStorage first so shared merge can compare timestamps.
+                    const storedResults = localStorage.getItem('validation_results');
+                    if (storedResults) {
+                        this.validation_results = JSON.parse(storedResults);
+                        console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from localStorage`);
+                    }
+
+                    // Then merge shared storage (newer entry wins per item+language).
                     const sharedLoaded = await this.loadFromSharedStorage();
-                    
-                    if (!sharedLoaded) {
-                        console.log('📝 No shared storage found, checking static JSON file...');
-                        
-                        // Try loading from JSON file
+                    if (!sharedLoaded && !storedResults) {
+                        console.log('📝 No shared/local validation data found, checking static JSON file...');
                         try {
                             const jsonResponse = await fetch('./validation_results.json');
                             if (jsonResponse.ok) {
@@ -1107,23 +1112,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                     this.validation_results = jsonData.validation_results;
                                     console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from JSON file`);
                                     console.log(`📅 File exported: ${jsonData.metadata?.exported_at || 'Unknown date'}`);
-                                    return; // Successfully loaded from file
                                 }
                             }
                         } catch (jsonError) {
-                            console.log('📝 No validation_results.json file found, checking localStorage...');
-                        }
-                        
-                        // Fallback to localStorage if JSON file not found
-                        console.log('🔄 Loading validation results from localStorage...');
-                        const storedResults = localStorage.getItem('validation_results');
-                        
-                        if (storedResults) {
-                            this.validation_results = JSON.parse(storedResults);
-                            console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from localStorage`);
-                        } else {
-                            console.log('📝 No previous validation results found, starting fresh');
-                            this.validation_results = {};
+                            console.log('📝 No validation_results.json file found, starting fresh');
                         }
                     }
                 } catch (error) {
@@ -1223,9 +1215,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         const sharedValidation = sharedResults[itemId][lang];
                                         const localValidation = localResults[itemId][lang];
                                         
-                                        if (!localValidation || 
-                                            (sharedValidation.updated && 
-                                             (!localValidation.updated || sharedValidation.updated > localValidation.updated))) {
+                                        const sharedTs = sharedValidation?.updated || sharedValidation?.timestamp || '';
+                                        const localTs = localValidation?.updated || localValidation?.timestamp || '';
+                                        if (!localValidation || (sharedTs && (!localTs || sharedTs > localTs))) {
                                             localResults[itemId][lang] = sharedValidation;
                                         }
                                     });
@@ -1519,6 +1511,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const backTranslationHtml = backTranslation
                         ? `<div class="item-backtranslation" title="Back-translation">${escapeHtml(backTranslation)}</div>`
                         : '';
+                    const hasStoredScore = !!(storedResult && storedResult.score !== undefined);
+                    const validateOnClick = hasStoredScore
+                        ? `(window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}'))`
+                        : `validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')`;
+                    const indicatorOnClick = hasStoredScore
+                        ? `onclick="window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}')" style="cursor: pointer;"`
+                        : '';
                     if (storedResult && storedResult.score !== undefined) {
                         const scorePercent = Math.round((storedResult.score * 100) * 100) / 100;
                         scoreValue = scorePercent;
@@ -1550,10 +1549,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                     }
                     const manualApproved = !!storedResult?.manualApproved;
-                    approvedHtml = `<label title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? '#6a1b9a' : '#6c757d'}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? 'checked' : ''} style="cursor: pointer;">Approved</label>`;
+                    approvedHtml = `<label class="approved-toggle-label" title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? '#2e7d32' : '#6c757d'}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? 'checked' : ''} onchange="window.setManualApprovalForValidation && window.setManualApprovalForValidation('${escapedItemId}', '${langCode}', this.checked, this.closest('.data-row'))" style="cursor: pointer;">Approved</label>`;
                     
                     row.dataset.score = scoreValue;
                     row.dataset.needsReview = needsReview ? '1' : '0';
+                    row.dataset.approved = manualApproved ? '1' : '0';
+                    if (manualApproved) {
+                        row.style.outline = '2px solid rgba(76,175,80,0.45)';
+                        row.style.outlineOffset = '-2px';
+                        row.style.background = 'rgba(46,125,50,0.08)';
+                    }
                     row.innerHTML = `
                         <div class="item-id-cell">
                             <div class="item_id">${escapeHtml(displayItemId)}</div>
@@ -1566,19 +1571,20 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         <div class="item-text">
                             ${text}
                             <div class="validation-status">
-                                <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}"></div>
-                                <button class="validate-btn" onclick="validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')">${buttonText}</button>
+                                <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}" ${indicatorOnClick}></div>
+                                <button class="validate-btn" onclick="${validateOnClick}">${buttonText}</button>
                                 <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
+                                <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
                                 ${approvedHtml}
                             </div>
-                            <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
+                            <div class="needs-review-container" style="margin-top: 6px; display: ${manualApproved ? 'none' : 'flex'}; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? '#dc3545' : '#6c757d'};">
                                     <input type="checkbox" class="needs-review-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${needsReview ? 'checked' : ''} style="cursor: pointer;">
                                     <i class="fas fa-flag" style="color: ${needsReview ? '#dc3545' : '#adb5bd'};"></i> Needs Review
                                 </label>
-                                <div class="reason-container" style="display: ${needsReview ? 'flex' : 'none'}; align-items: center; gap: 4px; flex: 1; min-width: 150px;">
+                                <div class="reason-container" style="display: ${(!manualApproved && needsReview) ? 'flex' : 'none'}; align-items: center; gap: 4px; flex: 1; min-width: 150px;">
                                     <input type="text" class="reason-input" data-item-id="${escapedItemId}" data-lang-code="${langCode}" value="${reviewReason.replace(/"/g, '&quot;')}" placeholder="Reason..." style="flex: 1; padding: 3px 6px; font-size: 0.8em; border: 1px solid #ced4da; border-radius: 4px; min-width: 100px;">
                                     <button class="save-reason-btn" data-item-id="${escapedItemId}" data-lang-code="${langCode}" title="Save reason" style="padding: 3px 6px; font-size: 0.75em; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
                                         <i class="fas fa-check"></i>
@@ -1672,16 +1678,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     };
                 });
 
-                // Manual Approved checkbox handlers
+                // Manual Approved checkbox click should not select row
                 tableContent.querySelectorAll('.approved-checkbox').forEach(checkbox => {
-                    checkbox.onclick = (e) => e.stopPropagation(); // Prevent row selection
-                    checkbox.onchange = () => {
-                        const itemId = checkbox.dataset.itemId;
-                        const langCode = checkbox.dataset.langCode;
-                        if (typeof setManualApprovalForValidation === 'function') {
-                            setManualApprovalForValidation(itemId, langCode, checkbox.checked);
-                        }
-                    };
+                    checkbox.onclick = (e) => e.stopPropagation();
                 });
                 
                 // Reason input handlers

@@ -103,9 +103,14 @@ async function runAiJudge({ originalText, translatedText, backTranslation, langC
             if (data && data.reason) console.warn('AI judge skipped:', data.reason);
             return { used: false };
         }
-        // Blend baseline + AI judge score (keeps continuity with existing thresholds)
-        const blended = Math.round((0.6 * baseScore + 0.4 * data.ai_score) * 100) / 100;
-        return { used: true, aiScore: data.ai_score, finalScore: blended, aiNotes: data.notes || '' };
+        const aiScore = Math.round(Number(data.ai_score) * 100) / 100;
+        // In AI-only mode, use direct AI score (no baseline blending).
+        if (mode === 'all') {
+            return { used: true, aiScore, finalScore: aiScore, aiNotes: data.notes || '' };
+        }
+        // Hybrid mode blends baseline + AI score for continuity.
+        const blended = Math.round((0.6 * baseScore + 0.4 * aiScore) * 100) / 100;
+        return { used: true, aiScore, finalScore: blended, aiNotes: data.notes || '' };
     } catch (_) {
         return { used: false };
     }
@@ -153,7 +158,129 @@ function ensureScoreSourceBadge(containerEl, source) {
     }
 }
 
-function setManualApprovalForValidation(itemId, langCode, approved) {
+function findCurrentTableRowByItemId(itemId) {
+    const currentLanguage = window.dashboard?.currentLanguage;
+    const table = document.getElementById(`table-${currentLanguage}`);
+    if (!table) return null;
+    const rows = Array.from(table.querySelectorAll('.data-row'));
+    return rows.find(r => String(r.dataset.itemId || '') === String(itemId)) || null;
+}
+
+function syncApprovedRowUi(row, approved) {
+    if (!row) return;
+    const reviewContainer = row.querySelector('.needs-review-container');
+    const reasonContainer = row.querySelector('.reason-container');
+    const needsReviewCheckbox = row.querySelector('.needs-review-checkbox');
+    const approvedIndicator = row.querySelector('.approved-indicator');
+    const approvedLabel = row.querySelector('.approved-toggle-label');
+    if (reviewContainer) reviewContainer.style.display = approved ? 'none' : 'flex';
+    if (reasonContainer) {
+        const shouldShowReason = !approved && !!needsReviewCheckbox?.checked;
+        reasonContainer.style.display = shouldShowReason ? 'flex' : 'none';
+    }
+    if (approvedIndicator) approvedIndicator.style.display = approved ? 'inline-flex' : 'none';
+    if (approvedLabel) approvedLabel.style.color = approved ? '#2e7d32' : '#6c757d';
+    row.dataset.approved = approved ? '1' : '0';
+    row.style.outline = approved ? '2px solid rgba(76,175,80,0.45)' : '';
+    row.style.outlineOffset = approved ? '-2px' : '';
+    row.style.background = approved ? 'rgba(46,125,50,0.08)' : '';
+}
+
+function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
+    const row = rowOverride || findCurrentTableRowByItemId(itemId);
+    if (!row) return;
+    const result = window.dashboard?.validation_results?.[itemId]?.[langCode];
+    if (!result) return;
+
+    // Pending/no-score state.
+    if (typeof result.score !== 'number') {
+        const indicator = row.querySelector('.status-indicator');
+        const button = row.querySelector('.validate-btn');
+        const statusWrap = indicator ? indicator.parentElement : null;
+        if (indicator) {
+            indicator.className = 'status-indicator status-pending';
+            indicator.title = 'Not validated yet';
+            indicator.onclick = null;
+        }
+        row.dataset.score = '-1';
+        if (button) {
+            button.textContent = 'Validate';
+        }
+        if (statusWrap) {
+            const scoreBadge = statusWrap.querySelector('.score-badge');
+            if (scoreBadge) scoreBadge.remove();
+            ensureScoreSourceBadge(statusWrap, '');
+        }
+        syncApprovedRowUi(row, !!result.manualApproved);
+        return;
+    }
+
+    const indicator = row.querySelector('.status-indicator');
+    const button = row.querySelector('.validate-btn');
+    const statusWrap = indicator ? indicator.parentElement : null;
+    if (!indicator || !statusWrap) return;
+
+    const score = Math.round(Number(result.score) * 10000) / 100;
+    let statusClass = 'status-error';
+    let statusTitle = `❌ Poor: ${score}% similarity`;
+    let buttonText = '❌ View Issues';
+    let scoreEmoji = '❌';
+    if (score >= 85) {
+        statusClass = 'status-good';
+        statusTitle = `✅ Excellent: ${score}% similarity`;
+        buttonText = '✅ View Results';
+        scoreEmoji = '✅';
+    } else if (score >= 70) {
+        statusClass = 'status-warning';
+        statusTitle = `⚠️ Warning: ${score}% similarity`;
+        buttonText = '⚠️ View Warning';
+        scoreEmoji = '⚠️';
+    }
+
+    indicator.className = `status-indicator ${statusClass}`;
+    indicator.title = statusTitle;
+    row.dataset.score = String(score);
+
+    let scoreBadge = statusWrap.querySelector('.score-badge');
+    if (!scoreBadge) {
+        scoreBadge = document.createElement('span');
+        scoreBadge.className = 'score-badge';
+        scoreBadge.style.cssText = 'font-size: 10px; font-weight: bold; margin-left: 4px; opacity: 0.9;';
+        statusWrap.appendChild(scoreBadge);
+    }
+    scoreBadge.textContent = `${score.toFixed(2)}%`;
+    scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
+
+    ensureScoreSourceBadge(statusWrap, inferScoreSource(result));
+    syncApprovedRowUi(row, !!result.manualApproved);
+
+    if (button) {
+        button.textContent = buttonText;
+        button.removeAttribute('onclick');
+        button.onclick = () => {
+            const latest = window.dashboard.validation_results[itemId][langCode];
+            showValidationResults(itemId, langCode, latest, scoreEmoji, score, statusClass);
+        };
+    }
+
+    indicator.onclick = () => {
+        const latest = window.dashboard.validation_results[itemId][langCode];
+        showValidationResults(itemId, langCode, latest, scoreEmoji, score, statusClass);
+    };
+}
+
+function showStoredValidationResult(itemId, langCode) {
+    const result = window.dashboard?.validation_results?.[itemId]?.[langCode];
+    if (!result || typeof result.score !== 'number') return;
+    const score = Math.round(Number(result.score) * 10000) / 100;
+    const scoreEmoji = score >= 85 ? '✅' : score >= 70 ? '⚠️' : '❌';
+    const statusClass = score >= 85 ? 'status-good' : score >= 70 ? 'status-warning' : 'status-error';
+    if (typeof showValidationResults === 'function') {
+        showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass);
+    }
+}
+
+function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null) {
     const dashboard = window.dashboard;
     if (!dashboard) return;
     if (!dashboard.validation_results[itemId]) dashboard.validation_results[itemId] = {};
@@ -173,18 +300,27 @@ function setManualApprovalForValidation(itemId, langCode, approved) {
         if (typeof result.manualOverridePreviousScore === 'number') {
             result.score = result.manualOverridePreviousScore;
             delete result.manualOverridePreviousScore;
+        } else {
+            // If this item was only manually approved (no prior score), return to pending.
+            delete result.score;
         }
         const restoredSource = String(result.manualOverridePreviousSource || '').toLowerCase();
         if (restoredSource === 'ai' || restoredSource === 'calculated') {
             result.scoreSource = restoredSource;
             delete result.manualOverridePreviousSource;
         } else {
-            result.scoreSource = (result.aiUsed || Number.isFinite(Number(result.aiScore))) ? 'ai' : 'calculated';
+            if (typeof result.score === 'number') {
+                result.scoreSource = (result.aiUsed || Number.isFinite(Number(result.aiScore))) ? 'ai' : 'calculated';
+            } else {
+                delete result.scoreSource;
+            }
         }
         result.timestamp = new Date().toISOString();
     }
     dashboard.validation_results[itemId][langCode] = result;
-    dashboard.populateDataTable();
+    applyValidationUiFromResult(itemId, langCode, rowEl);
+    // Persist immediately so manual approval is saved/reloaded with other validation metadata.
+    try { dashboard.saveValidationResults(); } catch (_) {}
     if (typeof updateValidationSummary === 'function') updateValidationSummary();
 }
 
@@ -294,6 +430,7 @@ async function validateAll() {
         return;
     }
 
+    const perItemDelayMs = aiMode === 'all' ? 0 : 75;
     const concurrency = Math.min(4, jobs.length);
     const actionLabel = forceAll ? 're-validate' : 'validate';
     const skippedCount = forceAll ? 0 : skippedAlreadyValidated;
@@ -321,8 +458,8 @@ async function validateAll() {
                 else if (res && res.scoreSource === 'error') validationRunState.sourceCounts.error++;
                 const cancelNote = validationRunState.cancelRequested ? ' (stopping...)' : '';
                 dashboard.setStatus(`Validating ${currentLanguage}: ${completed}/${total}${cancelNote}`, 'loading');
-                // Small gap helps avoid API burst/rate limits while still much faster than 1-by-1.
-                await new Promise(r => setTimeout(r, 75));
+                // Small gap helps avoid API burst/rate limits; remove it for fast AI-only mode.
+                if (perItemDelayMs > 0) await new Promise(r => setTimeout(r, perItemDelayMs));
             }
         };
         Promise.all(Array.from({ length: concurrency }, () => worker()))
@@ -525,47 +662,71 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             return { scoreSource: 'calculated' };
         }
 
-        // Map language codes to Google Translate compatible codes
-        const googleLangCode = mapToGoogleTranslateCode(langCode);
-        console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
+        const aiMode = getAiJudgeMode();
+        let backTranslation = '';
+        let baselineScore = null;
+        let aiJudge = { used: false, aiScore: null, finalScore: null, aiNotes: '' };
+        let score = null;
 
-        // Call Google Translate API to back-translate from target language to English (uses server GOOGLE_TRANSLATE_APIKEY if user has no key)
-        const headers = {};
-        if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
-        const response = await fetch(`/api/google-translate?text=${encodeURIComponent(translatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
-            method: 'GET',
-            headers
-        });
-
-        if (!response.ok) {
-            let errorDetails = `Translation API error: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                console.error('🚨 Translation API error details:', errorData);
-                errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
-            } catch (e) {
-                console.error('🚨 Could not parse error response');
+        // Fast path: AI-only mode skips Google back-translation.
+        if (aiMode === 'all') {
+            aiJudge = await runAiJudge({
+                originalText,
+                translatedText,
+                backTranslation: '',
+                langCode,
+                baseScore: 0
+            });
+            if (aiJudge.used) {
+                score = aiJudge.finalScore;
+                backTranslation = 'N/A (AI-only mode)';
             }
-            throw new Error(errorDetails);
         }
 
-        const data = await response.json();
-        const backTranslation = data.translatedText;
+        // Fallback path (hybrid mode, or AI-only when AI judge failed): use Google back-translation baseline.
+        if (typeof score !== 'number') {
+            const googleLangCode = mapToGoogleTranslateCode(langCode);
+            console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
 
-        // Calculate similarity score (simple word overlap for now)
-        const originalWords = originalText.toLowerCase().split(/\s+/);
-        const backTranslatedWords = backTranslation.toLowerCase().split(/\s+/);
-        const commonWords = originalWords.filter(word => backTranslatedWords.includes(word));
-        const similarity = commonWords.length / Math.max(originalWords.length, backTranslatedWords.length);
-        const baselineScore = Math.round((similarity * 100) * 100) / 100; // Round to 2 decimal places
-        const aiJudge = await runAiJudge({
-            originalText,
-            translatedText,
-            backTranslation,
-            langCode,
-            baseScore: baselineScore
-        });
-        const score = aiJudge.used ? aiJudge.finalScore : baselineScore;
+            // Call Google Translate API to back-translate from target language to English.
+            const headers = {};
+            if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
+            const response = await fetch(`/api/google-translate?text=${encodeURIComponent(translatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
+                method: 'GET',
+                headers
+            });
+
+            if (!response.ok) {
+                let errorDetails = `Translation API error: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    console.error('🚨 Translation API error details:', errorData);
+                    errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
+                } catch (e) {
+                    console.error('🚨 Could not parse error response');
+                }
+                throw new Error(errorDetails);
+            }
+
+            const data = await response.json();
+            backTranslation = data.translatedText;
+
+            // Calculate similarity score (simple word overlap for now).
+            const originalWords = originalText.toLowerCase().split(/\s+/);
+            const backTranslatedWords = backTranslation.toLowerCase().split(/\s+/);
+            const commonWords = originalWords.filter(word => backTranslatedWords.includes(word));
+            const similarity = commonWords.length / Math.max(originalWords.length, backTranslatedWords.length);
+            baselineScore = Math.round((similarity * 100) * 100) / 100;
+
+            aiJudge = await runAiJudge({
+                originalText,
+                translatedText,
+                backTranslation,
+                langCode,
+                baseScore: baselineScore
+            });
+            score = aiJudge.used ? aiJudge.finalScore : baselineScore;
+        }
 
         // Store validation result
         if (!window.dashboard.validation_results[itemId]) {
@@ -750,5 +911,11 @@ function updateValidationSummary() {
     if (warningEl) warningEl.textContent = warning;
     if (errorEl) errorEl.textContent = error;
     if (pendingEl) pendingEl.textContent = pending;
+}
+
+// Ensure inline HTML handlers can resolve these functions.
+if (typeof window !== 'undefined') {
+    window.setManualApprovalForValidation = setManualApprovalForValidation;
+    window.showStoredValidationResult = showStoredValidationResult;
 }
 
