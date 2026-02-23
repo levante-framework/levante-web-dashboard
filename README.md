@@ -147,6 +147,18 @@ npm install
 npm run dev  # If available, or use Vercel CLI: vercel dev
 ```
 
+### Environment Variables
+
+Use `.env.local` for local development and Vercel Project Settings for deployed environments.
+See `.env.example` for a safe template.
+
+Required/optional keys used by current translation and AI features:
+
+- `CROWDIN_API_TOKEN` – Crowdin API token for translation export endpoints
+- `LEVANTE_TRANSLATIONS_PROJECT_ID` – optional Crowdin project ID (defaults to `756721`)
+- `OPENAI_API_KEY` – enables AI-assisted translation judging
+- `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4o-mini`)
+
 ### Version Management
 
 Version numbers are automatically updated before deployment via `scripts/apply-version.js`. The script:

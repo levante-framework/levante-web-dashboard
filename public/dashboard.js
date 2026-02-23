@@ -1508,6 +1508,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let statusTitle = 'Not validated yet';
                     let buttonText = 'Validate';
                     let scoreBadgeHtml = '';
+                    let sourceBadgeHtml = '';
+                    let approvedHtml = '';
                     let scoreValue = -1;
                     const storedResult = this.validation_results[itemId]?.[langCode];
                     const needsReview = storedResult?.needsReview || false;
@@ -1535,7 +1537,20 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                         const badgeColor = scorePercent >= 85 ? '#155724' : scorePercent >= 70 ? '#856404' : '#721c24';
                         scoreBadgeHtml = `<span class="score-badge" style="color: ${badgeColor}">${scorePercent.toFixed(2)}%</span>`;
+                        const scoreSource = String(
+                            storedResult.scoreSource ||
+                            (storedResult.manualApproved ? 'manual' : ((storedResult.aiUsed || Number.isFinite(Number(storedResult.aiScore))) ? 'ai' : 'calculated'))
+                        ).toLowerCase();
+                        if (scoreSource === 'manual') {
+                            sourceBadgeHtml = `<span class="score-source-badge" title="Manually approved" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #4a148c; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 3px; padding: 1px 4px;">Manual</span>`;
+                        } else if (scoreSource === 'ai') {
+                            sourceBadgeHtml = `<span class="score-source-badge" title="AI-refined score" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #0d47a1; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 1px 4px;">AI</span>`;
+                        } else {
+                            sourceBadgeHtml = `<span class="score-source-badge" title="Calculated from back-translation overlap" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 1px 4px;">Calculated</span>`;
+                        }
                     }
+                    const manualApproved = !!storedResult?.manualApproved;
+                    approvedHtml = `<label title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? '#6a1b9a' : '#6c757d'}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? 'checked' : ''} style="cursor: pointer;">Approved</label>`;
                     
                     row.dataset.score = scoreValue;
                     row.dataset.needsReview = needsReview ? '1' : '0';
@@ -1555,6 +1570,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 <button class="validate-btn" onclick="validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')">${buttonText}</button>
                                 <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
                                 ${scoreBadgeHtml}
+                                ${sourceBadgeHtml}
+                                ${approvedHtml}
                             </div>
                             <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
                                 <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? '#dc3545' : '#6c757d'};">
@@ -1652,6 +1669,18 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         console.log(`📝 Needs Review ${isChecked ? 'set' : 'cleared'} for ${itemId}[${langCode}]`);
+                    };
+                });
+
+                // Manual Approved checkbox handlers
+                tableContent.querySelectorAll('.approved-checkbox').forEach(checkbox => {
+                    checkbox.onclick = (e) => e.stopPropagation(); // Prevent row selection
+                    checkbox.onchange = () => {
+                        const itemId = checkbox.dataset.itemId;
+                        const langCode = checkbox.dataset.langCode;
+                        if (typeof setManualApprovalForValidation === 'function') {
+                            setManualApprovalForValidation(itemId, langCode, checkbox.checked);
+                        }
                     };
                 });
                 

@@ -41,7 +41,189 @@ function validateSelected() {
     });
 }
 
-function validateAll() {
+function getAiJudgeMode() {
+    const el = document.getElementById('aiJudgeMode');
+    const mode = String(el?.value || 'hybrid').toLowerCase();
+    return mode === 'all' ? 'all' : 'hybrid';
+}
+
+let _aiJudgeHealthCache = null;
+let _aiJudgeHealthCheckedAt = 0;
+const AI_HEALTH_TTL_MS = 30000;
+
+async function checkAiJudgeHealth(force = false) {
+    const now = Date.now();
+    if (!force && _aiJudgeHealthCache && (now - _aiJudgeHealthCheckedAt) < AI_HEALTH_TTL_MS) {
+        return _aiJudgeHealthCache;
+    }
+    try {
+        const resp = await fetch('/api/translation-ai-judge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                originalText: 'Health check source',
+                translatedText: 'Health check target',
+                backTranslation: 'Health check back',
+                langCode: 'en'
+            })
+        });
+        if (!resp.ok) {
+            _aiJudgeHealthCache = { ok: false, reason: `HTTP ${resp.status}` };
+        } else {
+            const data = await resp.json();
+            if (data && data.ok === true && typeof data.ai_score === 'number') {
+                _aiJudgeHealthCache = { ok: true, reason: '' };
+            } else {
+                _aiJudgeHealthCache = { ok: false, reason: data?.reason || 'AI judge unavailable' };
+            }
+        }
+    } catch (e) {
+        _aiJudgeHealthCache = { ok: false, reason: e?.message || 'Network error' };
+    }
+    _aiJudgeHealthCheckedAt = now;
+    return _aiJudgeHealthCache;
+}
+
+async function runAiJudge({ originalText, translatedText, backTranslation, langCode, baseScore }) {
+    const mode = getAiJudgeMode();
+    // Hybrid mode runs AI judge only for borderline scores.
+    if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < 60 || baseScore > 85)) {
+        return { used: false };
+    }
+    try {
+        const resp = await fetch('/api/translation-ai-judge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ originalText, translatedText, backTranslation, langCode })
+        });
+        if (!resp.ok) return { used: false };
+        const data = await resp.json();
+        if (!data || data.ok !== true || typeof data.ai_score !== 'number') {
+            // Keep noisy warnings out of UI, but log useful reasons once we get data.
+            if (data && data.reason) console.warn('AI judge skipped:', data.reason);
+            return { used: false };
+        }
+        // Blend baseline + AI judge score (keeps continuity with existing thresholds)
+        const blended = Math.round((0.6 * baseScore + 0.4 * data.ai_score) * 100) / 100;
+        return { used: true, aiScore: data.ai_score, finalScore: blended, aiNotes: data.notes || '' };
+    } catch (_) {
+        return { used: false };
+    }
+}
+
+function inferScoreSource(result) {
+    if (!result) return '';
+    if (result.manualApproved || String(result.scoreSource || '').toLowerCase() === 'manual') return 'manual';
+    if (String(result.scoreSource || '').toLowerCase() === 'ai' || result.aiUsed || Number.isFinite(Number(result.aiScore))) return 'ai';
+    if (typeof result.score === 'number') return 'calculated';
+    return '';
+}
+
+function ensureScoreSourceBadge(containerEl, source) {
+    if (!containerEl) return;
+    let badge = containerEl.querySelector('.score-source-badge');
+    if (!source) {
+        if (badge) badge.remove();
+        return;
+    }
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'score-source-badge';
+        containerEl.appendChild(badge);
+    }
+    badge.style.cssText = 'font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; border-radius: 3px; padding: 1px 4px;';
+    if (source === 'manual') {
+        badge.textContent = 'Manual';
+        badge.title = 'Manually approved';
+        badge.style.color = '#4a148c';
+        badge.style.background = '#f3e5f5';
+        badge.style.border = '1px solid #ce93d8';
+    } else if (source === 'ai') {
+        badge.textContent = 'AI';
+        badge.title = 'AI-refined score';
+        badge.style.color = '#0d47a1';
+        badge.style.background = '#e3f2fd';
+        badge.style.border = '1px solid #90caf9';
+    } else {
+        badge.textContent = 'Calculated';
+        badge.title = 'Calculated from back-translation overlap';
+        badge.style.color = '#1b5e20';
+        badge.style.background = '#e8f5e9';
+        badge.style.border = '1px solid #a5d6a7';
+    }
+}
+
+function setManualApprovalForValidation(itemId, langCode, approved) {
+    const dashboard = window.dashboard;
+    if (!dashboard) return;
+    if (!dashboard.validation_results[itemId]) dashboard.validation_results[itemId] = {};
+    const result = dashboard.validation_results[itemId][langCode] || {};
+    const priorSource = inferScoreSource(result);
+
+    if (approved) {
+        if (typeof result.score === 'number') result.manualOverridePreviousScore = result.score;
+        if (priorSource) result.manualOverridePreviousSource = priorSource;
+        result.manualApproved = true;
+        result.score = 1.0;
+        result.scoreSource = 'manual';
+        result.notes = 'Manually approved';
+        result.timestamp = new Date().toISOString();
+    } else {
+        result.manualApproved = false;
+        if (typeof result.manualOverridePreviousScore === 'number') {
+            result.score = result.manualOverridePreviousScore;
+            delete result.manualOverridePreviousScore;
+        }
+        const restoredSource = String(result.manualOverridePreviousSource || '').toLowerCase();
+        if (restoredSource === 'ai' || restoredSource === 'calculated') {
+            result.scoreSource = restoredSource;
+            delete result.manualOverridePreviousSource;
+        } else {
+            result.scoreSource = (result.aiUsed || Number.isFinite(Number(result.aiScore))) ? 'ai' : 'calculated';
+        }
+        result.timestamp = new Date().toISOString();
+    }
+    dashboard.validation_results[itemId][langCode] = result;
+    dashboard.populateDataTable();
+    if (typeof updateValidationSummary === 'function') updateValidationSummary();
+}
+
+const validationRunState = {
+    active: false,
+    cancelRequested: false,
+    completed: 0,
+    total: 0,
+    language: '',
+    sourceCounts: { ai: 0, calculated: 0, error: 0 }
+};
+
+function setValidationRunUi(active) {
+    const validateAllBtn = document.getElementById('validateAll');
+    const cancelBtn = document.getElementById('cancelValidateAll');
+    if (validateAllBtn) validateAllBtn.disabled = active;
+    if (cancelBtn) {
+        cancelBtn.style.display = 'inline-flex';
+        cancelBtn.style.opacity = active ? '1' : '0.6';
+        cancelBtn.disabled = !active;
+    }
+}
+
+function cancelValidateAll() {
+    if (!validationRunState.active) return;
+    validationRunState.cancelRequested = true;
+    if (window.dashboard) {
+        window.dashboard.setStatus(
+            `🛑 Cancel requested for ${validationRunState.language || 'current language'} (${validationRunState.completed}/${validationRunState.total} completed)`,
+            'warning'
+        );
+    }
+}
+
+async function validateAll() {
+    if (validationRunState.active) {
+        alert('A Validate All run is already active. Cancel it first or wait for completion.');
+        return;
+    }
     const currentLanguage = window.dashboard?.currentLanguage;
     if (!currentLanguage) {
         alert('No active language found.');
@@ -59,15 +241,33 @@ function validateAll() {
     }
     const dashboard = window.dashboard;
     const langCode = dashboard.languages[currentLanguage].lang_code;
+    const validateModeEl = document.getElementById('validateAllMode');
+    const validateMode = validateModeEl ? String(validateModeEl.value || 'pending') : 'pending';
+    const forceAll = validateMode === 'force';
+    const aiMode = getAiJudgeMode();
+    if (aiMode === 'all') {
+        const health = await checkAiJudgeHealth();
+        if (!health.ok) {
+            const proceed = confirm(
+                `AI mode is set to All, but AI judge is unavailable: ${health.reason || 'unknown reason'}.\n\n` +
+                `If you continue, rows will be marked as Calculated (fallback). Continue anyway?`
+            );
+            if (!proceed) return;
+        }
+    }
     const itemById = new Map((dashboard.data || []).map(item => [String(item.item_id || item.identifier || ''), item]));
     const visibleRows = Array.from(currentTable.querySelectorAll('.data-row'));
     const jobs = [];
+    let skippedAlreadyValidated = 0;
     visibleRows.forEach(row => {
         const itemId = String(row.dataset.itemId || '');
         if (!itemId) return;
         const existing = dashboard.validation_results?.[itemId]?.[langCode];
         const alreadyValidated = existing && typeof existing.score === 'number';
-        if (alreadyValidated) return; // Skip rows already validated
+        if (alreadyValidated && !forceAll) {
+            skippedAlreadyValidated++;
+            return;
+        }
         const item = itemById.get(itemId);
         if (!item) return;
         let translatedText = item[langCode];
@@ -86,22 +286,41 @@ function validateAll() {
     });
 
     if (jobs.length === 0) {
-        alert('No pending translations to validate in the current language/filter.');
+        if (forceAll) {
+            alert('No translations available to validate in the current language/filter.');
+        } else {
+            alert('No pending translations to validate in the current language/filter.');
+        }
         return;
     }
 
     const concurrency = Math.min(4, jobs.length);
-    if (confirm(`This will validate ${jobs.length} pending ${currentLanguage.toUpperCase()} translations (${validateBtns.length - jobs.length} already validated skipped). Continue?`)) {
+    const actionLabel = forceAll ? 're-validate' : 'validate';
+    const skippedCount = forceAll ? 0 : skippedAlreadyValidated;
+    if (confirm(`This will ${actionLabel} ${jobs.length} ${currentLanguage.toUpperCase()} translations (${skippedCount} already validated skipped). Continue?`)) {
+        validationRunState.active = true;
+        validationRunState.cancelRequested = false;
+        validationRunState.completed = 0;
+        validationRunState.total = jobs.length;
+        validationRunState.language = currentLanguage.toUpperCase();
+        validationRunState.sourceCounts = { ai: 0, calculated: 0, error: 0 };
+        setValidationRunUi(true);
+
         let nextIndex = 0;
         let completed = 0;
         const total = jobs.length;
         const worker = async () => {
-            while (nextIndex < total) {
+            while (nextIndex < total && !validationRunState.cancelRequested) {
                 const idx = nextIndex++;
                 const job = jobs[idx];
-                await validateSingle(job.itemId, job.originalText, job.translatedText, job.langCode);
+                const res = await validateSingle(job.itemId, job.originalText, job.translatedText, job.langCode);
                 completed++;
-                dashboard.setStatus(`Validating ${currentLanguage}: ${completed}/${total}`, 'loading');
+                validationRunState.completed = completed;
+                if (res && res.scoreSource === 'ai') validationRunState.sourceCounts.ai++;
+                else if (res && res.scoreSource === 'calculated') validationRunState.sourceCounts.calculated++;
+                else if (res && res.scoreSource === 'error') validationRunState.sourceCounts.error++;
+                const cancelNote = validationRunState.cancelRequested ? ' (stopping...)' : '';
+                dashboard.setStatus(`Validating ${currentLanguage}: ${completed}/${total}${cancelNote}`, 'loading');
                 // Small gap helps avoid API burst/rate limits while still much faster than 1-by-1.
                 await new Promise(r => setTimeout(r, 75));
             }
@@ -109,10 +328,33 @@ function validateAll() {
         Promise.all(Array.from({ length: concurrency }, () => worker()))
             .then(() => {
                 if (typeof updateValidationSummary === 'function') updateValidationSummary();
-                dashboard.setStatus(`✅ Validation complete: ${total} pending ${currentLanguage.toUpperCase()} items`, 'success');
+                const doneLabel = forceAll ? 're-validated' : 'pending';
+                const src = validationRunState.sourceCounts;
+                if (validationRunState.cancelRequested) {
+                    dashboard.setStatus(
+                        `🛑 Validation cancelled: ${completed}/${total} ${currentLanguage.toUpperCase()} items processed (AI: ${src.ai}, Calculated: ${src.calculated}, Errors: ${src.error})`,
+                        'warning'
+                    );
+                } else {
+                    dashboard.setStatus(
+                        `✅ Validation complete: ${total} ${doneLabel} ${currentLanguage.toUpperCase()} items (AI: ${src.ai}, Calculated: ${src.calculated}, Errors: ${src.error})`,
+                        'success'
+                    );
+                }
+                if (getAiJudgeMode() === 'all' && src.ai === 0 && src.calculated > 0) {
+                    dashboard.setStatus(
+                        `⚠️ AI mode was set to All, but 0 rows used AI (likely AI endpoint not configured/reachable).`,
+                        'warning'
+                    );
+                }
             })
             .catch((err) => {
                 dashboard.setStatus(`⚠️ Validation finished with errors: ${err.message || err}`, 'warning');
+            })
+            .finally(() => {
+                validationRunState.active = false;
+                validationRunState.cancelRequested = false;
+                setValidationRunUi(false);
             });
     }
 }
@@ -216,13 +458,18 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
                 window.dashboard.validation_results[itemId] = {};
             }
             
+            const existingResult = window.dashboard.validation_results[itemId][langCode] || {};
             window.dashboard.validation_results[itemId][langCode] = {
                 score: similarity,
                 originalText: originalText,
                 translatedText: translatedText,
                 backTranslation: 'N/A (source language)',
                 timestamp: new Date().toISOString(),
-                notes: 'Source language - no translation validation needed'
+                notes: 'Source language - no translation validation needed',
+                scoreSource: 'calculated',
+                manualApproved: false,
+                needsReview: !!existingResult.needsReview,
+                reason: existingResult.reason || ''
             };
 
             // Update UI
@@ -245,6 +492,9 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
                 indicator.parentElement.appendChild(scoreBadge);
             }
             scoreBadge.textContent = '100.00%';
+            ensureScoreSourceBadge(indicator.parentElement, 'calculated');
+            const approvedCheckbox = indicator.parentElement.querySelector('.approved-checkbox');
+            if (approvedCheckbox) approvedCheckbox.checked = false;
 
             // Update the validate button text and functionality
             if (button) {
@@ -272,7 +522,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
 
             window.dashboard.setStatus(`✅ Validated ${itemId}: Source language (100%)`, 'success');
             updatedButtonText = true;
-            return;
+            return { scoreSource: 'calculated' };
         }
 
         // Map language codes to Google Translate compatible codes
@@ -307,20 +557,37 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         const backTranslatedWords = backTranslation.toLowerCase().split(/\s+/);
         const commonWords = originalWords.filter(word => backTranslatedWords.includes(word));
         const similarity = commonWords.length / Math.max(originalWords.length, backTranslatedWords.length);
-        const score = Math.round((similarity * 100) * 100) / 100; // Round to 2 decimal places
+        const baselineScore = Math.round((similarity * 100) * 100) / 100; // Round to 2 decimal places
+        const aiJudge = await runAiJudge({
+            originalText,
+            translatedText,
+            backTranslation,
+            langCode,
+            baseScore: baselineScore
+        });
+        const score = aiJudge.used ? aiJudge.finalScore : baselineScore;
 
         // Store validation result
         if (!window.dashboard.validation_results[itemId]) {
             window.dashboard.validation_results[itemId] = {};
         }
         
+        const existingResult = window.dashboard.validation_results[itemId][langCode] || {};
         window.dashboard.validation_results[itemId][langCode] = {
             score: score / 100, // Store as decimal for consistency
             originalText: originalText,
             translatedText: translatedText,
             backTranslation: backTranslation,
             timestamp: new Date().toISOString(),
-            notes: score >= 85 ? 'Excellent translation' : score >= 70 ? 'Good translation, review recommended' : 'Poor translation quality'
+            notes: score >= 85 ? 'Excellent translation' : score >= 70 ? 'Good translation, review recommended' : 'Poor translation quality',
+            baselineScore: baselineScore,
+            aiScore: aiJudge.used ? aiJudge.aiScore : null,
+            aiUsed: aiJudge.used === true,
+            aiNotes: aiJudge.used ? aiJudge.aiNotes : '',
+            scoreSource: aiJudge.used ? 'ai' : 'calculated',
+            manualApproved: false,
+            needsReview: !!existingResult.needsReview,
+            reason: existingResult.reason || ''
         };
 
         // Determine status based on score (using original dashboard-core.js logic)
@@ -355,6 +622,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         indicator.title = statusTitle;
         const rowEl = indicator.closest('.data-row');
         if (rowEl) rowEl.dataset.score = String(score);
+        const approvedCheckbox = indicator.parentElement.querySelector('.approved-checkbox');
+        if (approvedCheckbox) approvedCheckbox.checked = false;
         
         // Update the validate button text and functionality
         if (button) {
@@ -384,6 +653,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         scoreBadge.textContent = `${score}%`;
         scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
 
+        ensureScoreSourceBadge(indicator.parentElement, aiJudge.used ? 'ai' : 'calculated');
+
         console.log('✅ Updated validation UI:', {
             indicatorClass: indicator.className,
             scoreBadgeText: scoreBadge.textContent,
@@ -398,12 +669,14 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         };
 
         window.dashboard.setStatus(`${scoreEmoji} Validated ${itemId}: ${score}% similarity`, 'success');
+        return { scoreSource: aiJudge.used ? 'ai' : 'calculated' };
 
     } catch (error) {
         console.error('Validation error:', error);
         indicator.className = 'status-indicator status-error';
         indicator.title = `Validation failed: ${error.message}`;
         window.dashboard.setStatus(`❌ Validation failed for ${itemId}: ${error.message}`, 'error');
+        return { scoreSource: 'error' };
             } finally {
             // Restore button state without clobbering new label if we updated it
             if (button) {

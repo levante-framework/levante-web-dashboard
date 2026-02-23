@@ -7,7 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+    <link rel="icon" type="image/png" href="./favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
     <link rel="apple-touch-icon" sizes="192x192" href="./favicon-192x192.png">
@@ -215,6 +215,17 @@
                         <button id="validateAll" class="btn validation-button btn-compact" onclick="validateAll()">
                             <i class="fas fa-check-circle"></i> Validate All
                         </button>
+                        <button id="cancelValidateAll" class="btn btn-compact" style="background: #c62828; color: white; border: 1px solid #8e0000; opacity: 0.6;" onclick="cancelValidateAll()" title="Cancel the current Validate All run (stops queued items)" disabled>
+                            <i class="fas fa-stop-circle"></i> Cancel Validate All
+                        </button>
+                        <select id="aiJudgeMode" class="voice-select" style="max-width: 210px; min-width: 190px;" title="AI scoring strategy">
+                            <option value="hybrid">AI mode: Hybrid (middle scores)</option>
+                            <option value="all">AI mode: All validated items</option>
+                        </select>
+                        <select id="validateAllMode" class="voice-select" style="max-width: 210px; min-width: 190px;" title="Choose whether Validate All only runs pending rows or re-runs everything">
+                            <option value="pending">Pending only (skip scored)</option>
+                            <option value="force">Force all (overwrite scores)</option>
+                        </select>
                         <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
                             <i class="fas fa-save"></i> Save
                         </button>
@@ -345,12 +356,24 @@
             document.getElementById('validationOriginalText').textContent = result.originalText;
             document.getElementById('validationTranslatedText').textContent = result.translatedText;
             document.getElementById('validationBackTranslation').textContent = result.backTranslation;
-            document.getElementById('validationNotes').textContent = result.notes;
+            const notes = [result.notes || ''];
+            if (result.aiUsed && result.aiNotes) notes.push(`AI notes: ${result.aiNotes}`);
+            document.getElementById('validationNotes').textContent = notes.filter(Boolean).join('\n\n');
             
             // Update metadata
             document.getElementById('validationItemId').textContent = itemId;
             document.getElementById('validationLangCode').textContent = langCode;
             document.getElementById('validationTimestamp').textContent = new Date(result.timestamp).toLocaleString();
+            const aiInfo = document.getElementById('validationAiInfo');
+            if (aiInfo) {
+                if (result.aiUsed) {
+                    const base = Number.isFinite(Number(result.baselineScore)) ? Number(result.baselineScore).toFixed(2) : 'n/a';
+                    const ai = Number.isFinite(Number(result.aiScore)) ? Number(result.aiScore).toFixed(2) : 'n/a';
+                    aiInfo.textContent = `Yes (baseline ${base}%, AI ${ai}%)`;
+                } else {
+                    aiInfo.textContent = 'No';
+                }
+            }
             
             modal.style.display = 'block';
         }
