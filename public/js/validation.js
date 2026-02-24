@@ -47,6 +47,42 @@ function getAiJudgeMode() {
     return mode === 'all' ? 'all' : 'hybrid';
 }
 
+function getValidateSpeedMode() {
+    const el = document.getElementById('validateSpeedMode');
+    const mode = String(el?.value || 'turbo').toLowerCase();
+    return mode === 'safe' ? 'safe' : 'turbo';
+}
+
+function getValidateAllTuning(aiMode, speedMode, jobCount) {
+    const safe = speedMode === 'safe';
+    const baseConcurrency = aiMode === 'all'
+        ? (safe ? 4 : 8)
+        : (safe ? 4 : 6);
+    const perItemDelayMs = aiMode === 'all'
+        ? 0
+        : (safe ? 75 : 10);
+    return {
+        concurrency: Math.min(baseConcurrency, jobCount),
+        perItemDelayMs
+    };
+}
+
+function shouldRetryValidationError(errorMessage) {
+    const msg = String(errorMessage || '').toLowerCase();
+    return msg.includes('429')
+        || msg.includes('rate')
+        || msg.includes('timeout')
+        || msg.includes('network')
+        || msg.includes('fetch')
+        || msg.includes('503')
+        || msg.includes('502')
+        || msg.includes('500');
+}
+
+function waitMs(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 let _aiJudgeHealthCache = null;
 let _aiJudgeHealthCheckedAt = 0;
 const AI_HEALTH_TTL_MS = 30000;
@@ -280,6 +316,27 @@ function showStoredValidationResult(itemId, langCode) {
     }
 }
 
+function validateByItemId(itemId, langCode) {
+    const dashboard = window.dashboard;
+    if (!dashboard || !Array.isArray(dashboard.data)) return;
+    const targetId = String(itemId || '');
+    const item = dashboard.data.find((row) => String(row.item_id || row.identifier || '') === targetId);
+    if (!item) {
+        dashboard.setStatus(`❌ Could not find item data for ${targetId}`, 'error');
+        return false;
+    }
+    const originalText = String(item.en || '');
+    let translatedText = item[langCode];
+    if (!translatedText && String(langCode).includes('-')) translatedText = item[String(langCode).split('-')[0]];
+    if (!translatedText) {
+        const key = Object.keys(item).find((k) => k.toLowerCase() === String(langCode).toLowerCase());
+        translatedText = key ? item[key] : '';
+    }
+    if (!translatedText) translatedText = originalText;
+    validateSingle(targetId, String(originalText || ''), String(translatedText || ''), langCode);
+    return true;
+}
+
 function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null) {
     const dashboard = window.dashboard;
     if (!dashboard) return;
@@ -335,13 +392,30 @@ const validationRunState = {
 
 function setValidationRunUi(active) {
     const validateAllBtn = document.getElementById('validateAll');
-    const cancelBtn = document.getElementById('cancelValidateAll');
-    if (validateAllBtn) validateAllBtn.disabled = active;
-    if (cancelBtn) {
-        cancelBtn.style.display = 'inline-flex';
-        cancelBtn.style.opacity = active ? '1' : '0.6';
-        cancelBtn.disabled = !active;
+    if (validateAllBtn) {
+        validateAllBtn.disabled = false;
+        if (active) {
+            validateAllBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Cancel Validate All';
+            validateAllBtn.title = 'Cancel the current Validate All run (stops queued items)';
+            validateAllBtn.style.background = '#c62828';
+            validateAllBtn.style.borderColor = '#8e0000';
+            validateAllBtn.style.color = '#fff';
+        } else {
+            validateAllBtn.innerHTML = '<i class="fas fa-check-circle"></i> Validate All';
+            validateAllBtn.title = 'Validate visible rows for the current language';
+            validateAllBtn.style.background = '';
+            validateAllBtn.style.borderColor = '';
+            validateAllBtn.style.color = '';
+        }
     }
+}
+
+function toggleValidateAllRun() {
+    if (validationRunState.active) {
+        cancelValidateAll();
+        return;
+    }
+    validateAll();
 }
 
 function cancelValidateAll() {
@@ -381,6 +455,7 @@ async function validateAll() {
     const validateMode = validateModeEl ? String(validateModeEl.value || 'pending') : 'pending';
     const forceAll = validateMode === 'force';
     const aiMode = getAiJudgeMode();
+    const speedMode = getValidateSpeedMode();
     if (aiMode === 'all') {
         const health = await checkAiJudgeHealth();
         if (!health.ok) {
@@ -430,11 +505,16 @@ async function validateAll() {
         return;
     }
 
-    const perItemDelayMs = aiMode === 'all' ? 0 : 75;
-    const concurrency = Math.min(4, jobs.length);
+    const tuning = getValidateAllTuning(aiMode, speedMode, jobs.length);
+    const perItemDelayMs = tuning.perItemDelayMs;
+    const concurrency = tuning.concurrency;
     const actionLabel = forceAll ? 're-validate' : 'validate';
     const skippedCount = forceAll ? 0 : skippedAlreadyValidated;
-    if (confirm(`This will ${actionLabel} ${jobs.length} ${currentLanguage.toUpperCase()} translations (${skippedCount} already validated skipped). Continue?`)) {
+    if (confirm(
+        `This will ${actionLabel} ${jobs.length} ${currentLanguage.toUpperCase()} translations ` +
+        `(${skippedCount} already validated skipped).\n` +
+        `Mode: ${speedMode.toUpperCase()} | Concurrency: ${concurrency} | Delay: ${perItemDelayMs}ms\n\nContinue?`
+    )) {
         validationRunState.active = true;
         validationRunState.cancelRequested = false;
         validationRunState.completed = 0;
@@ -446,18 +526,33 @@ async function validateAll() {
         let nextIndex = 0;
         let completed = 0;
         const total = jobs.length;
+        let lastStatusUpdateAt = 0;
         const worker = async () => {
             while (nextIndex < total && !validationRunState.cancelRequested) {
                 const idx = nextIndex++;
                 const job = jobs[idx];
-                const res = await validateSingle(job.itemId, job.originalText, job.translatedText, job.langCode);
+                let res = null;
+                let attempt = 0;
+                const maxRetries = speedMode === 'turbo' ? 2 : 1;
+                while (!validationRunState.cancelRequested && attempt <= maxRetries) {
+                    res = await validateSingle(job.itemId, job.originalText, job.translatedText, job.langCode);
+                    const canRetry = res?.scoreSource === 'error' && shouldRetryValidationError(res?.errorMessage);
+                    if (!canRetry || attempt === maxRetries) break;
+                    const backoff = Math.min(1500, 250 * (2 ** attempt)) + Math.floor(Math.random() * 125);
+                    await waitMs(backoff);
+                    attempt += 1;
+                }
                 completed++;
                 validationRunState.completed = completed;
                 if (res && res.scoreSource === 'ai') validationRunState.sourceCounts.ai++;
                 else if (res && res.scoreSource === 'calculated') validationRunState.sourceCounts.calculated++;
                 else if (res && res.scoreSource === 'error') validationRunState.sourceCounts.error++;
                 const cancelNote = validationRunState.cancelRequested ? ' (stopping...)' : '';
-                dashboard.setStatus(`Validating ${currentLanguage}: ${completed}/${total}${cancelNote}`, 'loading');
+                const now = Date.now();
+                if (completed === total || completed % 5 === 0 || (now - lastStatusUpdateAt) > 500) {
+                    dashboard.setStatus(`Validating ${currentLanguage}: ${completed}/${total}${cancelNote}`, 'loading');
+                    lastStatusUpdateAt = now;
+                }
                 // Small gap helps avoid API burst/rate limits; remove it for fast AI-only mode.
                 if (perItemDelayMs > 0) await new Promise(r => setTimeout(r, perItemDelayMs));
             }
@@ -474,7 +569,7 @@ async function validateAll() {
                     );
                 } else {
                     dashboard.setStatus(
-                        `✅ Validation complete: ${total} ${doneLabel} ${currentLanguage.toUpperCase()} items (AI: ${src.ai}, Calculated: ${src.calculated}, Errors: ${src.error})`,
+                        `✅ Validation complete: ${total} ${doneLabel} ${currentLanguage.toUpperCase()} items in ${speedMode.toUpperCase()} mode (AI: ${src.ai}, Calculated: ${src.calculated}, Errors: ${src.error})`,
                         'success'
                     );
                 }
@@ -505,7 +600,12 @@ async function saveValidationsManually() {
         const result = await window.dashboard.saveValidationResults();
         if (result && result.success) {
             button.innerHTML = '<i class="fas fa-check"></i> Saved!';
-            window.dashboard.setStatus(`💾 Saved ${result.itemCount} items (${result.validationCount} validations) to browser storage & shared team storage`, 'success');
+            const localMode = result.localStorageMode || 'full';
+            const sharedLabel = result.sharedSaved ? 'shared bucket' : 'no shared bucket';
+            window.dashboard.setStatus(
+                `💾 Saved ${result.itemCount} items (${result.validationCount} validations) [local: ${localMode}, shared: ${sharedLabel}]`,
+                result.sharedSaved ? 'success' : 'warning'
+            );
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
         } else {
             const errMsg = (result && result.error) ? result.error : 'Unknown error';
@@ -837,7 +937,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         indicator.className = 'status-indicator status-error';
         indicator.title = `Validation failed: ${error.message}`;
         window.dashboard.setStatus(`❌ Validation failed for ${itemId}: ${error.message}`, 'error');
-        return { scoreSource: 'error' };
+        return { scoreSource: 'error', errorMessage: error?.message || 'Validation failed' };
             } finally {
             // Restore button state without clobbering new label if we updated it
             if (button) {
@@ -917,5 +1017,7 @@ function updateValidationSummary() {
 if (typeof window !== 'undefined') {
     window.setManualApprovalForValidation = setManualApprovalForValidation;
     window.showStoredValidationResult = showStoredValidationResult;
+    window.validateByItemId = validateByItemId;
+    window.toggleValidateAllRun = toggleValidateAllRun;
 }
 

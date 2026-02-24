@@ -154,10 +154,11 @@
                             <option value="crowdin">Crowdin (approved only)</option>
                             <option value="csv">Remote CSV</option>
                         </select>
-                        <button type="button" class="btn btn-secondary btn-compact" id="reloadDataBtn" title="Reload translation data from selected source">
-                            <i class="fas fa-sync-alt"></i> Reload data
+                        <button type="button" class="btn btn-secondary btn-compact" id="reloadDataBtn" title="Fetch latest translations from Crowdin and refresh local Crowdin cache">
+                            <i class="fas fa-sync-alt"></i> Update Translations
                         </button>
                         <span id="dataSourceLabel" class="text-muted" style="font-size: 0.85em;"></span>
+                        <span class="text-muted" style="font-size: 0.82em;">Crowdin is loaded from cache by default. Click <strong>Update Translations</strong> to refresh.</span>
                     </div>
                 </div>
             <!-- Locate Me panel hidden - not needed for translations dashboard workflow -->
@@ -212,30 +213,25 @@
                         <button id="validateSelected" class="btn validation-button btn-compact" onclick="validateSelected()">
                             <i class="fas fa-check-double"></i> Validate Selected
                         </button>
-                        <button id="validateAll" class="btn validation-button btn-compact" onclick="validateAll()">
+                        <button id="validateAll" class="btn validation-button btn-compact" onclick="toggleValidateAllRun()">
                             <i class="fas fa-check-circle"></i> Validate All
                         </button>
-                        <button id="cancelValidateAll" class="btn btn-compact" style="background: #c62828; color: white; border: 1px solid #8e0000; opacity: 0.6;" onclick="cancelValidateAll()" title="Cancel the current Validate All run (stops queued items)" disabled>
-                            <i class="fas fa-stop-circle"></i> Cancel Validate All
-                        </button>
-                        <select id="aiJudgeMode" class="voice-select" style="max-width: 210px; min-width: 190px;" title="AI scoring strategy">
-                            <option value="hybrid">AI mode: Hybrid (middle scores)</option>
-                            <option value="all">AI mode: All validated items</option>
-                        </select>
-                        <select id="validateAllMode" class="voice-select" style="max-width: 210px; min-width: 190px;" title="Choose whether Validate All only runs pending rows or re-runs everything">
-                            <option value="pending">Pending only (skip scored)</option>
+                        <input type="hidden" id="aiJudgeMode" value="hybrid">
+                        <select id="validateAllMode" class="voice-select btn-compact" style="height: 32px; padding: 0 10px; max-width: 170px; min-width: 150px;" title="Choose whether Validate All only runs pending rows or re-runs everything">
+                            <option value="pending">Update Only</option>
                             <option value="force">Force all (overwrite scores)</option>
                         </select>
+                        <input type="hidden" id="validateSpeedMode" value="turbo">
                         <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
                             <i class="fas fa-save"></i> Save
                         </button>
-                        <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
+                        <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1; display: none;" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
                             <i class="fas fa-cloud-download-alt"></i> Load
                         </button>
-                        <button id="exportValidations" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
+                        <button id="exportValidations" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f; display: none;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
                         </button>
-                        <button class="btn btn-warning btn-compact" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
+                        <button class="btn btn-warning btn-compact" style="display: none;" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
                             <i class="fas fa-trash"></i> Clear Cache
                         </button>
 

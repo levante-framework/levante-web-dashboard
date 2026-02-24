@@ -37,6 +37,7 @@ interface AudioMetadataResponse {
 type LanguageCode = 'en' | 'es-CO' | 'de' | 'fr-CA' | 'nl';
 type BucketLanguageCode = 'en' | 'es-CO' | 'es' | 'de' | 'fr-CA' | 'nl';
 declare const BUCKET_LANG_CODE_MAP: Record<LanguageCode, BucketLanguageCode>;
+declare function normalizeAudioItemId(itemId: string): string;
 /**
  * Safely gets an element by ID with proper type checking
  */

@@ -28,7 +28,7 @@ function getCredentials() {
 /**
  * Updates the availability/state of validation buttons.
  * Validation uses the server's GOOGLE_TRANSLATE_APIKEY when the user has no key,
- * so we keep Validate Selected / Validate All enabled.
+ * so we keep Validate Selected / Validate All enabled. Per-row validate buttons also enabled.
  */
 function updateValidationAvailability() {
     const validateButtons = document.querySelectorAll('.validation-button');
@@ -85,11 +85,12 @@ function formatDate(dateString) {
  * Clears the translation cache and reloads the page after user confirmation
  */
 function clearCacheAndReload() {
-    const message = 'Clear translation data cache and reload? This will fetch fresh data from GitHub.';
+    const message = 'Clear cached translation data (including Crowdin cache) and reload?';
     if (confirm(message)) {
         console.log('🗑️ Clearing localStorage cache and reloading...');
         localStorage.removeItem('levante_translations_cache');
-        alert('Cache cleared! Page will reload to fetch fresh data.');
+        localStorage.removeItem('levante_crowdin_cache');
+        alert('Cache cleared! Page will reload.');
         location.reload();
     }
 }

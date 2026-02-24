@@ -18,8 +18,8 @@ let inMemoryValidationData = {
   }
 };
 
-// GCS configuration (aligned with language-config API)
-const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || process.env.VALIDATION_BUCKET || 'levante-audio-dev';
+// Validation storage should live in levante-tools (dev project).
+const BUCKET_NAME = process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools';
 const FILE_PATH = process.env.VALIDATION_RESULTS_OBJECT || 'validations/validation_results.json';
 
 function getStorageClient() {

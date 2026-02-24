@@ -1,3 +1,21 @@
+import { GoogleAuth } from 'google-auth-library';
+
+async function getServiceAccountClient() {
+    const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || '';
+    if (!raw || !raw.trim()) return null;
+    try {
+        const credentials = JSON.parse(raw);
+        const auth = new GoogleAuth({
+            credentials,
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
+        return auth.getClient();
+    } catch (e) {
+        console.warn('⚠️ Invalid service account JSON for google-translate endpoint');
+        return null;
+    }
+}
+
 export default async function handler(req, res) {
     // Set CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,12 +39,14 @@ export default async function handler(req, res) {
         const envKey = process.env.GOOGLE_TRANSLATE_APIKEY;
         const bearerKey = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.replace('Bearer ', '').trim() : '';
         const apiKey = (envKey && envKey.trim()) || bearerKey || null;
+        const serviceClient = await getServiceAccountClient();
 
         console.log('🔍 Google Translate API request:', {
             textLength: text ? text.length : 0,
             from: from,
             to: to,
-            keySource: envKey ? 'GOOGLE_TRANSLATE_APIKEY' : (bearerKey ? 'Authorization' : 'none')
+            keySource: envKey ? 'GOOGLE_TRANSLATE_APIKEY' : (bearerKey ? 'Authorization' : 'none'),
+            authMode: serviceClient ? 'service_account' : (apiKey ? 'api_key' : 'none')
         });
 
         if (!text || !from || !to) {
@@ -34,17 +54,14 @@ export default async function handler(req, res) {
             return;
         }
 
-        if (!apiKey) {
+        if (!serviceClient && !apiKey) {
             res.status(401).json({
-                error: 'Google Translate API key required',
-                details: 'Set GOOGLE_TRANSLATE_APIKEY in Vercel, or sign in and add your key in Dashboard → Credentials.'
+                error: 'Google Translate authentication required',
+                details: 'Provide GCP_SERVICE_ACCOUNT_JSON (preferred) or GOOGLE_TRANSLATE_APIKEY.'
             });
             return;
         }
 
-        // Call Google Translate API
-        const translateUrl = `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
-        
         // Use form-encoded data instead of JSON (Google Translate API preference)
         const formData = new URLSearchParams();
         formData.append('q', text);
@@ -52,16 +69,31 @@ export default async function handler(req, res) {
         formData.append('target', to);
         formData.append('format', 'text');
 
+        const translateUrl = serviceClient
+            ? 'https://translation.googleapis.com/language/translate/v2'
+            : `https://translation.googleapis.com/language/translate/v2?key=${apiKey}`;
+
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        };
+        if (serviceClient) {
+            const tokenResponse = await serviceClient.getAccessToken();
+            const accessToken = typeof tokenResponse === 'string' ? tokenResponse : tokenResponse?.token;
+            if (!accessToken) {
+                res.status(500).json({ error: 'Failed to obtain service account access token' });
+                return;
+            }
+            headers.Authorization = `Bearer ${accessToken}`;
+        }
+
         console.log('🌐 Making Google Translate request:', {
-            url: translateUrl.replace(apiKey, 'API_KEY_HIDDEN'),
+            url: serviceClient ? translateUrl : translateUrl.replace(apiKey, 'API_KEY_HIDDEN'),
             formData: Object.fromEntries(formData)
         });
         
         const response = await fetch(translateUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
+            headers,
             body: formData
         });
 

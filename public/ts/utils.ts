@@ -92,12 +92,13 @@ function formatDate(dateString: string | null | undefined): string {
  * Clears the translation cache and reloads the page after user confirmation
  */
 function clearCacheAndReload(): void {
-    const message = 'Clear translation data cache and reload? This will fetch fresh data from GitHub.';
+    const message = 'Clear cached translation data (including Crowdin cache) and reload?';
     
     if (confirm(message)) {
         console.log('🗑️ Clearing localStorage cache and reloading...');
         localStorage.removeItem('levante_translations_cache');
-        alert('Cache cleared! Page will reload to fetch fresh data.');
+        localStorage.removeItem('levante_crowdin_cache');
+        alert('Cache cleared! Page will reload.');
         location.reload();
     }
 }

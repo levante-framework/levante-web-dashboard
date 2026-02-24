@@ -206,7 +206,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     selectEl.value = this.getDataSourcePreference();
                     selectEl.addEventListener('change', () => {
                         this.setDataSourcePreference(selectEl.value);
-                        this.loadData().then(() => {
+                        this.loadData({ forceRefresh: false }).then(() => {
                             this.createTabs();
                             this.setStatus('Data source changed. Table refreshed.', 'success');
                         });
@@ -214,22 +214,23 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
                 if (reloadBtn) {
                     reloadBtn.addEventListener('click', () => {
-                        this.loadData().then(() => {
+                        this.loadData({ forceRefresh: true }).then(() => {
                             this.createTabs();
-                            this.setStatus('Data reloaded.', 'success');
+                            this.setStatus('Translations updated from source.', 'success');
                         });
                     });
                 }
             }
 
-            async loadData() {
+            async loadData(options = {}) {
+                const forceRefresh = options && options.forceRefresh === true;
                 const dataSource = this.getDataSourcePreference();
                 const selectEl = document.getElementById('dataSourceSelect');
                 if (selectEl) selectEl.value = dataSource;
                 this.updateDataSourceLabel(null);
 
                 if (dataSource === 'crowdin') {
-                    const loaded = await this.loadDataFromCrowdin();
+                    const loaded = await this.loadDataFromCrowdin({ forceRefresh });
                     if (loaded) return;
                     console.warn('Crowdin load failed, falling back to CSV');
                 }
@@ -262,8 +263,15 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 });
             }
 
-            async loadDataFromCrowdin() {
+            async loadDataFromCrowdin(options = {}) {
+                const forceRefresh = options && options.forceRefresh === true;
                 try {
+                    if (!forceRefresh) {
+                        if (this.loadCrowdinDataFromCache()) return true;
+                        // Do not call Crowdin automatically during normal loads.
+                        this.setStatus('No Crowdin cache yet. Click "Update Translations" to fetch from Crowdin.', 'warning');
+                        return false;
+                    }
                     this.setStatus('Loading from Crowdin (approved only)...', 'loading');
                     const response = await fetch('/api/crowdin-approved-translations', { cache: 'no-cache' });
                     const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
@@ -334,13 +342,48 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
                     this.updateDataSourceLabel(source);
                     this.cacheDataLocally(null);
+                    this.cacheCrowdinDataLocally();
                     return true;
                 } catch (error) {
                     console.warn('Crowdin load failed:', error);
-                    this.setStatus(`Crowdin unavailable: ${error.message}. Trying CSV...`, 'warning');
-                    const message = error.message || String(error);
-                    alert(`Crowdin could not load: ${message}\n\nFalling back to CSV/remote data.`);
+                    this.setStatus(`Crowdin unavailable: ${error.message}. Trying CSV/cache...`, 'warning');
+                    // Only interrupt users when they explicitly requested a Crowdin refresh.
+                    if (forceRefresh) {
+                        const message = error.message || String(error);
+                        alert(`Crowdin could not load: ${message}\n\nUsing existing cached/CSV data.`);
+                    }
                     return false;
+                }
+            }
+
+            loadCrowdinDataFromCache() {
+                try {
+                    const raw = localStorage.getItem('levante_crowdin_cache');
+                    if (!raw) return false;
+                    const cached = JSON.parse(raw);
+                    if (!cached || !Array.isArray(cached.data) || cached.data.length === 0) return false;
+                    this.data = cached.data;
+                    this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
+                    const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
+                    this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt})`, 'success');
+                    this.updateDataSourceLabel('Crowdin cache');
+                    return true;
+                } catch (error) {
+                    console.warn('Could not read Crowdin cache:', error);
+                    return false;
+                }
+            }
+
+            cacheCrowdinDataLocally() {
+                try {
+                    const payload = {
+                        cachedAt: new Date().toISOString(),
+                        data: this.data,
+                        crowdinFilesUsed: this.crowdinFilesUsed || []
+                    };
+                    localStorage.setItem('levante_crowdin_cache', JSON.stringify(payload));
+                } catch (error) {
+                    console.warn('Could not cache Crowdin data locally:', error);
                 }
             }
 
@@ -1134,18 +1177,38 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         totalValidations += Object.keys(this.validation_results[itemId]).length;
                     });
                     
-                    // Save to localStorage (immediate backup)
-                    localStorage.setItem('validation_results', JSON.stringify(this.validation_results));
+                    // Save to localStorage first. If full, fallback to a compact snapshot.
+                    let localStorageMode = 'full';
+                    try {
+                        localStorage.setItem('validation_results', JSON.stringify(this.validation_results));
+                    } catch (localError) {
+                        if (localError && (localError.name === 'QuotaExceededError' || String(localError.message || '').includes('quota'))) {
+                            console.warn('⚠️ localStorage quota exceeded, trying compact validation snapshot');
+                            const compact = this.buildCompactValidationResultsSnapshot();
+                            try { localStorage.removeItem('validation_results'); } catch (_) {}
+                            try {
+                                localStorage.setItem('validation_results', JSON.stringify(compact));
+                                localStorageMode = 'compact';
+                            } catch (compactError) {
+                                console.warn('⚠️ Compact local snapshot also failed:', compactError.message);
+                                localStorageMode = 'none';
+                            }
+                        } else {
+                            throw localError;
+                        }
+                    }
                     
-                    // Also save to shared storage (await to ensure persistence before UI update)
-                    await this.saveToSharedStorage();
+                    // Save to shared storage (bucket) regardless of local storage mode.
+                    const sharedSaved = await this.saveToSharedStorage();
                     
                     console.log(`✅ Saved ${Object.keys(this.validation_results).length} items with ${totalValidations} total validations`);
                     
                     return {
-                        success: true,
+                        success: sharedSaved || localStorageMode !== 'none',
                         itemCount: Object.keys(this.validation_results).length,
-                        validationCount: totalValidations
+                        validationCount: totalValidations,
+                        localStorageMode,
+                        sharedSaved
                     };
                 } catch (error) {
                     console.error('❌ Error saving validation results:', error);
@@ -1183,13 +1246,45 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         const result = await response.json();
                         console.log('✅ Successfully saved to shared storage:', result.metadata);
                         this.setStatus('💾 Validation results saved to shared session storage for team access', 'success');
+                        return true;
                     } else {
                         console.warn('⚠️ Failed to save to shared storage, but localStorage backup is available');
+                        return false;
                     }
                 } catch (error) {
                     console.warn('⚠️ Could not save to shared storage:', error.message);
                     // Don't throw error - localStorage save is the primary backup
+                    return false;
                 }
+            }
+
+            buildCompactValidationResultsSnapshot() {
+                const source = this.validation_results || {};
+                const compact = {};
+                Object.keys(source).forEach(itemId => {
+                    const byLang = source[itemId] || {};
+                    const compactByLang = {};
+                    Object.keys(byLang).forEach(langCode => {
+                        const r = byLang[langCode] || {};
+                        const entry = {};
+                        if (typeof r.score === 'number') entry.score = r.score;
+                        if (r.timestamp) entry.timestamp = r.timestamp;
+                        if (r.updated) entry.updated = r.updated;
+                        if (r.scoreSource) entry.scoreSource = r.scoreSource;
+                        if (r.manualApproved === true) entry.manualApproved = true;
+                        if (r.needsReview === true) entry.needsReview = true;
+                        if (typeof r.reason === 'string' && r.reason) entry.reason = r.reason.slice(0, 400);
+                        if (typeof r.notes === 'string' && r.notes) entry.notes = r.notes.slice(0, 160);
+                        if (typeof r.aiUsed === 'boolean') entry.aiUsed = r.aiUsed;
+                        if (Number.isFinite(Number(r.aiScore))) entry.aiScore = Number(r.aiScore);
+                        if (Number.isFinite(Number(r.baselineScore))) entry.baselineScore = Number(r.baselineScore);
+                        if (typeof r.manualOverridePreviousScore === 'number') entry.manualOverridePreviousScore = r.manualOverridePreviousScore;
+                        if (r.manualOverridePreviousSource) entry.manualOverridePreviousSource = r.manualOverridePreviousSource;
+                        compactByLang[langCode] = entry;
+                    });
+                    if (Object.keys(compactByLang).length > 0) compact[itemId] = compactByLang;
+                });
+                return compact;
             }
 
             async loadFromSharedStorage() {
@@ -1514,7 +1609,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const hasStoredScore = !!(storedResult && storedResult.score !== undefined);
                     const validateOnClick = hasStoredScore
                         ? `(window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}'))`
-                        : `validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}')`;
+                        : `if (window.validateByItemId) { window.validateByItemId('${escapedItemId}', '${langCode}'); } else { validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}'); }`;
                     const indicatorOnClick = hasStoredScore
                         ? `onclick="window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}')" style="cursor: pointer;"`
                         : '';

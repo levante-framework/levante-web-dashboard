@@ -43,11 +43,7 @@ async function loadRemoteLanguagesIntoConfig() {
         if (data && data.languages && typeof data.languages === 'object') {
             const windowAny = window;
             windowAny.CONFIG = windowAny.CONFIG || {};
-            const localLanguages = (windowAny.CONFIG && windowAny.CONFIG.languages && typeof windowAny.CONFIG.languages === 'object')
-                ? windowAny.CONFIG.languages
-                : {};
-            // Merge remote over local defaults so missing remote entries (e.g. Portuguese) still appear.
-            windowAny.CONFIG.languages = { ...localLanguages, ...data.languages };
+            windowAny.CONFIG.languages = data.languages;
             console.log('Loaded languages from remote language_config.json');
             // If dashboard exists, refresh language-dependent UI
             const winAny = window;

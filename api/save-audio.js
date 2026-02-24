@@ -78,7 +78,8 @@ export default async function handler(req, res) {
 		if (!storage) {
 			return res.status(500).json({ success: false, error: 'gcs_unavailable', message: 'Could not initialize GCS. Check GOOGLE_APPLICATION_CREDENTIALS_JSON.' });
 		}
-		const bucketName = bucket || process.env.ASSETS_DEV_BUCKET || 'levante-assets-dev';
+		// Audio writes go to draft assets bucket under audio/<lang>/<item>.mp3
+		const bucketName = bucket || process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
 		let objectPath = `audio/${langCode}/${itemId}.mp3`;
 		let version = null;
 		const enableVersioning = versioning === true || versioning === 'true';

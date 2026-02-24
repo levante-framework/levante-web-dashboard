@@ -1,9 +1,18 @@
+function normalizeAudioItemId(itemId) {
+    const raw = String(itemId || '').trim();
+    if (!raw) return '';
+    // Crowdin/XLIFF rows can use composite IDs like "path/to/file.xliff::item-id".
+    // Audio assets are stored by bare item ID only.
+    return raw.includes('::') ? raw.split('::').pop() : raw;
+}
+
 function playAudio(itemId, langCode) {
-    console.log(`🎯 Attempting to play audio for: ${itemId} in ${langCode}`);
-    window.dashboard.setStatus(`🔄 Loading audio: ${itemId}...`, 'info');
+    const audioItemId = normalizeAudioItemId(itemId);
+    console.log(`🎯 Attempting to play audio for: ${audioItemId} in ${langCode}`);
+    window.dashboard.setStatus(`🔄 Loading audio: ${audioItemId}...`, 'info');
 
     function tryPlayAudio(bucketLangCode, isRetry = false) {
-        const audioUrl = `https://storage.googleapis.com/levante-assets-dev/audio/${bucketLangCode}/${itemId}.mp3`;
+        const audioUrl = `https://storage.googleapis.com/levante-assets-dev/audio/${bucketLangCode}/${audioItemId}.mp3`;
         console.log(`🎵 ${isRetry ? 'Trying fallback' : 'Playing'} audio: ${audioUrl}`);
         const audio = new Audio(audioUrl);
         audio.volume = 0.8;
@@ -16,17 +25,17 @@ function playAudio(itemId, langCode) {
             clearTimeout(timeout);
             console.log(`🎵 Audio loaded, attempting to play: ${audioUrl}`);
             audio.play().then(() => {
-                console.log(`✅ Audio playing: ${itemId} in ${bucketLangCode}`);
-                window.dashboard.setStatus(`🎵 Playing audio: ${itemId}`, 'success');
+                console.log(`✅ Audio playing: ${audioItemId} in ${bucketLangCode}`);
+                window.dashboard.setStatus(`🎵 Playing audio: ${audioItemId}`, 'success');
             }).catch((error) => {
                 console.error('❌ Audio play failed (likely autoplay restriction):', error);
                 if (error.name === 'NotAllowedError') {
-                    const message = `🔇 Browser blocked autoplay. Click here to play audio for "${itemId}"`;
+                    const message = `🔇 Browser blocked autoplay. Click here to play audio for "${audioItemId}"`;
                     window.dashboard.setStatus(message, 'warning');
-                    if (confirm(`Browser blocked autoplay. Click OK to play audio for "${itemId}"`)) {
+                    if (confirm(`Browser blocked autoplay. Click OK to play audio for "${audioItemId}"`)) {
                         audio.play().then(() => {
-                            console.log(`✅ Audio playing after user interaction: ${itemId}`);
-                            window.dashboard.setStatus(`🎵 Playing audio: ${itemId}`, 'success');
+                            console.log(`✅ Audio playing after user interaction: ${audioItemId}`);
+                            window.dashboard.setStatus(`🎵 Playing audio: ${audioItemId}`, 'success');
                         }).catch((playError) => {
                             console.error('❌ Manual play also failed:', playError);
                             window.dashboard.setStatus(`❌ Audio play failed: ${playError.message}`, 'error');
@@ -50,7 +59,7 @@ function playAudio(itemId, langCode) {
                 window.dashboard.setStatus('🔄 Trying es-CO direct audio...', 'info');
                 tryPlayAudio('es-CO', true);
             } else {
-                const message = `Audio file not found for ${itemId} in ${langCode}. Please generate it first using the "Generate Audio" button.`;
+                const message = `Audio file not found for ${audioItemId} in ${langCode}. Please generate it first using the "Generate Audio" button.`;
                 alert(message);
                 window.dashboard.setStatus(`❌ ${message}`, 'error');
             }
@@ -63,38 +72,41 @@ function playAudio(itemId, langCode) {
 }
 
 async function regenerateItemAudio(itemId, langCode) {
+    const audioItemId = normalizeAudioItemId(itemId);
     if (!window.dashboard || typeof window.dashboard.regenerateAudioForItem !== 'function') {
         console.warn('Dashboard regenerate handler unavailable');
         return;
     }
     try {
-        await window.dashboard.regenerateAudioForItem(itemId, langCode);
+        await window.dashboard.regenerateAudioForItem(audioItemId, langCode);
     } catch (error) {
         console.error('❌ Error regenerating audio:', error);
-        window.dashboard.setStatus(`❌ Error regenerating ${itemId}: ${error.message}`, 'error');
+        window.dashboard.setStatus(`❌ Error regenerating ${audioItemId}: ${error.message}`, 'error');
     }
 }
 
 async function saveItemAudio(itemId, langCode) {
+    const audioItemId = normalizeAudioItemId(itemId);
     if (!window.dashboard || typeof window.dashboard.saveGeneratedAudioDraft !== 'function') {
         console.warn('Dashboard save handler unavailable');
         return;
     }
     try {
-        await window.dashboard.saveGeneratedAudioDraft(itemId, langCode);
+        await window.dashboard.saveGeneratedAudioDraft(audioItemId, langCode);
     } catch (error) {
         console.error('❌ Error saving generated audio:', error);
-        window.dashboard.setStatus(`❌ Error saving ${itemId}: ${error.message}`, 'error');
+        window.dashboard.setStatus(`❌ Error saving ${audioItemId}: ${error.message}`, 'error');
     }
 }
 
 function showAudioInfo(itemId, langCode) {
-    console.log(`🔍 Showing audio info for: ${itemId} in ${langCode}`);
+    const audioItemId = normalizeAudioItemId(itemId);
+    console.log(`🔍 Showing audio info for: ${audioItemId} in ${langCode}`);
     document.getElementById('audioInfoModal').style.display = 'block';
     document.getElementById('audioInfoLoading').style.display = 'block';
     document.getElementById('audioInfoData').style.display = 'none';
     document.getElementById('audioInfoError').style.display = 'none';
-    fetchAudioMetadata(itemId, langCode);
+    fetchAudioMetadata(audioItemId, langCode);
 }
 
 function closeAudioInfoModal() {

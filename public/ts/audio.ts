@@ -57,6 +57,14 @@ const BUCKET_LANG_CODE_MAP: Record<LanguageCode, BucketLanguageCode> = {
     'nl': 'nl'
 } as const;
 
+function normalizeAudioItemId(itemId: string): string {
+    const raw = String(itemId || '').trim();
+    if (!raw) return '';
+    // Crowdin/XLIFF rows can use composite IDs like "path/to/file.xliff::item-id".
+    // Audio assets are stored by bare item ID only.
+    return raw.includes('::') ? raw.split('::').pop() || raw : raw;
+}
+
 /**
  * Safely gets an element by ID with proper type checking
  */
@@ -95,20 +103,21 @@ function setElementDisplay(id: string, display: string): void {
  * @param langCode - The language code
  */
 function playAudio(itemId: string, langCode: string): void {
-    console.log(`🎯 Attempting to play audio for: ${itemId} in ${langCode}`);
+    const audioItemId = normalizeAudioItemId(itemId);
+    console.log(`🎯 Attempting to play audio for: ${audioItemId} in ${langCode}`);
     
     if (!window.dashboard) {
         console.error('Dashboard not initialized');
         return;
     }
     
-    window.dashboard.setStatus(`🔄 Loading audio: ${itemId}...`, 'info');
+    window.dashboard.setStatus(`🔄 Loading audio: ${audioItemId}...`, 'info');
 
     /**
      * Internal function to attempt audio playback with fallback logic
      */
     function tryPlayAudio(bucketLangCode: BucketLanguageCode, isRetry: boolean = false): void {
-        const audioUrl = `https://storage.googleapis.com/levante-assets-dev/audio/${bucketLangCode}/${itemId}.mp3`;
+        const audioUrl = `https://storage.googleapis.com/levante-assets-dev/audio/${bucketLangCode}/${audioItemId}.mp3`;
         console.log(`🎵 ${isRetry ? 'Trying fallback' : 'Playing'} audio: ${audioUrl}`);
         
         const audio = new Audio(audioUrl);
@@ -124,19 +133,19 @@ function playAudio(itemId: string, langCode: string): void {
             console.log(`🎵 Audio loaded, attempting to play: ${audioUrl}`);
             
             audio.play().then(() => {
-                console.log(`✅ Audio playing: ${itemId} in ${bucketLangCode}`);
-                window.dashboard?.setStatus(`🎵 Playing audio: ${itemId}`, 'success');
+                console.log(`✅ Audio playing: ${audioItemId} in ${bucketLangCode}`);
+                window.dashboard?.setStatus(`🎵 Playing audio: ${audioItemId}`, 'success');
             }).catch((error: Error) => {
                 console.error('❌ Audio play failed (likely autoplay restriction):', error);
                 
                 if (error.name === 'NotAllowedError') {
-                    const message = `🔇 Browser blocked autoplay. Click here to play audio for "${itemId}"`;
+                    const message = `🔇 Browser blocked autoplay. Click here to play audio for "${audioItemId}"`;
                     window.dashboard?.setStatus(message, 'warning');
                     
-                    if (confirm(`Browser blocked autoplay. Click OK to play audio for "${itemId}"`)) {
+                    if (confirm(`Browser blocked autoplay. Click OK to play audio for "${audioItemId}"`)) {
                         audio.play().then(() => {
-                            console.log(`✅ Audio playing after user interaction: ${itemId}`);
-                            window.dashboard?.setStatus(`🎵 Playing audio: ${itemId}`, 'success');
+                            console.log(`✅ Audio playing after user interaction: ${audioItemId}`);
+                            window.dashboard?.setStatus(`🎵 Playing audio: ${audioItemId}`, 'success');
                         }).catch((playError: Error) => {
                             console.error('❌ Manual play also failed:', playError);
                             window.dashboard?.setStatus(`❌ Audio play failed: ${playError.message}`, 'error');
@@ -162,7 +171,7 @@ function playAudio(itemId: string, langCode: string): void {
                 window.dashboard?.setStatus('🔄 Trying es-CO direct audio...', 'info');
                 tryPlayAudio('es-CO', true);
             } else {
-                const message = `Audio file not found for ${itemId} in ${langCode}. Please generate it first using the "Generate Audio" button.`;
+                const message = `Audio file not found for ${audioItemId} in ${langCode}. Please generate it first using the "Generate Audio" button.`;
                 alert(message);
                 window.dashboard?.setStatus(`❌ ${message}`, 'error');
             }
@@ -175,6 +184,7 @@ function playAudio(itemId: string, langCode: string): void {
 }
 
 async function regenerateItemAudio(itemId: string, langCode: string): Promise<void> {
+    const audioItemId = normalizeAudioItemId(itemId);
     const dashboardInstance = window.dashboard as any;
     if (!dashboardInstance || typeof dashboardInstance.regenerateAudioForItem !== 'function') {
         console.warn('Dashboard regenerate handler unavailable');
@@ -182,15 +192,16 @@ async function regenerateItemAudio(itemId: string, langCode: string): Promise<vo
     }
 
     try {
-        await dashboardInstance.regenerateAudioForItem(itemId, langCode);
+        await dashboardInstance.regenerateAudioForItem(audioItemId, langCode);
     } catch (error) {
         console.error('❌ Error regenerating audio:', error);
         const message = error instanceof Error ? error.message : String(error);
-        window.dashboard?.setStatus(`❌ Error regenerating ${itemId}: ${message}`, 'error');
+        window.dashboard?.setStatus(`❌ Error regenerating ${audioItemId}: ${message}`, 'error');
     }
 }
 
 async function saveItemAudio(itemId: string, langCode: string): Promise<void> {
+    const audioItemId = normalizeAudioItemId(itemId);
     const dashboardInstance = window.dashboard as any;
     if (!dashboardInstance || typeof dashboardInstance.saveGeneratedAudioDraft !== 'function') {
         console.warn('Dashboard save handler unavailable');
@@ -198,11 +209,11 @@ async function saveItemAudio(itemId: string, langCode: string): Promise<void> {
     }
 
     try {
-        await dashboardInstance.saveGeneratedAudioDraft(itemId, langCode);
+        await dashboardInstance.saveGeneratedAudioDraft(audioItemId, langCode);
     } catch (error) {
         console.error('❌ Error saving generated audio:', error);
         const message = error instanceof Error ? error.message : String(error);
-        window.dashboard?.setStatus(`❌ Error saving ${itemId}: ${message}`, 'error');
+        window.dashboard?.setStatus(`❌ Error saving ${audioItemId}: ${message}`, 'error');
     }
 }
 
@@ -212,14 +223,15 @@ async function saveItemAudio(itemId: string, langCode: string): Promise<void> {
  * @param langCode - The language code
  */
 function showAudioInfo(itemId: string, langCode: string): void {
-    console.log(`🔍 Showing audio info for: ${itemId} in ${langCode}`);
+    const audioItemId = normalizeAudioItemId(itemId);
+    console.log(`🔍 Showing audio info for: ${audioItemId} in ${langCode}`);
     
     setElementDisplay('audioInfoModal', 'block');
     setElementDisplay('audioInfoLoading', 'block');
     setElementDisplay('audioInfoData', 'none');
     setElementDisplay('audioInfoError', 'none');
     
-    fetchAudioMetadata(itemId, langCode);
+    fetchAudioMetadata(audioItemId, langCode);
 }
 
 /**
