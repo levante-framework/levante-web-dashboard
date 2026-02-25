@@ -4,10 +4,10 @@
 Estimate population from WorldPop raster data.
 
 Usage:
-    python estimate-population-worldpop.py <country_code> <geojson>
+    python estimate-population-worldpop.py <country_code> <geojson> [year]
 
 Example:
-    python estimate-population-worldpop.py USA '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-87.7,41.8],[-87.5,41.8],[-87.5,42.0],[-87.7,42.0],[-87.7,41.8]]]}}'
+    python estimate-population-worldpop.py USA '{"type":"Feature","geometry":{"type":"Polygon","coordinates":[[[-87.7,41.8],[-87.5,41.8],[-87.5,42.0],[-87.7,42.0],[-87.7,41.8]]]}}' 2022
 
 Returns:
     Population estimate (integer) or exits with code 1 if failed
@@ -27,7 +27,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-def estimate_population(country_code, geojson_str, year=2020):
+def estimate_population(country_code, geojson_str, year=2022):
     """
     Estimate population within a polygon using WorldPop raster.
     
@@ -61,7 +61,7 @@ def estimate_population(country_code, geojson_str, year=2020):
         raster_path = raster_path_1km
     elif not raster_path.exists():
         print(f'Error: WorldPop raster not found: {raster_path}', file=sys.stderr)
-        print(f'Download it from: https://data.worldpop.org/GIS/Population/Global_2000_2020/{year}/{country_code.upper()}/', file=sys.stderr)
+        print(f'Download it from: https://data.worldpop.org/GIS/Population/Global_2021_2022_1km_UNadj/unconstrained/{year}/{country_code.upper()}/', file=sys.stderr)
         print(f'Or create 1km version: python3 scripts/resample-worldpop-to-1km.py {country_code.upper()}', file=sys.stderr)
         return None
     
@@ -87,15 +87,22 @@ def estimate_population(country_code, geojson_str, year=2020):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage: python estimate-population-worldpop.py <country_code> <geojson>', file=sys.stderr)
-        print('Example: python estimate-population-worldpop.py USA \'{"type":"Feature","geometry":{...}}\'', file=sys.stderr)
+    if len(sys.argv) < 3 or len(sys.argv) > 4:
+        print('Usage: python estimate-population-worldpop.py <country_code> <geojson> [year]', file=sys.stderr)
+        print('Example: python estimate-population-worldpop.py USA \'{"type":"Feature","geometry":{...}}\' 2022', file=sys.stderr)
         sys.exit(1)
     
     country_code = sys.argv[1].upper()
     geojson_str = sys.argv[2]
+    year = 2022
+    if len(sys.argv) == 4:
+        try:
+            year = int(sys.argv[3])
+        except ValueError:
+            print(f'Error: Invalid year: {sys.argv[3]}', file=sys.stderr)
+            sys.exit(1)
     
-    result = estimate_population(country_code, geojson_str)
+    result = estimate_population(country_code, geojson_str, year=year)
     if result is not None:
         print(result)
         sys.exit(0)

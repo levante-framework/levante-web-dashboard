@@ -35,6 +35,7 @@ try {
 
 const DATA_FILE = path.join(process.cwd(), 'public', 'gallery', 'locate-me', 'gallery-data.json');
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me', 'images');
+const WORLDPOP_YEAR = Number(process.env.WORLDPOP_YEAR || 2022);
 
 // Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
@@ -146,7 +147,7 @@ function saveWorldPopCache() {
  */
 async function pollWorldPopTask(taskId, encodedGeojson, maxAttempts = 30, pollInterval = 2000) {
   // WorldPop API: Poll requires original parameters + taskid
-  const pollUrl = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&taskid=${encodeURIComponent(taskId)}&geojson=${encodedGeojson}`;
+  const pollUrl = `https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=${encodeURIComponent(WORLDPOP_YEAR)}&taskid=${encodeURIComponent(taskId)}&geojson=${encodedGeojson}`;
   
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
@@ -244,7 +245,7 @@ async function estimatePopulationFromWorldPop(geometry, countryCode) {
   
   // Create a stable cache key from geometry coordinates and country
   const geomStr = JSON.stringify(geometry);
-  const cacheKey = crypto.createHash('sha256').update(geomStr + iso3Code).digest('hex').substring(0, 16);
+  const cacheKey = crypto.createHash('sha256').update(geomStr + iso3Code + String(WORLDPOP_YEAR)).digest('hex').substring(0, 16);
   
   const cache = loadWorldPopCache();
   const cached = cache[cacheKey];
@@ -275,7 +276,7 @@ async function estimatePopulationFromWorldPop(geometry, countryCode) {
     
     // Call Python script
     const result = execSync(
-      `"${pythonCmd}" "${scriptPath}" "${iso3Code}" '${escapedGeojson}'`,
+      `"${pythonCmd}" "${scriptPath}" "${iso3Code}" '${escapedGeojson}' "${WORLDPOP_YEAR}"`,
       { 
         encoding: 'utf-8', 
         timeout: 10000, // 10 second timeout (should be much faster)
@@ -309,7 +310,7 @@ async function estimatePopulationFromWorldPop(geometry, countryCode) {
     if (error.message && error.message.includes('ENOENT')) {
       console.warn(`WorldPop raster: Python script not found or raster file missing. Install dependencies: pip install rasterio shapely`);
     } else if (error.message && error.message.includes('WorldPop raster not found')) {
-      console.warn(`WorldPop raster: Raster file not downloaded. Run: ./scripts/download-worldpop-rasters.sh ${iso3Code}`);
+      console.warn(`WorldPop raster: Raster file not downloaded for ${WORLDPOP_YEAR}. Run: ./scripts/download-worldpop-rasters.sh ${iso3Code}`);
     } else {
       console.warn(`WorldPop raster error: ${error.message}`);
     }

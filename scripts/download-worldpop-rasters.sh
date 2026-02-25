@@ -7,8 +7,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RASTER_DIR="$PROJECT_ROOT/data/population/worldpop"
-YEAR=2020
-BASE_URL="https://data.worldpop.org/GIS/Population/Global_2000_2020/$YEAR"
+YEAR=2022
+BASE_URL="https://data.worldpop.org/GIS/Population/Global_2021_2022_1km_UNadj/unconstrained/$YEAR"
 
 # Supported countries (ISO3 codes)
 COUNTRIES=(
@@ -32,9 +32,9 @@ download_country() {
     local country=$1
     local country_lower=$(echo "$country" | tr '[:upper:]' '[:lower:]')
     
-    # Use 1km aggregated version (much smaller, ~150MB vs 3.7GB)
-    local base_url_1km="https://data.worldpop.org/GIS/Population/Global_2000_2020_1km/${YEAR}"
-    local filename_1km="${country_lower}_ppp_${YEAR}_1km_Aggregated.tif"
+    # Use 1km UN-adjusted unconstrained version from Global_2021_2022_1km_UNadj
+    local base_url_1km="$BASE_URL"
+    local filename_1km="${country_lower}_ppp_${YEAR}_1km_UNadj.tif"
     local url_1km="${base_url_1km}/${country}/${filename_1km}"
     local output_path="${RASTER_DIR}/${country}_${YEAR}_1km.tif"
     
@@ -84,9 +84,9 @@ else
     
     for country in "${COUNTRIES[@]}"; do
         if download_country "$country"; then
-            ((success++))
+            ((++success))
         else
-            ((failed++))
+            ((++failed))
         fi
         echo ""
     done
