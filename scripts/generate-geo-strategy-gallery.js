@@ -11,6 +11,7 @@
  * - Weather (original GPS)
  * - Population density (1km tile at original GPS)
  * - Nearest school (faux location, Overpass)
+ * - H3 base/effective cells + outlines (adaptive by privacy threshold)
  */
 
 const fs = require('fs');
@@ -20,6 +21,7 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 const { Storage } = require('@google-cloud/storage');
+const h3 = require('h3-js');
 
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'geo-strategy');
 const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');
@@ -30,6 +32,8 @@ const POP_THRESHOLD = Number(process.env.GEO_POP_THRESHOLD || 50000);
 const SHIFT_KM = Number(process.env.GEO_SHIFT_KM || 1);
 const WEATHER_ROUNDING_DEG = Number(process.env.GEO_WEATHER_ROUNDING_DEG || 0);
 const SCHOOL_RADIUS_M = Number(process.env.GEO_SCHOOL_RADIUS_M || 5000);
+const H3_BASE_RES = Number(process.env.GEO_H3_BASE_RES || 5);
+const H3_EFFECTIVE_MAX_RES = Number(process.env.GEO_H3_EFFECTIVE_MAX_RES || 9);
 
 const TILE_SIZES = [1, 3, 5, 7];
 const TILE_HALF_KM = 0.5;
@@ -282,6 +286,7 @@ function shiftLocation(point, shiftKm) {
 }
 
 let worldPopCache = null;
+const h3PopulationCache = new Map();
 
 function loadWorldPopCache() {
   if (worldPopCache) return worldPopCache;
@@ -354,6 +359,145 @@ async function estimatePopulationFromWorldPop(geometry, countryCode) {
       console.warn(`WorldPop raster not found for ${iso3Code}. Run: ./scripts/download-worldpop-rasters.sh ${iso3Code}`);
     }
     return null;
+  }
+}
+
+function h3CellToPolygonGeometry(cellId) {
+  const boundaryLatLon = h3.cellToBoundary(cellId);
+  if (!Array.isArray(boundaryLatLon) || !boundaryLatLon.length) return null;
+  const ring = boundaryLatLon.map(([lat, lon]) => [roundCoordFixed(lon, 6), roundCoordFixed(lat, 6)]);
+  if (!ring.length) return null;
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  if (!last || first[0] !== last[0] || first[1] !== last[1]) {
+    ring.push([first[0], first[1]]);
+  }
+  return { type: 'Polygon', coordinates: [ring] };
+}
+
+async function buildH3ResolutionInfo(lat, lon, countryCode, res, threshold) {
+  const cellId = h3.latLngToCell(lat, lon, res);
+  const cacheKey = `${countryCode || ''}|${cellId}`;
+  let population = h3PopulationCache.get(cacheKey);
+  let geometry = null;
+  if (population === undefined) {
+    geometry = h3CellToPolygonGeometry(cellId);
+    population = geometry ? await estimatePopulationFromWorldPop(geometry, countryCode) : null;
+    h3PopulationCache.set(cacheKey, population);
+  }
+  if (!geometry) {
+    geometry = h3CellToPolygonGeometry(cellId);
+  }
+  const popValue = typeof population === 'number' ? population : null;
+  return {
+    id: cellId,
+    resolution: res,
+    population: popValue,
+    privacyMet: typeof popValue === 'number' ? popValue >= threshold : false,
+    outline: geometry
+      ? {
+          type: 'Feature',
+          properties: {
+            source: 'h3',
+            id: cellId,
+            resolution: res,
+            population: popValue,
+            privacyMet: typeof popValue === 'number' ? popValue >= threshold : false
+          },
+          geometry
+        }
+      : null
+  };
+}
+
+class Location {
+  constructor(point, options) {
+    this.point = point;
+    this.options = options;
+  }
+
+  async resolveH3Cells(faux) {
+    const countryCode = this.point.country;
+    const threshold = this.options.popThreshold;
+    const baseRes = this.options.h3BaseRes;
+    const maxRes = this.options.h3EffectiveMaxRes;
+
+    const base = await buildH3ResolutionInfo(faux.lat, faux.lon, countryCode, baseRes, threshold);
+    const candidates = [];
+    for (let res = maxRes; res >= 0; res--) {
+      candidates.push(await buildH3ResolutionInfo(faux.lat, faux.lon, countryCode, res, threshold));
+    }
+    const effective = candidates.find((c) => c.privacyMet) || candidates[candidates.length - 1];
+    return {
+      scheme: 'h3_v1',
+      threshold,
+      base,
+      effective,
+      outlines: {
+        type: 'FeatureCollection',
+        features: [base.outline, effective.outline].filter(Boolean)
+      }
+    };
+  }
+
+  async build() {
+    const point = this.point;
+    const options = this.options;
+    const faux = shiftLocation(point, options.shiftKm);
+    const tileGrid = await buildTilePopulationGrid(faux, point.country);
+    const totals = {};
+    for (const size of TILE_SIZES) {
+      const entry = sumTileGrid(tileGrid, size);
+      totals[String(size)] = { ...entry, size };
+    }
+    const selection = selectTileGrid(totals, options.popThreshold);
+
+    const adm2 = await resolveAdmArea(point.country, faux.lat, faux.lon, 'adm2', options.popThreshold);
+    const adm3 = await resolveAdmArea(point.country, faux.lat, faux.lon, 'adm3', options.popThreshold);
+
+    const weather = await getCurrentWeatherForPoint(point.lat, point.lon).catch(() => null);
+    const elevationM = weather?.elevationM ?? null;
+
+    const densityTile = buildKmSquareGeometry(point.lon, point.lat, TILE_HALF_KM);
+    const densityPop = await estimatePopulationFromWorldPop(densityTile, point.country);
+    const populationDensityPerKm2 = typeof densityPop === 'number' ? densityPop : null;
+
+    const school = await fetchNearestSchool(faux.lat, faux.lon);
+    const h3Cells = await this.resolveH3Cells(faux);
+
+    return {
+      id: point.id,
+      label: point.label,
+      country: point.country,
+      gps: {
+        lat: point.lat,
+        lon: point.lon
+      },
+      fauxLocation: faux,
+      tileGrid: {
+        sizeSelected: selection?.size || null,
+        populationSelected: selection?.total ?? null,
+        areaKm2: selection?.size ? selection.size * selection.size : null,
+        totals: Object.fromEntries(
+          Object.entries(totals).map(([size, entry]) => [size, entry.total])
+        )
+      },
+      h3: h3Cells,
+      adm: {
+        adm2: adm2 || null,
+        adm3: adm3 || null,
+        populationThreshold: options.popThreshold
+      },
+      weather: weather ? {
+        temperatureC: weather.temperatureC,
+        description: weather.description,
+        observedAt: weather.observedAt,
+        query: weather.query
+      } : null,
+      altitudeM: elevationM,
+      populationDensityPerKm2,
+      nearestSchool: school
+    };
   }
 }
 
@@ -662,66 +806,17 @@ async function fetchNearestSchool(lat, lon) {
 }
 
 async function buildEntry(point, options) {
-  const faux = shiftLocation(point, options.shiftKm);
-  const tileGrid = await buildTilePopulationGrid(faux, point.country);
-  const totals = {};
-  for (const size of TILE_SIZES) {
-    const entry = sumTileGrid(tileGrid, size);
-    totals[String(size)] = { ...entry, size };
-  }
-  const selection = selectTileGrid(totals, options.popThreshold);
-
-  const adm2 = await resolveAdmArea(point.country, faux.lat, faux.lon, 'adm2', options.popThreshold);
-  const adm3 = await resolveAdmArea(point.country, faux.lat, faux.lon, 'adm3', options.popThreshold);
-
-  const weather = await getCurrentWeatherForPoint(point.lat, point.lon).catch(() => null);
-  const elevationM = weather?.elevationM ?? null;
-
-  const densityTile = buildKmSquareGeometry(point.lon, point.lat, TILE_HALF_KM);
-  const densityPop = await estimatePopulationFromWorldPop(densityTile, point.country);
-  const populationDensityPerKm2 = typeof densityPop === 'number' ? densityPop : null;
-
-  const school = await fetchNearestSchool(faux.lat, faux.lon);
-
-  return {
-    id: point.id,
-    label: point.label,
-    country: point.country,
-    gps: {
-      lat: point.lat,
-      lon: point.lon
-    },
-    fauxLocation: faux,
-    tileGrid: {
-      sizeSelected: selection?.size || null,
-      populationSelected: selection?.total ?? null,
-      areaKm2: selection?.size ? selection.size * selection.size : null,
-      totals: Object.fromEntries(
-        Object.entries(totals).map(([size, entry]) => [size, entry.total])
-      )
-    },
-    adm: {
-      adm2: adm2 || null,
-      adm3: adm3 || null,
-      populationThreshold: options.popThreshold
-    },
-    weather: weather ? {
-      temperatureC: weather.temperatureC,
-      description: weather.description,
-      observedAt: weather.observedAt,
-      query: weather.query
-    } : null,
-    altitudeM: elevationM,
-    populationDensityPerKm2,
-    nearestSchool: school
-  };
+  const location = new Location(point, options);
+  return location.build();
 }
 
 async function main() {
   const argv = parseArgs();
   const options = {
     popThreshold: Number.isFinite(argv.popThreshold) ? argv.popThreshold : POP_THRESHOLD,
-    shiftKm: Number.isFinite(argv.shiftKm) ? argv.shiftKm : SHIFT_KM
+    shiftKm: Number.isFinite(argv.shiftKm) ? argv.shiftKm : SHIFT_KM,
+    h3BaseRes: H3_BASE_RES,
+    h3EffectiveMaxRes: H3_EFFECTIVE_MAX_RES
   };
 
   if (!fs.existsSync(SEED_FILE)) {
@@ -745,6 +840,12 @@ async function main() {
       tileKm: 1,
       sizes: TILE_SIZES,
       gridSize: 7
+    },
+    h3: {
+      scheme: 'h3_v1',
+      baseResolution: options.h3BaseRes,
+      effectiveResolutionSearchMax: options.h3EffectiveMaxRes,
+      effectiveRule: 'Use highest H3 resolution (smallest cell) whose estimated population is >= populationThreshold'
     },
     points: entries
   };

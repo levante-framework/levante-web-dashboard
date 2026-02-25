@@ -1,3 +1,30 @@
+/**
+ * Locate Me (v2)
+ *
+ * What this module does:
+ * - Powers the interactive "Locate Me" experience in the browser.
+ * - Resolves a user's nearby location context (city + administrative boundaries),
+ *   renders map overlays, and shows lightweight contextual metadata (weather + ISP hint).
+ * - Supports a secondary "Where Am I" modal flow for guided country/state/city selection.
+ *
+ * How it works (high level):
+ * 1) Browser geolocation obtains the device position.
+ * 2) On-device datasets are loaded/cached (countries + cities), then nearest-city lookup runs locally.
+ * 3) Country-specific ADM packs are loaded and point-in-polygon checks determine ADM2/local boundaries.
+ * 4) Map layers are rendered with circles, markers, and selected boundary outlines.
+ * 5) Coarse weather and network ISP metadata are fetched and shown in the legend/log UI.
+ *
+ * Privacy model:
+ * - Core locate computations are on-device whenever possible.
+ * - Weather requests intentionally use a coarse query point (rounded before network call).
+ * - Location log writes explicitly reject raw coordinates.
+ * - Some helper flows (for example reverse-geocode in the "Where Am I" modal) may call backend APIs.
+ *
+ * Network dependencies:
+ * - Backend APIs under /api/* (geocoder metadata, reverse geocode, location log, ADM packs, ISP lookup).
+ * - Open-Meteo for current weather.
+ * - Leaflet + OSM tiles for map rendering.
+ */
 const { createApp, nextTick } = Vue;
 const LEAFLET_SOURCES = [
   '/vendor/leaflet/leaflet.js',
@@ -128,6 +155,7 @@ createApp({
     }
   },
   methods: {
+    // ---- Shared localStorage helpers (small, defensive wrappers) ----
     readLocalJson(key) {
       try {
         const raw = localStorage.getItem(key);
@@ -490,7 +518,7 @@ createApp({
       return best.slice(0, limit);
     },
     async appendClientLog(entry) {
-      // Critical privacy rule: do not send raw GPS coords off-device.
+      // Critical privacy rule: logs may include derived metadata, but never raw GPS.
       if (entry && (entry.latitude != null || entry.longitude != null || entry.lat != null || entry.lon != null)) {
         throw new Error('Refusing to log raw coordinates');
       }
@@ -639,6 +667,7 @@ createApp({
           console.log('[WhereAmI] coords acquired', { latitude, longitude });
           this.whereCoordinates = { lat: latitude, lon: longitude };
           try {
+            // "Where Am I" uses server reverse-geocoding for a guided picker workflow.
             const query = new URLSearchParams({
               lat: latitude.toString(),
               lon: longitude.toString(),
@@ -974,6 +1003,8 @@ createApp({
       await this.runLocateWithGeolocation();
     },
     async runLocateWithGeolocation() {
+      // Primary Locate flow: do nearest-city + boundary selection on-device first,
+      // then fetch only coarse weather/ISP metadata for display.
       if (!navigator.geolocation) {
         this.error = 'Geolocation is not supported by this browser.';
         this.status = 'Geolocation unavailable';

@@ -11,8 +11,8 @@
     }
   },
   "49.283,-123.107|5000": {
-    "fetchedAt": 1768527751290,
-    "expiresAt": 1771119751290,
+    "fetchedAt": 1772058726156,
+    "expiresAt": 1774650726156,
     "school": {
       "name": "Vancouver Film School",
       "distanceKm": 0.09006414019004483,
@@ -22,8 +22,8 @@
     }
   },
   "43.647,-79.374|5000": {
-    "fetchedAt": 1768527765641,
-    "expiresAt": 1771119765641,
+    "fetchedAt": 1772058741208,
+    "expiresAt": 1774650741208,
     "school": {
       "name": "Downtown Alternative School",
       "distanceKm": 0.33880379050569953,
@@ -44,8 +44,8 @@
     }
   },
   "6.245,-75.57|5000": {
-    "fetchedAt": 1768527794491,
-    "expiresAt": 1771119794491,
+    "fetchedAt": 1772058781684,
+    "expiresAt": 1774650781684,
     "school": {
       "name": "Instituto Ferrini",
       "distanceKm": 0.8121573573469486,
@@ -55,10 +55,10 @@
     }
   },
   "52.526,13.415|5000": {
-    "fetchedAt": 1768527827566,
-    "expiresAt": 1771119827566,
+    "fetchedAt": 1772058820175,
+    "expiresAt": 1774650820175,
     "school": {
-      "name": "Unnamed school",
+      "name": "Berlin Cosmopolitan School",
       "distanceKm": 0.6320841543125559,
       "source": "overpass",
       "lat": 52.5273506,
@@ -66,8 +66,8 @@
     }
   },
   "48.137,11.589|5000": {
-    "fetchedAt": 1768527840022,
-    "expiresAt": 1771119840022,
+    "fetchedAt": 1772058834772,
+    "expiresAt": 1774650834772,
     "school": {
       "name": "Otto-Falckenberg-Schule",
       "distanceKm": 0.46967657994834583,
@@ -77,8 +77,8 @@
     }
   },
   "50.938,6.946|5000": {
-    "fetchedAt": 1768527854550,
-    "expiresAt": 1771119854550,
+    "fetchedAt": 1772058849392,
+    "expiresAt": 1774650849392,
     "school": {
       "name": "Englisches Institut Köln",
       "distanceKm": 0.06558622320456242,
@@ -88,8 +88,8 @@
     }
   },
   "49.762,6.63|5000": {
-    "fetchedAt": 1768527871070,
-    "expiresAt": 1771119871070,
+    "fetchedAt": 1772058864180,
+    "expiresAt": 1774650864180,
     "school": {
       "name": "Ausonius-Grundschule",
       "distanceKm": 0.4568956308358784,
@@ -99,8 +99,8 @@
     }
   },
   "41.884,-87.638|5000": {
-    "fetchedAt": 1768527902296,
-    "expiresAt": 1771119902296,
+    "fetchedAt": 1772058904847,
+    "expiresAt": 1774650904847,
     "school": {
       "name": "National College of Education Urban Campus",
       "distanceKm": 1.1789426857192489,
@@ -110,8 +110,8 @@
     }
   },
   "60.494,-151.071|5000": {
-    "fetchedAt": 1768527915804,
-    "expiresAt": 1771119915804,
+    "fetchedAt": 1772058924606,
+    "expiresAt": 1774650924606,
     "school": {
       "name": "Soldotna Elementary School",
       "distanceKm": 0.30406711179925167,
@@ -121,8 +121,8 @@
     }
   },
   "45.777,-108.492|5000": {
-    "fetchedAt": 1768527928824,
-    "expiresAt": 1771119928824,
+    "fetchedAt": 1772058947197,
+    "expiresAt": 1774650947197,
     "school": {
       "name": "Garfield School",
       "distanceKm": 1.3040418585536118,
@@ -132,8 +132,8 @@
     }
   },
   "30.267,-97.754|5000": {
-    "fetchedAt": 1768527961482,
-    "expiresAt": 1771119961482,
+    "fetchedAt": 1772058985519,
+    "expiresAt": 1774650985519,
     "school": {
       "name": "Alpha High School",
       "distanceKm": 0.8471936618818003,
@@ -143,8 +143,8 @@
     }
   },
   "45.438,-85.001|5000": {
-    "fetchedAt": 1768527995963,
-    "expiresAt": 1771119995963,
+    "fetchedAt": 1772059025083,
+    "expiresAt": 1774651025083,
     "school": {
       "name": "Harbor Springs Middle School",
       "distanceKm": 0.9220160033981913,
@@ -154,8 +154,8 @@
     }
   },
   "44.932,-93.294|5000": {
-    "fetchedAt": 1768528008786,
-    "expiresAt": 1771120008786,
+    "fetchedAt": 1772059042141,
+    "expiresAt": 1774651042141,
     "school": {
       "name": "Stonebridge World School",
       "distanceKm": 1.2986322816997822,
@@ -165,8 +165,8 @@
     }
   },
   "37.434,-122.162|5000": {
-    "fetchedAt": 1768528026807,
-    "expiresAt": 1771120026807,
+    "fetchedAt": 1772059061703,
+    "expiresAt": 1774651061703,
     "school": {
       "name": "Palo Alto High School",
       "distanceKm": 0.5646160245490079,
@@ -176,8 +176,8 @@
     }
   },
   "3.445,-76.538|5000": {
-    "fetchedAt": 1768528113529,
-    "expiresAt": 1771120113529,
+    "fetchedAt": 1772059157810,
+    "expiresAt": 1774651157810,
     "school": {
       "name": "Alfredo Vasquez Cobo",
       "distanceKm": 1.6705437135077152,
@@ -187,8 +187,8 @@
     }
   },
   "55.96,-3.2|5000": {
-    "fetchedAt": 1768528146415,
-    "expiresAt": 1771120146415,
+    "fetchedAt": 1772059193494,
+    "expiresAt": 1774651193494,
     "school": {
       "name": "Drummond Community High School",
       "distanceKm": 0.6043553347952937,
@@ -198,8 +198,8 @@
     }
   },
   "57.15,-2.111|5000": {
-    "fetchedAt": 1768528180331,
-    "expiresAt": 1771120180331,
+    "fetchedAt": 1772059219921,
+    "expiresAt": 1774651219921,
     "school": {
       "name": "Sunnybank School",
       "distanceKm": 1.1847862726487695,
@@ -209,8 +209,8 @@
     }
   },
   "28.62,77.202|5000": {
-    "fetchedAt": 1768528196878,
-    "expiresAt": 1771120196878,
+    "fetchedAt": 1772059235724,
+    "expiresAt": 1774651235724,
     "school": {
       "name": "Unnamed school",
       "distanceKm": 1.03142485485635,
@@ -220,8 +220,8 @@
     }
   },
   "19.07,72.871|5000": {
-    "fetchedAt": 1768528210708,
-    "expiresAt": 1771120210708,
+    "fetchedAt": 1772059250120,
+    "expiresAt": 1774651250120,
     "school": {
       "name": "American School of Bombay",
       "distanceKm": 0.22036279157204375,
@@ -231,8 +231,8 @@
     }
   },
   "12.972,77.585|5000": {
-    "fetchedAt": 1768528225327,
-    "expiresAt": 1771120225327,
+    "fetchedAt": 1772059264882,
+    "expiresAt": 1774651264882,
     "school": {
       "name": "Sacred Hearts Girls School",
       "distanceKm": 1.9691539246093703,
@@ -242,8 +242,8 @@
     }
   },
   "-34.61,-58.389|5000": {
-    "fetchedAt": 1768528239874,
-    "expiresAt": 1771120239874,
+    "fetchedAt": 1772059280435,
+    "expiresAt": 1774651280435,
     "school": {
       "name": "Escuela Primaria Común 05 Nicolás Rodríguez Peña",
       "distanceKm": 1.09089380721052,
@@ -253,8 +253,8 @@
     }
   },
   "-32.965,-60.686|5000": {
-    "fetchedAt": 1768528273013,
-    "expiresAt": 1771120273013,
+    "fetchedAt": 1772059309451,
+    "expiresAt": 1774651309451,
     "school": {
       "name": "Escuela Técnica 2076 San Francisquito",
       "distanceKm": 0.9328950942327019,
@@ -264,8 +264,8 @@
     }
   },
   "52.374,4.894|5000": {
-    "fetchedAt": 1768528289258,
-    "expiresAt": 1771120289258,
+    "fetchedAt": 1772059324611,
+    "expiresAt": 1774651324611,
     "school": {
       "name": "Spirituele Akademie",
       "distanceKm": 1.2106905311546619,
@@ -275,8 +275,8 @@
     }
   },
   "51.915,4.478|5000": {
-    "fetchedAt": 1768528302227,
-    "expiresAt": 1771120302227,
+    "fetchedAt": 1772059341161,
+    "expiresAt": 1774651341161,
     "school": {
       "name": "Piet Zwart Institute",
       "distanceKm": 0.3911089306410257,
@@ -286,8 +286,8 @@
     }
   },
   "52.091,5.107|5000": {
-    "fetchedAt": 1768528317771,
-    "expiresAt": 1771120317771,
+    "fetchedAt": 1772059354148,
+    "expiresAt": 1774651354148,
     "school": {
       "name": "Haarstylisten college",
       "distanceKm": 0.4623474961686573,
@@ -297,8 +297,8 @@
     }
   },
   "6.698,-1.577|5000": {
-    "fetchedAt": 1768528351383,
-    "expiresAt": 1771120351383,
+    "fetchedAt": 1772059381515,
+    "expiresAt": 1774651381515,
     "school": {
       "name": "Se Manhyia Royal International School",
       "distanceKm": 1.4946434970787117,
@@ -308,8 +308,8 @@
     }
   },
   "4.885,-1.746|5000": {
-    "fetchedAt": 1768528365923,
-    "expiresAt": 1771120365923,
+    "fetchedAt": 1772059394734,
+    "expiresAt": 1774651394734,
     "school": {
       "name": "Chapel Hill School",
       "distanceKm": 1.1058734802047872,
@@ -319,8 +319,8 @@
     }
   },
   "47.383,8.551|5000": {
-    "fetchedAt": 1768528382004,
-    "expiresAt": 1771120382004,
+    "fetchedAt": 1772059408261,
+    "expiresAt": 1774651408261,
     "school": {
       "name": "Atelierschule Zürich",
       "distanceKm": 1.1707099168578405,
@@ -330,8 +330,8 @@
     }
   },
   "47.56,7.602|5000": {
-    "fetchedAt": 1768528415763,
-    "expiresAt": 1771120415763,
+    "fetchedAt": 1772059435314,
+    "expiresAt": 1774651435314,
     "school": {
       "name": "Schule für Gestaltung",
       "distanceKm": 0.5554787691747055,
@@ -341,8 +341,8 @@
     }
   },
   "45.523,-122.689|5000": {
-    "fetchedAt": 1768529198982,
-    "expiresAt": 1771121198982,
+    "fetchedAt": 1772058679615,
+    "expiresAt": 1774650679615,
     "school": {
       "name": "Metropolitan Learning Center",
       "distanceKm": 0.5002911229866125,
@@ -352,8 +352,8 @@
     }
   },
   "40.704,-74.006|5000": {
-    "fetchedAt": 1768529219668,
-    "expiresAt": 1771121219668,
+    "fetchedAt": 1772058884029,
+    "expiresAt": 1774650884029,
     "school": {
       "name": "Public School 124",
       "distanceKm": 1.3844126821119513,
@@ -363,8 +363,8 @@
     }
   },
   "42.126,-87.758|5000": {
-    "fetchedAt": 1768529235681,
-    "expiresAt": 1771121235681,
+    "fetchedAt": 1772059005002,
+    "expiresAt": 1774651005002,
     "school": {
       "name": "South School",
       "distanceKm": 0.5769034042090555,
@@ -374,8 +374,8 @@
     }
   },
   "45.495,-73.576|5000": {
-    "fetchedAt": 1768529252118,
-    "expiresAt": 1771121252118,
+    "fetchedAt": 1772059120254,
+    "expiresAt": 1774651120254,
     "school": {
       "name": "Concordia CL",
       "distanceKm": 0.23608280779214816,
@@ -385,8 +385,8 @@
     }
   },
   "51.051,-114.062|5000": {
-    "fetchedAt": 1768529253290,
-    "expiresAt": 1771121253290,
+    "fetchedAt": 1772059140917,
+    "expiresAt": 1774651140917,
     "school": {
       "name": "St. Angela School",
       "distanceKm": 0.9503683777472088,
@@ -407,8 +407,8 @@
     }
   },
   "55.858,-4.263|5000": {
-    "fetchedAt": 1768529259912,
-    "expiresAt": 1771121259912,
+    "fetchedAt": 1772059206879,
+    "expiresAt": 1774651206879,
     "school": {
       "name": "St Aloysius' College",
       "distanceKm": 0.990298052215866,
@@ -418,14 +418,74 @@
     }
   },
   "5.597,-0.181|5000": {
-    "fetchedAt": 1768529268316,
-    "expiresAt": 1771121268316,
+    "fetchedAt": 1772059368431,
+    "expiresAt": 1774651368431,
     "school": {
       "name": "Alliance Français",
       "distanceKm": 0.1692063846512412,
       "source": "overpass",
       "lat": 5.5969429,
       "lon": -0.1820777
+    }
+  },
+  "37.769,-122.411|5000": {
+    "fetchedAt": 1772058656911,
+    "expiresAt": 1774650656911,
+    "school": {
+      "name": "Collegio De La Mission",
+      "distanceKm": 1.719524843550234,
+      "source": "overpass",
+      "lat": 37.7546523,
+      "lon": -122.4199709
+    }
+  },
+  "29.322,-103.626|5000": {
+    "fetchedAt": 1772058966918,
+    "expiresAt": 1774650966918,
+    "school": null
+  },
+  "37.448,-122.151|5000": {
+    "fetchedAt": 1772059080949,
+    "expiresAt": 1774651080949,
+    "school": {
+      "name": "Addison Elementary School",
+      "distanceKm": 0.27618454549457033,
+      "source": "overpass",
+      "lat": 37.4458109,
+      "lon": -122.150583
+    }
+  },
+  "37.39,-122.243|5000": {
+    "fetchedAt": 1772059099265,
+    "expiresAt": 1774651099265,
+    "school": {
+      "name": "Ormondale Elementary School",
+      "distanceKm": 2.4671930489238845,
+      "source": "overpass",
+      "lat": 37.38068,
+      "lon": -122.2181576
+    }
+  },
+  "-31.414,-64.181|5000": {
+    "fetchedAt": 1772059295740,
+    "expiresAt": 1774651295740,
+    "school": {
+      "name": "Colegio Santo Domingo",
+      "distanceKm": 0.18044746374177587,
+      "source": "overpass",
+      "lat": -31.4127714,
+      "lon": -64.1798007
+    }
+  },
+  "46.198,6.152|5000": {
+    "fetchedAt": 1772059421534,
+    "expiresAt": 1774651421534,
+    "school": {
+      "name": "École Brechbühl",
+      "distanceKm": 0.16193807253047962,
+      "source": "overpass",
+      "lat": 46.1993385,
+      "lon": 6.1533287
     }
   }
 }

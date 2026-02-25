@@ -1,13 +1,13 @@
 {
   "37.7749,-122.4194|0": {
-    "fetchedAt": 1768527700800,
-    "expiresAt": 1768529500800,
+    "fetchedAt": 1772058655033,
+    "expiresAt": 1772060455033,
     "weather": {
-      "temperatureC": 12.9,
-      "windKph": 8.4,
-      "weathercode": 0,
-      "description": "Clear",
-      "observedAt": "2026-01-15T17:30",
+      "temperatureC": 16.3,
+      "windKph": 9.9,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T14:30",
       "elevationM": 18,
       "query": {
         "lat": 37.7749,
@@ -102,14 +102,14 @@
     }
   },
   "10.3910,-75.4794|0": {
-    "fetchedAt": 1768527806156,
-    "expiresAt": 1768529606156,
+    "fetchedAt": 1772058796692,
+    "expiresAt": 1772060596692,
     "weather": {
-      "temperatureC": 27.3,
-      "windKph": 7.2,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-15T20:30",
+      "temperatureC": 27.5,
+      "windKph": 23.4,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-02-25T17:30",
       "elevationM": 13,
       "query": {
         "lat": 10.391,
@@ -119,14 +119,14 @@
     }
   },
   "48.1374,11.5755|0": {
-    "fetchedAt": 1768527838663,
-    "expiresAt": 1768529638663,
+    "fetchedAt": 1772058833417,
+    "expiresAt": 1772060633417,
     "weather": {
-      "temperatureC": 1.6,
-      "windKph": 6.1,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T02:30",
+      "temperatureC": 5.7,
+      "windKph": 4.9,
+      "weathercode": 45,
+      "description": "Fog",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 524,
       "query": {
         "lat": 48.1374,
@@ -136,14 +136,14 @@
     }
   },
   "49.7557,6.6394|0": {
-    "fetchedAt": 1768527869699,
-    "expiresAt": 1768529669699,
+    "fetchedAt": 1772058862863,
+    "expiresAt": 1772060662863,
     "weather": {
-      "temperatureC": 9.2,
-      "windKph": 17.3,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T02:30",
+      "temperatureC": 10.2,
+      "windKph": 2.2,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 144,
       "query": {
         "lat": 49.7557,
@@ -187,14 +187,14 @@
     }
   },
   "29.3216,-103.6160|0": {
-    "fetchedAt": 1768527939417,
-    "expiresAt": 1768529739417,
+    "fetchedAt": 1772058965837,
+    "expiresAt": 1772060765837,
     "weather": {
-      "temperatureC": 14.2,
-      "windKph": 7.5,
+      "temperatureC": 30.9,
+      "windKph": 23.3,
       "weathercode": 0,
       "description": "Clear",
-      "observedAt": "2026-01-15T19:45",
+      "observedAt": "2026-02-25T16:30",
       "elevationM": 884,
       "query": {
         "lat": 29.3216,
@@ -204,14 +204,14 @@
     }
   },
   "30.2672,-97.7431|0": {
-    "fetchedAt": 1768527959777,
-    "expiresAt": 1768529759777,
+    "fetchedAt": 1772058983937,
+    "expiresAt": 1772060783937,
     "weather": {
-      "temperatureC": 14.5,
-      "windKph": 12.6,
-      "weathercode": 0,
-      "description": "Clear",
-      "observedAt": "2026-01-15T19:45",
+      "temperatureC": 29.7,
+      "windKph": 18,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T16:30",
       "elevationM": 157,
       "query": {
         "lat": 30.2672,
@@ -221,14 +221,14 @@
     }
   },
   "42.1350,-87.7581|0": {
-    "fetchedAt": 1768527972480,
-    "expiresAt": 1768529772480,
+    "fetchedAt": 1772059003740,
+    "expiresAt": 1772060803740,
     "weather": {
-      "temperatureC": -6.9,
-      "windKph": 14.8,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-15T19:45",
+      "temperatureC": 1.9,
+      "windKph": 14.9,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T16:30",
       "elevationM": 207,
       "query": {
         "lat": 42.135,
@@ -238,14 +238,14 @@
     }
   },
   "45.4317,-84.9920|0": {
-    "fetchedAt": 1768527994395,
-    "expiresAt": 1768529794395,
+    "fetchedAt": 1772059022715,
+    "expiresAt": 1772060822715,
     "weather": {
-      "temperatureC": -11.9,
-      "windKph": 7,
+      "temperatureC": -7.5,
+      "windKph": 19.7,
       "weathercode": 3,
       "description": "Overcast",
-      "observedAt": "2026-01-15T20:45",
+      "observedAt": "2026-02-25T17:30",
       "elevationM": 213,
       "query": {
         "lat": 45.4317,
@@ -255,14 +255,14 @@
     }
   },
   "37.4275,-122.1697|0": {
-    "fetchedAt": 1768528025288,
-    "expiresAt": 1768529825288,
+    "fetchedAt": 1772059060307,
+    "expiresAt": 1772060860307,
     "weather": {
-      "temperatureC": 15,
-      "windKph": 2.9,
-      "weathercode": 0,
-      "description": "Clear",
-      "observedAt": "2026-01-15T17:45",
+      "temperatureC": 17.7,
+      "windKph": 8.6,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T14:30",
       "elevationM": 32,
       "query": {
         "lat": 37.4275,
@@ -272,14 +272,14 @@
     }
   },
   "37.3841,-122.2352|0": {
-    "fetchedAt": 1768528058255,
-    "expiresAt": 1768529858255,
+    "fetchedAt": 1772059098259,
+    "expiresAt": 1772060898259,
     "weather": {
-      "temperatureC": 14.7,
-      "windKph": 11.5,
-      "weathercode": 0,
-      "description": "Clear",
-      "observedAt": "2026-01-15T17:45",
+      "temperatureC": 17,
+      "windKph": 5.9,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T14:30",
       "elevationM": 162,
       "query": {
         "lat": 37.3841,
@@ -289,14 +289,14 @@
     }
   },
   "51.0447,-114.0719|0": {
-    "fetchedAt": 1768528093364,
-    "expiresAt": 1768529893364,
+    "fetchedAt": 1772059137860,
+    "expiresAt": 1772060937860,
     "weather": {
-      "temperatureC": 0.2,
-      "windKph": 21.8,
-      "weathercode": 0,
-      "description": "Clear",
-      "observedAt": "2026-01-15T18:45",
+      "temperatureC": 4.4,
+      "windKph": 27.6,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T15:30",
       "elevationM": 1051,
       "query": {
         "lat": 51.0447,
@@ -306,14 +306,14 @@
     }
   },
   "3.4516,-76.5320|0": {
-    "fetchedAt": 1768528112443,
-    "expiresAt": 1768529912443,
+    "fetchedAt": 1772059154390,
+    "expiresAt": 1772060954390,
     "weather": {
-      "temperatureC": 17.5,
-      "windKph": 3.2,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-15T20:45",
+      "temperatureC": 19.7,
+      "windKph": 4.5,
+      "weathercode": 80,
+      "description": "Light showers",
+      "observedAt": "2026-02-25T17:30",
       "elevationM": 1009,
       "query": {
         "lat": 3.4516,
@@ -323,14 +323,14 @@
     }
   },
   "55.9533,-3.1883|0": {
-    "fetchedAt": 1768528143434,
-    "expiresAt": 1768529943434,
+    "fetchedAt": 1772059190481,
+    "expiresAt": 1772060990481,
     "weather": {
-      "temperatureC": -1,
-      "windKph": 3.8,
-      "weathercode": 45,
-      "description": "Fog",
-      "observedAt": "2026-01-16T01:45",
+      "temperatureC": 10.9,
+      "windKph": 12.3,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T22:30",
       "elevationM": 69,
       "query": {
         "lat": 55.9533,
@@ -357,14 +357,14 @@
     }
   },
   "19.0760,72.8777|0": {
-    "fetchedAt": 1768528209351,
-    "expiresAt": 1768530009351,
+    "fetchedAt": 1772059249069,
+    "expiresAt": 1772061049069,
     "weather": {
-      "temperatureC": 22.5,
-      "windKph": 6.4,
-      "weathercode": 1,
-      "description": "Mostly clear",
-      "observedAt": "2026-01-16T07:15",
+      "temperatureC": 25.5,
+      "windKph": 9.9,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-02-26T04:00",
       "elevationM": 6,
       "query": {
         "lat": 19.076,
@@ -374,14 +374,14 @@
     }
   },
   "12.9716,77.5946|0": {
-    "fetchedAt": 1768528224100,
-    "expiresAt": 1768530024100,
+    "fetchedAt": 1772059263518,
+    "expiresAt": 1772061063518,
     "weather": {
-      "temperatureC": 17.3,
-      "windKph": 6.1,
-      "weathercode": 2,
-      "description": "Partly cloudy",
-      "observedAt": "2026-01-16T07:15",
+      "temperatureC": 19.9,
+      "windKph": 3.1,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-26T04:00",
       "elevationM": 910,
       "query": {
         "lat": 12.9716,
@@ -391,14 +391,14 @@
     }
   },
   "-34.6037,-58.3816|0": {
-    "fetchedAt": 1768528236493,
-    "expiresAt": 1768530036493,
+    "fetchedAt": 1772059277596,
+    "expiresAt": 1772061077596,
     "weather": {
-      "temperatureC": 24.3,
-      "windKph": 4.4,
-      "weathercode": 2,
-      "description": "Partly cloudy",
-      "observedAt": "2026-01-15T22:45",
+      "temperatureC": 22.4,
+      "windKph": 8,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-25T19:30",
       "elevationM": 18,
       "query": {
         "lat": -34.6037,
@@ -408,14 +408,14 @@
     }
   },
   "-32.9587,-60.6939|0": {
-    "fetchedAt": 1768528271490,
-    "expiresAt": 1768530071490,
+    "fetchedAt": 1772059308169,
+    "expiresAt": 1772061108169,
     "weather": {
-      "temperatureC": 24,
-      "windKph": 7.2,
-      "weathercode": 1,
-      "description": "Mostly clear",
-      "observedAt": "2026-01-15T22:45",
+      "temperatureC": 22,
+      "windKph": 7.4,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T19:30",
       "elevationM": 27,
       "query": {
         "lat": -32.9587,
@@ -425,14 +425,14 @@
     }
   },
   "52.3676,4.9041|0": {
-    "fetchedAt": 1768528284836,
-    "expiresAt": 1768530084836,
+    "fetchedAt": 1772059321417,
+    "expiresAt": 1772061121417,
     "weather": {
-      "temperatureC": 10.1,
-      "windKph": 25.9,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T02:45",
+      "temperatureC": 11.8,
+      "windKph": 11.5,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 5,
       "query": {
         "lat": 52.3676,
@@ -459,14 +459,14 @@
     }
   },
   "5.6037,-0.1870|0": {
-    "fetchedAt": 1768528331139,
-    "expiresAt": 1768530131139,
+    "fetchedAt": 1772059367183,
+    "expiresAt": 1772061167183,
     "weather": {
-      "temperatureC": 26.6,
-      "windKph": 5.6,
-      "weathercode": 2,
-      "description": "Partly cloudy",
-      "observedAt": "2026-01-16T01:45",
+      "temperatureC": 27.7,
+      "windKph": 5,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T22:30",
       "elevationM": 56,
       "query": {
         "lat": 5.6037,
@@ -476,14 +476,14 @@
     }
   },
   "6.6920,-1.5710|0": {
-    "fetchedAt": 1768528350108,
-    "expiresAt": 1768530150108,
+    "fetchedAt": 1772059380310,
+    "expiresAt": 1772061180310,
     "weather": {
-      "temperatureC": 24.8,
-      "windKph": 2.9,
+      "temperatureC": 26,
+      "windKph": 6.3,
       "weathercode": 3,
       "description": "Overcast",
-      "observedAt": "2026-01-16T01:45",
+      "observedAt": "2026-02-25T22:30",
       "elevationM": 273,
       "query": {
         "lat": 6.692,
@@ -493,14 +493,14 @@
     }
   },
   "47.3769,8.5417|0": {
-    "fetchedAt": 1768528380340,
-    "expiresAt": 1768530180340,
+    "fetchedAt": 1772059405894,
+    "expiresAt": 1772061205894,
     "weather": {
-      "temperatureC": 1.2,
-      "windKph": 2.6,
-      "weathercode": 45,
-      "description": "Fog",
-      "observedAt": "2026-01-16T02:45",
+      "temperatureC": 8.4,
+      "windKph": 2.2,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 409,
       "query": {
         "lat": 47.3769,
@@ -510,14 +510,14 @@
     }
   },
   "46.2044,6.1432|0": {
-    "fetchedAt": 1768528395361,
-    "expiresAt": 1768530195361,
+    "fetchedAt": 1772059420222,
+    "expiresAt": 1772061220222,
     "weather": {
-      "temperatureC": 3.2,
-      "windKph": 2,
-      "weathercode": 45,
-      "description": "Fog",
-      "observedAt": "2026-01-16T02:45",
+      "temperatureC": 8,
+      "windKph": 0.8,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 368,
       "query": {
         "lat": 46.2044,
@@ -527,14 +527,14 @@
     }
   },
   "47.5596,7.5886|0": {
-    "fetchedAt": 1768528414246,
-    "expiresAt": 1768530214246,
+    "fetchedAt": 1772059434163,
+    "expiresAt": 1772061234163,
     "weather": {
-      "temperatureC": 3.8,
-      "windKph": 6.6,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T02:45",
+      "temperatureC": 8.3,
+      "windKph": 3.2,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 247,
       "query": {
         "lat": 47.5596,
@@ -544,14 +544,14 @@
     }
   },
   "6.2518,-75.5636|0": {
-    "fetchedAt": 1768529211838,
-    "expiresAt": 1768531011838,
+    "fetchedAt": 1772058780192,
+    "expiresAt": 1772060580192,
     "weather": {
-      "temperatureC": 18.4,
-      "windKph": 1.5,
+      "temperatureC": 20.9,
+      "windKph": 4.1,
       "weathercode": 3,
       "description": "Overcast",
-      "observedAt": "2026-01-15T21:00",
+      "observedAt": "2026-02-25T17:30",
       "elevationM": 1493,
       "query": {
         "lat": 6.2518,
@@ -561,14 +561,14 @@
     }
   },
   "52.5200,13.4050|0": {
-    "fetchedAt": 1768529216479,
-    "expiresAt": 1768531016479,
+    "fetchedAt": 1772058817022,
+    "expiresAt": 1772060617022,
     "weather": {
-      "temperatureC": 3,
-      "windKph": 10.2,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T03:00",
+      "temperatureC": 4.5,
+      "windKph": 10.9,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 37,
       "query": {
         "lat": 52.52,
@@ -578,14 +578,14 @@
     }
   },
   "50.9375,6.9603|0": {
-    "fetchedAt": 1768529216667,
-    "expiresAt": 1768531016667,
+    "fetchedAt": 1772058847619,
+    "expiresAt": 1772060647619,
     "weather": {
-      "temperatureC": 9.9,
-      "windKph": 17.6,
+      "temperatureC": 11.4,
+      "windKph": 13.3,
       "weathercode": 3,
       "description": "Overcast",
-      "observedAt": "2026-01-16T03:00",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 55,
       "query": {
         "lat": 50.9375,
@@ -595,14 +595,14 @@
     }
   },
   "40.7128,-74.0060|0": {
-    "fetchedAt": 1768529218751,
-    "expiresAt": 1768531018751,
+    "fetchedAt": 1772058879490,
+    "expiresAt": 1772060679490,
     "weather": {
-      "temperatureC": -3.5,
-      "windKph": 19.2,
+      "temperatureC": 0.5,
+      "windKph": 10.6,
       "weathercode": 0,
       "description": "Clear",
-      "observedAt": "2026-01-15T21:00",
+      "observedAt": "2026-02-25T17:30",
       "elevationM": 32,
       "query": {
         "lat": 40.7128,
@@ -612,14 +612,14 @@
     }
   },
   "60.4878,-151.0583|0": {
-    "fetchedAt": 1768529223030,
-    "expiresAt": 1768531023030,
+    "fetchedAt": 1772058923419,
+    "expiresAt": 1772060723419,
     "weather": {
-      "temperatureC": 0.7,
-      "windKph": 25.2,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-15T17:00",
+      "temperatureC": -13.6,
+      "windKph": 21,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T13:30",
       "elevationM": 37,
       "query": {
         "lat": 60.4878,
@@ -629,14 +629,14 @@
     }
   },
   "44.9315,-93.2815|0": {
-    "fetchedAt": 1768529239643,
-    "expiresAt": 1768531039643,
+    "fetchedAt": 1772059040804,
+    "expiresAt": 1772060840804,
     "weather": {
-      "temperatureC": -2.6,
-      "windKph": 5.8,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-15T20:00",
+      "temperatureC": -5.1,
+      "windKph": 8.6,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-25T16:30",
       "elevationM": 267,
       "query": {
         "lat": 44.9315,
@@ -646,14 +646,14 @@
     }
   },
   "37.4419,-122.1430|0": {
-    "fetchedAt": 1768529242164,
-    "expiresAt": 1768531042164,
+    "fetchedAt": 1772059078436,
+    "expiresAt": 1772060878436,
     "weather": {
-      "temperatureC": 14.5,
-      "windKph": 6.5,
-      "weathercode": 0,
-      "description": "Clear",
-      "observedAt": "2026-01-15T18:00",
+      "temperatureC": 17.8,
+      "windKph": 8.6,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T14:30",
       "elevationM": 11,
       "query": {
         "lat": 37.4419,
@@ -663,14 +663,14 @@
     }
   },
   "45.5017,-73.5673|0": {
-    "fetchedAt": 1768529251200,
-    "expiresAt": 1768531051200,
+    "fetchedAt": 1772059113207,
+    "expiresAt": 1772060913207,
     "weather": {
-      "temperatureC": -14.1,
-      "windKph": 13.9,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-15T21:00",
+      "temperatureC": -3.4,
+      "windKph": 3.6,
+      "weathercode": 73,
+      "description": "Snow",
+      "observedAt": "2026-02-25T17:30",
       "elevationM": 76,
       "query": {
         "lat": 45.5017,
@@ -680,14 +680,14 @@
     }
   },
   "53.5511,9.9937|0": {
-    "fetchedAt": 1768529253487,
-    "expiresAt": 1768531053487,
+    "fetchedAt": 1772059170062,
+    "expiresAt": 1772060970062,
     "weather": {
-      "temperatureC": 5.2,
-      "windKph": 13.8,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T03:00",
+      "temperatureC": 8.3,
+      "windKph": 9,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 3,
       "query": {
         "lat": 53.5511,
@@ -714,14 +714,14 @@
     }
   },
   "28.6139,77.2090|0": {
-    "fetchedAt": 1768529260989,
-    "expiresAt": 1768531060989,
+    "fetchedAt": 1772059234462,
+    "expiresAt": 1772061034462,
     "weather": {
-      "temperatureC": 6.6,
-      "windKph": 3.6,
-      "weathercode": 1,
-      "description": "Mostly clear",
-      "observedAt": "2026-01-16T07:30",
+      "temperatureC": 16.6,
+      "windKph": 5,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-02-26T04:00",
       "elevationM": 214,
       "query": {
         "lat": 28.6139,
@@ -731,14 +731,14 @@
     }
   },
   "-31.4201,-64.1888|0": {
-    "fetchedAt": 1768529261709,
-    "expiresAt": 1768531061709,
+    "fetchedAt": 1772059294323,
+    "expiresAt": 1772061094323,
     "weather": {
-      "temperatureC": 21.6,
-      "windKph": 4.8,
-      "weathercode": 95,
-      "description": "Thunderstorm",
-      "observedAt": "2026-01-15T23:00",
+      "temperatureC": 21.2,
+      "windKph": 7.4,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-02-25T19:30",
       "elevationM": 403,
       "query": {
         "lat": -31.4201,
@@ -748,14 +748,14 @@
     }
   },
   "51.9244,4.4777|0": {
-    "fetchedAt": 1768529266209,
-    "expiresAt": 1768531066209,
+    "fetchedAt": 1772059336629,
+    "expiresAt": 1772061136629,
     "weather": {
-      "temperatureC": 10.6,
-      "windKph": 31.3,
-      "weathercode": 3,
-      "description": "Overcast",
-      "observedAt": "2026-01-16T03:00",
+      "temperatureC": 12.8,
+      "windKph": 11.5,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-25T23:30",
       "elevationM": 2,
       "query": {
         "lat": 51.9244,
@@ -765,14 +765,14 @@
     }
   },
   "4.8845,-1.7554|0": {
-    "fetchedAt": 1768529273084,
-    "expiresAt": 1768531073084,
+    "fetchedAt": 1772059393790,
+    "expiresAt": 1772061193790,
     "weather": {
-      "temperatureC": 25.2,
-      "windKph": 1.6,
-      "weathercode": 45,
-      "description": "Fog",
-      "observedAt": "2026-01-16T02:00",
+      "temperatureC": 26,
+      "windKph": 2.9,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-02-25T22:30",
       "elevationM": 12,
       "query": {
         "lat": 4.8845,

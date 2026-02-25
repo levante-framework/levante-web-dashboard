@@ -132,6 +132,36 @@
         color: #94a3b8;
         margin-top: 8px;
       }
+      .hex-preview-wrap {
+        margin: 8px 0 10px;
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 10px;
+        overflow: hidden;
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.95));
+      }
+      .hex-preview-svg {
+        display: block;
+        width: 100%;
+        height: 180px;
+      }
+      .hex-preview-legend {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 8px 10px;
+        font-size: 11px;
+        color: #cbd5e1;
+        border-top: 1px solid rgba(56, 189, 248, 0.18);
+        background: rgba(2, 6, 23, 0.6);
+      }
+      .sw {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .sw i {
+        font-size: 10px;
+      }
       .empty {
         color: #94a3b8;
       }
@@ -161,6 +191,129 @@
         return Number(n).toLocaleString();
       };
       const formatCoord = (v) => Number.isFinite(Number(v)) ? Number(v).toFixed(4) : 'N/A';
+
+      function getRingFromFeature(feature) {
+        const ring = feature?.geometry?.coordinates?.[0];
+        return Array.isArray(ring) ? ring.filter((pt) => Array.isArray(pt) && pt.length >= 2) : [];
+      }
+
+      function computeBounds(points) {
+        let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+        points.forEach(([lon, lat]) => {
+          const x = Number(lon);
+          const y = Number(lat);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          if (x < minLon) minLon = x;
+          if (x > maxLon) maxLon = x;
+          if (y < minLat) minLat = y;
+          if (y > maxLat) maxLat = y;
+        });
+        if (!Number.isFinite(minLon) || !Number.isFinite(minLat) || !Number.isFinite(maxLon) || !Number.isFinite(maxLat)) {
+          return null;
+        }
+        return { minLon, minLat, maxLon, maxLat };
+      }
+
+      function expandBounds(bounds, ratio = 0.2) {
+        const lonSpan = Math.max(bounds.maxLon - bounds.minLon, 0.01);
+        const latSpan = Math.max(bounds.maxLat - bounds.minLat, 0.01);
+        const lonPad = lonSpan * ratio;
+        const latPad = latSpan * ratio;
+        return {
+          minLon: bounds.minLon - lonPad,
+          maxLon: bounds.maxLon + lonPad,
+          minLat: bounds.minLat - latPad,
+          maxLat: bounds.maxLat + latPad
+        };
+      }
+
+      function projectPoint(lon, lat, bounds, width, height, pad = 12) {
+        const usableW = width - pad * 2;
+        const usableH = height - pad * 2;
+        const lonSpan = Math.max(bounds.maxLon - bounds.minLon, 1e-9);
+        const latSpan = Math.max(bounds.maxLat - bounds.minLat, 1e-9);
+        const x = pad + ((Number(lon) - bounds.minLon) / lonSpan) * usableW;
+        const y = height - pad - ((Number(lat) - bounds.minLat) / latSpan) * usableH;
+        return [x, y];
+      }
+
+      function ringToSvgPath(ring, bounds, width, height) {
+        if (!ring.length) return '';
+        const pts = ring.map(([lon, lat]) => projectPoint(lon, lat, bounds, width, height));
+        const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+        return `${d} Z`;
+      }
+
+      function estimateZoomForBounds(bounds, width, height, pad = 12) {
+        const lonSpan = Math.max(bounds.maxLon - bounds.minLon, 1e-9);
+        const latSpan = Math.max(bounds.maxLat - bounds.minLat, 1e-9);
+        const usableW = Math.max(width - pad * 2, 1);
+        const usableH = Math.max(height - pad * 2, 1);
+        // Web Mercator-ish fit approximation.
+        const zx = Math.log2((usableW * 360) / (256 * lonSpan));
+        const zy = Math.log2((usableH * 170) / (256 * latSpan));
+        const z = Math.floor(Math.min(zx, zy));
+        return Math.max(1, Math.min(16, Number.isFinite(z) ? z : 8));
+      }
+
+      function lonLatToOsmTile(lon, lat, zoom) {
+        const z = Math.max(0, Math.min(19, Math.floor(Number(zoom) || 0)));
+        const latRad = (Number(lat) * Math.PI) / 180;
+        const n = 2 ** z;
+        const x = Math.floor(((Number(lon) + 180) / 360) * n);
+        const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+        return {
+          z,
+          x: Math.max(0, Math.min(n - 1, x)),
+          y: Math.max(0, Math.min(n - 1, y))
+        };
+      }
+
+      function buildStaticMapUrl(centerLat, centerLon, zoom) {
+        // Use the same OSM tile host as the live map view for broad compatibility.
+        const t = lonLatToOsmTile(centerLon, centerLat, zoom);
+        return `https://tile.openstreetmap.org/${t.z}/${t.x}/${t.y}.png`;
+      }
+
+      function renderHexPreview(point) {
+        const baseFeature = point?.h3?.base?.outline || null;
+        const effFeature = point?.h3?.effective?.outline || null;
+        const baseRing = getRingFromFeature(baseFeature);
+        const effRing = getRingFromFeature(effFeature);
+        if (!baseRing.length) {
+          return '<div class="note">No H3 outline data available.</div>';
+        }
+        // Fit view to base (resolution 5) so it is always visible.
+        const bounds = expandBounds(computeBounds(baseRing), 0.25);
+        const width = 520;
+        const height = 180;
+        const centerLat = Number(point?.fauxLocation?.lat);
+        const centerLon = Number(point?.fauxLocation?.lon);
+        const zoom = estimateZoomForBounds(bounds, width, height);
+        const bgMapUrl = (Number.isFinite(centerLat) && Number.isFinite(centerLon))
+          ? buildStaticMapUrl(centerLat, centerLon, zoom)
+          : '';
+        const basePath = ringToSvgPath(baseRing, bounds, width, height);
+        const effPath = effRing.length ? ringToSvgPath(effRing, bounds, width, height) : '';
+        const [fx, fy] = projectPoint(point?.fauxLocation?.lon, point?.fauxLocation?.lat, bounds, width, height);
+
+        return `
+          <div class="hex-preview-wrap">
+            <svg class="hex-preview-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="H3 hexagon preview">
+              <rect x="0" y="0" width="${width}" height="${height}" fill="rgba(15,23,42,0.9)"></rect>
+              ${bgMapUrl ? `<image href="${bgMapUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" opacity="0.5"></image>` : ''}
+              ${effPath ? `<path d="${effPath}" fill="rgba(244, 114, 182, 0.22)" stroke="#f472b6" stroke-width="2"></path>` : ''}
+              <path d="${basePath}" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 4"></path>
+              <circle cx="${fx.toFixed(2)}" cy="${fy.toFixed(2)}" r="4" fill="#22c55e" stroke="#052e16" stroke-width="1.2"></circle>
+            </svg>
+            <div class="hex-preview-legend">
+              <span class="sw"><i style="color:#38bdf8">■</i> H3 Base (res 5)</span>
+              <span class="sw"><i style="color:#f472b6">■</i> H3 Effective (adaptive)</span>
+              <span class="sw"><i style="color:#22c55e">●</i> Faux location</span>
+            </div>
+          </div>
+        `;
+      }
 
       function renderStats(data) {
         statsEl.innerHTML = `
@@ -199,6 +352,7 @@
           card.innerHTML = `
             <h3>${p.label}</h3>
             <div class="meta">${p.country} - ${p.id}</div>
+            ${renderHexPreview(p)}
             <div class="row">
               <div class="pill"><span class="label">GPS</span> ${formatCoord(p.gps?.lat)}, ${formatCoord(p.gps?.lon)}</div>
               <div class="pill"><span class="label">Faux</span> ${formatCoord(p.fauxLocation?.lat)}, ${formatCoord(p.fauxLocation?.lon)} (${p.fauxLocation?.direction})</div>
@@ -207,6 +361,18 @@
               <div class="pill"><span class="label">Tiles</span> ${p.tileGrid?.sizeSelected || 'N/A'}x${p.tileGrid?.sizeSelected || 'N/A'}</div>
               <div class="pill"><span class="label">Tile Pop</span> ${formatNumber(p.tileGrid?.populationSelected)}</div>
               <div class="pill"><span class="label">Area</span> ${p.tileGrid?.areaKm2 || 'N/A'} km^2</div>
+            </div>
+            <div class="row">
+              <div class="pill"><span class="label">H3 Base</span> ${
+                p.h3?.base
+                  ? `r${p.h3.base.resolution} · ${p.h3.base.id} · pop ${formatNumber(p.h3.base.population)}`
+                  : '<span class="empty">N/A</span>'
+              }</div>
+              <div class="pill"><span class="label">H3 Effective</span> ${
+                p.h3?.effective
+                  ? `r${p.h3.effective.resolution} · ${p.h3.effective.id} · pop ${formatNumber(p.h3.effective.population)}`
+                  : '<span class="empty">N/A</span>'
+              }</div>
             </div>
             <div class="row">
               <div class="pill"><span class="label">ADM2</span> ${adm2 ? `${adm2.name} (${formatNumber(adm2.population)})` : '<span class="empty">N/A</span>'}</div>
@@ -228,7 +394,9 @@
         });
       }
 
-      fetch('./gallery-data.json')
+      const baseUrl = window.location.href.endsWith('/') ? window.location.href : `${window.location.href}/`;
+      const galleryDataUrl = new URL('gallery-data.json', baseUrl).toString();
+      fetch(galleryDataUrl)
         .then((res) => res.json())
         .then((data) => {
           renderStats(data);
