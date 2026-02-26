@@ -463,6 +463,9 @@ async function validateAll() {
         return;
     }
     const dashboard = window.dashboard;
+    if (dashboard && typeof dashboard.ensureLanguageFullyRendered === 'function') {
+        dashboard.ensureLanguageFullyRendered(currentLanguage);
+    }
     const langCode = dashboard.languages[currentLanguage].lang_code;
     const validateModeEl = document.getElementById('validateAllMode');
     const validateMode = validateModeEl ? String(validateModeEl.value || 'pending') : 'pending';

@@ -19,6 +19,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.voices = { playht: [], elevenlabs: [] };
                 this.dataVersion = 0;
                 this.renderSignatureByLanguage = new Map();
+                this.activeRenderJobId = 0;
+                this.inFlightRenderSignatureByLanguage = new Map();
+                this.lazyRenderStateByLanguage = new Map();
                 
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
@@ -286,6 +289,56 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return `${language}::${this.dataVersion}::${filterValue}`;
             }
 
+            getFilteredItemsForLanguage(language) {
+                const allowedIds = typeof window.getReviewTableAllowedItemIds === 'function' ? window.getReviewTableAllowedItemIds() : null;
+                if (!allowedIds) return this.data;
+                return this.data.filter(item => allowedIds.has(String(item.item_id || item.identifier || '')));
+            }
+
+            appendRenderBatch(state, batchSize) {
+                const end = Math.min(state.offset + batchSize, state.rows.length);
+                const fragment = document.createDocumentFragment();
+                for (let i = state.offset; i < end; i++) {
+                    const row = this.buildDataRow(state.rows[i], i, state.langCode);
+                    if (row) fragment.appendChild(row);
+                }
+                state.tableContent.appendChild(fragment);
+                state.offset = end;
+                return state.offset < state.rows.length;
+            }
+
+            finalizeRenderState(state) {
+                if (!state || state.completed) return;
+                state.completed = true;
+                this.inFlightRenderSignatureByLanguage.delete(state.renderLanguage);
+                this.renderSignatureByLanguage.set(state.renderLanguage, state.signature);
+                if (state.renderLanguage === this.currentLanguage) {
+                    if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
+                    if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                }
+                this.setupSortAndReviewHandlers();
+                this.logPerf(`Render table complete (${state.renderLanguage})`, state.renderStart, `rows=${state.rows.length}`);
+            }
+
+            ensureLanguageFullyRendered(language) {
+                const state = this.lazyRenderStateByLanguage.get(language);
+                if (!state || state.completed) return;
+                while (this.appendRenderBatch(state, 250)) { /* flush all remaining rows */ }
+                this.finalizeRenderState(state);
+            }
+
+            perfNow() {
+                return (typeof performance !== 'undefined' && typeof performance.now === 'function')
+                    ? performance.now()
+                    : Date.now();
+            }
+
+            logPerf(label, startedAt, details = '') {
+                const elapsed = this.perfNow() - startedAt;
+                const suffix = details ? ` | ${details}` : '';
+                console.log(`[Perf] ${label}: ${elapsed.toFixed(1)}ms${suffix}`);
+            }
+
             loadFflate() {
                 return new Promise((resolve, reject) => {
                     const g = typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : {};
@@ -304,16 +357,22 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             async loadDataFromCrowdin(options = {}) {
                 const forceRefresh = options && options.forceRefresh === true;
+                const totalStart = this.perfNow();
                 try {
                     if (!forceRefresh) {
-                        if (await this.loadCrowdinDataFromCache()) return true;
+                        if (await this.loadCrowdinDataFromCache()) {
+                            this.logPerf('Crowdin load (cache path)', totalStart);
+                            return true;
+                        }
                         // Do not call Crowdin automatically during normal loads.
                         this.setStatus('No Crowdin cache yet. Click "Update Translations" to fetch from Crowdin.', 'warning');
                         return false;
                     }
                     this.setStatus('Loading from Crowdin (approved only)...', 'loading');
+                    const reqStart = this.perfNow();
                     const response = await fetch('/api/crowdin-approved-translations', { cache: 'no-cache' });
                     const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+                    this.logPerf('Crowdin build request', reqStart, `status=${response.status}`);
                     if (!response.ok) {
                         const text = await response.text();
                         let msg = `HTTP ${response.status}`;
@@ -331,11 +390,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     }
                     let zipBuffer;
                     if (contentType.includes('application/json')) {
+                        const jsonStart = this.perfNow();
                         const json = await response.json();
+                        this.logPerf('Crowdin build response parse', jsonStart);
                         if (json.details || json.error) throw new Error(json.details || json.error);
                         if (!json.zipUrl) throw new Error('API did not return zipUrl');
                         this.setStatus('Downloading Crowdin export...', 'loading');
                         let zipRes;
+                        const zipDownloadStart = this.perfNow();
                         try {
                             zipRes = await fetch(json.zipUrl, { cache: 'no-cache' });
                         } catch (directErr) {
@@ -353,17 +415,23 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         } else {
                             zipBuffer = await zipRes.arrayBuffer();
                         }
+                        this.logPerf('Crowdin zip download', zipDownloadStart);
                     } else {
+                        const zipDownloadStart = this.perfNow();
                         zipBuffer = await response.arrayBuffer();
+                        this.logPerf('Crowdin zip download (direct)', zipDownloadStart);
                     }
                     const getFflate = () => (typeof window !== 'undefined' && window.fflate) || (typeof globalThis !== 'undefined' && globalThis.fflate);
                     let fflateLib = getFflate();
                     if (!fflateLib) {
+                        const fflateLoadStart = this.perfNow();
                         await this.loadFflate();
+                        this.logPerf('fflate library load', fflateLoadStart);
                         fflateLib = getFflate();
                     }
                     if (!fflateLib || !fflateLib.unzipSync) throw new Error('fflate library not loaded. Allow cdn.jsdelivr.net or check your network.');
                     const nameLower = (f) => (f.name || '').toLowerCase().replace(/\\/g, '/');
+                    const unzipStart = this.perfNow();
                     const unzipped = fflateLib.unzipSync(new Uint8Array(zipBuffer), {
                         filter: (f) => {
                             const n = nameLower(f);
@@ -372,16 +440,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             return n.endsWith('.csv') || n.endsWith('.xlf') || n.endsWith('.xliff');
                         }
                     });
+                    this.logPerf('Crowdin zip unzip', unzipStart, `files=${Object.keys(unzipped).length}`);
                     this.crowdinFilesUsed = Object.keys(unzipped).sort();
+                    const mergeStart = this.perfNow();
                     const merged = this.parseCrowdinZipToMerged(unzipped);
+                    this.logPerf('Crowdin CSV/XLIFF merge', mergeStart, `rows=${Array.isArray(merged) ? merged.length : 0}`);
                     if (!Array.isArray(merged) || merged.length === 0) throw new Error('No CSV or XLIFF data in Crowdin export');
+                    const setDataStart = this.perfNow();
                     this.setLoadedData(merged);
+                    this.logPerf('Crowdin setLoadedData', setDataStart, `rows=${this.data.length}`);
                     const source = 'Crowdin (approved only)';
                     console.log(`Loaded ${this.data.length} items from ${source}`);
                     this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
                     this.updateDataSourceLabel(source);
+                    const cacheStart = this.perfNow();
                     this.cacheDataLocally(null);
                     await this.cacheCrowdinDataLocally();
+                    this.logPerf('Crowdin cache writes', cacheStart);
+                    this.logPerf('Crowdin load total (network path)', totalStart);
                     return true;
                 } catch (error) {
                     console.warn('Crowdin load failed:', error);
@@ -396,16 +472,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             async loadCrowdinDataFromCache() {
+                const cacheStart = this.perfNow();
                 try {
+                    const localStart = this.perfNow();
                     const raw = localStorage.getItem('levante_crowdin_cache');
+                    this.logPerf('Crowdin cache localStorage read', localStart, raw ? 'hit' : 'miss');
                     if (raw) {
+                        const parseStart = this.perfNow();
                         const cached = JSON.parse(raw);
+                        this.logPerf('Crowdin cache localStorage parse', parseStart, `rows=${Array.isArray(cached?.data) ? cached.data.length : 0}`);
                         if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+                            const setDataStart = this.perfNow();
                             this.setLoadedData(cached.data);
+                            this.logPerf('Crowdin cache setLoadedData (localStorage)', setDataStart, `rows=${this.data.length}`);
                             this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                             const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                             this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
                             this.updateDataSourceLabel('cached Crowdin data');
+                            this.logPerf('Crowdin cache load total (localStorage)', cacheStart);
                             return true;
                         }
                     }
@@ -413,13 +497,18 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     console.warn('Could not read Crowdin cache:', error);
                 }
                 try {
+                    const idbReadStart = this.perfNow();
                     const cached = await this.readCrowdinCacheFromIndexedDB();
+                    this.logPerf('Crowdin cache IndexedDB read', idbReadStart, cached ? 'hit' : 'miss');
                     if (!cached || !Array.isArray(cached.data) || cached.data.length === 0) return false;
+                    const setDataStart = this.perfNow();
                     this.setLoadedData(cached.data);
+                    this.logPerf('Crowdin cache setLoadedData (IndexedDB)', setDataStart, `rows=${this.data.length}`);
                     this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                     const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                     this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
                     this.updateDataSourceLabel('cached Crowdin data');
+                    this.logPerf('Crowdin cache load total (IndexedDB)', cacheStart);
                     return true;
                 } catch (error) {
                     console.warn('Could not read Crowdin IndexedDB cache:', error);
@@ -1749,7 +1838,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             populateDataTable() {
+                const renderStart = this.perfNow();
                 this.refreshLanguagesFromConfig();
+                const renderLanguage = this.currentLanguage;
                 const langCode = this.languages[this.currentLanguage].lang_code;
                 const tableContent = document.getElementById(`table-${this.currentLanguage}`);
                 if (!tableContent) return;
@@ -1758,13 +1849,20 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 if (previousSignature === currentSignature && tableContent.children.length > 0) {
                     if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    this.logPerf(`Render table skipped (${this.currentLanguage})`, renderStart, `rows=${tableContent.children.length}`);
+                    return;
+                }
+                const inFlightSignature = this.inFlightRenderSignatureByLanguage.get(renderLanguage);
+                if (inFlightSignature === currentSignature) {
+                    this.logPerf(`Render table skipped (${renderLanguage})`, renderStart, 'already in-flight');
                     return;
                 }
                 if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(true);
+                const renderJobId = ++this.activeRenderJobId;
+                this.inFlightRenderSignatureByLanguage.set(renderLanguage, currentSignature);
 
                 tableContent.innerHTML = '';
-                const allowedIds = typeof window.getReviewTableAllowedItemIds === 'function' ? window.getReviewTableAllowedItemIds() : null;
-                const dataToShow = !allowedIds ? this.data : this.data.filter(item => allowedIds.has(String(item.item_id || item.identifier || '')));
+                const dataToShow = this.getFilteredItemsForLanguage(renderLanguage);
                 
                 const itemCountSpan = document.getElementById(`item-count-${this.currentLanguage}`);
                 if (itemCountSpan) {
@@ -1773,28 +1871,34 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     itemCountSpan.style.fontSize = '0.9em';
                 }
                 
-                // Render rows in batches so we don't block the main thread for 5+ seconds (keeps tab switch snappy)
-                const BATCH_SIZE = 45;
+                // Progressive rendering: fast initial paint, append more as needed.
+                const BATCH_SIZE = 60;
                 const self = this;
-                let offset = 0;
-                
+                const state = {
+                    renderLanguage,
+                    langCode,
+                    tableContent,
+                    rows: dataToShow,
+                    offset: 0,
+                    signature: currentSignature,
+                    renderStart,
+                    completed: false
+                };
+                this.lazyRenderStateByLanguage.set(renderLanguage, state);
+
                 function processBatch() {
-                    const batch = dataToShow.slice(offset, offset + BATCH_SIZE);
-                    const startIndex = offset;
-                    offset += batch.length;
-                    const fragment = document.createDocumentFragment();
-                    for (let i = 0; i < batch.length; i++) {
-                        const row = self.buildDataRow(batch[i], startIndex + i, langCode);
-                        if (row) fragment.appendChild(row);
+                    if (renderJobId !== self.activeRenderJobId) {
+                        if (self.inFlightRenderSignatureByLanguage.get(renderLanguage) === currentSignature) {
+                            self.inFlightRenderSignatureByLanguage.delete(renderLanguage);
+                        }
+                        self.logPerf(`Render table cancelled (${renderLanguage})`, renderStart);
+                        return;
                     }
-                    tableContent.appendChild(fragment);
-                    if (offset < dataToShow.length) {
+                    const hasMore = self.appendRenderBatch(state, BATCH_SIZE);
+                    if (hasMore) {
                         requestAnimationFrame(processBatch);
                     } else {
-                        self.renderSignatureByLanguage.set(self.currentLanguage, currentSignature);
-                        if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
-                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
-                        self.setupSortAndReviewHandlers();
+                        self.finalizeRenderState(state);
                     }
                 }
                 processBatch();
@@ -2067,6 +2171,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
             
             sortTable(sortType) {
+                this.ensureLanguageFullyRendered(this.currentLanguage);
                 const tableContent = document.getElementById(`table-${this.currentLanguage}`);
                 if (!tableContent) return;
                 
@@ -2369,6 +2474,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
              }
 
              filterTable(language, searchTerm) {
+                 this.ensureLanguageFullyRendered(language);
                  const tableContent = document.getElementById(`table-${language}`);
                  if (!tableContent) return;
 

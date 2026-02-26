@@ -10,6 +10,21 @@ interface LanguageConfigResponse {
     [key: string]: any;
 }
 
+function languageSignature(languages: Record<string, any> | undefined): string {
+    if (!languages || typeof languages !== 'object') return '';
+    const keys = Object.keys(languages).sort();
+    return JSON.stringify(keys.map((name) => {
+        const cfg = languages[name] || {};
+        return {
+            name,
+            lang_code: String(cfg.lang_code || ''),
+            service: String(cfg.service || ''),
+            voice: String(cfg.voice || ''),
+            display_name: String(cfg.display_name || '')
+        };
+    }));
+}
+
 /**
  * Initializes the dashboard after DOM content is loaded
  */
@@ -58,11 +73,14 @@ async function loadRemoteLanguagesIntoConfig(): Promise<void> {
         if (data && data.languages && typeof data.languages === 'object') {
             const windowAny = window as any;
             windowAny.CONFIG = windowAny.CONFIG || {};
+            const previousLanguages = windowAny.CONFIG.languages as Record<string, any> | undefined;
+            const previousSignature = languageSignature(previousLanguages);
             windowAny.CONFIG.languages = data.languages;
+            const nextSignature = languageSignature(windowAny.CONFIG.languages as Record<string, any>);
             console.log('Loaded languages from remote language_config.json');
             // If dashboard exists, refresh language-dependent UI
             const winAny = window as any;
-            if (winAny.dashboard) {
+            if (winAny.dashboard && previousSignature !== nextSignature) {
                 winAny.dashboard.languages = winAny.CONFIG.languages;
                 if (document.getElementById('tabButtons')) {
                     (document.getElementById('tabButtons') as HTMLElement).innerHTML = '';
@@ -72,6 +90,8 @@ async function loadRemoteLanguagesIntoConfig(): Promise<void> {
                 }
                 winAny.dashboard.createTabs();
                 winAny.dashboard.populateVoices();
+            } else if (winAny.dashboard) {
+                console.log('Remote language config matches current tabs; skipping tab rebuild');
             }
         } else {
             console.log('Invalid language config format; using local config.js');

@@ -1,4 +1,19 @@
 "use strict";
+function languageSignature(languages) {
+    if (!languages || typeof languages !== 'object')
+        return '';
+    const keys = Object.keys(languages).sort();
+    return JSON.stringify(keys.map((name) => {
+        const cfg = languages[name] || {};
+        return {
+            name,
+            lang_code: String(cfg.lang_code || ''),
+            service: String(cfg.service || ''),
+            voice: String(cfg.voice || ''),
+            display_name: String(cfg.display_name || '')
+        };
+    }));
+}
 /**
  * Initializes the dashboard after DOM content is loaded
  */
@@ -43,11 +58,14 @@ async function loadRemoteLanguagesIntoConfig() {
         if (data && data.languages && typeof data.languages === 'object') {
             const windowAny = window;
             windowAny.CONFIG = windowAny.CONFIG || {};
+            const previousLanguages = windowAny.CONFIG.languages;
+            const previousSignature = languageSignature(previousLanguages);
             windowAny.CONFIG.languages = data.languages;
+            const nextSignature = languageSignature(windowAny.CONFIG.languages);
             console.log('Loaded languages from remote language_config.json');
             // If dashboard exists, refresh language-dependent UI
             const winAny = window;
-            if (winAny.dashboard) {
+            if (winAny.dashboard && previousSignature !== nextSignature) {
                 winAny.dashboard.languages = winAny.CONFIG.languages;
                 if (document.getElementById('tabButtons')) {
                     document.getElementById('tabButtons').innerHTML = '';
@@ -57,6 +75,9 @@ async function loadRemoteLanguagesIntoConfig() {
                 }
                 winAny.dashboard.createTabs();
                 winAny.dashboard.populateVoices();
+            }
+            else if (winAny.dashboard) {
+                console.log('Remote language config matches current tabs; skipping tab rebuild');
             }
         }
         else {
