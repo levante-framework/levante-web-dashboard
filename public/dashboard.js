@@ -17,6 +17,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.currentLanguage = 'English';
                 this.selectedRow = null;
                 this.voices = { playht: [], elevenlabs: [] };
+                this.dataVersion = 0;
+                this.renderSignatureByLanguage = new Map();
                 
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
@@ -247,6 +249,43 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 else label.textContent = '';
             }
 
+            setLoadedData(rows) {
+                this.data = Array.isArray(rows) ? rows : [];
+                this.attachDerivedDisplayFields(this.data);
+                this.dataVersion += 1;
+                this.renderSignatureByLanguage.clear();
+            }
+
+            attachDerivedDisplayFields(rows) {
+                (rows || []).forEach((item) => {
+                    if (!item || typeof item !== 'object') return;
+                    const rawId = String(item.item_id || item.identifier || item.id || item.ID || '');
+                    const displayItemId = rawId.includes('::') ? rawId.split('::').pop() : rawId;
+                    const compactItemId = displayItemId.length > 36 ? `${displayItemId.slice(0, 33)}...` : displayItemId;
+                    const meta = {
+                        displayItemId,
+                        compactItemId,
+                        taskName: String(item.labels || item.task || 'general'),
+                        contentType: String(item.contentType || 'general')
+                    };
+                    try {
+                        Object.defineProperty(item, '__displayMeta', {
+                            value: meta,
+                            writable: true,
+                            configurable: true,
+                            enumerable: false
+                        });
+                    } catch (_) {
+                        item.__displayMeta = meta;
+                    }
+                });
+            }
+
+            getCurrentRenderSignature(language) {
+                const filterValue = (document.getElementById('reviewTablePathFilter')?.value || 'all');
+                return `${language}::${this.dataVersion}::${filterValue}`;
+            }
+
             loadFflate() {
                 return new Promise((resolve, reject) => {
                     const g = typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : {};
@@ -336,7 +375,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.crowdinFilesUsed = Object.keys(unzipped).sort();
                     const merged = this.parseCrowdinZipToMerged(unzipped);
                     if (!Array.isArray(merged) || merged.length === 0) throw new Error('No CSV or XLIFF data in Crowdin export');
-                    this.data = merged;
+                    this.setLoadedData(merged);
                     const source = 'Crowdin (approved only)';
                     console.log(`Loaded ${this.data.length} items from ${source}`);
                     this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
@@ -362,7 +401,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     if (raw) {
                         const cached = JSON.parse(raw);
                         if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
-                            this.data = cached.data;
+                            this.setLoadedData(cached.data);
                             this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                             const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                             this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
@@ -376,7 +415,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 try {
                     const cached = await this.readCrowdinCacheFromIndexedDB();
                     if (!cached || !Array.isArray(cached.data) || cached.data.length === 0) return false;
-                    this.data = cached.data;
+                    this.setLoadedData(cached.data);
                     this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                     const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                     this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
@@ -857,7 +896,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         });
 
                         this.crowdinFilesUsed = null;
-                        this.data = Array.from(mergedById.values());
+                        this.setLoadedData(Array.from(mergedById.values()));
                         const source = `CSV bundle (${loadedBatches.length} files)`;
                         console.log(`Loaded ${this.data.length} items from ${source}`);
                         console.log('CSV files used:', loadedBatches.map((b) => b.url));
@@ -884,7 +923,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
                     if (csvText) {
                         this.crowdinFilesUsed = null;
-                        this.data = this.parseCSV(csvText);
+                        this.setLoadedData(this.parseCSV(csvText));
                         console.log(`Loaded ${this.data.length} items from ${source}`);
                         this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
                         this.updateDataSourceLabel(source);
@@ -898,7 +937,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         const cachedData = localStorage.getItem('levante_translations_cache');
                         if (cachedData) {
                             this.crowdinFilesUsed = null;
-                            this.data = JSON.parse(cachedData);
+                            this.setLoadedData(JSON.parse(cachedData));
                             this.setStatus(`Loaded ${this.data.length} items from cache (offline)`, 'success');
                             this.updateDataSourceLabel('cache');
                         } else {
@@ -907,7 +946,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     } catch (cacheError) {
                         console.warn('Cache also failed, using sample data:', cacheError);
                         this.crowdinFilesUsed = null;
-                        this.data = this.loadSampleData();
+                        this.setLoadedData(this.loadSampleData());
                         this.setStatus('Using sample data - all sources failed', 'error');
                         this.updateDataSourceLabel('sample data');
                     }
@@ -1714,6 +1753,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const langCode = this.languages[this.currentLanguage].lang_code;
                 const tableContent = document.getElementById(`table-${this.currentLanguage}`);
                 if (!tableContent) return;
+                const currentSignature = this.getCurrentRenderSignature(this.currentLanguage);
+                const previousSignature = this.renderSignatureByLanguage.get(this.currentLanguage);
+                if (previousSignature === currentSignature && tableContent.children.length > 0) {
+                    if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
+                    if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    return;
+                }
                 if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(true);
 
                 tableContent.innerHTML = '';
@@ -1736,13 +1782,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const batch = dataToShow.slice(offset, offset + BATCH_SIZE);
                     const startIndex = offset;
                     offset += batch.length;
+                    const fragment = document.createDocumentFragment();
                     for (let i = 0; i < batch.length; i++) {
                         const row = self.buildDataRow(batch[i], startIndex + i, langCode);
-                        if (row) tableContent.appendChild(row);
+                        if (row) fragment.appendChild(row);
                     }
+                    tableContent.appendChild(fragment);
                     if (offset < dataToShow.length) {
                         requestAnimationFrame(processBatch);
                     } else {
+                        self.renderSignatureByLanguage.set(self.currentLanguage, currentSignature);
                         if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         self.setupSortAndReviewHandlers();
@@ -1767,9 +1816,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const row = document.createElement('div');
                     row.className = 'data-row';
                     const itemId = item.item_id || `fallback_${index}`;
-                    const displayItemId = String(itemId).includes('::') ? String(itemId).split('::').pop() : String(itemId);
-                    const taskName = item.labels || item.task || 'general';
-                    const contentType = item.contentType || 'general';
+                    const displayMeta = item.__displayMeta || {};
+                    const displayItemId = displayMeta.displayItemId || (String(itemId).includes('::') ? String(itemId).split('::').pop() : String(itemId));
+                    const taskName = displayMeta.taskName || item.labels || item.task || 'general';
+                    const contentType = displayMeta.contentType || item.contentType || 'general';
                     const originalEnglish = item.en || 'No English source';
                     row.dataset.itemId = itemId;
                     row.dataset.langCode = langCode;
@@ -1793,7 +1843,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         ? `<div class="item-backtranslation" title="Back-translation">${escapeHtml(backTranslation)}</div>`
                         : '';
                     const displayItemIdText = String(displayItemId || '');
-                    const compactItemId = displayItemIdText.length > 36 ? `${displayItemIdText.slice(0, 33)}...` : displayItemIdText;
+                    const compactItemId = displayMeta.compactItemId || (displayItemIdText.length > 36 ? `${displayItemIdText.slice(0, 33)}...` : displayItemIdText);
                     const escapedTaskName = escapeHtml(String(taskName));
                     const escapedTypeName = escapeHtml(String(contentType));
                     const escapedOriginalText = escapeHtml(String(originalEnglish || ''));
