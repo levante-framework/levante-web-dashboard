@@ -256,6 +256,38 @@
             border-color: #93c5fd;
         }
 
+        .move-audit {
+            padding: 10px 32px;
+            background: #fafafa;
+            border-bottom: 1px solid #e4e4e7;
+            font-size: 12px;
+            color: #52525b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .move-audit-label {
+            font-weight: 700;
+            color: #3f3f46;
+        }
+
+        .move-audit-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid #d4d4d8;
+            background: #ffffff;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .approval-stats {
             padding: 20px 32px;
             background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
@@ -1048,6 +1080,10 @@
         <div class="status" id="status">
             Select a language to begin
         </div>
+        <div class="move-audit" id="moveAudit" style="display: none;">
+            <span class="move-audit-label">Last move:</span>
+            <span class="move-audit-pill" id="moveAuditText">None</span>
+        </div>
 
         <div class="tabs-container">
             <button class="tab-button active" id="tabPending" onclick="dashboard.switchTab('pending')">
@@ -1136,6 +1172,7 @@
                 this.currentSearchQuery = ''; // Current search filter
                 this.lastRefreshTime = null;
                 this.refreshControlsInitialized = false;
+                this.lastMoveAudit = null;
                 
                 // User info for permission checks
                 this.currentUserEmail = null;
@@ -1328,14 +1365,16 @@
                     return { items: [], foldersWithAudio: [], foldersTried: [] };
                 }
                 const folderVariants = this.getAudioFolderVariants(this.currentLangCode);
+                const cacheBust = Date.now().toString();
                 const results = await Promise.all(folderVariants.map(async (folder) => {
                     const prefix = suffix ? `audio/${folder}/${suffix}` : `audio/${folder}/`;
                     const params = new URLSearchParams({
                         bucket: bucketName,
-                        prefix
+                        prefix,
+                        _ts: cacheBust
                     });
                     try {
-                        const response = await fetch(`/api/list-draft-audio?${params.toString()}`);
+                        const response = await fetch(`/api/list-draft-audio?${params.toString()}`, { cache: 'no-store' });
                         if (!response.ok) {
                             return { folder, items: [] };
                         }
@@ -1375,8 +1414,9 @@
                 };
             }
 
-            async findLatestAudioPath(bucketName, baseId) {
+            async findLatestAudioPath(bucketName, baseId, options = {}) {
                 if (!baseId) return null;
+                const allowFallback = options.allowFallback !== false;
                 const { items } = await this.listAudioForCurrentLanguage(bucketName, baseId);
                 if (items && items.length) {
                     const matchingFiles = items.filter(item => {
@@ -1392,7 +1432,7 @@
                         return matchingFiles[0].name;
                     }
                 }
-                return this.buildFallbackAudioPath(baseId);
+                return allowFallback ? this.buildFallbackAudioPath(baseId) : null;
             }
             
             async handleLogout() {
@@ -2188,12 +2228,13 @@
                             if (match) {
                                 const fileName = match[1];
                                 const baseId = fileName.replace(/_v\d{3}$/i, '');
-                                if (!this.unapprovedItems.has(baseId)) {
-                                    this.approvedItems.add(baseId);
-                                    addedCount++;
-                                } else {
-                                    excludedCount++;
+                                // Dev bucket is source of truth for approved status.
+                                // If an item is in dev, clear any stale local "unapproved" flag.
+                                if (this.unapprovedItems.has(baseId)) {
+                                    this.unapprovedItems.delete(baseId);
                                 }
+                                this.approvedItems.add(baseId);
+                                addedCount++;
                             }
                         });
                         console.log(`Loaded approval status: ${addedCount} approved, ${excludedCount} excluded (unapproved)`);
@@ -2670,8 +2711,19 @@
                     const itemsWithAudio = items.filter(item => {
                         const itemId = item.item_id || '';
                         const baseId = itemId.replace(/_v\d{3}$/i, '');
-                        // Show if it's in draft bucket and not yet approved (not in dev bucket)
-                        return draftItems.has(baseId) && !approvedItems.has(baseId);
+                        // Honor locally confirmed approvals so UI updates immediately after move.
+                        const locallyApproved = this.approvedItems.has(baseId) && !this.unapprovedItems.has(baseId);
+                        // Bucket-approved state is authoritative.
+                        if (approvedItems.has(baseId) || locallyApproved) {
+                            return false;
+                        }
+                        const explicitlyUnapproved = this.unapprovedItems.has(baseId);
+                        if (explicitlyUnapproved) {
+                            // Unapproved items belong in this tab only when draft audio exists.
+                            return draftItems.has(baseId);
+                        }
+                        // Show if it's in draft bucket and not yet approved (not in dev or local approved)
+                        return draftItems.has(baseId);
                     });
                     
                     return itemsWithAudio;
@@ -2874,7 +2926,7 @@
                 // Respects unapprovedItems set to exclude explicitly unapproved items
                 try {
                     const { items: devItems } = await this.listAudioForCurrentLanguage('levante-assets-dev');
-                    const approvedItemIds = new Set();
+                    const approvedItemIds = new Set(this.approvedItems || []);
                     let excludedCount = 0;
                     
                     (devItems || []).forEach(item => {
@@ -2895,7 +2947,7 @@
                     const approvedItemsList = items.filter(item => {
                         const itemId = item.item_id || '';
                         const baseId = itemId.replace(/_v\d{3}$/i, '');
-                        return approvedItemIds.has(baseId);
+                        return approvedItemIds.has(baseId) && !this.unapprovedItems.has(baseId);
                     });
                     
                     console.log(`Found ${approvedItemsList.length} approved items in dev bucket (${excludedCount} excluded as unapproved)`);
@@ -3145,7 +3197,10 @@
                     // Play audio from levante-assets-draft bucket (where draft items are)
                     // Path: audio/{langCode}/{itemId}.mp3 or audio/{langCode}/{itemId}_v###.mp3
                     const baseId = itemId.replace(/_v\d{3}$/, '');
-                    const audioPath = await this.findLatestAudioPath('levante-assets-draft', baseId);
+                    const audioPath = await this.findLatestAudioPath('levante-assets-draft', baseId, { allowFallback: false });
+                    if (!audioPath) {
+                        throw new Error(`No draft audio file found for ${itemId}`);
+                    }
                     
                     const params = new URLSearchParams({
                         bucket: 'levante-assets-draft',
@@ -3398,7 +3453,26 @@
                     
                     this.setStatus(`Approving ${itemId}...`, 'loading');
                     
-                    const audioPath = await this.findLatestAudioPath('levante-assets-draft', baseId);
+                    const audioPath = await this.findLatestAudioPath('levante-assets-draft', baseId, { allowFallback: false });
+                    if (!audioPath) {
+                        // If dev already has it, heal stale local state.
+                        const devPath = await this.findLatestAudioPath('levante-assets-dev', baseId, { allowFallback: false });
+                        if (devPath) {
+                            this.unapprovedItems.delete(baseId);
+                            this.approvedItems.add(baseId);
+                            await this.loadApprovalStatus();
+                            await this.refreshItemsForCurrentTab();
+                            await this.updateApprovalStats();
+                            this.setStatus(`${itemId} is already in approved bucket (${devPath}).`, 'success');
+                            return;
+                        }
+                        // No draft or dev file found; clear stale local flag and refresh.
+                        this.unapprovedItems.delete(baseId);
+                        await this.refreshItemsForCurrentTab();
+                        await this.updateApprovalStats();
+                        this.setStatus(`Cannot approve ${itemId}: no draft audio file found.`, 'error');
+                        return;
+                    }
                     
                     // Move the file from draft to dev bucket
                     const moveResponse = await fetch('/api/move-audio-to-dev', {
@@ -3416,10 +3490,18 @@
                         const errorText = await moveResponse.text();
                         throw new Error(errorText || 'Failed to move audio to approved bucket');
                     }
+                    const moveResult = await moveResponse.json().catch(() => ({}));
                     
                     // Update state
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId); // Remove from unapproved if it was there
+                    this.recordMoveAudit({
+                        action: 'approve',
+                        itemId,
+                        sourceBucket: moveResult?.sourceBucket || 'levante-assets-draft',
+                        targetBucket: moveResult?.targetBucket || 'levante-assets-dev',
+                        path: moveResult?.path || audioPath
+                    });
                     
                     // Update UI
                     await this.loadApprovalStatus();
@@ -3431,7 +3513,9 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Approved ${itemId}. Audio moved to approved bucket.`, 'success');
+                    const targetBucket = moveResult?.targetBucket || 'levante-assets-dev';
+                    const movedPath = moveResult?.path || audioPath;
+                    this.setStatus(`Approved ${itemId}. Moved to ${targetBucket}/${movedPath}.`, 'success');
                 } catch (error) {
                     console.error('Approve audio error:', error);
                     this.setStatus(`Error approving audio: ${error.message}`, 'error');
@@ -3439,34 +3523,60 @@
             }
 
             async moveAudioToDraft(itemId, baseId) {
-                // Move audio file from dev bucket back to draft bucket
+                // Move audio file(s) from dev bucket back to draft bucket.
+                // We move all matching versions so a leftover dev version does not keep
+                // the item marked as approved.
                 try {
-                    const audioPath = await this.findLatestAudioPath('levante-assets-dev', baseId);
-                    
-                    const moveResponse = await fetch('/api/move-audio-to-draft', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            bucket: 'levante-assets-dev',
-                            path: audioPath
-                        })
-                    });
-                    
-                    if (!moveResponse.ok) {
-                        let errorMessage = 'Failed to move audio back to draft bucket';
-                        try {
-                            const errorData = await moveResponse.json();
-                            errorMessage = errorData.error || errorData.message || errorMessage;
-                        } catch (e) {
-                            const errorText = await moveResponse.text();
-                            if (errorText) errorMessage = errorText;
-                        }
-                        throw new Error(errorMessage);
+                    const { items } = await this.listAudioForCurrentLanguage('levante-assets-dev', baseId);
+                    const candidatePaths = (items || [])
+                        .map((item) => item?.name || '')
+                        .filter((name) => {
+                            const fileName = name.split('/').pop() || '';
+                            return fileName.startsWith(baseId) && fileName.endsWith('.mp3');
+                        });
+                    const uniquePaths = Array.from(new Set(candidatePaths));
+                    const pathsToMove = uniquePaths.length
+                        ? uniquePaths
+                        : [await this.findLatestAudioPath('levante-assets-dev', baseId, { allowFallback: false })].filter(Boolean);
+
+                    if (!pathsToMove.length) {
+                        throw new Error(`No dev audio files found for ${baseId}`);
                     }
-                    
-                    return true;
+
+                    const movedPaths = [];
+                    for (const audioPath of pathsToMove) {
+                        const moveResponse = await fetch('/api/move-audio-to-draft', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                bucket: 'levante-assets-dev',
+                                path: audioPath
+                            })
+                        });
+
+                        if (!moveResponse.ok) {
+                            let errorMessage = 'Failed to move audio back to draft bucket';
+                            try {
+                                const errorData = await moveResponse.json();
+                                errorMessage = errorData.error || errorData.message || errorMessage;
+                            } catch (e) {
+                                const errorText = await moveResponse.text();
+                                if (errorText) errorMessage = errorText;
+                            }
+                            throw new Error(`${errorMessage} (${audioPath})`);
+                        }
+
+                        const moveResult = await moveResponse.json().catch(() => ({}));
+                        movedPaths.push(moveResult?.path || audioPath);
+                    }
+
+                    return {
+                        sourceBucket: 'levante-assets-dev',
+                        targetBucket: 'levante-assets-draft',
+                        path: movedPaths.join(', ')
+                    };
                 } catch (error) {
                     console.error('Error moving audio to draft:', error);
                     throw error;
@@ -3525,7 +3635,10 @@
                     
                     this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
                     
-                    const audioPath = await this.findLatestAudioPath('levante-assets-draft', baseId);
+                    const audioPath = await this.findLatestAudioPath('levante-assets-draft', baseId, { allowFallback: false });
+                    if (!audioPath) {
+                        throw new Error(`No draft audio file found for ${itemId}`);
+                    }
                     
                     // Move the file to dev bucket
                     const moveResponse = await fetch('/api/move-audio-to-dev', {
@@ -3543,12 +3656,20 @@
                         const errorText = await moveResponse.text();
                         throw new Error(errorText || 'Failed to move audio to approved bucket');
                     }
+                    const moveResult = await moveResponse.json().catch(() => ({}));
                     
                     // Update state
                     this.pendingSaveKey = null;
                     this.latestGeneratedAudio = null;
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId);
+                    this.recordMoveAudit({
+                        action: 'save+approve',
+                        itemId,
+                        sourceBucket: moveResult?.sourceBucket || 'levante-assets-draft',
+                        targetBucket: moveResult?.targetBucket || 'levante-assets-dev',
+                        path: moveResult?.path || audioPath
+                    });
                     
                     // Update UI
                     this.updateSaveButtonStates();
@@ -3638,12 +3759,20 @@
                         const errorText = await moveResponse.text();
                         throw new Error(errorText || 'Failed to move audio to approved bucket');
                     }
+                    const moveResult = await moveResponse.json().catch(() => ({}));
                     
                     // Step 3: Update state
                     this.pendingSaveKey = null;
                     this.latestGeneratedAudio = null;
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId); // Remove from unapproved if it was there
+                    this.recordMoveAudit({
+                        action: 'save+approve',
+                        itemId,
+                        sourceBucket: moveResult?.sourceBucket || 'levante-assets-draft',
+                        targetBucket: moveResult?.targetBucket || 'levante-assets-dev',
+                        path: moveResult?.path || audioPath
+                    });
                     
                     // Update UI
                     this.updateSaveButtonStates();
@@ -3676,11 +3805,18 @@
                     this.setStatus(`Unapproving ${itemId}...`, 'loading');
                     
                     // Move audio file back from dev to draft bucket
-                    await this.moveAudioToDraft(itemId, baseId);
+                    const moveResult = await this.moveAudioToDraft(itemId, baseId);
                     
                     // Update state
                     this.approvedItems.delete(baseId);
                     this.unapprovedItems.add(baseId); // Track as unapproved
+                    this.recordMoveAudit({
+                        action: 'unapprove',
+                        itemId,
+                        sourceBucket: moveResult?.sourceBucket || 'levante-assets-dev',
+                        targetBucket: moveResult?.targetBucket || 'levante-assets-draft',
+                        path: moveResult?.path || this.buildFallbackAudioPath(baseId)
+                    });
                     
                     // Update UI
                     await this.loadApprovalStatus();
@@ -3806,6 +3942,35 @@
                 const statusEl = document.getElementById('status');
                 statusEl.textContent = message;
                 statusEl.className = 'status' + (type ? ' ' + type : '');
+            }
+
+            recordMoveAudit(entry) {
+                if (!entry) return;
+                this.lastMoveAudit = {
+                    at: new Date().toISOString(),
+                    action: entry.action || 'move',
+                    itemId: entry.itemId || '',
+                    sourceBucket: entry.sourceBucket || '',
+                    targetBucket: entry.targetBucket || '',
+                    path: entry.path || ''
+                };
+                this.renderMoveAudit();
+            }
+
+            renderMoveAudit() {
+                const wrapper = document.getElementById('moveAudit');
+                const textEl = document.getElementById('moveAuditText');
+                if (!wrapper || !textEl) return;
+                if (!this.lastMoveAudit) {
+                    wrapper.style.display = 'none';
+                    textEl.textContent = 'None';
+                    return;
+                }
+                const audit = this.lastMoveAudit;
+                const at = new Date(audit.at).toLocaleTimeString();
+                const actor = this.currentUserEmail || 'unknown-user';
+                textEl.textContent = `[${at}] ${audit.action} ${audit.itemId}: ${audit.sourceBucket} -> ${audit.targetBucket} (${audit.path}) by ${actor}`;
+                wrapper.style.display = 'flex';
             }
 
             escapeHtml(text) {

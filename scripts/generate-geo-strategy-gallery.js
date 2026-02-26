@@ -34,6 +34,7 @@ const WEATHER_ROUNDING_DEG = Number(process.env.GEO_WEATHER_ROUNDING_DEG || 0);
 const SCHOOL_RADIUS_M = Number(process.env.GEO_SCHOOL_RADIUS_M || 5000);
 const H3_BASE_RES = Number(process.env.GEO_H3_BASE_RES || 5);
 const H3_EFFECTIVE_MAX_RES = Number(process.env.GEO_H3_EFFECTIVE_MAX_RES || 9);
+const H3_POPULATION_SOURCE = String(process.env.GEO_H3_POPULATION_SOURCE || 'kontur').toLowerCase();
 
 const TILE_SIZES = [1, 3, 5, 7];
 const TILE_HALF_KM = 0.5;
@@ -41,6 +42,7 @@ const TILE_HALF_KM = 0.5;
 const WORLDPOP_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-worldpop-cache.json');
 const WEATHER_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-weather-cache.json');
 const OVERPASS_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-overpass-cache.json');
+const KONTUR_H3_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'kontur-h3-population-cache.json');
 
 const BOUNDARY_PACKS_BUCKET = process.env.BOUNDARY_PACKS_BUCKET || 'levante-assets-draft';
 const BOUNDARY_PACKS_PREFIX = process.env.BOUNDARY_PACKS_PREFIX || 'maps/boundaries';
@@ -286,7 +288,74 @@ function shiftLocation(point, shiftKm) {
 }
 
 let worldPopCache = null;
+let konturH3Cache = null;
 const h3PopulationCache = new Map();
+
+function loadKonturH3Cache() {
+  if (konturH3Cache) return konturH3Cache;
+  try {
+    if (fs.existsSync(KONTUR_H3_CACHE_PATH)) {
+      const parsed = JSON.parse(fs.readFileSync(KONTUR_H3_CACHE_PATH, 'utf8'));
+      const out = {};
+      if (parsed && typeof parsed === 'object' && parsed.resolutions && typeof parsed.resolutions === 'object') {
+        for (const [resKey, values] of Object.entries(parsed.resolutions)) {
+          if (values && typeof values === 'object') out[String(resKey)] = values;
+        }
+      } else {
+        // Backward-compatible flat map support: { "6|cellId": 1234 }
+        for (const [k, v] of Object.entries(parsed || {})) {
+          if (typeof v !== 'number') continue;
+          const parts = String(k).split('|');
+          if (parts.length !== 2) continue;
+          const [res, cellId] = parts;
+          if (!out[res]) out[res] = {};
+          out[res][cellId] = Math.round(v);
+        }
+      }
+      konturH3Cache = out;
+    } else {
+      konturH3Cache = {};
+    }
+  } catch (_) {
+    konturH3Cache = {};
+  }
+  return konturH3Cache;
+}
+
+function lookupKonturH3Population(cellId, resolution) {
+  if (!cellId) return null;
+  const cache = loadKonturH3Cache();
+  const resKey = String(resolution);
+  const exact = cache[resKey] && cache[resKey][cellId];
+  if (typeof exact === 'number' && Number.isFinite(exact) && exact >= 0) {
+    return Math.round(exact);
+  }
+
+  // If we only have finer Kontur cells (for example r6) we can aggregate descendants
+  // to estimate coarser cells (for example r5).
+  const availableRes = Object.keys(cache)
+    .map((n) => Number(n))
+    .filter((n) => Number.isInteger(n))
+    .sort((a, b) => a - b);
+  const finerRes = availableRes.find((r) => r > resolution);
+  if (!Number.isInteger(finerRes)) return null;
+  if (!cache[String(finerRes)]) return null;
+  let sum = 0;
+  let seen = 0;
+  try {
+    const children = h3.cellToChildren(cellId, finerRes);
+    for (const child of children) {
+      const value = cache[String(finerRes)][child];
+      if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+        sum += value;
+        seen += 1;
+      }
+    }
+  } catch (_) {
+    return null;
+  }
+  return seen ? Math.round(sum) : null;
+}
 
 function loadWorldPopCache() {
   if (worldPopCache) return worldPopCache;
@@ -378,12 +447,21 @@ function h3CellToPolygonGeometry(cellId) {
 async function buildH3ResolutionInfo(lat, lon, countryCode, res, threshold) {
   const cellId = h3.latLngToCell(lat, lon, res);
   const cacheKey = `${countryCode || ''}|${cellId}`;
-  let population = h3PopulationCache.get(cacheKey);
+  let cached = h3PopulationCache.get(cacheKey);
+  let population = cached ? cached.population : undefined;
+  let source = cached ? cached.source : null;
   let geometry = null;
   if (population === undefined) {
-    geometry = h3CellToPolygonGeometry(cellId);
-    population = geometry ? await estimatePopulationFromWorldPop(geometry, countryCode) : null;
-    h3PopulationCache.set(cacheKey, population);
+    if (H3_POPULATION_SOURCE === 'kontur' || H3_POPULATION_SOURCE === 'auto') {
+      population = lookupKonturH3Population(cellId, res);
+      source = typeof population === 'number' ? 'kontur' : null;
+    }
+    if (population === undefined || population === null) {
+      geometry = h3CellToPolygonGeometry(cellId);
+      population = geometry ? await estimatePopulationFromWorldPop(geometry, countryCode) : null;
+      source = typeof population === 'number' ? 'worldpop' : source;
+    }
+    h3PopulationCache.set(cacheKey, { population, source });
   }
   if (!geometry) {
     geometry = h3CellToPolygonGeometry(cellId);
@@ -393,6 +471,7 @@ async function buildH3ResolutionInfo(lat, lon, countryCode, res, threshold) {
     id: cellId,
     resolution: res,
     population: popValue,
+    populationSource: source || null,
     privacyMet: typeof popValue === 'number' ? popValue >= threshold : false,
     outline: geometry
       ? {
@@ -402,6 +481,7 @@ async function buildH3ResolutionInfo(lat, lon, countryCode, res, threshold) {
             id: cellId,
             resolution: res,
             population: popValue,
+            populationSource: source || null,
             privacyMet: typeof popValue === 'number' ? popValue >= threshold : false
           },
           geometry
@@ -819,6 +899,13 @@ async function main() {
     h3EffectiveMaxRes: H3_EFFECTIVE_MAX_RES
   };
 
+  console.log('Geo Strategy config:');
+  console.log(`- Population threshold: ${options.popThreshold}`);
+  console.log(`- H3 base resolution: ${options.h3BaseRes}`);
+  console.log(`- H3 effective max resolution: ${options.h3EffectiveMaxRes}`);
+  console.log(`- H3 population source: ${H3_POPULATION_SOURCE}`);
+  console.log(`- Kontur H3 cache path: ${KONTUR_H3_CACHE_PATH}`);
+
   if (!fs.existsSync(SEED_FILE)) {
     throw new Error(`Seed file not found: ${SEED_FILE}`);
   }
@@ -845,7 +932,8 @@ async function main() {
       scheme: 'h3_v1',
       baseResolution: options.h3BaseRes,
       effectiveResolutionSearchMax: options.h3EffectiveMaxRes,
-      effectiveRule: 'Use highest H3 resolution (smallest cell) whose estimated population is >= populationThreshold'
+      effectiveRule: 'Use highest H3 resolution (smallest cell) whose estimated population is >= populationThreshold',
+      populationSource: H3_POPULATION_SOURCE
     },
     points: entries
   };
