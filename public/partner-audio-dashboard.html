@@ -3214,7 +3214,10 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     // Try multiple possible column names for English source
                     const sourceText = item.en || item.english || item.text || item['en-US'] || item['en_US'] || '';
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
@@ -3916,39 +3919,9 @@
                     
                     this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
                     
-                    // Find the actual audio file path
-                    let audioPath = null;
-                    try {
-                        const draftParams = new URLSearchParams({
-                            bucket: 'levante-assets-draft',
-                            prefix: `audio/${this.currentLangCode}/${baseId}`
-                        });
-                        
-                        const draftResponse = await fetch(`/api/list-draft-audio?${draftParams.toString()}`);
-                        if (draftResponse.ok) {
-                            const draftData = await draftResponse.json();
-                            if (draftData.items && draftData.items.length > 0) {
-                                const matchingFiles = draftData.items.filter(item => {
-                                    const fileName = item.name.split('/').pop() || '';
-                                    return fileName.startsWith(baseId) && fileName.endsWith('.mp3');
-                                });
-                                
-                                if (matchingFiles.length > 0) {
-                                    matchingFiles.sort((a, b) => {
-                                        const dateA = new Date(a.updated || a.timeCreated || 0);
-                                        const dateB = new Date(b.updated || b.timeCreated || 0);
-                                        return dateB - dateA;
-                                    });
-                                    audioPath = matchingFiles[0].name;
-                                }
-                            }
-                        }
-                    } catch (draftError) {
-                        console.warn(`Could not list audio files for ${baseId}`, draftError);
-                    }
-                    
+                    const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
                     if (!audioPath) {
-                        audioPath = `audio/${this.currentLangCode}/${baseId}.mp3`;
+                        throw new Error(`No draft audio file found for ${itemId}`);
                     }
                     
                     // Move the file to dev bucket
@@ -3973,6 +3946,8 @@
                     this.latestGeneratedAudio = null;
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId);
+                    this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+                    this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
                     
                     // Update UI
                     this.updateSaveButtonStates();
@@ -4004,7 +3979,10 @@
                     
                     const item = this.data.find(entry => entry.item_id === itemId);
                     const itemLabel = item?.labels || item?.task || itemId;
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     
                     // Step 1: Save audio to draft bucket
                     const payload = {
@@ -4044,39 +4022,9 @@
                     // Step 2: Immediately move to dev bucket
                     this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
                     
-                    // Find the actual audio file path
-                    let audioPath = null;
-                    try {
-                        const draftParams = new URLSearchParams({
-                            bucket: 'levante-assets-draft',
-                            prefix: `audio/${this.currentLangCode}/${baseId}`
-                        });
-                        
-                        const draftResponse = await fetch(`/api/list-draft-audio?${draftParams.toString()}`);
-                        if (draftResponse.ok) {
-                            const draftData = await draftResponse.json();
-                            if (draftData.items && draftData.items.length > 0) {
-                                const matchingFiles = draftData.items.filter(item => {
-                                    const fileName = item.name.split('/').pop() || '';
-                                    return fileName.startsWith(baseId) && fileName.endsWith('.mp3');
-                                });
-                                
-                                if (matchingFiles.length > 0) {
-                                    matchingFiles.sort((a, b) => {
-                                        const dateA = new Date(a.updated || a.timeCreated || 0);
-                                        const dateB = new Date(b.updated || b.timeCreated || 0);
-                                        return dateB - dateA;
-                                    });
-                                    audioPath = matchingFiles[0].name;
-                                }
-                            }
-                        }
-                    } catch (draftError) {
-                        console.warn(`Could not list audio files for ${baseId}`, draftError);
-                    }
-                    
+                    const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
                     if (!audioPath) {
-                        audioPath = `audio/${this.currentLangCode}/${baseId}.mp3`;
+                        throw new Error(`No draft audio file found for ${itemId}`);
                     }
                     
                     // Move the file to dev bucket
@@ -4101,6 +4049,8 @@
                     this.latestGeneratedAudio = null;
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId); // Remove from unapproved if it was there
+                    this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+                    this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
                     
                     // Update UI
                     this.updateSaveButtonStates();
