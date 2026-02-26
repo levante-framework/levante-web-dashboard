@@ -267,7 +267,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const forceRefresh = options && options.forceRefresh === true;
                 try {
                     if (!forceRefresh) {
-                        if (this.loadCrowdinDataFromCache()) return true;
+                        if (await this.loadCrowdinDataFromCache()) return true;
                         // Do not call Crowdin automatically during normal loads.
                         this.setStatus('No Crowdin cache yet. Click "Update Translations" to fetch from Crowdin.', 'warning');
                         return false;
@@ -342,7 +342,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
                     this.updateDataSourceLabel(source);
                     this.cacheDataLocally(null);
-                    this.cacheCrowdinDataLocally();
+                    await this.cacheCrowdinDataLocally();
                     return true;
                 } catch (error) {
                     console.warn('Crowdin load failed:', error);
@@ -356,32 +356,124 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
             }
 
-            loadCrowdinDataFromCache() {
+            async loadCrowdinDataFromCache() {
                 try {
                     const raw = localStorage.getItem('levante_crowdin_cache');
-                    if (!raw) return false;
-                    const cached = JSON.parse(raw);
+                    if (raw) {
+                        const cached = JSON.parse(raw);
+                        if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+                            this.data = cached.data;
+                            this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
+                            const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
+                            this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
+                            this.updateDataSourceLabel('cached Crowdin data');
+                            return true;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Could not read Crowdin cache:', error);
+                }
+                try {
+                    const cached = await this.readCrowdinCacheFromIndexedDB();
                     if (!cached || !Array.isArray(cached.data) || cached.data.length === 0) return false;
                     this.data = cached.data;
                     this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                     const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
-                    this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt})`, 'success');
-                    this.updateDataSourceLabel('Crowdin cache');
+                    this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
+                    this.updateDataSourceLabel('cached Crowdin data');
                     return true;
                 } catch (error) {
-                    console.warn('Could not read Crowdin cache:', error);
+                    console.warn('Could not read Crowdin IndexedDB cache:', error);
                     return false;
                 }
             }
 
-            cacheCrowdinDataLocally() {
+            sanitizeCrowdinDataForCache() {
+                // Reduce cache size by removing diagnostic-only fields (not needed by table rendering).
+                return (this.data || []).map((row) => {
+                    const cleaned = {};
+                    Object.keys(row || {}).forEach((key) => {
+                        if (String(key).startsWith('_')) return;
+                        cleaned[key] = row[key];
+                    });
+                    return cleaned;
+                });
+            }
+
+            openCrowdinCacheDb() {
+                return new Promise((resolve, reject) => {
+                    if (typeof indexedDB === 'undefined') {
+                        reject(new Error('IndexedDB unavailable'));
+                        return;
+                    }
+                    const req = indexedDB.open('levante-dashboard-cache', 1);
+                    req.onupgradeneeded = () => {
+                        const db = req.result;
+                        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error || new Error('Failed to open IndexedDB'));
+                });
+            }
+
+            async writeCrowdinCacheToIndexedDB(payload) {
+                const db = await this.openCrowdinCacheDb();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction('kv', 'readwrite');
+                    tx.objectStore('kv').put(payload, 'levante_crowdin_cache');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error || new Error('IndexedDB write failed'));
+                });
+                db.close();
+            }
+
+            async readCrowdinCacheFromIndexedDB() {
+                const db = await this.openCrowdinCacheDb();
+                const value = await new Promise((resolve, reject) => {
+                    const tx = db.transaction('kv', 'readonly');
+                    const req = tx.objectStore('kv').get('levante_crowdin_cache');
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => reject(req.error || new Error('IndexedDB read failed'));
+                });
+                db.close();
+                return value;
+            }
+
+            async cacheCrowdinDataLocally() {
                 try {
+                    const files = this.crowdinFilesUsed || [];
+                    const compactData = this.sanitizeCrowdinDataForCache();
                     const payload = {
                         cachedAt: new Date().toISOString(),
-                        data: this.data,
-                        crowdinFilesUsed: this.crowdinFilesUsed || []
+                        data: compactData,
+                        crowdinFilesUsed: files,
+                        cacheFormat: 'crowdin-full-merge',
+                        cacheIncludes: {
+                            csv: files.filter((f) => String(f).toLowerCase().endsWith('.csv')).length,
+                            xliff: files.filter((f) => {
+                                const n = String(f).toLowerCase();
+                                return n.endsWith('.xlf') || n.endsWith('.xliff');
+                            }).length
+                        }
                     };
-                    localStorage.setItem('levante_crowdin_cache', JSON.stringify(payload));
+                    const serialized = JSON.stringify(payload);
+                    let localSaved = false;
+                    try {
+                        localStorage.setItem('levante_crowdin_cache', serialized);
+                        localSaved = true;
+                    } catch (storageError) {
+                        if (!String(storageError && storageError.name).includes('QuotaExceededError')) {
+                            console.warn('Could not write Crowdin cache to localStorage:', storageError);
+                        }
+                    }
+                    try {
+                        await this.writeCrowdinCacheToIndexedDB(payload);
+                    } catch (idbError) {
+                        console.warn('Could not write Crowdin cache to IndexedDB:', idbError);
+                    }
+                    if (!localSaved) {
+                        console.warn('Crowdin cache exceeded localStorage quota; using IndexedDB cache');
+                    }
                 } catch (error) {
                     console.warn('Could not cache Crowdin data locally:', error);
                 }
@@ -440,6 +532,46 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const task = item.task || item.labels || item.category || item.type || 'general';
                     const en = (item.en || item.source || item.source_phrase || item.english || item['en-US'] || item['en_US'] || item.text || '').trim();
                     return { ...item, item_id: itemId, labels: task, en: en || item.en || '' };
+                }
+                function deriveTaskAndTypeFromPath(path) {
+                    const normalized = String(path || '').replace(/\\/g, '/');
+                    const compact = normalized.replace(/^[a-z]{2}(?:-[A-Za-z]{2,4})?\//i, '');
+                    const out = { task: 'general', contentType: 'general' };
+                    function prettifyLabel(label) {
+                        const raw = String(label || '').trim();
+                        if (!raw) return 'general';
+                        return raw
+                            .replace(/\.[a-z0-9]+$/i, '')
+                            .replace(/[_-]+/g, ' ')
+                            .replace(/\b(short|newkeys?)\b/ig, '')
+                            .replace(/\s+/g, ' ')
+                            .trim()
+                            .replace(/\b\w/g, (c) => c.toUpperCase());
+                    }
+                    const itembankMatch = compact.match(/(?:^|\/)itembank_by_task\/([^/]+)\.xli?ff$/i);
+                    if (itembankMatch) {
+                        out.task = prettifyLabel(itembankMatch[1] || 'general');
+                        out.contentType = 'itembank';
+                        return out;
+                    }
+                    const surveyMatch = compact.match(/(?:^|\/)surveys\/([^/]+)\.xli?ff$/i);
+                    if (surveyMatch) {
+                        out.task = `Survey: ${prettifyLabel(surveyMatch[1])}`;
+                        out.contentType = 'survey';
+                        return out;
+                    }
+                    const xliffOutMatch = compact.match(/(?:^|\/)xliff-out\/([^/]+)/i);
+                    if (xliffOutMatch) {
+                        out.task = `Survey: ${prettifyLabel(xliffOutMatch[1])}`;
+                        out.contentType = 'survey';
+                        return out;
+                    }
+                    if (compact.includes('/LEGACY_DO_NOT_TRANSLATE/')) {
+                        out.task = 'legacy';
+                        out.contentType = 'legacy';
+                        return out;
+                    }
+                    return out;
                 }
                 function getIdFromRow(row, headers) {
                     const keys = headers && headers.length ? headers : Object.keys(row);
@@ -581,6 +713,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const pathParts = normalizedPath.split('/');
                     const canonicalPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : normalizedPath;
                     const sourceLangFromPath = langFromFirstSegment(path);
+                    const derivedMeta = deriveTaskAndTypeFromPath(canonicalPath);
                     const enHeaders = ['identifier', 'en'];
                     const tgtHeaders = ['identifier', targetLang];
                     units.forEach(u => {
@@ -589,8 +722,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         // Prevent collisions across files (many XLIFFs reuse small numeric ids per file).
                         // Use path without language prefix + local unit key so the same entry matches across languages.
                         const stableId = `${canonicalPath}::${unitLocalKey}`;
-                        const enObj = { identifier: stableId, en: u.source, _path: path };
-                        const tgtObj = { identifier: stableId, [targetLang]: u.target, _path: path };
+                        const enObj = { identifier: stableId, en: u.source, _path: path, labels: derivedMeta.task, contentType: derivedMeta.contentType };
+                        const tgtObj = { identifier: stableId, [targetLang]: u.target, _path: path, labels: derivedMeta.task, contentType: derivedMeta.contentType };
                         if (!byLang.en) byLang.en = { headers: enHeaders, objects: [] };
                         const existingEnIdx = byLang.en.objects.findIndex(r => getIdFromRow(r, byLang.en.headers) === stableId);
                         if (existingEnIdx === -1) {
@@ -641,7 +774,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const row = baseRow || {};
                     const enRow = byLang.en ? getRowByLang('en', id) : null;
                     const enText = enRow ? (enRow.en || enRow.source || enRow.english || enRow.text || '') : (row.en || row.source || row.english || row.text || '');
-                    const out = { ...row, item_id: id, labels: row.task || row.labels || 'general', en: enText };
+                    const out = { ...row, item_id: id, labels: row.task || row.labels || 'general', contentType: row.contentType || 'general', en: enText };
                     const sourcePaths = [];
                     if (baseRow && baseRow._path) sourcePaths.push(baseRow._path);
                     Object.keys(byLang).forEach(lang => {
@@ -655,12 +788,21 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                     });
                     out._sourcePaths = [...new Set(sourcePaths)];
+                    if (out.labels === 'general') {
+                        const derived = deriveTaskAndTypeFromPath(out._sourcePaths[0] || out._path || '');
+                        out.labels = derived.task;
+                        if (!out.contentType || out.contentType === 'general') out.contentType = derived.contentType;
+                    }
                     return normalizeItem(out);
                 });
             }
 
             async loadDataFromCSV() {
                 try {
+                    // Prefer full cached Crowdin bundle (CSV + XLIFF merged) before remote CSV fallbacks.
+                    // This keeps source/label messaging consistent and avoids partial CSV-only states.
+                    if (await this.loadCrowdinDataFromCache()) return;
+
                     const cfg = (window.CONFIG && window.CONFIG.dataSources) || {};
                     const configuredItemBank = cfg.remoteCSV || null;
                     const configuredSurveys = cfg.remoteSurveysCSV || (
@@ -1627,6 +1769,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const itemId = item.item_id || `fallback_${index}`;
                     const displayItemId = String(itemId).includes('::') ? String(itemId).split('::').pop() : String(itemId);
                     const taskName = item.labels || item.task || 'general';
+                    const contentType = item.contentType || 'general';
                     const originalEnglish = item.en || 'No English source';
                     row.dataset.itemId = itemId;
                     row.dataset.langCode = langCode;
@@ -1649,6 +1792,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const backTranslationHtml = backTranslation
                         ? `<div class="item-backtranslation" title="Back-translation">${escapeHtml(backTranslation)}</div>`
                         : '';
+                    const displayItemIdText = String(displayItemId || '');
+                    const compactItemId = displayItemIdText.length > 36 ? `${displayItemIdText.slice(0, 33)}...` : displayItemIdText;
+                    const escapedTaskName = escapeHtml(String(taskName));
+                    const escapedTypeName = escapeHtml(String(contentType));
+                    const escapedOriginalText = escapeHtml(String(originalEnglish || ''));
+                    const escapedDisplayText = escapeHtml(String(text || ''));
                     const hasStoredScore = !!(storedResult && storedResult.score !== undefined);
                     const validateOnClick = hasStoredScore
                         ? `(window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}'))`
@@ -1699,15 +1848,23 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     }
                     row.innerHTML = `
                         <div class="item-id-cell">
-                            <div class="item_id">${escapeHtml(displayItemId)}</div>
-                            <span class="item-task">${taskName}</span>
+                            <div class="item-id-top">
+                                <div class="item_id" title="${escapeHtml(displayItemIdText)}">${escapeHtml(compactItemId)}</div>
+                                <button class="item-id-copy-btn" type="button" title="Copy full key" onclick="copyItemIdToClipboard('${escapedItemId}', this, event)">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="item-meta-badges">
+                                <span class="item-task" title="${escapedTaskName}">${escapedTaskName}</span>
+                                <span class="item-type" title="${escapedTypeName}">${escapedTypeName}</span>
+                            </div>
                         </div>
                         <div class="item-english">
-                            <div class="item-english-source">${originalEnglish}</div>
+                            <div class="item-english-source">${escapedOriginalText}</div>
                             ${backTranslationHtml}
                         </div>
                         <div class="item-text">
-                            ${text}
+                            ${escapedDisplayText}
                             <div class="validation-status">
                                 <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}" ${indicatorOnClick}></div>
                                 <button class="validate-btn" onclick="${validateOnClick}">${buttonText}</button>
@@ -3052,6 +3209,23 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
         // - js/audio.js (playAudio, showAudioInfo, etc.)
         // - js/language-config.js (Vue config modal)
         // - js/bootstrap.js (initialization)
+
+        async function copyItemIdToClipboard(itemId, buttonEl, event) {
+            if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+            try {
+                if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard API unavailable');
+                await navigator.clipboard.writeText(String(itemId || ''));
+                if (window.dashboard && typeof window.dashboard.showButtonFeedback === 'function') {
+                    window.dashboard.showButtonFeedback(buttonEl, 'Copied', 'success', 'fa-check', 1000);
+                }
+            } catch (error) {
+                console.warn('Copy item id failed:', error);
+                if (window.dashboard && typeof window.dashboard.showButtonFeedback === 'function') {
+                    window.dashboard.showButtonFeedback(buttonEl, 'Failed', 'warning', 'fa-triangle-exclamation', 1200);
+                }
+            }
+        }
+        window.copyItemIdToClipboard = copyItemIdToClipboard;
 
         // Make Dashboard class available globally for bootstrap
         window.Dashboard = Dashboard;

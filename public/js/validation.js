@@ -83,6 +83,19 @@ function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function toPlainValidationText(value) {
+    const input = String(value || '');
+    if (!input) return '';
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(input, 'text/html');
+        const text = (doc.body && doc.body.textContent) ? doc.body.textContent : input;
+        return text.replace(/\s+/g, ' ').trim();
+    } catch (_) {
+        return input.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+}
+
 let _aiJudgeHealthCache = null;
 let _aiJudgeHealthCheckedAt = 0;
 const AI_HEALTH_TTL_MS = 30000;
@@ -325,7 +338,7 @@ function validateByItemId(itemId, langCode) {
         dashboard.setStatus(`❌ Could not find item data for ${targetId}`, 'error');
         return false;
     }
-    const originalText = String(item.en || '');
+    const originalText = toPlainValidationText(item.en || '');
     let translatedText = item[langCode];
     if (!translatedText && String(langCode).includes('-')) translatedText = item[String(langCode).split('-')[0]];
     if (!translatedText) {
@@ -333,7 +346,7 @@ function validateByItemId(itemId, langCode) {
         translatedText = key ? item[key] : '';
     }
     if (!translatedText) translatedText = originalText;
-    validateSingle(targetId, String(originalText || ''), String(translatedText || ''), langCode);
+    validateSingle(targetId, toPlainValidationText(originalText || ''), toPlainValidationText(translatedText || ''), langCode);
     return true;
 }
 
@@ -488,10 +501,12 @@ async function validateAll() {
             translatedText = key ? item[key] : '';
         }
         if (!translatedText) translatedText = item.en || '';
+        const cleanOriginalText = toPlainValidationText(item.en || '');
+        const cleanTranslatedText = toPlainValidationText(String(translatedText || ''));
         jobs.push({
             itemId,
-            originalText: item.en || '',
-            translatedText: String(translatedText || ''),
+            originalText: cleanOriginalText,
+            translatedText: cleanTranslatedText,
             langCode
         });
     });
@@ -646,6 +661,8 @@ async function loadValidationsFromShared() {
 }
 
 async function validateSingle(itemId, originalText, translatedText, langCode) {
+    const normalizedOriginalText = toPlainValidationText(originalText);
+    const normalizedTranslatedText = toPlainValidationText(translatedText);
     const credentials = getCredentials();
     const userKey = credentials.google_translate_api_key && credentials.google_translate_api_key.trim() ? credentials.google_translate_api_key.trim() : null;
 
@@ -698,8 +715,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             const existingResult = window.dashboard.validation_results[itemId][langCode] || {};
             window.dashboard.validation_results[itemId][langCode] = {
                 score: similarity,
-                originalText: originalText,
-                translatedText: translatedText,
+                originalText: normalizedOriginalText,
+                translatedText: normalizedTranslatedText,
                 backTranslation: 'N/A (source language)',
                 timestamp: new Date().toISOString(),
                 notes: 'Source language - no translation validation needed',
@@ -771,8 +788,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         // Fast path: AI-only mode skips Google back-translation.
         if (aiMode === 'all') {
             aiJudge = await runAiJudge({
-                originalText,
-                translatedText,
+                originalText: normalizedOriginalText,
+                translatedText: normalizedTranslatedText,
                 backTranslation: '',
                 langCode,
                 baseScore: 0
@@ -791,7 +808,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             // Call Google Translate API to back-translate from target language to English.
             const headers = {};
             if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
-            const response = await fetch(`/api/google-translate?text=${encodeURIComponent(translatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
+            const response = await fetch(`/api/google-translate?text=${encodeURIComponent(normalizedTranslatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
                 method: 'GET',
                 headers
             });
@@ -809,18 +826,18 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             }
 
             const data = await response.json();
-            backTranslation = data.translatedText;
+            backTranslation = toPlainValidationText(data.translatedText);
 
             // Calculate similarity score (simple word overlap for now).
-            const originalWords = originalText.toLowerCase().split(/\s+/);
+            const originalWords = normalizedOriginalText.toLowerCase().split(/\s+/);
             const backTranslatedWords = backTranslation.toLowerCase().split(/\s+/);
             const commonWords = originalWords.filter(word => backTranslatedWords.includes(word));
             const similarity = commonWords.length / Math.max(originalWords.length, backTranslatedWords.length);
             baselineScore = Math.round((similarity * 100) * 100) / 100;
 
             aiJudge = await runAiJudge({
-                originalText,
-                translatedText,
+                originalText: normalizedOriginalText,
+                translatedText: normalizedTranslatedText,
                 backTranslation,
                 langCode,
                 baseScore: baselineScore
@@ -836,8 +853,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         const existingResult = window.dashboard.validation_results[itemId][langCode] || {};
         window.dashboard.validation_results[itemId][langCode] = {
             score: score / 100, // Store as decimal for consistency
-            originalText: originalText,
-            translatedText: translatedText,
+            originalText: normalizedOriginalText,
+            translatedText: normalizedTranslatedText,
             backTranslation: backTranslation,
             timestamp: new Date().toISOString(),
             notes: score >= 85 ? 'Excellent translation' : score >= 70 ? 'Good translation, review recommended' : 'Poor translation quality',
