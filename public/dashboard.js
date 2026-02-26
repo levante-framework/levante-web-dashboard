@@ -488,7 +488,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                             const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                             this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
-                            this.updateDataSourceLabel('cached Crowdin data');
+                            this.updateDataSourceLabel(`cached Crowdin data (retrieved ${cachedAt})`);
                             this.logPerf('Crowdin cache load total (localStorage)', cacheStart);
                             return true;
                         }
@@ -507,7 +507,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
                     const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                     this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
-                    this.updateDataSourceLabel('cached Crowdin data');
+                    this.updateDataSourceLabel(`cached Crowdin data (retrieved ${cachedAt})`);
                     this.logPerf('Crowdin cache load total (IndexedDB)', cacheStart);
                     return true;
                 } catch (error) {
