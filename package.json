@@ -37,28 +37,34 @@
   "author": "Levante Team",
   "license": "MIT",
   "dependencies": {
-    "@google-cloud/storage": "^7.16.0",
+    "@google-cloud/storage": "^7.19.0",
     "@turf/area": "^7.3.0",
     "@turf/boolean-point-in-polygon": "^7.3.0",
     "@turf/centroid": "^7.3.1",
     "@turf/distance": "^7.3.1",
     "dotenv": "^17.2.3",
     "fflate": "^0.8.2",
-    "google-auth-library": "^9.0.0",
+    "google-auth-library": "^10.6.1",
     "h3-js": "^4.4.0",
     "node-id3": "^0.2.9",
-    "osmtogeojson": "^2.2.12",
+    "osmtogeojson": "^3.0.0-beta.5",
     "puppeteer": "^24.31.0",
     "shapefile": "^0.6.6",
     "sharp": "^0.33.2",
-    "unzipper": "^0.10.11",
-    "vercel": "^48.12.1",
+    "unzipper": "^0.12.3",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "serve": "^14.0.0",
+    "serve": "^14.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vercel": "^50.23.2"
+  },
+  "overrides": {
+    "basic-ftp": "^5.2.0",
+    "osmtogeojson": {
+      "@xmldom/xmldom": "^0.8.11"
+    }
   }
 }
