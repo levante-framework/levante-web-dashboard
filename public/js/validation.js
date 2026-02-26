@@ -977,6 +977,7 @@ function exportValidationsToJSONFile() {
 function setValidationSummaryLoading(loading) {
     const ids = ['goodCount', 'warningCount', 'errorCount', 'pendingCount'];
     const spinner = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
+    const loadingLabel = document.getElementById('validationSummaryLoadingLabel');
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -984,6 +985,7 @@ function setValidationSummaryLoading(loading) {
             else if (el.querySelector && el.querySelector('.fa-spinner')) el.textContent = '0';
         }
     });
+    if (loadingLabel) loadingLabel.style.display = loading ? 'inline-block' : 'none';
 }
 
 function updateValidationSummary() {

@@ -112,6 +112,22 @@
             </div>
         </div>
         <div class="main-content">
+            <div class="controls-section data-sources-section">
+                <div class="control-group data-source-panel">
+                    <label><i class="fas fa-database"></i> Data Sources:</label>
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <select id="dataSourceSelect" class="voice-select" style="max-width: 260px;" title="Source for source and translated strings">
+                            <option value="crowdin">Crowdin (approved only)</option>
+                            <option value="csv">Remote CSV</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary btn-compact" id="reloadDataBtn" title="Fetch latest translations from Crowdin and refresh local Crowdin cache">
+                            <i class="fas fa-sync-alt"></i> Update Translations
+                        </button>
+                        <span id="dataSourceLabel" class="text-muted" style="font-size: 0.85em;"></span>
+                        <span class="text-muted" style="font-size: 0.82em;">Crowdin is loaded from cache by default. Click <strong>Update Translations</strong> to refresh.</span>
+                    </div>
+                </div>
+            </div>
             <div class="controls-section">
                 <div class="control-group">
                     <label><i class="fas fa-volume-up"></i> Voice Tools:</label>
@@ -145,20 +161,6 @@
                                 <i class="fas fa-language"></i> Languages
                             </button>
                         </div>
-                    </div>
-                </div>
-                <div class="control-group" style="margin-top: 8px;">
-                    <label><i class="fas fa-database"></i> Data source:</label>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <select id="dataSourceSelect" class="voice-select" style="max-width: 260px;" title="Source for source and translated strings">
-                            <option value="crowdin">Crowdin (approved only)</option>
-                            <option value="csv">Remote CSV</option>
-                        </select>
-                        <button type="button" class="btn btn-secondary btn-compact" id="reloadDataBtn" title="Fetch latest translations from Crowdin and refresh local Crowdin cache">
-                            <i class="fas fa-sync-alt"></i> Update Translations
-                        </button>
-                        <span id="dataSourceLabel" class="text-muted" style="font-size: 0.85em;"></span>
-                        <span class="text-muted" style="font-size: 0.82em;">Crowdin is loaded from cache by default. Click <strong>Update Translations</strong> to refresh.</span>
                     </div>
                 </div>
             <!-- Locate Me panel hidden - not needed for translations dashboard workflow -->
@@ -279,6 +281,9 @@
                                     <span style="font-size: 18px; font-weight: bold; color: #6c757d;" id="pendingCount">0</span>
                                     <span style="color: #6c757d; font-size: 0.9em;">Pending</span>
                                 </div>
+                                <span id="validationSummaryLoadingLabel" style="display: none; color: #6c757d; font-size: 0.85em; font-style: italic;">
+                                    Rendering...
+                                </span>
                                 <button type="button" class="btn btn-link btn-compact" style="padding: 4px 8px; font-size: 0.85em;" onclick="showItemsByFileModal()" title="Show how many items (for current filter) come from each Crowdin file">By file</button>
                             </div>
                         </div>

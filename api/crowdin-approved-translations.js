@@ -54,12 +54,34 @@ async function runHandler(req, res) {
         headers: authHeader,
         body: JSON.stringify({ exportApprovedOnly: false })
     });
-    if (!buildRes.ok) {
+    let buildId = null;
+    if (buildRes.ok) {
+        const buildBody = await buildRes.json();
+        buildId = buildBody.data?.id || null;
+    } else if (buildRes.status === 409) {
+        // Crowdin allows only one build at a time. If one is already running,
+        // reuse that build instead of failing and forcing CSV fallback.
+        const listRes = await fetch(`${CROWDIN_API_BASE}/projects/${CROWDIN_PROJECT_ID}/translations/builds?limit=10`, {
+            headers: authHeader
+        });
+        if (!listRes.ok) {
+            const errText = await listRes.text();
+            throw new Error(`Crowdin build in progress and listing builds failed: ${listRes.status} ${errText}`);
+        }
+        const listBody = await listRes.json();
+        const active = (listBody.data || []).find((b) => {
+            const s = String(b?.data?.status || '').toLowerCase();
+            return s === 'inprogress' || s === 'building';
+        });
+        buildId = active?.data?.id || null;
+        if (!buildId) {
+            const errText = await buildRes.text();
+            throw new Error(`Crowdin build already in progress, but no active build id found: ${errText}`);
+        }
+    } else {
         const errText = await buildRes.text();
         throw new Error(`Crowdin build failed: ${buildRes.status} ${errText}`);
     }
-    const buildBody = await buildRes.json();
-    const buildId = buildBody.data?.id;
     if (!buildId) throw new Error('No build id in response');
 
     const maxAttempts = 28;

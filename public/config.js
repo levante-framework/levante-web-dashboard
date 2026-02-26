@@ -199,7 +199,8 @@ const CONFIG = {
     
     // Data sources (dashboard tries remoteCSV first, then GitHub fallbacks in dashboard.js)
     dataSources: {
-        remoteCSV: 'https://storage.googleapis.com/levante-assets-dev/translations/item-bank-translations.csv'
+        remoteCSV: 'https://storage.googleapis.com/levante-assets-dev/translations/item-bank-translations.csv',
+        remoteSurveysCSV: 'https://storage.googleapis.com/levante-assets-dev/translations/surveys.csv'
     }
 };
 

@@ -661,30 +661,72 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             async loadDataFromCSV() {
                 try {
-                    let csvText = null;
-                    let source = '';
-                    const remoteUrls = [
-                        (window.CONFIG && window.CONFIG.dataSources && window.CONFIG.dataSources.remoteCSV) || null,
-                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv',
+                    const cfg = (window.CONFIG && window.CONFIG.dataSources) || {};
+                    const configuredItemBank = cfg.remoteCSV || null;
+                    const configuredSurveys = cfg.remoteSurveysCSV || (
+                        configuredItemBank && configuredItemBank.endsWith('/item-bank-translations.csv')
+                            ? configuredItemBank.replace('/item-bank-translations.csv', '/surveys.csv')
+                            : null
+                    );
+                    const remoteUrls = Array.from(new Set([
+                        configuredItemBank,
+                        configuredSurveys,
                         'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/translations/item-bank-translations.csv',
+                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/translations/surveys.csv',
                         'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/text/translated_prompts.csv'
-                    ].filter(Boolean);
+                    ].filter(Boolean)));
 
+                    const loadedBatches = [];
                     for (const url of remoteUrls) {
                         try {
                             this.setStatus('Loading translation data...', 'loading');
                             const response = await fetch(url);
-                            if (response.ok) {
-                                csvText = await response.text();
-                                source = url.indexOf('github') !== -1 ? 'GitHub' : 'remote';
-                                break;
-                            }
+                            if (!response.ok) continue;
+                            const csvText = await response.text();
+                            if (!csvText || !csvText.trim()) continue;
+                            const parsed = this.parseCSV(csvText);
+                            if (!Array.isArray(parsed) || parsed.length === 0) continue;
+                            loadedBatches.push({ url, rows: parsed });
                         } catch (e) {
                             console.warn('Fetch failed for', url, e);
                             continue;
                         }
                     }
 
+                    if (loadedBatches.length > 0) {
+                        const mergedById = new Map();
+                        loadedBatches.forEach((batch) => {
+                            batch.rows.forEach((row, index) => {
+                                const rawId = String(
+                                    row.item_id || row.identifier || row.id || row.ID || row.Item_ID || ''
+                                ).trim();
+                                const key = rawId ? rawId.toLowerCase() : `${batch.url}::${index}`;
+                                const existing = mergedById.get(key);
+                                if (!existing) {
+                                    mergedById.set(key, { ...row });
+                                    return;
+                                }
+                                mergedById.set(key, {
+                                    ...existing,
+                                    ...row,
+                                    item_id: existing.item_id || row.item_id
+                                });
+                            });
+                        });
+
+                        this.crowdinFilesUsed = null;
+                        this.data = Array.from(mergedById.values());
+                        const source = `CSV bundle (${loadedBatches.length} files)`;
+                        console.log(`Loaded ${this.data.length} items from ${source}`);
+                        console.log('CSV files used:', loadedBatches.map((b) => b.url));
+                        this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
+                        this.updateDataSourceLabel(source);
+                        this.cacheDataLocally(null);
+                        return;
+                    }
+
+                    let csvText = null;
+                    let source = '';
                     if (!csvText) {
                         try {
                             this.setStatus('Checking for local complete CSV...', 'loading');
@@ -1530,6 +1572,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const langCode = this.languages[this.currentLanguage].lang_code;
                 const tableContent = document.getElementById(`table-${this.currentLanguage}`);
                 if (!tableContent) return;
+                if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(true);
 
                 tableContent.innerHTML = '';
                 const allowedIds = typeof window.getReviewTableAllowedItemIds === 'function' ? window.getReviewTableAllowedItemIds() : null;

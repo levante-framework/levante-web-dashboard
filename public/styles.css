@@ -32,6 +32,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .header p { font-size: 1.2em; opacity: 0.9; }
 .main-content { padding: 30px; }
 .controls-section { margin-bottom: 25px; padding: 22px; background: rgba(9, 17, 31, 0.88); border-radius: 14px; border-left: 4px solid #ff6f00; box-shadow: 0 16px 32px rgba(2, 6, 23, 0.45); }
+.controls-section.data-sources-section { margin-bottom: 14px; }
 .control-group { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
 .control-group label { font-weight: 600; color: #e2e8f0; letter-spacing: 0.01em; }
 .location-panel .location-wrapper {
