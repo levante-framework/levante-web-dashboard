@@ -52,7 +52,7 @@ async function runHandler(req, res) {
     const buildRes = await fetch(`${CROWDIN_API_BASE}/projects/${CROWDIN_PROJECT_ID}/translations/builds`, {
         method: 'POST',
         headers: authHeader,
-        body: JSON.stringify({ exportApprovedOnly: false })
+        body: JSON.stringify({ exportApprovedOnly: true })
     });
     let buildId = null;
     if (buildRes.ok) {

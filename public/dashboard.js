@@ -237,7 +237,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 if (dataSource === 'crowdin') {
                     const loaded = await this.loadDataFromCrowdin({ forceRefresh });
                     if (loaded) return;
-                    console.warn('Crowdin load failed, falling back to CSV');
+                    if (forceRefresh) {
+                        console.warn('Crowdin refresh failed, falling back to CSV');
+                    } else {
+                        console.info('No cached Crowdin data found yet; using CSV fallback until Update Translations succeeds.');
+                    }
                 }
 
                 await this.loadDataFromCSV();
@@ -365,7 +369,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             return true;
                         }
                         // Do not call Crowdin automatically during normal loads.
-                        this.setStatus('No Crowdin cache yet. Click "Update Translations" to fetch from Crowdin.', 'warning');
+                        this.setStatus('No Crowdin cache found yet. Using CSV fallback now. Click "Update Translations" to fetch Crowdin and seed cache.', 'warning');
                         return false;
                     }
                     this.setStatus('Loading from Crowdin (approved only)...', 'loading');
@@ -461,11 +465,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     return true;
                 } catch (error) {
                     console.warn('Crowdin load failed:', error);
-                    this.setStatus(`Crowdin unavailable: ${error.message}. Trying CSV/cache...`, 'warning');
+                    this.setStatus(`Crowdin refresh failed (${error.message}). Using CSV fallback for now.`, 'warning');
                     // Only interrupt users when they explicitly requested a Crowdin refresh.
                     if (forceRefresh) {
                         const message = error.message || String(error);
-                        alert(`Crowdin could not load: ${message}\n\nUsing existing cached/CSV data.`);
+                        alert(`Crowdin refresh failed: ${message}\n\nUsing CSV fallback for now. You can retry "Update Translations".`);
                     }
                     return false;
                 }
