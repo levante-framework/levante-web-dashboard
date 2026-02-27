@@ -77,6 +77,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .btn-warning { background: #ffc107; color: #212529; }
 .voice-select { padding: 10px; border: 1px solid rgba(0, 160, 222, 0.28); border-radius: 10px; font-size: 14px; min-width: 250px; background: rgba(4, 13, 26, 0.85); color: #f1f5f9; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
 .voice-select:focus { outline: none; border-color: #ff6f00; box-shadow: 0 0 0 3px rgba(255, 111, 0, 0.25); }
+.file-filter-select { min-width: 210px; max-width: 310px; }
 .tabs { margin-bottom: 30px; }
 .tab-buttons { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
 .tab-button { padding: 12px 25px; background: rgba(9, 17, 31, 0.82); border: 1px solid rgba(0, 160, 222, 0.28); border-radius: 12px 12px 0 0; cursor: pointer; font-weight: 600; transition: all 0.3s ease; color: #cbd5f5; letter-spacing: 0.02em; }

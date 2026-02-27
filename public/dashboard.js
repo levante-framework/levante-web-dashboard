@@ -22,6 +22,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.activeRenderJobId = 0;
                 this.inFlightRenderSignatureByLanguage = new Map();
                 this.lazyRenderStateByLanguage = new Map();
+                this.fileFilterByLanguage = new Map();
                 
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
@@ -38,6 +39,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.selectedDraftAudio = null;
                 this.approvedDrafts = new Set();
                 this.pendingSaveKey = null;
+                this.isRefreshingTranslations = false;
                 
                 this.setupGlobalActions();
                 this.init();
@@ -219,9 +221,21 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
                 if (reloadBtn) {
                     reloadBtn.addEventListener('click', () => {
+                        if (this.isRefreshingTranslations) {
+                            this.setStatus('Update already in progress. Please wait...', 'warning');
+                            return;
+                        }
+                        this.isRefreshingTranslations = true;
+                        reloadBtn.disabled = true;
+                        const originalHtml = reloadBtn.innerHTML;
+                        reloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
                         this.loadData({ forceRefresh: true }).then(() => {
                             this.createTabs();
                             this.setStatus('Translations updated from source.', 'success');
+                        }).finally(() => {
+                            this.isRefreshingTranslations = false;
+                            reloadBtn.disabled = false;
+                            reloadBtn.innerHTML = originalHtml;
                         });
                     });
                 }
@@ -261,6 +275,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.attachDerivedDisplayFields(this.data);
                 this.dataVersion += 1;
                 this.renderSignatureByLanguage.clear();
+                this.inFlightRenderSignatureByLanguage.clear();
+                this.lazyRenderStateByLanguage.clear();
+                this.fileFilterByLanguage.clear();
+                this.activeRenderJobId += 1;
             }
 
             attachDerivedDisplayFields(rows) {
@@ -290,7 +308,83 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             getCurrentRenderSignature(language) {
                 const filterValue = (document.getElementById('reviewTablePathFilter')?.value || 'all');
-                return `${language}::${this.dataVersion}::${filterValue}`;
+                const fileFilterValue = this.fileFilterByLanguage.get(language) || 'all';
+                return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}`;
+            }
+
+            getItemSourcePaths(item) {
+                const paths = [];
+                if (Array.isArray(item?._sourcePaths)) {
+                    item._sourcePaths.forEach((p) => {
+                        if (p) paths.push(String(p));
+                    });
+                }
+                if (item?._path) paths.push(String(item._path));
+                // Backward compatibility for older cached Crowdin rows that only stored item_id.
+                // Crowdin merged IDs are often "path/to/file.xliff::unit-key".
+                const stableId = String(item?.item_id || item?.identifier || '');
+                if (stableId.includes('::')) {
+                    const candidatePath = stableId.split('::')[0];
+                    if (candidatePath && candidatePath.includes('/')) {
+                        paths.push(candidatePath);
+                    }
+                }
+                return [...new Set(paths)];
+            }
+
+            isPathRelevantForLanguage(path, language) {
+                const normalizedPath = String(path || '').replace(/\\/g, '/').trim();
+                if (!normalizedPath) return false;
+                const langCode = String(this.languages?.[language]?.lang_code || '').trim();
+                if (!langCode) return true;
+                const firstSegment = normalizedPath.split('/')[0] || '';
+                const firstLower = firstSegment.toLowerCase();
+                const langLower = langCode.toLowerCase();
+                const isLanguageSegment = /^[a-z]{2}(?:-[a-z0-9]{2,4})?$/i.test(firstSegment);
+                // Shared dashboard CSVs should be available in every language tab.
+                if (normalizedPath.toLowerCase().includes('main/dashboard/') && normalizedPath.toLowerCase().endsWith('.csv')) return true;
+                // Shared/non-language paths stay visible for all tabs.
+                if (!isLanguageSegment) return true;
+                if (firstLower === langLower) return true;
+                // English exports frequently use en-US folder while UI language code is en.
+                if (langLower === 'en' && firstLower === 'en-us') return true;
+                if (langLower === 'en-us' && firstLower === 'en') return true;
+                return false;
+            }
+
+            getSourceFilesForRows(rows, language) {
+                const files = new Set();
+                (rows || []).forEach((item) => {
+                    this.getItemSourcePaths(item)
+                        .filter((path) => this.isPathRelevantForLanguage(path, language))
+                        .forEach((path) => files.add(path));
+                });
+                return Array.from(files).sort((a, b) => a.localeCompare(b));
+            }
+
+            refreshFileFilterOptions(language, baseRows) {
+                const selectEl = document.getElementById(`file-filter-${language}`);
+                if (!selectEl) return;
+                const previousValue = this.fileFilterByLanguage.get(language) || selectEl.value || 'all';
+                const files = this.getSourceFilesForRows(baseRows, language);
+                selectEl.innerHTML = '';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = 'all';
+                defaultOption.textContent = 'All Files';
+                selectEl.appendChild(defaultOption);
+                files.forEach((file) => {
+                    const option = document.createElement('option');
+                    option.value = String(file);
+                    option.textContent = String(file);
+                    selectEl.appendChild(option);
+                });
+                const nextValue = files.includes(previousValue) ? previousValue : 'all';
+                selectEl.value = nextValue;
+                this.fileFilterByLanguage.set(language, nextValue);
+                selectEl.disabled = files.length === 0;
+                selectEl.title = files.length
+                    ? 'Filter grid to a single source file'
+                    : 'No source file metadata available for this dataset';
             }
 
             getFilteredItemsForLanguage(language) {
@@ -440,7 +534,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         filter: (f) => {
                             const n = nameLower(f);
                             if (n.includes('archive')) return false;
-                            if (n.startsWith('main/')) return false;
+                            if (n.startsWith('main/') && !n.startsWith('main/dashboard/')) return false;
                             return n.endsWith('.csv') || n.endsWith('.xlf') || n.endsWith('.xliff');
                         }
                     });
@@ -525,7 +619,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return (this.data || []).map((row) => {
                     const cleaned = {};
                     Object.keys(row || {}).forEach((key) => {
-                        if (String(key).startsWith('_')) return;
+                        if (String(key).startsWith('_') && key !== '_sourcePaths' && key !== '_path') return;
                         cleaned[key] = row[key];
                     });
                     return cleaned;
@@ -686,6 +780,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         out.contentType = 'itembank';
                         return out;
                     }
+                    if (compact.startsWith('main/dashboard/')) {
+                        out.task = 'Dashboard';
+                        out.contentType = 'dashboard';
+                        return out;
+                    }
                     const surveyMatch = compact.match(/(?:^|\/)surveys\/([^/]+)\.xli?ff$/i);
                     if (surveyMatch) {
                         out.task = `Survey: ${prettifyLabel(surveyMatch[1])}`;
@@ -723,6 +822,18 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     if (!el) return '';
                     const t = el.textContent || '';
                     return t.replace(/\s+/g, ' ').trim();
+                }
+                function normalizeLangCodeFromHeader(header, fallback = '') {
+                    const token = String(header || fallback || '').trim();
+                    if (!token) return '';
+                    const mapped = LANG_ID_TO_CODE[token] || LANG_ID_TO_CODE[token.toLowerCase()] || token;
+                    return String(mapped).replace(/_/g, '-');
+                }
+                function isLikelyLanguageHeader(header) {
+                    const token = normalizeLangCodeFromHeader(header);
+                    if (!token) return false;
+                    if (token === 'en') return true;
+                    return /^[a-z]{2}(?:-[A-Za-z0-9]{2,4})?$/.test(token);
                 }
                 function parseXliffToUnits(text) {
                     const units = [];
@@ -816,8 +927,40 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     if (rows.length < 2) continue;
                     const objects = rowsToObjects(rows);
                     objects.forEach(o => { o._path = path; });
+                    const normalizedPath = String(path || '').replace(/\\/g, '/');
+                    const lowerPath = normalizedPath.toLowerCase();
                     const lang = langFromFirstSegment(path);
                     const headers = rows[0];
+                    if (lowerPath.startsWith('main/dashboard/')) {
+                        const langHeaders = headers.filter((h) => {
+                            const key = String(h || '').trim();
+                            if (!key) return false;
+                            if (/identifier|item_id|item\s*id|^id$|^ID$/i.test(key)) return false;
+                            return isLikelyLanguageHeader(key);
+                        });
+                        const derivedMeta = deriveTaskAndTypeFromPath(normalizedPath);
+                        objects.forEach((row, index) => {
+                            const rowId = getIdFromRow(row, headers) || `_dashboard_${index}`;
+                            const stableId = `${normalizedPath}::${rowId}`;
+                            langHeaders.forEach((headerName) => {
+                                const langCode = normalizeLangCodeFromHeader(headerName, 'en');
+                                const textValue = row[headerName];
+                                if (textValue == null || String(textValue).trim() === '') return;
+                                if (!byLang[langCode]) byLang[langCode] = { headers: ['identifier', langCode], objects: [] };
+                                const existingIdx = byLang[langCode].objects.findIndex((r) => getIdFromRow(r, byLang[langCode].headers) === stableId);
+                                const obj = {
+                                    identifier: stableId,
+                                    [langCode]: textValue,
+                                    _path: path,
+                                    labels: derivedMeta.task,
+                                    contentType: derivedMeta.contentType
+                                };
+                                if (existingIdx === -1) byLang[langCode].objects.push(obj);
+                                else byLang[langCode].objects[existingIdx] = obj;
+                            });
+                        });
+                        continue;
+                    }
                     if (!byLang[lang]) {
                         byLang[lang] = { headers, objects };
                     } else {
@@ -831,13 +974,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         byLang[lang] = { headers: cur.headers, objects: Array.from(merged.values()) };
                     }
                 }
+                let zeroUnitXliffFiles = 0;
                 for (const [path, data] of Object.entries(unzipped)) {
                     const pl = path.toLowerCase();
                     if (!pl.endsWith('.xlf') && !pl.endsWith('.xliff')) continue;
                     const text = new TextDecoder('utf-8').decode(data);
                     const units = parseXliffToUnits(text);
                     if (!units.length) {
-                        console.warn('Crowdin XLIFF (0 units):', path);
+                        zeroUnitXliffFiles += 1;
                         continue;
                     }
                     const targetLang = getLangFromXliffPath(path);
@@ -873,6 +1017,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (!hasTgt) byLang[targetLang].objects.push(tgtObj);
                     });
                     console.log('Crowdin XLIFF:', path, '→', targetLang, units.length, 'units');
+                }
+                if (zeroUnitXliffFiles > 0) {
+                    console.info('Crowdin XLIFF files with 0 units:', zeroUnitXliffFiles);
                 }
                 const baseLang = byLang.en ? 'en' : Object.keys(byLang)[0];
                 if (!baseLang || !byLang[baseLang]) return [];
@@ -1822,6 +1969,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="review" title="Show items needing review first" style="padding: 4px 8px; font-size: 0.8em;">
                                             <i class="fas fa-flag"></i> Review
                                         </button>
+                                        <select id="file-filter-${language}" class="voice-select btn-compact file-filter-select" data-language="${language}" style="height: 30px; padding: 0 8px; min-width: 210px; max-width: 310px;" title="Filter grid to one source file">
+                                            <option value="all">All Files</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <input type="text" class="search-box" placeholder="Search items..." id="search-${language}">
@@ -1836,6 +1986,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 
                 // Setup search listeners for the newly created search boxes
                 setTimeout(() => this.setupSearchListeners(), 100);
+                setTimeout(() => this.setupFileFilterListeners(), 110);
                 
                 // Populate initial data
                 this.populateDataTable();
@@ -1866,7 +2017,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.inFlightRenderSignatureByLanguage.set(renderLanguage, currentSignature);
 
                 tableContent.innerHTML = '';
-                const dataToShow = this.getFilteredItemsForLanguage(renderLanguage);
+                const baseRows = this.getFilteredItemsForLanguage(renderLanguage);
+                this.refreshFileFilterOptions(renderLanguage, baseRows);
+                const selectedFile = this.fileFilterByLanguage.get(renderLanguage) || 'all';
+                const dataToShow = selectedFile === 'all'
+                    ? baseRows
+                    : baseRows.filter((item) => this.getItemSourcePaths(item).includes(selectedFile));
                 
                 const itemCountSpan = document.getElementById(`item-count-${this.currentLanguage}`);
                 if (itemCountSpan) {
@@ -2521,6 +2677,21 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                  if (searchTerm) {
                     this.setStatus(`Showing ${visibleCount} items matching "${searchTerm}" in ${this.getDisplayName(language)}`, 'success');
                 }
+            }
+
+            setupFileFilterListeners() {
+                Object.keys(this.languages).forEach((language) => {
+                    const selectEl = document.getElementById(`file-filter-${language}`);
+                    if (!selectEl || selectEl.dataset.bound === 'true') return;
+                    selectEl.addEventListener('change', () => {
+                        this.fileFilterByLanguage.set(language, selectEl.value || 'all');
+                        if (this.currentLanguage === language) {
+                            if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(true);
+                            this.populateDataTable();
+                        }
+                    });
+                    selectEl.dataset.bound = 'true';
+                });
             }
 
             getLanguageConfigByCode(langCode) {
