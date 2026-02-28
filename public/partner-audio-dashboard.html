@@ -2456,6 +2456,7 @@
                 const prefixes = this.getAudioPrefixes(langCode);
                 const ids = new Set();
                 const paths = new Map();
+                const updatedById = new Map();
 
                 await Promise.all(prefixes.map(async prefix => {
                     try {
@@ -2476,9 +2477,13 @@
                             const baseId = this.extractBaseId(name);
                             if (!baseId) return;
                             ids.add(baseId);
-                            if (!paths.has(baseId)) {
+                            const updatedRaw = item.updated || item.approvedAt || null;
+                            const updatedTs = updatedRaw ? new Date(updatedRaw).getTime() : 0;
+                            const currentTs = updatedById.get(baseId) || 0;
+                            if (!paths.has(baseId) || updatedTs >= currentTs) {
                                 paths.set(baseId, name);
                                 this.audioPathCache.set(`${bucketName}::${langCode}::${baseId}`, name);
+                                updatedById.set(baseId, Number.isFinite(updatedTs) ? updatedTs : currentTs);
                             }
                         });
                     } catch (error) {
@@ -2486,7 +2491,7 @@
                     }
                 }));
 
-                const result = { ids, paths };
+                const result = { ids, paths, updatedById };
                 this.audioListCache.set(cacheKey, result);
                 return result;
             }
@@ -2502,19 +2507,25 @@
 
             async loadApprovalStatus() {
                 try {
-                    const devInfo = await this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode);
-                    let addedCount = 0;
+                    const [draftInfo, devInfo] = await Promise.all([
+                        this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode),
+                        this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
+                    ]);
+                    this.approvedItems.clear();
+                    let approvedCount = 0;
                     devInfo.ids.forEach(baseId => {
-                        // Dev bucket is source of truth for approved status.
-                        if (this.unapprovedItems.has(baseId)) {
-                            this.unapprovedItems.delete(baseId);
-                        }
-                        if (!this.approvedItems.has(baseId)) {
+                        const devUpdated = devInfo.updatedById?.get(baseId) || 0;
+                        const draftUpdated = draftInfo.updatedById?.get(baseId) || 0;
+                        // Option B: approved only when approved bucket has the newest copy.
+                        if (devUpdated > 0 && devUpdated >= draftUpdated) {
+                            if (this.unapprovedItems.has(baseId)) {
+                                this.unapprovedItems.delete(baseId);
+                            }
                             this.approvedItems.add(baseId);
-                            addedCount++;
+                            approvedCount++;
                         }
                     });
-                    console.log(`Loaded approval status from dev bucket: ${addedCount} newly tracked approved items (total tracked: ${this.approvedItems.size})`);
+                    console.log(`Loaded approval status with timestamp rule: ${approvedCount} approved items (dev newest).`);
                 } catch (error) {
                     console.warn('Could not load approval status:', error);
                 }
@@ -2950,9 +2961,8 @@
                     return items.filter(item => {
                         const baseId = this.extractBaseId(item.item_id || '');
                         if (!baseId) return false;
-                        const bucketApproved = devInfo.ids.has(baseId);
                         const locallyApproved = this.approvedItems.has(baseId) && !this.unapprovedItems.has(baseId);
-                        if (bucketApproved || locallyApproved) return false;
+                        if (locallyApproved) return false;
                         if (this.unapprovedItems.has(baseId)) {
                             return draftInfo.ids.has(baseId);
                         }
@@ -3278,7 +3288,7 @@
                 // Respects unapprovedItems set to exclude explicitly unapproved items
                 try {
                     const devInfo = await this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode);
-                    const approvedItemIds = new Set();
+                    const approvedItemIds = new Set(this.approvedItems);
                     let excludedCount = 0;
                     
                     if (devInfo && devInfo.ids instanceof Set) {
@@ -3286,12 +3296,11 @@
                             if (!baseId) {
                                 return;
                             }
-                            if (this.unapprovedItems.has(baseId)) {
+                            const approvedByRule = approvedItemIds.has(baseId) && !this.unapprovedItems.has(baseId);
+                            if (!approvedByRule) {
                                 excludedCount++;
                                 return;
                             }
-                            approvedItemIds.add(baseId);
-                            this.approvedItems.add(baseId);
                         });
                     }
                     
@@ -3300,7 +3309,7 @@
                         return baseId && approvedItemIds.has(baseId);
                     });
                     
-                    console.log(`Found ${approvedItemsList.length} approved items in dev bucket (${excludedCount} excluded as unapproved)`);
+                    console.log(`Found ${approvedItemsList.length} approved items in dev bucket (${excludedCount} excluded by timestamp/unapproved rule)`);
                     return approvedItemsList;
                 } catch (error) {
                     console.error('Error getting approved items from dev:', error);
