@@ -1,4 +1,25 @@
 "use strict";
+function normalizeLanguageDisplayNamesBootstrap(languages) {
+    const input = languages && typeof languages === 'object' ? languages : {};
+    const normalized = {};
+    Object.entries(input).forEach(([name, cfgRaw]) => {
+        const cfg = cfgRaw && typeof cfgRaw === 'object' ? { ...cfgRaw } : {};
+        const langCode = String(cfg.lang_code || '').trim().toLowerCase();
+        let nextName = String(name || '').trim();
+        if (langCode === 'es-co' && (/^spanish$/i.test(nextName) || /spanish\s*\(columbia\)/i.test(nextName)))
+            nextName = 'Spanish (Colombia)';
+        if (langCode === 'es-ar' && /^spanish$/i.test(nextName))
+            nextName = 'Spanish (Argentina)';
+        if (!cfg.display_name)
+            cfg.display_name = nextName;
+        if (langCode === 'es-co' && (/^spanish$/i.test(String(cfg.display_name)) || /spanish\s*\(columbia\)/i.test(String(cfg.display_name))))
+            cfg.display_name = 'Spanish (Colombia)';
+        if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name)))
+            cfg.display_name = 'Spanish (Argentina)';
+        normalized[nextName] = cfg;
+    });
+    return normalized;
+}
 function languageSignature(languages) {
     if (!languages || typeof languages !== 'object')
         return '';
@@ -60,7 +81,7 @@ async function loadRemoteLanguagesIntoConfig() {
             windowAny.CONFIG = windowAny.CONFIG || {};
             const previousLanguages = windowAny.CONFIG.languages;
             const previousSignature = languageSignature(previousLanguages);
-            windowAny.CONFIG.languages = data.languages;
+            windowAny.CONFIG.languages = normalizeLanguageDisplayNamesBootstrap(data.languages);
             const nextSignature = languageSignature(windowAny.CONFIG.languages);
             console.log('Loaded languages from remote language_config.json');
             // If dashboard exists, refresh language-dependent UI

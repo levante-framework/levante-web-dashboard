@@ -1266,7 +1266,7 @@
         
         class PartnerAudioDashboard {
             constructor() {
-                this.languages = {
+                this.defaultLanguages = {
                     'English': { lang_code: 'en', service: 'ElevenLabs', voice: 'Clara - Children\'s Storyteller' },
                     'Spanish (Colombia)': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Malena Tango' },
@@ -1276,6 +1276,10 @@
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' },
                     'Portuguese': { lang_code: 'pt-PT', service: 'ElevenLabs', voice: 'Liam' }
                 };
+                this.languages = JSON.parse(JSON.stringify(this.defaultLanguages));
+                this.legacyLanguageCodeByName = Object.fromEntries(
+                    Object.entries(this.defaultLanguages).map(([name, cfg]) => [name, String(cfg.lang_code || '')])
+                );
                 
                 this.allowedLanguage = null; // Will be set based on user's site
                 this.approvedItems = new Set(); // Track approved item IDs (already moved to dev)
@@ -1310,6 +1314,53 @@
                 this.crowdinAuthData = null; // Store Crowdin auth response
                 
                 this.init();
+            }
+
+            resolveLanguageKey(languageName) {
+                const requested = String(languageName || '').trim();
+                if (!requested) return null;
+                if (this.languages[requested]) return requested;
+                const requestedLower = requested.toLowerCase();
+                const byName = Object.keys(this.languages).find((name) => name.toLowerCase() === requestedLower);
+                if (byName) return byName;
+                const desiredCode = this.legacyLanguageCodeByName[requested];
+                if (desiredCode) {
+                    const byCode = Object.keys(this.languages).find((name) => String(this.languages[name]?.lang_code || '') === desiredCode);
+                    if (byCode) return byCode;
+                }
+                return null;
+            }
+
+            getLanguageDisplayName(languageKey) {
+                const key = String(languageKey || '').trim();
+                if (!key) return '';
+                const cfg = this.languages[key] || {};
+                const langCode = String(cfg.lang_code || '').trim().toLowerCase();
+                const preferred = String(cfg.display_name || key).trim();
+                // Normalize common generic labels into region-specific names for partner workflows.
+                if (langCode === 'es-co' && (/^spanish$/i.test(preferred) || /spanish\s*\(columbia\)/i.test(preferred))) return 'Spanish (Colombia)';
+                if (langCode === 'es-ar' && /^spanish$/i.test(preferred)) return 'Spanish (Argentina)';
+                return preferred || key;
+            }
+
+            async loadLanguagesFromConfig() {
+                try {
+                    const response = await fetch('/api/language-config', { cache: 'no-store' });
+                    if (!response.ok) {
+                        console.warn(`Language config fetch failed: HTTP ${response.status}; using fallback language list.`);
+                        return;
+                    }
+                    const data = await response.json();
+                    const remoteLanguages = data && data.languages && typeof data.languages === 'object' ? data.languages : null;
+                    if (remoteLanguages && Object.keys(remoteLanguages).length > 0) {
+                        this.languages = JSON.parse(JSON.stringify(remoteLanguages));
+                        console.log(`Loaded ${Object.keys(this.languages).length} languages from /api/language-config`);
+                    } else {
+                        console.warn('Remote language config empty; using fallback language list.');
+                    }
+                } catch (error) {
+                    console.warn('Failed to load remote language config; using fallback language list:', error);
+                }
             }
             
             switchAuthTab(tab) {
@@ -1351,6 +1402,7 @@
                     if (forceReloadData || !Array.isArray(this.data) || this.data.length === 0) {
                         await this.loadData();
                     }
+                    await this.loadLanguagesFromConfig();
 
                     if (forceReloadData && this.currentLangCode) {
                         await this.loadApprovalStatus();
@@ -1359,8 +1411,15 @@
                     this.setupRefreshControls();
 
                     if (this.allowedLanguage) {
-                        this.currentLanguage = this.allowedLanguage;
-                        this.currentLangCode = this.languages[this.allowedLanguage]?.lang_code || null;
+                        const resolvedAllowed = this.resolveLanguageKey(this.allowedLanguage);
+                        if (resolvedAllowed) {
+                            this.currentLanguage = resolvedAllowed;
+                            this.currentLangCode = this.languages[resolvedAllowed]?.lang_code || null;
+                        } else {
+                            console.warn(`Allowed language "${this.allowedLanguage}" not found in current language config`);
+                            this.currentLanguage = null;
+                            this.currentLangCode = null;
+                        }
                     }
 
                     this.populateLanguageSelect();
@@ -1405,6 +1464,14 @@
                 }
                 if (approveAllBtn) {
                     approveAllBtn.disabled = !this.currentLanguage || this.currentTab !== 'pending' || this.bulkApproveInProgress;
+                    if (!this.bulkApproveInProgress) {
+                        if (this.currentLanguage) {
+                            const displayLanguage = this.getLanguageDisplayName(this.currentLanguage);
+                            approveAllBtn.innerHTML = `<i class="fas fa-check-double"></i> Approve All Audio (${displayLanguage})`;
+                        } else {
+                            approveAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Approve All Audio (Language)';
+                        }
+                    }
                 }
 
                 if (!label) {
@@ -1551,12 +1618,19 @@
                 await new Promise(resolve => setTimeout(resolve, 50));
 
                 this.setupRefreshControls();
+                await this.loadLanguagesFromConfig();
                 
                 // If user has a restricted language, set it automatically
                 // (Superadmins/override emails will have allowedLanguage = null, so they can choose)
                 if (this.allowedLanguage) {
-                    this.currentLanguage = this.allowedLanguage;
-                    this.currentLangCode = this.languages[this.allowedLanguage].lang_code;
+                    const resolvedAllowed = this.resolveLanguageKey(this.allowedLanguage);
+                    if (resolvedAllowed) {
+                        this.currentLanguage = resolvedAllowed;
+                        this.currentLangCode = this.languages[resolvedAllowed]?.lang_code || null;
+                    } else {
+                        this.currentLanguage = null;
+                        this.currentLangCode = null;
+                    }
                 }
                 
                 // Populate languages (filtered if restricted)
@@ -2713,7 +2787,10 @@
                 // Add default option
                 const defaultOption = document.createElement('option');
                 defaultOption.value = '';
-                defaultOption.textContent = this.allowedLanguage ? `Language: ${this.allowedLanguage}` : 'Select a language...';
+                const resolvedAllowedLanguage = this.resolveLanguageKey(this.allowedLanguage);
+                defaultOption.textContent = resolvedAllowedLanguage
+                    ? `Language: ${this.getLanguageDisplayName(resolvedAllowedLanguage)}`
+                    : 'Select a language...';
                 select.appendChild(defaultOption);
                 
                 // Map language codes to Crowdin language IDs
@@ -2748,10 +2825,10 @@
                     }
                 }
                 
-                if (this.allowedLanguage) {
+                if (resolvedAllowedLanguage) {
                     // User is restricted to one language
-                    languageKeys = [this.allowedLanguage];
-                    select.value = this.allowedLanguage;
+                    languageKeys = [resolvedAllowedLanguage];
+                    select.value = resolvedAllowedLanguage;
                     select.disabled = true;
                 } else {
                     // Superadmin, Owner, Manager, or override email - show all languages, dropdown enabled
@@ -2768,7 +2845,7 @@
                 languageKeys.forEach(lang => {
                     const option = document.createElement('option');
                     option.value = lang;
-                    option.textContent = lang;
+                    option.textContent = this.getLanguageDisplayName(lang);
                     
                     // If user is a Translator, disable languages they don't have access to
                     if (accessibleLanguages !== null) {
@@ -2780,7 +2857,7 @@
                             option.disabled = true;
                             option.style.color = '#999';
                             option.style.fontStyle = 'italic';
-                            option.textContent = `${lang} (no access)`;
+                            option.textContent = `${this.getLanguageDisplayName(lang)} (no access)`;
                         }
                     }
                     
@@ -2795,8 +2872,8 @@
                 });
                 
                 // Auto-select if restricted (but not for superadmins/override emails)
-                if (this.allowedLanguage && select.disabled) {
-                    this.selectLanguage(this.allowedLanguage);
+                if (resolvedAllowedLanguage && select.disabled) {
+                    this.selectLanguage(resolvedAllowedLanguage);
                 }
                 
                 console.log(`Successfully populated ${languageKeys.length} languages in dropdown`);

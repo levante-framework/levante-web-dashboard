@@ -30,11 +30,11 @@ const CONFIG = {
             voice: 'Clara - Children\'s Storyteller',
             display_name: 'English'
         },
-        'Spanish': {
+        'Spanish (Colombia)': {
             lang_code: 'es-CO',
             service: 'ElevenLabs',
             voice: 'Malena Tango',
-            display_name: 'Spanish'
+            display_name: 'Spanish (Colombia)'
         },
         'German': {
             lang_code: 'de',

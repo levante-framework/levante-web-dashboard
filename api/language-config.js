@@ -14,6 +14,23 @@ import { Storage } from '@google-cloud/storage';
 const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || 'levante-audio-dev';
 const OBJECT_NAME = process.env.LANGUAGE_CONFIG_OBJECT || 'language_config.json';
 
+function normalizeLanguageDisplayNames(languages) {
+  const input = languages && typeof languages === 'object' ? languages : {};
+  const normalized = {};
+  Object.entries(input).forEach(([name, cfgRaw]) => {
+    const cfg = cfgRaw && typeof cfgRaw === 'object' ? { ...cfgRaw } : {};
+    const langCode = String(cfg.lang_code || '').trim().toLowerCase();
+    let nextName = String(name || '').trim();
+    if (langCode === 'es-co' && (/^spanish$/i.test(nextName) || /spanish\s*\(columbia\)/i.test(nextName))) nextName = 'Spanish (Colombia)';
+    if (langCode === 'es-ar' && /^spanish$/i.test(nextName)) nextName = 'Spanish (Argentina)';
+    if (!cfg.display_name) cfg.display_name = nextName;
+    if (langCode === 'es-co' && (/^spanish$/i.test(String(cfg.display_name)) || /spanish\s*\(columbia\)/i.test(String(cfg.display_name)))) cfg.display_name = 'Spanish (Colombia)';
+    if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name))) cfg.display_name = 'Spanish (Argentina)';
+    normalized[nextName] = cfg;
+  });
+  return normalized;
+}
+
 function getStorageClient() {
   const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON;
   if (!serviceAccountJson) {
@@ -68,6 +85,9 @@ async function handleGet(_req, res) {
 
     const [contents] = await file.download();
     const json = JSON.parse(contents.toString('utf8'));
+    if (json && json.languages) {
+      json.languages = normalizeLanguageDisplayNames(json.languages);
+    }
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     return res.status(200).json({ success: true, ...json });
@@ -91,13 +111,14 @@ async function handlePut(req, res) {
     if (!languages || typeof languages !== 'object') {
       return res.status(400).json({ success: false, error: 'Missing or invalid languages object' });
     }
+    const normalizedLanguages = normalizeLanguageDisplayNames(languages);
 
     const storage = getStorageClient();
     const bucket = storage.bucket(BUCKET_NAME);
     const file = bucket.file(OBJECT_NAME);
 
     const now = new Date().toISOString();
-    const toWrite = JSON.stringify({ languages, metadata: { saved_at: now, ...(metadata || {}) } }, null, 2);
+    const toWrite = JSON.stringify({ languages: normalizedLanguages, metadata: { saved_at: now, ...(metadata || {}) } }, null, 2);
     await file.save(toWrite, { contentType: 'application/json', resumable: false, public: false, cacheControl: 'no-cache' });
     // Ensure the config is publicly readable so local tools (without creds) can fetch it
     try {

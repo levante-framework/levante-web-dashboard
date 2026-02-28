@@ -23,6 +23,27 @@ function closeLanguageConfigModal() {
         console.error('Language config modal not found');
     }
 }
+function normalizeLanguageDisplayNamesConfig(languages) {
+    const input = languages && typeof languages === 'object' ? languages : {};
+    const normalized = {};
+    Object.entries(input).forEach(([name, cfgRaw]) => {
+        const cfg = cfgRaw && typeof cfgRaw === 'object' ? { ...cfgRaw } : {};
+        const langCode = String(cfg.lang_code || '').trim().toLowerCase();
+        let nextName = String(name || '').trim();
+        if (langCode === 'es-co' && (/^spanish$/i.test(nextName) || /spanish\s*\(columbia\)/i.test(nextName)))
+            nextName = 'Spanish (Colombia)';
+        if (langCode === 'es-ar' && /^spanish$/i.test(nextName))
+            nextName = 'Spanish (Argentina)';
+        if (!cfg.display_name)
+            cfg.display_name = nextName;
+        if (langCode === 'es-co' && (/^spanish$/i.test(String(cfg.display_name)) || /spanish\s*\(columbia\)/i.test(String(cfg.display_name))))
+            cfg.display_name = 'Spanish (Colombia)';
+        if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name)))
+            cfg.display_name = 'Spanish (Argentina)';
+        normalized[nextName] = cfg;
+    });
+    return normalized;
+}
 /**
  * Initializes the Vue.js language configuration app
  * Uses dynamic typing to avoid Vue type complexity
@@ -74,7 +95,7 @@ function initLanguageConfigApp() {
                     if (response.ok) {
                         const data = await response.json();
                         if (data && data.languages) {
-                            self.config.languages = data.languages;
+                            self.config.languages = normalizeLanguageDisplayNamesConfig(data.languages);
                         }
                     }
                 }
@@ -92,6 +113,7 @@ function initLanguageConfigApp() {
                 const self = this;
                 self.saving = true;
                 try {
+                    self.config.languages = normalizeLanguageDisplayNamesConfig(self.config.languages);
                     const requestData = {
                         languages: self.config.languages,
                         metadata: { source: 'web-dashboard' }

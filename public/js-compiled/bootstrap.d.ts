@@ -6,6 +6,7 @@ interface LanguageConfigResponse {
     languages?: Record<string, any>;
     [key: string]: any;
 }
+declare function normalizeLanguageDisplayNamesBootstrap(languages: Record<string, any> | undefined): Record<string, any>;
 declare function languageSignature(languages: Record<string, any> | undefined): string;
 /**
  * Loads remote language configuration from the API
