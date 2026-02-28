@@ -15,6 +15,35 @@ A modern web-based dashboard for comparing and generating TTS audio across multi
 - **Translation Validation**: Back-translation quality assessment with similarity scoring
 - **Shared Validation Storage**: Team-based validation result sharing across users
 
+Changelog: `docs/dashboard-updates-2026-01.md`
+
+## Recent Dashboard Updates (Jan 2026)
+
+### Translation Data + Crowdin
+- Cache-first Crowdin loading with explicit refresh trigger (**Update Translations**).
+- Crowdin exports are approved-only and merge CSV + XLIFF content.
+- Included approved CSV translations from `main/dashboard/*.csv`.
+- Data-source messaging now distinguishes cached Crowdin payloads vs CSV bundles with retrieval timestamp.
+
+### Rendering + Filtering
+- Progressive row rendering with in-flight deduplication and stale-job cancellation.
+- Added per-language **File** filter dropdown sourced from item path metadata.
+- File options are constrained to current language plus shared files; locale aliases are supported for migration (`en`/`en-US`, `de`/`de-DE`).
+
+### Validation
+- Validation pipeline strips HTML before scoring/back-translation.
+- Validation modal now handles sparse historical records by backfilling original/translated text.
+- When old records lack back-translation, modal can generate it on demand and cache it.
+- Compact snapshots now keep `backTranslation` so detail panels stay informative after reload.
+
+### Locale Migration Compatibility
+- Added alias-safe validation key resolution for `en`<->`en-US` and `de`<->`de-DE`.
+- Audio metadata and save/play flows use canonical bucket codes so existing assets remain discoverable during locale-code transitions.
+
+### Partner Audio Dashboard
+- Added **Approve All Audio (Language)** action in pending view.
+- Approval state now uses timestamp ordering (dev must be newest vs draft) to avoid passive false approvals.
+
 ## Files
 
 - `public/dashboard.html` - Main HTML interface

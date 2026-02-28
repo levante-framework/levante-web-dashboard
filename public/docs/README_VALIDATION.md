@@ -4,6 +4,16 @@
 
 The Translation Validation System uses **back-translation** combined with **similarity scoring** to automatically assess the quality of translations. This approach helps identify potential translation errors, missing context, or semantic drift before audio generation.
 
+## Recent Validation Updates (Jan 2026)
+
+- **HTML normalization before scoring**: Source and translated strings are converted to plain text (HTML tags stripped) before similarity/AI evaluation.
+- **Alias-safe language keys**: Validation read/write resolves `en`<->`en-US` and `de`<->`de-DE` so locale migrations do not orphan prior results.
+- **Back-translation resilience in modal**:
+  - If legacy records are missing `backTranslation`, the modal can generate it on demand.
+  - Generated back-translation is written back into the active validation record for reuse.
+- **Compact snapshot retention**: Compact local snapshots now retain `backTranslation` (trimmed) along with score metadata.
+- **Rendering coordination**: `Validate All` ensures full language table render before scanning rows, avoiding partial-job creation.
+
 ## How It Works
 
 ### 1. Back-Translation Process

@@ -268,6 +268,35 @@ See `README_VALIDATION.md` for detailed validation system documentation.
 
 ## Recent Improvements
 
+For a chronological log of January 2026 dashboard updates, see `docs/dashboard-updates-2026-01.md`.
+
+### Translation + Partner Audio Workstream (Jan 2026)
+- **Crowdin cache-first loading**: Dashboard now prefers cached Crowdin exports and only refreshes from Crowdin on explicit **Update Translations**.
+- **Crowdin export behavior**: Export endpoint uses approved-only translations; build conflicts are handled by reusing in-progress builds.
+- **Crowdin data parsing**:
+  - Merges CSV + XLIFF sources, including `main/dashboard/*.csv`.
+  - Preserves source-path metadata for file-aware filtering and diagnostics.
+  - Adds backward compatibility when older cached rows only have composite IDs.
+- **Performance + UX**:
+  - Progressive row rendering with render deduplication/cancellation.
+  - Validation summary shows spinner + `Rendering...` during table build.
+  - Added explicit performance logs for cache/read/render stages.
+- **Per-language file filtering**:
+  - File dropdown now scopes to files relevant to the selected language.
+  - Added English/German locale alias compatibility (`en`/`en-US`, `de`/`de-DE`) to avoid missing-file filters during migration.
+- **Validation robustness**:
+  - Validation strips HTML tags before scoring/back-translation.
+  - Validation modal includes note that HTML is normalized.
+  - Modal now backfills sparse historical records and can auto-generate missing back-translation on demand.
+  - Compact validation snapshots now retain `backTranslation`.
+- **Language-code migration compatibility**:
+  - Added alias-safe handling for validation keys and audio paths (`en`<->`en-US`, `de`<->`de-DE`).
+  - Prevents loss of existing validation history and reduces audio lookup misses after locale-code changes.
+- **Partner Audio Approval Tool**:
+  - Added **Approve All Audio (Language)** action in pending tab.
+  - Added timestamp-based approval classification: item is approved only when dev copy is newest vs draft (prevents passive status flips when draft is newer).
+  - Strengthened cache invalidation + UI consistency after approve/unapprove/move flows.
+
 ### Asset Audit (January 2025)
 - **New Feature**: Interactive asset comparison tool comparing files between `levante-assets-dev` and `levante-assets-prod` GCS buckets
 - Three-column view: Files Only in Dev, Files Newer in Dev, Files Newer in Prod
