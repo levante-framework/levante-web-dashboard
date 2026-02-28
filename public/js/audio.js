@@ -6,9 +6,23 @@ function normalizeAudioItemId(itemId) {
     return raw.includes('::') ? raw.split('::').pop() : raw;
 }
 
+function mapAudioBucketLangCode(langCode) {
+    const normalized = String(langCode || '').trim().toLowerCase();
+    if (normalized === 'en-us') return 'en';
+    if (normalized === 'de-de') return 'de';
+    return String(langCode || '').trim();
+}
+
+function getAudioLangCandidates(langCode) {
+    const canonical = mapAudioBucketLangCode(langCode);
+    const requested = String(langCode || '').trim();
+    return Array.from(new Set([canonical, requested].filter(Boolean)));
+}
+
 function playAudio(itemId, langCode) {
     const audioItemId = normalizeAudioItemId(itemId);
-    console.log(`🎯 Attempting to play audio for: ${audioItemId} in ${langCode}`);
+    const canonicalLangCode = mapAudioBucketLangCode(langCode);
+    console.log(`🎯 Attempting to play audio for: ${audioItemId} in ${canonicalLangCode}`);
     window.dashboard.setStatus(`🔄 Loading audio: ${audioItemId}...`, 'info');
 
     function tryPlayAudio(bucketLangCode, isRetry = false) {
@@ -50,16 +64,16 @@ function playAudio(itemId, langCode) {
         audio.addEventListener('error', (e) => {
             clearTimeout(timeout);
             console.error(`❌ Audio not found: ${audioUrl}`);
-            if (langCode === 'es-CO' && bucketLangCode === 'es-CO' && !isRetry) {
+            if (canonicalLangCode === 'es-CO' && bucketLangCode === 'es-CO' && !isRetry) {
                 console.log('🔄 Trying es fallback for es-CO...');
                 window.dashboard.setStatus('🔄 Trying es fallback for es-CO audio...', 'info');
                 tryPlayAudio('es', true);
-            } else if (langCode === 'es-CO' && bucketLangCode === 'es' && !isRetry) {
+            } else if (canonicalLangCode === 'es-CO' && bucketLangCode === 'es' && !isRetry) {
                 console.log('🔄 Trying es-CO directly...');
                 window.dashboard.setStatus('🔄 Trying es-CO direct audio...', 'info');
                 tryPlayAudio('es-CO', true);
             } else {
-                const message = `Audio file not found for ${audioItemId} in ${langCode}. Please generate it first using the "Generate Audio" button.`;
+                const message = `Audio file not found for ${audioItemId} in ${canonicalLangCode}. Please generate it first using the "Generate Audio" button.`;
                 alert(message);
                 window.dashboard.setStatus(`❌ ${message}`, 'error');
             }
@@ -67,7 +81,7 @@ function playAudio(itemId, langCode) {
     }
 
     const bucketLangCodeMap = { 'en': 'en', 'es-CO': 'es-CO', 'de': 'de', 'fr-CA': 'fr-CA', 'nl': 'nl' };
-    const bucketLangCode = bucketLangCodeMap[langCode] || langCode;
+    const bucketLangCode = bucketLangCodeMap[canonicalLangCode] || canonicalLangCode;
     tryPlayAudio(bucketLangCode);
 }
 
@@ -87,12 +101,13 @@ async function regenerateItemAudio(itemId, langCode) {
 
 async function saveItemAudio(itemId, langCode) {
     const audioItemId = normalizeAudioItemId(itemId);
+    const canonicalLangCode = mapAudioBucketLangCode(langCode);
     if (!window.dashboard || typeof window.dashboard.saveGeneratedAudioDraft !== 'function') {
         console.warn('Dashboard save handler unavailable');
         return;
     }
     try {
-        await window.dashboard.saveGeneratedAudioDraft(audioItemId, langCode);
+        await window.dashboard.saveGeneratedAudioDraft(audioItemId, canonicalLangCode);
     } catch (error) {
         console.error('❌ Error saving generated audio:', error);
         window.dashboard.setStatus(`❌ Error saving ${audioItemId}: ${error.message}`, 'error');
@@ -101,12 +116,13 @@ async function saveItemAudio(itemId, langCode) {
 
 function showAudioInfo(itemId, langCode) {
     const audioItemId = normalizeAudioItemId(itemId);
-    console.log(`🔍 Showing audio info for: ${audioItemId} in ${langCode}`);
+    const canonicalLangCode = mapAudioBucketLangCode(langCode);
+    console.log(`🔍 Showing audio info for: ${audioItemId} in ${canonicalLangCode}`);
     document.getElementById('audioInfoModal').style.display = 'block';
     document.getElementById('audioInfoLoading').style.display = 'block';
     document.getElementById('audioInfoData').style.display = 'none';
     document.getElementById('audioInfoError').style.display = 'none';
-    fetchAudioMetadata(audioItemId, langCode);
+    fetchAudioMetadata(audioItemId, canonicalLangCode);
 }
 
 function closeAudioInfoModal() {
@@ -115,13 +131,17 @@ function closeAudioInfoModal() {
 
 async function fetchAudioMetadata(itemId, langCode) {
     try {
-        const response = await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(langCode)}`);
-        const data = await response.json();
-        if (data.error) {
-            showAudioInfoError(data.error, data.details);
-        } else {
-            showAudioInfoData(data);
+        const candidates = getAudioLangCandidates(langCode);
+        for (let i = 0; i < candidates.length; i++) {
+            const candidate = candidates[i];
+            const response = await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(candidate)}`);
+            const data = await response.json();
+            if (!data.error) {
+                showAudioInfoData(data);
+                return;
+            }
         }
+        showAudioInfoError('File not accessible', `No metadata found for ${itemId} in ${candidates.join(', ')}`);
     } catch (error) {
         console.error('❌ Error fetching audio metadata:', error);
         showAudioInfoError('Network Error', `Failed to fetch metadata: ${error.message}`);

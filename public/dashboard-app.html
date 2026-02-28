@@ -328,8 +328,63 @@
         }
         function closeHelpModal() { document.getElementById('helpModal').style.display = 'none'; }
         
-        function showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass) {
+        function mapLangCodeForBackTranslation(langCode) {
+            const mapping = {
+                'es-CO': 'es',
+                'fr-CA': 'fr',
+                'de-CH': 'de'
+            };
+            const code = String(langCode || '').trim();
+            return mapping[code] || (code.includes('-') ? code.split('-')[0] : code);
+        }
+
+        async function maybePopulateBackTranslation(itemId, langCode, translatedText, safeResult) {
+            const targetEl = document.getElementById('validationBackTranslation');
+            if (!targetEl) return;
+            const cleanTranslated = String(translatedText || '').trim();
+            if (!cleanTranslated) {
+                targetEl.textContent = 'Back-translation unavailable: translated text is empty.';
+                return;
+            }
+            if (String(langCode || '').split('-')[0].toLowerCase() === 'en') {
+                targetEl.textContent = 'N/A (source language)';
+                return;
+            }
+            targetEl.textContent = 'Generating back-translation...';
+            try {
+                const from = mapLangCodeForBackTranslation(langCode);
+                const response = await fetch(`/api/google-translate?text=${encodeURIComponent(cleanTranslated)}&from=${encodeURIComponent(from)}&to=en`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const backTranslation = String(data?.translatedText || '').trim();
+                targetEl.textContent = backTranslation || 'Back-translation unavailable for this result.';
+                try {
+                    const dash = window.dashboard;
+                    if (dash && dash.validation_results) {
+                        const langKey = (typeof dash.resolvePreferredLangCode === 'function')
+                            ? dash.resolvePreferredLangCode(langCode)
+                            : langCode;
+                        if (!dash.validation_results[itemId]) dash.validation_results[itemId] = {};
+                        if (!dash.validation_results[itemId][langKey]) dash.validation_results[itemId][langKey] = {};
+                        dash.validation_results[itemId][langKey].backTranslation = backTranslation || '';
+                    }
+                } catch (_) {}
+            } catch (_) {
+                targetEl.textContent = 'Back-translation unavailable for this result.';
+            }
+        }
+
+        async function showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass) {
             const modal = document.getElementById('validationResultsModal');
+            const dash = window.dashboard;
+            const safeResult = result || (dash && typeof dash.getValidationEntry === 'function' ? dash.getValidationEntry(itemId, langCode) : {}) || {};
+            const itemRow = dash && Array.isArray(dash.data)
+                ? dash.data.find((row) => String(row.item_id || row.identifier || '') === String(itemId))
+                : null;
+            const baseLang = String(langCode || '').includes('-') ? String(langCode).split('-')[0] : String(langCode || '');
+            const originalText = safeResult.originalText || itemRow?.en || itemRow?.source || itemRow?.text || '';
+            const translatedText = safeResult.translatedText || itemRow?.[langCode] || itemRow?.[baseLang] || '';
+            const backTranslation = safeResult.backTranslation || '';
             
             // Update title and score
             document.getElementById('validationModalTitle').innerHTML = `<i class="fas fa-clipboard-check"></i> Validation Results - ${itemId}`;
@@ -344,9 +399,11 @@
             // Update language info
             const languageNames = {
                 'en': 'English',
+                'en-US': 'English (US)',
                 'es-CO': 'Spanish (Colombia)', 
                 'es': 'Spanish',
                 'de': 'German',
+                'de-DE': 'German (Germany)',
                 'fr-CA': 'French (Canada)',
                 'fr': 'French',
                 'nl': 'Dutch'
@@ -354,22 +411,30 @@
             document.getElementById('validationTargetLang').textContent = languageNames[langCode] || langCode;
             
             // Update text content
-            document.getElementById('validationOriginalText').textContent = result.originalText;
-            document.getElementById('validationTranslatedText').textContent = result.translatedText;
-            document.getElementById('validationBackTranslation').textContent = result.backTranslation;
-            const notes = [result.notes || ''];
-            if (result.aiUsed && result.aiNotes) notes.push(`AI notes: ${result.aiNotes}`);
+            document.getElementById('validationOriginalText').textContent = originalText || 'Original text unavailable.';
+            document.getElementById('validationTranslatedText').textContent = translatedText || 'Translated text unavailable.';
+            document.getElementById('validationBackTranslation').textContent = backTranslation || 'Back-translation unavailable for this result.';
+            const generatedNote = statusClass === 'status-good'
+                ? 'Excellent translation quality.'
+                : statusClass === 'status-warning'
+                    ? 'Good translation with some differences.'
+                    : 'Poor translation quality; review recommended.';
+            const notes = [safeResult.notes || generatedNote];
+            if (safeResult.aiUsed && safeResult.aiNotes) notes.push(`AI notes: ${safeResult.aiNotes}`);
             document.getElementById('validationNotes').textContent = notes.filter(Boolean).join('\n\n');
             
             // Update metadata
             document.getElementById('validationItemId').textContent = itemId;
             document.getElementById('validationLangCode').textContent = langCode;
-            document.getElementById('validationTimestamp').textContent = new Date(result.timestamp).toLocaleString();
+            const ts = safeResult.timestamp ? new Date(safeResult.timestamp) : null;
+            document.getElementById('validationTimestamp').textContent = (ts && !Number.isNaN(ts.getTime()))
+                ? ts.toLocaleString()
+                : 'Not available';
             const aiInfo = document.getElementById('validationAiInfo');
             if (aiInfo) {
-                if (result.aiUsed) {
-                    const base = Number.isFinite(Number(result.baselineScore)) ? Number(result.baselineScore).toFixed(2) : 'n/a';
-                    const ai = Number.isFinite(Number(result.aiScore)) ? Number(result.aiScore).toFixed(2) : 'n/a';
+                if (safeResult.aiUsed) {
+                    const base = Number.isFinite(Number(safeResult.baselineScore)) ? Number(safeResult.baselineScore).toFixed(2) : 'n/a';
+                    const ai = Number.isFinite(Number(safeResult.aiScore)) ? Number(safeResult.aiScore).toFixed(2) : 'n/a';
                     aiInfo.textContent = `Yes (baseline ${base}%, AI ${ai}%)`;
                 } else {
                     aiInfo.textContent = 'No';
@@ -377,6 +442,9 @@
             }
             
             modal.style.display = 'block';
+            if (!backTranslation) {
+                await maybePopulateBackTranslation(itemId, langCode, translatedText, safeResult);
+            }
         }
         
         function closeValidationResultsModal() { 

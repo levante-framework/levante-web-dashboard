@@ -470,34 +470,40 @@ export default async function handler(req, res) {
         if (metadata.error) {
             // In strict mode, do not attempt language fallbacks
             if (!strict) {
-                // Try fallback for es-CO -> es
-                if (langCode === 'es-CO') {
-                    console.log('🔄 Trying es fallback for es-CO...');
+                // Try language fallbacks for known aliases
+                const langFallbackMap = {
+                    'es-CO': 'es',
+                    'en-US': 'en',
+                    'de-DE': 'de'
+                };
+                const fallbackLang = langFallbackMap[langCode];
+                if (fallbackLang) {
+                    console.log(`🔄 Trying ${fallbackLang} fallback for ${langCode}...`);
                     const encId = encodeURIComponent(itemId);
                     const fallbackUrl = source === 'repo'
-                        ? `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/es/${encId}.mp3`
-                        : `https://storage.googleapis.com/${encodeURIComponent(targetBucket)}/audio/es/${encId}.mp3`;
+                        ? `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${fallbackLang}/${encId}.mp3`
+                        : `https://storage.googleapis.com/${encodeURIComponent(targetBucket)}/audio/${fallbackLang}/${encId}.mp3`;
                     const fallbackMetadata = source === 'repo'
                         ? (await (async () => {
                             const r = await httpReadID3Tags(fallbackUrl);
                             if (!r.ok) return { error: 'File not accessible' };
                             const tags = r.tags;
                             return {
-                                fileName: `es/${itemId}.mp3`,
+                                fileName: `${fallbackLang}/${itemId}.mp3`,
                                 size: undefined,
                                 contentType: 'audio/mpeg',
                                 created: undefined,
                                 updated: undefined,
                                 itemId,
-                                language: 'es',
+                                language: fallbackLang,
                                 id3Tags: {
                                     title: tags?.title || itemId,
                                     artist: tags?.artist || 'Levante Project',
-                                    album: tags?.album || 'es' || 'Levante Audio',
+                                    album: tags?.album || fallbackLang || 'Levante Audio',
                                     genre: tags?.genre || 'Speech Synthesis',
                                     service: tags?.userDefinedText?.find(t => t.description === 'service')?.value || tags?.service || 'Not available',
                                     voice: tags?.userDefinedText?.find(t => t.description === 'voice')?.value || tags?.voice || 'Not available',
-                                    lang_code: tags?.userDefinedText?.find(t => t.description === 'lang_code')?.value || tags?.lang_code || 'es',
+                                    lang_code: tags?.userDefinedText?.find(t => t.description === 'lang_code')?.value || tags?.lang_code || fallbackLang,
                                     text: tags?.userDefinedText?.find(t => t.description === 'text')?.value || tags?.text || 'Original text not available',
                                     created: tags?.userDefinedText?.find(t => t.description === 'created')?.value || tags?.date || null,
                                     copyright: tags?.copyright || 'This file was created for the LEVANTE project and is released under a Creative Commons BY-NC-SA 4.0 license',
@@ -510,7 +516,7 @@ export default async function handler(req, res) {
                         : await readAudioMetadata(fallbackUrl);
                     
                     if (!fallbackMetadata.error) {
-                        fallbackMetadata.note = 'Using es fallback for es-CO';
+                        fallbackMetadata.note = `Using ${fallbackLang} fallback for ${langCode}`;
                         res.status(200).json(fallbackMetadata);
                         return;
                     }

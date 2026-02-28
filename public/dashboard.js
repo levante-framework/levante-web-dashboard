@@ -312,6 +312,91 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}`;
             }
 
+            getLanguageAliasCodes(langCode) {
+                const raw = String(langCode || '').trim();
+                if (!raw) return [];
+                const out = new Set([raw]);
+                const lower = raw.toLowerCase();
+                const base = raw.includes('-') ? raw.split('-')[0] : raw;
+                if (base && base !== raw) out.add(base);
+                const aliasMap = {
+                    'en': ['en', 'en-US'],
+                    'en-us': ['en', 'en-US'],
+                    'de': ['de', 'de-DE'],
+                    'de-de': ['de', 'de-DE']
+                };
+                (aliasMap[lower] || []).forEach((code) => out.add(code));
+                return Array.from(out);
+            }
+
+            resolvePreferredLangCode(langCode) {
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const configured = new Set(
+                    Object.values(this.languages || {})
+                        .map((cfg) => String(cfg?.lang_code || '').trim())
+                        .filter(Boolean)
+                );
+                const preferred = aliases.find((code) => configured.has(code));
+                return preferred || String(langCode || '');
+            }
+
+            getValidationEntry(itemId, langCode) {
+                const byItem = this.validation_results?.[itemId];
+                if (!byItem) return null;
+                const preferred = this.resolvePreferredLangCode(langCode);
+                if (byItem[preferred]) return byItem[preferred];
+                const aliases = this.getLanguageAliasCodes(langCode);
+                for (let i = 0; i < aliases.length; i++) {
+                    const alias = aliases[i];
+                    if (byItem[alias]) return byItem[alias];
+                }
+                return null;
+            }
+
+            getCanonicalAudioLangCode(langCode) {
+                const normalized = String(langCode || '').trim().toLowerCase();
+                if (normalized === 'en-us') return 'en';
+                if (normalized === 'de-de') return 'de';
+                return String(langCode || '').trim();
+            }
+
+            normalizeValidationResultsLanguageKeys() {
+                const data = this.validation_results || {};
+                const groups = [['en', 'en-US'], ['de', 'de-DE']];
+                const configured = new Set(
+                    Object.values(this.languages || {})
+                        .map((cfg) => String(cfg?.lang_code || '').trim())
+                        .filter(Boolean)
+                );
+                const ts = (entry) => String(entry?.updated || entry?.timestamp || '');
+                Object.keys(data).forEach((itemId) => {
+                    const byLang = data[itemId] || {};
+                    groups.forEach((group) => {
+                        const existing = group.filter((code) => byLang[code]);
+                        if (existing.length === 0) return;
+                        const configuredTarget = group.find((code) => configured.has(code));
+                        const target = configuredTarget || existing[0];
+                        if (existing.length === 1 && existing[0] === target) return;
+                        let merged = byLang[target] || {};
+                        existing.forEach((code) => {
+                            const candidate = byLang[code] || {};
+                            if (code === target) return;
+                            if (!merged || ts(candidate) > ts(merged)) {
+                                merged = { ...merged, ...candidate };
+                            } else {
+                                merged = { ...candidate, ...merged };
+                            }
+                        });
+                        byLang[target] = merged;
+                        group.forEach((code) => {
+                            if (code !== target) delete byLang[code];
+                        });
+                    });
+                    data[itemId] = byLang;
+                });
+                this.validation_results = data;
+            }
+
             getItemSourcePaths(item) {
                 const paths = [];
                 if (Array.isArray(item?._sourcePaths)) {
@@ -339,17 +424,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 if (!langCode) return true;
                 const firstSegment = normalizedPath.split('/')[0] || '';
                 const firstLower = firstSegment.toLowerCase();
-                const langLower = langCode.toLowerCase();
                 const isLanguageSegment = /^[a-z]{2}(?:-[a-z0-9]{2,4})?$/i.test(firstSegment);
                 // Shared dashboard CSVs should be available in every language tab.
                 if (normalizedPath.toLowerCase().includes('main/dashboard/') && normalizedPath.toLowerCase().endsWith('.csv')) return true;
                 // Shared/non-language paths stay visible for all tabs.
                 if (!isLanguageSegment) return true;
-                if (firstLower === langLower) return true;
-                // English exports frequently use en-US folder while UI language code is en.
-                if (langLower === 'en' && firstLower === 'en-us') return true;
-                if (langLower === 'en-us' && firstLower === 'en') return true;
-                return false;
+                const aliasSet = new Set(this.getLanguageAliasCodes(langCode).map((c) => c.toLowerCase()));
+                return aliasSet.has(firstLower);
             }
 
             getSourceFilesForRows(rows, language) {
@@ -1603,6 +1684,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const storedResults = localStorage.getItem('validation_results');
                     if (storedResults) {
                         this.validation_results = JSON.parse(storedResults);
+                        this.normalizeValidationResultsLanguageKeys();
                         console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from localStorage`);
                     }
 
@@ -1616,6 +1698,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 const jsonData = await jsonResponse.json();
                                 if (jsonData.validation_results) {
                                     this.validation_results = jsonData.validation_results;
+                                    this.normalizeValidationResultsLanguageKeys();
                                     console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from JSON file`);
                                     console.log(`📅 File exported: ${jsonData.metadata?.exported_at || 'Unknown date'}`);
                                 }
@@ -1633,6 +1716,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             async saveValidationResults() {
                 try {
                     console.log('💾 Saving validation results to localStorage and shared storage...');
+                    this.normalizeValidationResultsLanguageKeys();
                     
                     // Count total validation entries
                     let totalValidations = 0;
@@ -1738,6 +1822,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (r.needsReview === true) entry.needsReview = true;
                         if (typeof r.reason === 'string' && r.reason) entry.reason = r.reason.slice(0, 400);
                         if (typeof r.notes === 'string' && r.notes) entry.notes = r.notes.slice(0, 160);
+                        if (typeof r.backTranslation === 'string' && r.backTranslation) entry.backTranslation = r.backTranslation.slice(0, 1000);
                         if (typeof r.aiUsed === 'boolean') entry.aiUsed = r.aiUsed;
                         if (Number.isFinite(Number(r.aiScore))) entry.aiScore = Number(r.aiScore);
                         if (Number.isFinite(Number(r.baselineScore))) entry.baselineScore = Number(r.baselineScore);
@@ -1783,6 +1868,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             });
                             
                             this.validation_results = localResults;
+                            this.normalizeValidationResultsLanguageKeys();
                             console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items`);
                             this.setStatus('🌐 Loaded validation results from shared session storage', 'success');
                             return true;
@@ -1823,9 +1909,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 if (!this.validation_results[itemId]) {
                     this.validation_results[itemId] = {};
                 }
-                const existing = this.validation_results[itemId][langCode];
+                const preferredLangCode = this.resolvePreferredLangCode(langCode);
+                const existing = this.getValidationEntry(itemId, preferredLangCode);
                 // Store the result; preserve needsReview, reason, and backTranslation from existing entry
-                this.validation_results[itemId][langCode] = {
+                this.validation_results[itemId][preferredLangCode] = {
                     score: score,
                     notes: notes,
                     timestamp: new Date().toISOString(),
@@ -1833,15 +1920,17 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     reason: existing && existing.reason !== undefined ? existing.reason : '',
                     backTranslation: existing && existing.backTranslation !== undefined ? existing.backTranslation : ''
                 };
-                console.log(`📝 Stored validation result: ${itemId}[${langCode}] = ${score}%`);
+                console.log(`📝 Stored validation result: ${itemId}[${preferredLangCode}] = ${score}%`);
             }
             
             updateValidationUI(itemId, langCode, score, notes) {
                 // Map langCode to language name to target the correct tab
                 const langCodeToLanguage = {
                     'en': 'English',
+                    'en-US': 'English',
                     'es-CO': 'Spanish', 
                     'de': 'German',
+                    'de-DE': 'German',
                     'de-CH': 'German (Switzerland)',
                     'fr-CA': 'French',
                     'nl': 'Dutch'
@@ -2098,7 +2187,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let sourceBadgeHtml = '';
                     let approvedHtml = '';
                     let scoreValue = -1;
-                    const storedResult = this.validation_results[itemId]?.[langCode];
+                    const storedResult = this.getValidationEntry(itemId, langCode);
                     const needsReview = storedResult?.needsReview || false;
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
@@ -2219,13 +2308,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         saveButton.dataset.itemId = itemId;
                         saveButton.dataset.langCode = langCode;
                         const pendingKey = this.pendingSaveKey;
-                        const key = `${langCode}::${itemId}`;
+                        const canonicalLangCode = this.getCanonicalAudioLangCode(langCode);
+                        const key = `${canonicalLangCode}::${itemId}`;
                         const isPending = Boolean(
                             pendingKey &&
                             pendingKey === key &&
                             this.latestGeneratedAudio &&
                             this.latestGeneratedAudio.itemId === itemId &&
-                            this.latestGeneratedAudio.langCode === langCode
+                            this.getCanonicalAudioLangCode(this.latestGeneratedAudio.langCode) === canonicalLangCode
                         );
                         saveButton.disabled = !isPending;
                         saveButton.title = isPending ? 'Save latest generated audio to draft bucket' : 'Generate audio before saving';
@@ -2272,15 +2362,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (!self.validation_results[itemId]) {
                             self.validation_results[itemId] = {};
                         }
-                        if (!self.validation_results[itemId][langCode]) {
-                            self.validation_results[itemId][langCode] = {};
+                        const preferredLangCode = self.resolvePreferredLangCode(langCode);
+                        if (!self.validation_results[itemId][preferredLangCode]) {
+                            self.validation_results[itemId][preferredLangCode] = {};
                         }
-                        self.validation_results[itemId][langCode].needsReview = isChecked;
+                        self.validation_results[itemId][preferredLangCode].needsReview = isChecked;
                         
                         // Clear reason if unchecked
                         if (!isChecked) {
                             reasonInput.value = '';
-                            self.validation_results[itemId][langCode].reason = '';
+                            self.validation_results[itemId][preferredLangCode].reason = '';
                         }
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         console.log(`📝 Needs Review ${isChecked ? 'set' : 'cleared'} for ${itemId}[${langCode}]`);
@@ -2311,10 +2402,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (!self.validation_results[itemId]) {
                             self.validation_results[itemId] = {};
                         }
-                        if (!self.validation_results[itemId][langCode]) {
-                            self.validation_results[itemId][langCode] = {};
+                        const preferredLangCode = self.resolvePreferredLangCode(langCode);
+                        if (!self.validation_results[itemId][preferredLangCode]) {
+                            self.validation_results[itemId][preferredLangCode] = {};
                         }
-                        self.validation_results[itemId][langCode].reason = reason;
+                        self.validation_results[itemId][preferredLangCode].reason = reason;
                         
                         // Visual feedback
                         btn.innerHTML = '<i class="fas fa-check"></i>';
@@ -2708,22 +2800,23 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             async fetchExistingAudioMetadata(itemId, langCode) {
                 if (!itemId || !langCode) return null;
                 try {
-                    const cacheKey = `${langCode}::${itemId}`;
+                    const candidates = [...new Set([this.getCanonicalAudioLangCode(langCode), String(langCode || '').trim()].filter(Boolean))];
+                    const cacheKey = `${candidates[0] || langCode}::${itemId}`;
                     if (!this.audioMetadataCache) {
                         this.audioMetadataCache = new Map();
                     }
                     if (this.audioMetadataCache.has(cacheKey)) {
                         return this.audioMetadataCache.get(cacheKey);
                     }
-
-                    const response = await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(langCode)}`);
-                    if (!response.ok) {
-                        throw new Error(`Metadata request failed (${response.status})`);
-                    }
-                    const data = await response.json();
-                    if (data && !data.error) {
-                        this.audioMetadataCache.set(cacheKey, data);
-                        return data;
+                    for (let i = 0; i < candidates.length; i++) {
+                        const candidate = candidates[i];
+                        const response = await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(candidate)}`);
+                        if (!response.ok) continue;
+                        const data = await response.json();
+                        if (data && !data.error) {
+                            this.audioMetadataCache.set(cacheKey, data);
+                            return data;
+                        }
                     }
                     return null;
                 } catch (error) {
@@ -3178,7 +3271,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     return;
                 }
 
-                if (this.latestGeneratedAudio.itemId !== itemId || this.latestGeneratedAudio.langCode !== langCode) {
+                const canonicalLangCode = this.getCanonicalAudioLangCode(langCode);
+                const latestCanonicalLangCode = this.getCanonicalAudioLangCode(this.latestGeneratedAudio.langCode);
+                if (this.latestGeneratedAudio.itemId !== itemId || latestCanonicalLangCode !== canonicalLangCode) {
                     const message = 'The most recent generated audio does not match this item/language. Please re-generate before saving.';
                     this.setStatus(`⚠️ ${message}`, 'warning');
                     alert(message);
@@ -3187,19 +3282,19 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
                 const payload = {
                     audioBase64: this.latestGeneratedAudio.audioBase64,
-                    langCode,
+                    langCode: canonicalLangCode,
                     itemId,
                     bucket: 'levante-assets-draft',
                     versioning: true,
                     tags: {
                         title: itemId,
                         artist: `Levante Framework - ${this.latestGeneratedAudio.service}`,
-                        album: this.latestGeneratedAudio.itemLabel || langCode,
+                        album: this.latestGeneratedAudio.itemLabel || canonicalLangCode,
                         genre: 'Speech Synthesis',
-                        comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName || this.latestGeneratedAudio.voiceId} - ${langCode}`,
+                        comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName || this.latestGeneratedAudio.voiceId} - ${canonicalLangCode}`,
                         service: this.latestGeneratedAudio.service,
                         voice: this.latestGeneratedAudio.voiceName || this.latestGeneratedAudio.voiceId,
-                        lang_code: langCode,
+                        lang_code: canonicalLangCode,
                         text: this.latestGeneratedAudio.text || '',
                         created: this.latestGeneratedAudio.generatedAt,
                         copyright: this.audioCopyright,
@@ -3224,7 +3319,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     alert(`Audio saved to ${result.bucket}/${result.path}`);
                     this.pendingSaveKey = null;
                     this.latestGeneratedAudio = null;
-                    this.updateSaveButtonState(itemId, langCode);
+                    this.updateSaveButtonState(itemId, canonicalLangCode);
                 } catch (error) {
                     console.error('Error saving generated audio', error);
                     this.setStatus(`❌ Error saving audio: ${error.message}`, 'error');
@@ -3251,7 +3346,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     };
 
                     if (this.latestGeneratedAudio.itemId && this.latestGeneratedAudio.langCode) {
-                        const cacheKey = `${this.latestGeneratedAudio.langCode}::${this.latestGeneratedAudio.itemId}`;
+                        const canonicalLangCode = this.getCanonicalAudioLangCode(this.latestGeneratedAudio.langCode);
+                        const cacheKey = `${canonicalLangCode}::${this.latestGeneratedAudio.itemId}`;
                         if (!this.audioMetadataCache) {
                             this.audioMetadataCache = new Map();
                         }
@@ -3264,7 +3360,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             }
                         });
                         this.pendingSaveKey = cacheKey;
-                        this.updateSaveButtonState(this.latestGeneratedAudio.itemId, this.latestGeneratedAudio.langCode);
+                        this.updateSaveButtonState(this.latestGeneratedAudio.itemId, canonicalLangCode);
                     }
                 } catch (error) {
                     console.error('Failed to cache generated audio', error);
@@ -3512,13 +3608,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             updateSaveButtonState(itemId, langCode) {
                 if (!itemId || !langCode) return;
                 const pendingKey = this.pendingSaveKey;
-                const targetKey = `${langCode}::${itemId}`;
+                const canonicalLangCode = this.getCanonicalAudioLangCode(langCode);
+                const targetKey = `${canonicalLangCode}::${itemId}`;
                 const shouldEnable = Boolean(
                     pendingKey &&
                     pendingKey === targetKey &&
                     this.latestGeneratedAudio &&
                     this.latestGeneratedAudio.itemId === itemId &&
-                    this.latestGeneratedAudio.langCode === langCode
+                    this.getCanonicalAudioLangCode(this.latestGeneratedAudio.langCode) === canonicalLangCode
                 );
 
                 const buttons = Array.from(document.querySelectorAll('.save-btn[data-item-id][data-lang-code]'));

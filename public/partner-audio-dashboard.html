@@ -629,6 +629,18 @@
             cursor: not-allowed;
         }
 
+        .bulk-approve-button {
+            border-color: #86efac;
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .bulk-approve-button:hover:not([disabled]) {
+            border-color: #22c55e;
+            color: #14532d;
+            background: #dcfce7;
+        }
+
         .item-card-compact {
             background: #ffffff;
             border: 1px solid #e4e4e7;
@@ -1164,6 +1176,9 @@
             <button class="refresh-button" id="refreshDataBtn" disabled>
                 <i class="fas fa-sync-alt"></i> Refresh Data
             </button>
+            <button class="refresh-button bulk-approve-button" id="approveAllLanguageBtn" onclick="dashboard.approveAllForCurrentLanguage()" disabled>
+                <i class="fas fa-check-double"></i> Approve All Audio (Language)
+            </button>
         </div>
 
         <div class="approval-stats" id="approvalStats" style="display: none;">
@@ -1285,6 +1300,7 @@
                 this.noAudioScanSummary = null;
                 this.lastRefreshTime = null;
                 this.refreshControlsInitialized = false;
+                this.bulkApproveInProgress = false;
                 
                 // User info for permission checks
                 this.currentUserEmail = null;
@@ -1382,9 +1398,13 @@
             updateRefreshIndicator() {
                 const label = document.getElementById('refreshTimestamp');
                 const refreshBtn = document.getElementById('refreshDataBtn');
+                const approveAllBtn = document.getElementById('approveAllLanguageBtn');
 
                 if (refreshBtn) {
                     refreshBtn.disabled = !this.currentLanguage;
+                }
+                if (approveAllBtn) {
+                    approveAllBtn.disabled = !this.currentLanguage || this.currentTab !== 'pending' || this.bulkApproveInProgress;
                 }
 
                 if (!label) {
@@ -3060,6 +3080,113 @@
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
                     // Search filter is already applied in refreshItemsForCurrentTab()
+                }
+                this.updateRefreshIndicator();
+            }
+
+            async approveAllForCurrentLanguage() {
+                if (!this.currentLanguage || !this.currentLangCode) {
+                    this.setStatus('Select a language before bulk approving.', 'error');
+                    return;
+                }
+                if (this.currentTab !== 'pending') {
+                    this.setStatus('Bulk approve is available from the To Be Approved tab.', 'warning');
+                    return;
+                }
+                if (this.bulkApproveInProgress) {
+                    this.setStatus('Bulk approval is already running.', 'warning');
+                    return;
+                }
+
+                const approveAllBtn = document.getElementById('approveAllLanguageBtn');
+                const originalLabel = approveAllBtn ? approveAllBtn.innerHTML : '';
+
+                try {
+                    const withTranslations = this.data.filter(item => {
+                        const text = this.getTextForItem(item, this.currentLangCode);
+                        return text && text.trim();
+                    });
+                    const pendingItems = await this.filterItemsWithAudio(withTranslations);
+                    if (!pendingItems.length) {
+                        this.setStatus(`No pending audio items to approve for ${this.currentLanguage}.`, 'info');
+                        return;
+                    }
+
+                    const confirmed = window.confirm(
+                        `Approve all ${pendingItems.length} pending audio items for ${this.currentLanguage}?\n\nThis moves files from draft to approved bucket.`
+                    );
+                    if (!confirmed) return;
+
+                    this.bulkApproveInProgress = true;
+                    if (approveAllBtn) {
+                        approveAllBtn.disabled = true;
+                        approveAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
+                    }
+
+                    let moved = 0;
+                    let skipped = 0;
+                    let failed = 0;
+
+                    for (let i = 0; i < pendingItems.length; i++) {
+                        const item = pendingItems[i];
+                        const itemId = item.item_id || '';
+                        const baseId = this.extractBaseId(itemId);
+                        if (!baseId) {
+                            skipped++;
+                            continue;
+                        }
+                        this.setStatus(`Bulk approving ${i + 1}/${pendingItems.length}: ${itemId}`, 'loading');
+
+                        try {
+                            const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
+                            if (!audioPath) {
+                                skipped++;
+                                continue;
+                            }
+
+                            const moveResponse = await fetch('/api/move-audio-to-dev', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    bucket: 'levante-assets-draft',
+                                    path: audioPath
+                                })
+                            });
+
+                            if (!moveResponse.ok) {
+                                failed++;
+                                continue;
+                            }
+
+                            this.approvedItems.add(baseId);
+                            this.unapprovedItems.delete(baseId);
+                            this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+                            this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
+                            moved++;
+                        } catch (error) {
+                            console.warn('Bulk approve item failed:', itemId, error);
+                            failed++;
+                        }
+                    }
+
+                    await this.loadApprovalStatus();
+                    await this.refreshItemsForCurrentTab();
+                    await this.updateApprovalStats();
+                    if (this.currentSearchQuery) this.applySearchFilter(this.currentSearchQuery);
+
+                    this.setStatus(
+                        `Bulk approve complete for ${this.currentLanguage}: ${moved} moved, ${skipped} skipped, ${failed} failed.`,
+                        failed > 0 ? 'warning' : 'success'
+                    );
+                } catch (error) {
+                    console.error('Bulk approve error:', error);
+                    this.setStatus(`Bulk approve failed: ${error.message}`, 'error');
+                } finally {
+                    this.bulkApproveInProgress = false;
+                    if (approveAllBtn) {
+                        approveAllBtn.innerHTML = originalLabel || '<i class="fas fa-check-double"></i> Approve All Audio (Language)';
+                    }
+                    this.updateRefreshIndicator();
                 }
             }
 

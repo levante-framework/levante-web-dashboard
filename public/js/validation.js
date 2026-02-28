@@ -22,6 +22,21 @@ function mapToGoogleTranslateCode(langCode) {
     return langMapping[langCode] || langCode.split('-')[0]; // Fallback: use base language code
 }
 
+function resolveValidationLangCode(dashboard, langCode) {
+    if (dashboard && typeof dashboard.resolvePreferredLangCode === 'function') {
+        return dashboard.resolvePreferredLangCode(langCode);
+    }
+    return langCode;
+}
+
+function getValidationResult(dashboard, itemId, langCode) {
+    if (!dashboard) return null;
+    if (typeof dashboard.getValidationEntry === 'function') {
+        return dashboard.getValidationEntry(itemId, langCode);
+    }
+    return dashboard.validation_results?.[itemId]?.[langCode] || null;
+}
+
 function toggleValidationPanel() {
     const header = document.querySelector('.validation-header');
     const content = document.getElementById('validationContent');
@@ -307,19 +322,19 @@ function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
         button.textContent = buttonText;
         button.removeAttribute('onclick');
         button.onclick = () => {
-            const latest = window.dashboard.validation_results[itemId][langCode];
+            const latest = getValidationResult(window.dashboard, itemId, langCode);
             showValidationResults(itemId, langCode, latest, scoreEmoji, score, statusClass);
         };
     }
 
     indicator.onclick = () => {
-        const latest = window.dashboard.validation_results[itemId][langCode];
+        const latest = getValidationResult(window.dashboard, itemId, langCode);
         showValidationResults(itemId, langCode, latest, scoreEmoji, score, statusClass);
     };
 }
 
 function showStoredValidationResult(itemId, langCode) {
-    const result = window.dashboard?.validation_results?.[itemId]?.[langCode];
+    const result = getValidationResult(window.dashboard, itemId, langCode);
     if (!result || typeof result.score !== 'number') return;
     const score = Math.round(Number(result.score) * 10000) / 100;
     const scoreEmoji = score >= 85 ? '✅' : score >= 70 ? '⚠️' : '❌';
@@ -353,8 +368,9 @@ function validateByItemId(itemId, langCode) {
 function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null) {
     const dashboard = window.dashboard;
     if (!dashboard) return;
+    const langKey = resolveValidationLangCode(dashboard, langCode);
     if (!dashboard.validation_results[itemId]) dashboard.validation_results[itemId] = {};
-    const result = dashboard.validation_results[itemId][langCode] || {};
+    const result = dashboard.validation_results[itemId][langKey] || {};
     const priorSource = inferScoreSource(result);
 
     if (approved) {
@@ -387,7 +403,7 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
         }
         result.timestamp = new Date().toISOString();
     }
-    dashboard.validation_results[itemId][langCode] = result;
+    dashboard.validation_results[itemId][langKey] = result;
     applyValidationUiFromResult(itemId, langCode, rowEl);
     // Persist immediately so manual approval is saved/reloaded with other validation metadata.
     try { dashboard.saveValidationResults(); } catch (_) {}
@@ -706,7 +722,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
 
     try {
         // Skip validation for English (can't back-translate English to English)
-        if (langCode === 'en') {
+        if (String(langCode).split('-')[0] === 'en') {
             // For English, just mark as good since it's the source language
             const similarity = 1.0; // Perfect score for source language
             
@@ -714,9 +730,10 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             if (!window.dashboard.validation_results[itemId]) {
                 window.dashboard.validation_results[itemId] = {};
             }
+            const langKey = resolveValidationLangCode(window.dashboard, langCode);
             
-            const existingResult = window.dashboard.validation_results[itemId][langCode] || {};
-            window.dashboard.validation_results[itemId][langCode] = {
+            const existingResult = getValidationResult(window.dashboard, itemId, langCode) || {};
+            window.dashboard.validation_results[itemId][langKey] = {
                 score: similarity,
                 originalText: normalizedOriginalText,
                 translatedText: normalizedTranslatedText,
@@ -760,7 +777,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
                 // Remove the original onclick attribute and replace with our handler
                 button.removeAttribute('onclick');
                 button.onclick = () => {
-                    const result = window.dashboard.validation_results[itemId][langCode];
+                    const result = getValidationResult(window.dashboard, itemId, langCode);
                     showValidationResults(itemId, langCode, result, '✅', 100, 'status-good');
                 };
             }
@@ -773,7 +790,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
 
             // Add click handler to show details (keeping both button and indicator clickable)
             indicator.onclick = () => {
-                const result = window.dashboard.validation_results[itemId][langCode];
+                const result = getValidationResult(window.dashboard, itemId, langCode);
                 showValidationResults(itemId, langCode, result, '✅', 100, 'status-good');
             };
 
@@ -852,9 +869,10 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         if (!window.dashboard.validation_results[itemId]) {
             window.dashboard.validation_results[itemId] = {};
         }
+        const langKey = resolveValidationLangCode(window.dashboard, langCode);
         
-        const existingResult = window.dashboard.validation_results[itemId][langCode] || {};
-        window.dashboard.validation_results[itemId][langCode] = {
+        const existingResult = getValidationResult(window.dashboard, itemId, langCode) || {};
+        window.dashboard.validation_results[itemId][langKey] = {
             score: score / 100, // Store as decimal for consistency
             originalText: normalizedOriginalText,
             translatedText: normalizedTranslatedText,
@@ -912,7 +930,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             // Remove the original onclick attribute and replace with our handler
             button.removeAttribute('onclick');
             button.onclick = () => {
-                const result = window.dashboard.validation_results[itemId][langCode];
+                const result = getValidationResult(window.dashboard, itemId, langCode);
                 showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass);
             };
             console.log('🔄 Updated button:', { 
@@ -945,7 +963,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
 
         // Add click handler to show detailed results
         indicator.onclick = () => {
-            const result = window.dashboard.validation_results[itemId][langCode];
+            const result = getValidationResult(window.dashboard, itemId, langCode);
             showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass);
         };
 
