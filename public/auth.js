@@ -1,6 +1,6 @@
 /**
  * Firebase Authentication Module for Levante Dashboard
- * Handles superadmin authentication and role verification
+ * Handles admin/superadmin authentication and role verification
  */
 
 class AuthManager {
@@ -10,6 +10,7 @@ class AuthManager {
         this.db = null;
         this.currentUser = null;
         this.isSuperadmin = false;
+        this.isAdmin = false;
         this.superadminBypassInProgress = false;
         
         // Restore superadmin email override from localStorage (survives page refresh)
@@ -134,19 +135,22 @@ class AuthManager {
             const activeEmail = this.getActiveEmail();
             console.log('User authenticated:', activeEmail || '(no email)');
             
-            // Check if user is superadmin
-            this.isSuperadmin = await this.checkSuperadminRole(user.uid);
-            
-            if (this.isSuperadmin) {
+            // Check if user has admin/superadmin access
+            const access = await this.checkAdminAccess(user);
+            this.isSuperadmin = access.isSuperadmin;
+            this.isAdmin = access.isAdmin;
+
+            if (access.authorized) {
                 this.showDashboard();
             } else {
-                this.showError('Access denied. Superadmin privileges required.');
+                this.showError('Access denied. Site admin or superadmin privileges required.');
                 this.setSuperadminEmailOverride(null);
                 await this.auth.signOut();
             }
         } else {
             this.currentUser = null;
             this.isSuperadmin = false;
+            this.isAdmin = false;
             if (!this.superadminBypassInProgress) {
                 this.setSuperadminEmailOverride(null);
             }
@@ -154,39 +158,81 @@ class AuthManager {
         }
     }
 
-    async checkSuperadminRole(uid) {
+    async checkAdminAccess(user) {
         try {
             const email = this.getActiveEmail();
             if (!email) {
-                console.warn('No email available for superadmin check');
-                return false;
+                console.warn('No email available for admin access check');
+                return { authorized: false, isSuperadmin: false, isAdmin: false };
             }
 
             // First check if email is in the hardcoded superadmin list
             if (this.isEmailInSuperadminList(email)) {
-                return true;
-            }
-            
-            if (!this.db) {
-                console.warn('Firestore not initialized for superadmin role check');
-                return false;
+                return { authorized: true, isSuperadmin: true, isAdmin: true };
             }
 
-            // Then check Firestore for user role
-            const userDoc = await this.db.collection('users').doc(uid).get();
-            
+            // Then check custom auth claims
+            try {
+                const tokenResult = await user.getIdTokenResult();
+                const claims = tokenResult?.claims || {};
+                const isSuperadminClaim =
+                    claims.super_admin === true ||
+                    claims.isSuperadmin === true ||
+                    String(claims.role || '').toLowerCase() === 'superadmin';
+                const isAdminClaim =
+                    isSuperadminClaim ||
+                    claims.admin === true ||
+                    claims.admin === 'true' ||
+                    claims.site_admin === true ||
+                    claims.site_admin === 'true' ||
+                    String(claims.role || '').toLowerCase() === 'admin' ||
+                    String(claims.role || '').toLowerCase() === 'site_admin';
+                if (isAdminClaim) {
+                    return {
+                        authorized: true,
+                        isSuperadmin: Boolean(isSuperadminClaim),
+                        isAdmin: true
+                    };
+                }
+            } catch (claimsError) {
+                console.warn('Unable to read auth claims during access check:', claimsError);
+            }
+
+            if (!this.db) {
+                console.warn('Firestore not initialized for admin role check');
+                return { authorized: false, isSuperadmin: false, isAdmin: false };
+            }
+
+            // Finally check Firestore for role records
+            const userDoc = await this.db.collection('users').doc(user.uid).get();
             if (userDoc.exists) {
                 const userData = userDoc.data();
-                return userData.role === 'superadmin' || userData.isSuperadmin === true;
+                const role = String(userData.role || '').toLowerCase();
+                const isSuperadminDoc = userData.isSuperadmin === true || role === 'superadmin';
+                const isAdminDoc =
+                    isSuperadminDoc ||
+                    userData.isAdmin === true ||
+                    role === 'admin' ||
+                    role === 'site_admin';
+                if (isAdminDoc) {
+                    return {
+                        authorized: true,
+                        isSuperadmin: Boolean(isSuperadminDoc),
+                        isAdmin: true
+                    };
+                }
             }
-            
+
             // If no user document exists, check if email is in superadmin collection
             const superadminDoc = await this.db.collection('superadmins').doc(email).get();
-            return superadminDoc.exists;
-            
+            if (superadminDoc.exists) {
+                return { authorized: true, isSuperadmin: true, isAdmin: true };
+            }
+
+            return { authorized: false, isSuperadmin: false, isAdmin: false };
         } catch (error) {
-            console.error('Error checking superadmin role:', error);
-            return false;
+            console.error('Error checking admin access:', error);
+            return { authorized: false, isSuperadmin: false, isAdmin: false };
         }
     }
 
@@ -426,7 +472,7 @@ class AuthManager {
 
     // Public methods for other modules to check auth status
     isAuthenticated() {
-        return this.currentUser !== null && this.isSuperadmin;
+        return this.currentUser !== null && (this.isSuperadmin || this.isAdmin);
     }
 
     getCurrentUser() {

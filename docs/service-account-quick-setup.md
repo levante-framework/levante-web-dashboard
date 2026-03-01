@@ -38,7 +38,7 @@ You need to add this service account to both Firebase projects.
 5. **Scroll to "Service account permissions"** section
 6. **Click "Add Member"**
 7. **Enter service account email**:
-   - Format: `levante-dashboard-reader@YOUR-PROJECT-ID.iam.gserviceaccount.com`
+   - Format: `SERVICE_ACCOUNT_EMAIL`
    - (You can find this in Google Cloud Console → Service Accounts → your service account)
 8. **Select role**: `Cloud Datastore User` (or `Firestore User`)
 9. **Click "Add"**

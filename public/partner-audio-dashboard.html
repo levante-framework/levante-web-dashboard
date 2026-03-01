@@ -1105,19 +1105,12 @@
     <div class="auth-container" id="authContainer" style="display: none;">
         <div class="auth-modal">
             <div class="auth-header">
-                <h2><i class="fas fa-shield-alt"></i> Partner Access Required</h2>
-                <p>Sign in with your Levante partner account</p>
+                <h2><i class="fas fa-shield-alt"></i> Admin Access Required</h2>
+                <p>Sign in with your Levante site admin or superadmin account</p>
             </div>
             
-            <!-- Tabs for login methods -->
-            <div class="auth-tabs">
-                <button class="auth-tab active" id="passwordTab" onclick="dashboard.switchAuthTab('password')">
-                    <i class="fas fa-key"></i> Password Login
-                </button>
-                <button class="auth-tab" id="crowdinTab" onclick="dashboard.switchAuthTab('crowdin')">
-                    <i class="fas fa-users"></i> Crowdin Username
-                </button>
-            </div>
+            <!-- Single login method -->
+            <div class="auth-tabs" style="display: none;"></div>
             
             <!-- Password Login Form -->
             <form class="auth-form" id="passwordAuthForm" style="display: block;" novalidate>
@@ -1132,7 +1125,7 @@
                 <div id="passwordAuthError" class="auth-error" style="display: none;"></div>
             </form>
             
-            <!-- Crowdin Username Login Form -->
+            <!-- Crowdin Username Login Form (disabled for admin-only access policy) -->
             <form class="auth-form" id="crowdinAuthForm" style="display: none;">
                 <input type="text" id="crowdinEmailInput" class="auth-input" placeholder="Your Crowdin username (e.g. david_cardinal)" autocomplete="username" required>
                 <button type="submit" class="auth-button" id="crowdinLoginBtn">
@@ -1369,16 +1362,25 @@
                 const passwordForm = document.getElementById('passwordAuthForm');
                 const crowdinForm = document.getElementById('crowdinAuthForm');
                 
+                if (tab !== 'password') {
+                    const errorEl = document.getElementById('passwordAuthError');
+                    if (errorEl) {
+                        errorEl.textContent = 'Crowdin username login is disabled. Use your site admin/superadmin account.';
+                        errorEl.style.display = 'block';
+                    }
+                    tab = 'password';
+                }
+
                 if (tab === 'password') {
                     passwordTab?.classList.add('active');
                     crowdinTab?.classList.remove('active');
-                    passwordForm.style.display = 'block';
-                    crowdinForm.style.display = 'none';
+                    if (passwordForm) passwordForm.style.display = 'block';
+                    if (crowdinForm) crowdinForm.style.display = 'none';
                 } else {
                     passwordTab?.classList.remove('active');
                     crowdinTab?.classList.add('active');
-                    passwordForm.style.display = 'none';
-                    crowdinForm.style.display = 'block';
+                    if (passwordForm) passwordForm.style.display = 'none';
+                    if (crowdinForm) crowdinForm.style.display = 'block';
                 }
             }
 
@@ -1519,26 +1521,7 @@
             async handleLogout() {
                 try {
                     this.resetNoAudioDebugInfo();
-                    if (this.authMethod === 'crowdin') {
-                        // Clear Crowdin session
-                        sessionStorage.removeItem('crowdinAuth');
-                        this.authMethod = null;
-                        this.crowdinAuthData = null;
-                        this.currentUserEmail = null;
-                        this.isSuperAdmin = false;
-                        this.isOverrideEmail = false;
-                        this.allowedLanguage = null;
-                        
-                        // Clear dashboard state
-                        this.data = [];
-                        this.currentLanguage = null;
-                        this.currentLangCode = null;
-                        this.approvedItems.clear();
-                        this.unapprovedItems.clear();
-                        
-                        // Show auth modal
-                        this.showAuthModal();
-                    } else if (this.authMethod === 'firebase') {
+                    if (this.authMethod === 'firebase') {
                         // Firebase logout
                         if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                             const auth = firebase.auth();
@@ -1653,58 +1636,25 @@
             }
 
             async checkAuth() {
-                // Check if user is already authenticated via Crowdin (stored in sessionStorage)
-                const storedCrowdinAuth = sessionStorage.getItem('crowdinAuth');
-                if (storedCrowdinAuth) {
-                    try {
-                        const authData = JSON.parse(storedCrowdinAuth);
-                        this.authMethod = 'crowdin';
-                        this.crowdinAuthData = authData;
-                        this.currentUserEmail = authData.username || authData.identifier || authData.email;
-                        this.isSuperAdmin = false;
-                        this.isOverrideEmail = false;
-                        
-                        const hasFullAccess = authData.isOwner || authData.isManager || 
-                                             authData.hasAllLanguagesAccess || authData.accessToAllWorkflowSteps;
-                        if (hasFullAccess) {
-                            this.allowedLanguage = null;
-                        } else {
-                            this.allowedLanguage = null; // Check per language
-                        }
-                        
-                        // Hide auth modal and show dashboard
-                        const authContainer = document.getElementById('authContainer');
-                        const container = document.querySelector('.container');
-                        if (authContainer) {
-                            authContainer.style.display = 'none';
-                        }
-                        if (container) {
-                            container.style.display = 'block';
-                        }
-                        
-                        await this.initDashboard();
-                        return;
-                    } catch (error) {
-                        console.error('Error restoring Crowdin auth:', error);
-                        sessionStorage.removeItem('crowdinAuth');
-                    }
-                }
+                // Admin-only policy: ensure any previous Crowdin session is ignored.
+                sessionStorage.removeItem('crowdinAuth');
                 
                 // Check if Firebase is available
                 if (typeof firebase === 'undefined' || !firebase.apps || firebase.apps.length === 0) {
-                    // For development, allow access without auth
-                    // Suppress console warning in production
-                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                        console.warn('Firebase not initialized - allowing access for development');
+                    const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    if (isLocalDev) {
+                        console.warn('Firebase not initialized - allowing access for localhost development');
+                        const authContainer = document.getElementById('authContainer');
+                        if (authContainer) {
+                            authContainer.style.display = 'none';
+                        }
+                        const container = document.querySelector('.container');
+                        if (container) {
+                            container.style.display = 'block';
+                        }
+                        return;
                     }
-                    const authContainer = document.getElementById('authContainer');
-                    if (authContainer) {
-                        authContainer.style.display = 'none';
-                    }
-                    const container = document.querySelector('.container');
-                    if (container) {
-                        container.style.display = 'block';
-                    }
+                    this.showAuthModal('Authentication is required. Firebase is not available.');
                     return;
                 }
 
@@ -1715,7 +1665,7 @@
                     // Listen for auth state changes (only for Firebase auth)
                     auth.onAuthStateChanged(async (user) => {
                         // Skip if user is authenticated via Crowdin or SuperAdmin bypass
-                        if (this.authMethod === 'crowdin' || this.authMethod === 'superadmin') {
+                        if (this.authMethod === 'superadmin') {
                             return;
                         }
                         
@@ -1758,7 +1708,13 @@
                         // Check user permissions
                         // Allow superadmins, admins, and override emails
                         const isSuperAdmin = claims.super_admin === true;
-                        const isAdmin = claims.admin === true || claims.admin === 'true';
+                        const isAdmin =
+                            claims.admin === true ||
+                            claims.admin === 'true' ||
+                            claims.site_admin === true ||
+                            claims.site_admin === 'true' ||
+                            String(claims.role || '').toLowerCase() === 'admin' ||
+                            String(claims.role || '').toLowerCase() === 'site_admin';
                         const overrideEmails = ['david@example.com']; // Add override emails here
                         const isOverrideEmail = overrideEmails.some(overrideEmail => 
                             email.toLowerCase() === overrideEmail.toLowerCase()
@@ -1769,7 +1725,7 @@
                             // User doesn't have admin access
                             console.error('User does not have admin access');
                             auth.signOut();
-                            this.showAuthModal('Access denied: Admin privileges required');
+                            this.showAuthModal('Access denied: Site admin or superadmin privileges required.');
                             return;
                         }
                         
@@ -1851,8 +1807,8 @@
                     modal.innerHTML = `
                         <div class="auth-modal">
                             <div class="auth-header">
-                                <h2><i class="fas fa-shield-alt"></i> Partner Access Required</h2>
-                                <p>Please sign in with your Levante partner account</p>
+                                <h2><i class="fas fa-shield-alt"></i> Admin Access Required</h2>
+                                <p>Please sign in with your Levante site admin or superadmin account</p>
                             </div>
                             <form class="auth-form" id="authForm">
                                 <input type="email" id="emailInput" class="auth-input" placeholder="Email" required>
@@ -2191,116 +2147,10 @@
             }
             
             async handleCrowdinLogin() {
-                const identifierInput = document.getElementById('crowdinEmailInput');
-                const identifier = identifierInput?.value?.trim() || '';
-                const errorEl = document.getElementById('crowdinAuthError');
-                const loginBtn = document.getElementById('crowdinLoginBtn');
-                
-                if (!identifier) {
-                    if (errorEl) {
-                        errorEl.textContent = 'Please enter your Crowdin username (found in Crowdin → Profile).';
-                        errorEl.style.display = 'block';
-                    }
-                    return;
-                }
-                
-                if (identifier.includes('@')) {
-                    if (errorEl) {
-                        errorEl.textContent = 'Crowdin now requires your username (not email). Open Crowdin, click your avatar → Profile, and copy the username (e.g. david_cardinal).';
-                        errorEl.style.display = 'block';
-                    }
-                    return;
-                }
-                
-                // Show loading state
-                if (loginBtn) {
-                    loginBtn.disabled = true;
-                    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
-                }
+                const errorEl = document.getElementById('crowdinAuthError') || document.getElementById('passwordAuthError');
                 if (errorEl) {
-                    errorEl.style.display = 'none';
-                }
-                
-                try {
-                    console.log('Attempting Crowdin authentication with identifier:', identifier);
-                    const response = await fetch('/api/crowdin-auth', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ identifier, email: identifier })
-                    });
-                    
-                    let result = {};
-                    try {
-                        result = await response.json();
-                    } catch (parseError) {
-                        console.error('Crowdin authentication response parse error:', parseError);
-                        throw new Error('Unexpected response from Crowdin auth API.');
-                    }
-                    
-                    if (!response.ok || !result.authenticated) {
-                        const suggestions = Array.isArray(result?.suggestions) && result.suggestions.length
-                            ? ` Matching usernames: ${result.suggestions.join(', ')}`
-                            : '';
-                        const message = result?.message || result?.error || 'Authentication failed. Please verify your Crowdin username.';
-                        if (errorEl) {
-                            errorEl.textContent = message + suggestions;
-                            errorEl.style.display = 'block';
-                        }
-                        console.warn('Crowdin authentication failed:', result);
-                        return;
-                    }
-                    
-                    console.log('Crowdin authentication successful:', result);
-                    
-                    // Store authentication data
-                    this.authMethod = 'crowdin';
-                    this.crowdinAuthData = result;
-                    this.currentUserEmail = result.username || result.identifier || identifier;
-                    this.isSuperAdmin = false; // Crowdin users are not superadmins
-                    this.isOverrideEmail = false;
-                    
-                    // Store in sessionStorage for persistence
-                    sessionStorage.setItem('crowdinAuth', JSON.stringify(result));
-                    
-                    // Check if user has full access (Owner, Manager, or all languages access)
-                    const hasFullAccess = result.isOwner || result.isManager || 
-                                         result.hasAllLanguagesAccess || result.accessToAllWorkflowSteps;
-                    
-                    if (hasFullAccess) {
-                        this.allowedLanguage = null; // No restriction - full access
-                        console.log('Crowdin user has full access (Owner/Manager)');
-                    } else {
-                        // User has specific language access - will be checked when selecting language
-                        this.allowedLanguage = null; // Allow selection, but check per language
-                        console.log('Crowdin user has language-specific access');
-                    }
-                    
-                    // Hide auth modal and show dashboard
-                    const authContainerEl = document.getElementById('authContainer');
-                    const containerEl = document.querySelector('.container');
-                    if (authContainerEl) {
-                        authContainerEl.style.display = 'none';
-                    }
-                    if (containerEl) {
-                        containerEl.style.display = 'block';
-                    }
-                    
-                    // Initialize dashboard
-                    await this.initDashboard();
-                    
-                } catch (error) {
-                    console.error('Crowdin authentication error:', error);
-                    if (errorEl) {
-                        errorEl.textContent = error.message || 'Authentication failed. Please verify your Crowdin username.';
-                        errorEl.style.display = 'block';
-                    }
-                } finally {
-                    if (loginBtn) {
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Sign In with Crowdin Username';
-                    }
+                    errorEl.textContent = 'Crowdin username login is disabled. Use Firebase site admin/superadmin authentication.';
+                    errorEl.style.display = 'block';
                 }
             }
 

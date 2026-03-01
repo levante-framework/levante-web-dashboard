@@ -4,7 +4,7 @@
 
 1. **Service Account Created**
    - Name: `levante-dashboard-reader`
-   - Email: `levante-dashboard-reader@hs-levante-admin-dev.iam.gserviceaccount.com`
+   - Email: `<service-account-email-redacted>`
    - Project: `hs-levante-admin-dev`
 
 2. **JSON Key Created**
@@ -20,7 +20,7 @@ You need to grant the service account access to **both** Firebase projects. Sinc
 1. **For hs-levante-admin-dev:**
    - Go to: https://console.cloud.google.com/iam-admin/iam?project=hs-levante-admin-dev
    - Click **"Grant access"** button (top of page)
-   - In "New principals" field, enter: `levante-dashboard-reader@hs-levante-admin-dev.iam.gserviceaccount.com`
+   - In "New principals" field, enter your service account email
    - Click **"Select a role"** dropdown
    - Search for: `Cloud Datastore User`
    - Select **"Cloud Datastore User"**
@@ -29,7 +29,7 @@ You need to grant the service account access to **both** Firebase projects. Sinc
 2. **For hs-levante-admin-prod:**
    - Go to: https://console.cloud.google.com/iam-admin/iam?project=hs-levante-admin-prod
    - Click **"Grant access"** button
-   - In "New principals" field, enter: `levante-dashboard-reader@hs-levante-admin-dev.iam.gserviceaccount.com`
+   - In "New principals" field, enter your service account email
    - Select role: **"Cloud Datastore User"**
    - Click **"Save"**
 
@@ -38,14 +38,14 @@ You need to grant the service account access to **both** Firebase projects. Sinc
 1. **For hs-levante-admin-dev:**
    - Go to: https://console.firebase.google.com/project/hs-levante-admin-dev/settings/iam
    - Click **"Add Member"**
-   - Email: `levante-dashboard-reader@hs-levante-admin-dev.iam.gserviceaccount.com`
+   - Email: your service account email
    - Role: **"Cloud Datastore User"** (or **"Firestore User"**)
    - Click **"Add"**
 
 2. **For hs-levante-admin-prod:**
    - Go to: https://console.firebase.google.com/project/hs-levante-admin-prod/settings/iam
    - Click **"Add Member"**
-   - Email: `levante-dashboard-reader@hs-levante-admin-dev.iam.gserviceaccount.com`
+   - Email: your service account email
    - Role: **"Cloud Datastore User"** (or **"Firestore User"**)
    - Click **"Add"**
 
