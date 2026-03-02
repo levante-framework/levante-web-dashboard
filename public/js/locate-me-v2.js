@@ -71,6 +71,17 @@ createApp({
       whereResults: [],
       selectedState: '',
       cityQuery: '',
+      autocompleteSuggestions: [],
+      selectedAutocompleteSuggestion: null,
+      autocompleteMenuOpen: false,
+      autocompleteMeta: null,
+      autocompleteMetaPromise: null,
+      autocompleteIndexCache: {},
+      autocompleteDbPromise: null,
+      autocompleteLoading: false,
+      autocompleteSourceLabel: '',
+      postalExactMatch: null,
+      sessionNetworkBytes: 0,
       whereResult: null,
       countryOptions: [],
       countriesLoading: false,
@@ -137,15 +148,32 @@ createApp({
       return this.logEntries.find((entry) => entry.weather) || null;
     },
     filteredCities() {
+      if (this.autocompleteSuggestions && this.autocompleteSuggestions.length) {
+        return this.autocompleteSuggestions.map((s) => s.label).slice(0, 10);
+      }
       if (!this.whereCities || !this.whereCities.length) return [];
       const q = this.cityQuery.trim().toLowerCase();
       if (!q) return this.whereCities.slice(0, 10);
       return this.whereCities.filter((c) => c.toLowerCase().includes(q)).slice(0, 10);
     },
     selectedCityDetail() {
-      if (!this.whereCityRecords || !this.whereCityRecords.length) return null;
       const q = this.cityQuery.trim().toLowerCase();
       if (!q) return null;
+      if (this.selectedAutocompleteSuggestion) {
+        const picked = this.selectedAutocompleteSuggestion;
+        const pickedLabel = String(picked.label || '').trim().toLowerCase();
+        const pickedName = String(picked.name || '').trim().toLowerCase();
+        if (q === pickedLabel || q === pickedName) {
+          return picked;
+        }
+      }
+      if (this.autocompleteSuggestions && this.autocompleteSuggestions.length) {
+        const suggestionMatch = this.autocompleteSuggestions.find((s) => String(s.label || '').toLowerCase() === q);
+        if (suggestionMatch) {
+          return suggestionMatch;
+        }
+      }
+      if (!this.whereCityRecords || !this.whereCityRecords.length) return null;
       const inState = this.whereCityRecords.filter(
         (r) => !this.selectedState || r.admin1 === this.selectedState
       );
@@ -169,6 +197,425 @@ createApp({
       try {
         localStorage.setItem(key, JSON.stringify(value));
       } catch (_) {}
+    },
+    normalizeAutocompleteText(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    },
+    normalizeAutocompletePostal(value) {
+      return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    },
+    countryDisplayLabel(code) {
+      const cc = String(code || '').trim().toUpperCase();
+      if (!cc) return '';
+      const names = {
+        US: 'United States',
+        DE: 'Germany',
+        GB: 'United Kingdom',
+        NL: 'Netherlands',
+        CA: 'Canada',
+        CO: 'Colombia',
+        IN: 'India',
+        AR: 'Argentina',
+        GH: 'Ghana',
+        CH: 'Switzerland'
+      };
+      const name = names[cc] || cc;
+      return `${name} — ${cc}`;
+    },
+    isLikelyPostalQuery(value) {
+      const q = this.normalizeAutocompletePostal(value);
+      return q.length >= 2 && /[0-9]/.test(q);
+    },
+    async openAutocompleteDb() {
+      if (this.autocompleteDbPromise) return this.autocompleteDbPromise;
+      if (typeof indexedDB === 'undefined') return null;
+      this.autocompleteDbPromise = new Promise((resolve) => {
+        try {
+          const request = indexedDB.open('levante-locate-autocomplete', 1);
+          request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains('indexes')) {
+              db.createObjectStore('indexes', { keyPath: 'key' });
+            }
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => resolve(null);
+        } catch (_err) {
+          resolve(null);
+        }
+      });
+      return this.autocompleteDbPromise;
+    },
+    async readAutocompleteIndexFromIdb(key) {
+      const db = await this.openAutocompleteDb();
+      if (!db) return null;
+      return new Promise((resolve) => {
+        try {
+          const tx = db.transaction('indexes', 'readonly');
+          const store = tx.objectStore('indexes');
+          const req = store.get(key);
+          req.onsuccess = () => resolve(req.result ? req.result.value : null);
+          req.onerror = () => resolve(null);
+        } catch (_err) {
+          resolve(null);
+        }
+      });
+    },
+    async writeAutocompleteIndexToIdb(key, value) {
+      const db = await this.openAutocompleteDb();
+      if (!db) return;
+      await new Promise((resolve) => {
+        try {
+          const tx = db.transaction('indexes', 'readwrite');
+          const store = tx.objectStore('indexes');
+          store.put({ key, value, updatedAt: Date.now() });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => resolve();
+        } catch (_err) {
+          resolve();
+        }
+      });
+    },
+    getAutocompleteCountryCode(country) {
+      return String(country || '').trim().toUpperCase();
+    },
+    async loadAutocompleteMeta(force = false) {
+      if (this.autocompleteMeta && !force) return this.autocompleteMeta;
+      if (this.autocompleteMetaPromise && !force) return this.autocompleteMetaPromise;
+      this.autocompleteMetaPromise = (async () => {
+        try {
+          const res = await fetch(`/geocoder-index/meta.json?ts=${Date.now()}`, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`meta fetch failed (${res.status})`);
+          const buf = await res.arrayBuffer();
+          this.trackNetworkBytes(buf.byteLength);
+          const meta = JSON.parse(new TextDecoder('utf-8').decode(buf));
+          this.autocompleteMeta = meta;
+          return meta;
+        } catch (err) {
+          console.warn('Autocomplete metadata unavailable; falling back to legacy city list.', err?.message || err);
+          this.autocompleteMeta = null;
+          return null;
+        } finally {
+          this.autocompleteMetaPromise = null;
+        }
+      })();
+      return this.autocompleteMetaPromise;
+    },
+    buildAutocompleteCacheKey(countryCode, tier, version, contentHash) {
+      const hashPart = String(contentHash || '').slice(0, 16) || 'nohash';
+      return `${String(version || 'v1')}::${countryCode}::${tier}::${hashPart}`;
+    },
+    async loadCountryAutocompleteIndex(country, tier = 'lite', options = {}) {
+      const countryCode = this.getAutocompleteCountryCode(country);
+      if (!countryCode) return null;
+      const forceRefetch = Boolean(options && options.forceRefetch);
+      const normalizedTier = tier === 'full' ? 'full' : 'lite';
+      const memoryKey = `${countryCode}:${normalizedTier}`;
+      if (!forceRefetch && this.autocompleteIndexCache[memoryKey]) {
+        this.autocompleteSourceLabel = `${countryCode} ${normalizedTier} index (memory cache)`;
+        return this.autocompleteIndexCache[memoryKey];
+      }
+
+      const meta = await this.loadAutocompleteMeta();
+      const countryMeta = meta?.countries?.[countryCode];
+      if (!countryMeta) return null;
+
+      const version = meta?.version || 'v1';
+      const contentHash = countryMeta?.files?.[normalizedTier]?.sha256 || '';
+      const cacheKey = this.buildAutocompleteCacheKey(countryCode, normalizedTier, version, contentHash);
+      const cached = forceRefetch ? null : await this.readAutocompleteIndexFromIdb(cacheKey);
+      if (cached && Array.isArray(cached.entries)) {
+        this.autocompleteIndexCache[memoryKey] = cached;
+        this.autocompleteSourceLabel = `${countryCode} ${normalizedTier} index (IndexedDB cache)`;
+        return cached;
+      }
+
+      const fileName = countryMeta?.files?.[normalizedTier]?.file;
+      if (!fileName) return null;
+      const hashSuffix = String(contentHash || '').slice(0, 16);
+      const cacheBuster = forceRefetch ? `refresh_${Date.now()}` : `${version}_${hashSuffix}`;
+      const data = await this.fetchGzJson(`/geocoder-index/${fileName}?v=${encodeURIComponent(cacheBuster)}`);
+      if (!data || !Array.isArray(data.entries)) return null;
+      this.autocompleteIndexCache[memoryKey] = data;
+      this.autocompleteSourceLabel = `${countryCode} ${normalizedTier} index${forceRefetch ? ' (refreshed)' : ''}`;
+      await this.writeAutocompleteIndexToIdb(cacheKey, data);
+      return data;
+    },
+    directAutocompleteSearch(indexData, queryNorm, postalNorm, selectedStateNorm, limit = 10) {
+      const entries = Array.isArray(indexData?.entries) ? indexData.entries : [];
+      if (!entries.length) return [];
+      const out = [];
+      for (const entry of entries) {
+        const nameNorm = String(entry?.[0] || '');
+        const postal = String(entry?.[1] || '').toLowerCase();
+        if (!nameNorm && !postal) continue;
+        if (postalNorm) {
+          if (!(postal === postalNorm || (postal && postal.startsWith(postalNorm)))) continue;
+        } else if (queryNorm) {
+          const noSpace = nameNorm.replace(/\s+/g, '');
+          const qNoSpace = queryNorm.replace(/\s+/g, '');
+          if (
+            !nameNorm.includes(queryNorm) &&
+            !(qNoSpace && noSpace.includes(qNoSpace))
+          ) {
+            continue;
+          }
+        }
+        const score = this.scoreAutocompleteEntry(entry, queryNorm, postalNorm, selectedStateNorm);
+        if (score <= 0) continue;
+        out.push({ entry, score });
+      }
+      out.sort((a, b) => b.score - a.score);
+      return out.slice(0, limit);
+    },
+    collectAutocompleteCandidateIds(indexData, queryNorm, postalNorm) {
+      const ids = new Set();
+      const prefixMap = indexData?.prefix || {};
+      const prefixes = [];
+      if (queryNorm.length >= 2) {
+        const qNoSpace = queryNorm.replace(/\s+/g, '');
+        prefixes.push(queryNorm.slice(0, Math.min(5, queryNorm.length)));
+        if (qNoSpace && qNoSpace !== queryNorm) {
+          prefixes.push(qNoSpace.slice(0, Math.min(5, qNoSpace.length)));
+        }
+        queryNorm.split(' ').forEach((token) => {
+          if (token.length >= 2) prefixes.push(token.slice(0, Math.min(5, token.length)));
+        });
+      }
+      if (postalNorm.length >= 2) {
+        prefixes.push(postalNorm.slice(0, Math.min(5, postalNorm.length)));
+      }
+      prefixes.forEach((prefix) => {
+        const bucket = prefixMap[prefix];
+        if (!Array.isArray(bucket)) return;
+        bucket.forEach((id) => ids.add(id));
+      });
+      return Array.from(ids);
+    },
+    scoreAutocompleteEntry(entry, queryNorm, postalNorm, selectedStateNorm) {
+      const nameNorm = String(entry?.[0] || '');
+      const postal = String(entry?.[1] || '').toLowerCase();
+      const admin1Norm = this.normalizeAutocompleteText(entry?.[3] || '');
+      const population = Number(entry?.[6]) || 0;
+      let score = 0;
+
+      if (queryNorm) {
+        if (nameNorm === queryNorm) score += 120;
+        if (nameNorm.startsWith(queryNorm)) score += 100;
+        if (nameNorm.includes(queryNorm)) score += 50;
+      }
+      if (postalNorm) {
+        if (postal === postalNorm) score += 140;
+        else if (postal && postal.startsWith(postalNorm)) score += 90;
+      }
+      if (selectedStateNorm && admin1Norm && selectedStateNorm === admin1Norm) score += 40;
+      score += Math.min(35, Math.log10(Math.max(1, population)) * 7);
+
+      return score;
+    },
+    async updateAutocompleteSuggestions() {
+      if (typeof this.cityQuery !== 'string') {
+        this.cityQuery = '';
+      }
+      const queryRaw = this.cityQuery;
+      const queryNorm = this.normalizeAutocompleteText(queryRaw);
+      const postalNorm = this.normalizeAutocompletePostal(queryRaw);
+      const selectedStateNorm = this.normalizeAutocompleteText(this.selectedState || '');
+      if (!this.selectedCountry || (!queryNorm && !postalNorm)) {
+        this.autocompleteSuggestions = [];
+        this.postalExactMatch = null;
+        this.autocompleteMenuOpen = false;
+        return;
+      }
+
+      const runSearch = async (tier, options = {}) => {
+        const indexData = await this.loadCountryAutocompleteIndex(this.selectedCountry, tier, options);
+        if (!indexData) return [];
+        const ids = this.collectAutocompleteCandidateIds(indexData, queryNorm, postalNorm);
+        let ranked = ids.length
+          ? ids
+              .map((id) => {
+                const entry = indexData.entries[id];
+                if (!entry) return null;
+                const score = this.scoreAutocompleteEntry(entry, queryNorm, postalNorm, selectedStateNorm);
+                if (score <= 0) return null;
+                return { entry, score };
+              })
+              .filter(Boolean)
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 10)
+          : [];
+
+        // Fallback: direct scan when prefix map yields no candidates.
+        if (!ranked.length) {
+          ranked = this.directAutocompleteSearch(indexData, queryNorm, postalNorm, selectedStateNorm, 10);
+        }
+
+        // If query exactly matches a city name, append sibling localities in the same admin region.
+        // This helps queries like "Bogota" surface district/locality options, not just the city centroid.
+        let siblingContext = null;
+        if (ranked.length && ranked.length < 10 && queryNorm) {
+          const top = ranked[0]?.entry || null;
+          const topNameNorm = this.normalizeAutocompleteText(top?.[2] || '');
+          const topAdminNorm = this.normalizeAutocompleteText(top?.[3] || '');
+          if (top && topAdminNorm && (topNameNorm === queryNorm || topNameNorm.startsWith(queryNorm))) {
+            siblingContext = {
+              topName: String(top?.[2] || '').trim(),
+              topNameNorm,
+              topAdminNorm
+            };
+            const seenNameNorm = new Set(ranked.map(({ entry }) => this.normalizeAutocompleteText(entry?.[2] || '')));
+            const siblingsByName = new Map();
+            for (const entry of indexData.entries || []) {
+              const adminNorm = this.normalizeAutocompleteText(entry?.[3] || '');
+              if (!adminNorm || adminNorm !== topAdminNorm) continue;
+              const nameNorm = this.normalizeAutocompleteText(entry?.[2] || '');
+              if (!nameNorm || seenNameNorm.has(nameNorm) || nameNorm === topNameNorm) continue;
+              const existing = siblingsByName.get(nameNorm);
+              // Prefer row that has postal code, then higher population.
+              const hasPostal = String(entry?.[1] || '').length > 0 ? 1 : 0;
+              const pop = Number(entry?.[6] || 0);
+              if (!existing) {
+                siblingsByName.set(nameNorm, entry);
+                continue;
+              }
+              const existingHasPostal = String(existing?.[1] || '').length > 0 ? 1 : 0;
+              const existingPop = Number(existing?.[6] || 0);
+              if (hasPostal > existingHasPostal || (hasPostal === existingHasPostal && pop > existingPop)) {
+                siblingsByName.set(nameNorm, entry);
+              }
+            }
+            const siblingRows = Array.from(siblingsByName.values())
+              .sort((a, b) => {
+                const postalDiff = (String(b?.[1] || '').length > 0 ? 1 : 0) - (String(a?.[1] || '').length > 0 ? 1 : 0);
+                if (postalDiff !== 0) return postalDiff;
+                const popDiff = Number(b?.[6] || 0) - Number(a?.[6] || 0);
+                if (popDiff !== 0) return popDiff;
+                return String(a?.[2] || '').localeCompare(String(b?.[2] || ''));
+              })
+              .slice(0, 10 - ranked.length)
+              .map((entry) => ({ entry, score: 15 }));
+            ranked = ranked.concat(siblingRows);
+          }
+        }
+
+        return ranked.map(({ entry }) => {
+          const name = String(entry[2] || '');
+          const admin1 = String(entry[3] || '');
+          const postal = String(entry[1] || '').toUpperCase();
+          const nameNorm = this.normalizeAutocompleteText(name);
+          const adminNorm = this.normalizeAutocompleteText(admin1);
+          const isSiblingOfContext = Boolean(
+            siblingContext &&
+            siblingContext.topName &&
+            siblingContext.topNameNorm !== nameNorm &&
+            siblingContext.topAdminNorm &&
+            siblingContext.topAdminNorm === adminNorm
+          );
+          // Prefix sibling labels with the matched city so native datalist keeps them visible.
+          const labelParts = isSiblingOfContext ? [siblingContext.topName, name] : [name];
+          if (admin1) labelParts.push(admin1);
+          if (postal) labelParts.push(postal);
+          const label = labelParts.join(' · ');
+          return {
+            label,
+            name,
+            admin1,
+            country: this.selectedCountry,
+            lat: Number(entry[4]),
+            lon: Number(entry[5]),
+            population: Number(entry[6]) || 0,
+            postal
+          };
+        });
+      };
+
+      let suggestions = await runSearch('lite');
+      if ((queryNorm.length >= 3 || this.isLikelyPostalQuery(queryRaw)) && suggestions.length < 5) {
+        const fullSuggestions = await runSearch('full');
+        if (fullSuggestions.length) {
+          suggestions = fullSuggestions;
+        }
+        // If postal query still has no results, force refresh from network once
+        // to bust stale edge/browser caches.
+        if (!suggestions.length && postalNorm.length >= 3) {
+          const refreshed = await runSearch('full', { forceRefetch: true });
+          if (refreshed.length) {
+            suggestions = refreshed;
+          }
+        }
+      }
+      // If a locality query unexpectedly returns <=1 result, force-refresh full index once.
+      // This resolves stale CO cache cases where "bog" only returns the legacy city centroid row.
+      if (queryNorm.length >= 3 && !postalNorm && suggestions.length <= 1) {
+        const refreshed = await runSearch('full', { forceRefetch: true });
+        if (refreshed.length > suggestions.length) {
+          suggestions = refreshed;
+        }
+      }
+
+      if (selectedStateNorm) {
+        suggestions = suggestions.sort((a, b) => {
+          const aMatch = this.normalizeAutocompleteText(a.admin1) === selectedStateNorm ? 1 : 0;
+          const bMatch = this.normalizeAutocompleteText(b.admin1) === selectedStateNorm ? 1 : 0;
+          return bMatch - aMatch;
+        });
+      }
+
+      this.autocompleteSuggestions = suggestions.slice(0, 10);
+      if (postalNorm && postalNorm.length >= 3) {
+        const exact = this.autocompleteSuggestions.find((s) => this.normalizeAutocompletePostal(s.postal) === postalNorm);
+        this.postalExactMatch = exact
+          ? {
+              code: String(exact.postal || '').toUpperCase(),
+              label: exact.label || exact.name || ''
+            }
+          : null;
+      } else {
+        this.postalExactMatch = null;
+      }
+    },
+    async handleCityQueryInput() {
+      try {
+        if (typeof this.cityQuery !== 'string') {
+          this.cityQuery = '';
+        }
+        // Defensive cleanup for occasional browser autofill oddities.
+        if (this.cityQuery === 'undefined') {
+          this.cityQuery = '';
+        }
+        this.selectedAutocompleteSuggestion = null;
+        this.autocompleteMenuOpen = Boolean(String(this.cityQuery || '').trim());
+        await this.updateAutocompleteSuggestions();
+      } catch (err) {
+        console.warn('Autocomplete query failed; falling back to local city list.', err?.message || err);
+        this.autocompleteSuggestions = [];
+        this.postalExactMatch = null;
+      }
+    },
+    selectAutocompleteSuggestion(suggestion) {
+      if (!suggestion) return;
+      const label = String(suggestion.label || suggestion.name || '').trim();
+      this.cityQuery = label;
+      this.selectedAutocompleteSuggestion = { ...suggestion, label };
+      if (suggestion.admin1) {
+        this.selectedState = String(suggestion.admin1);
+      }
+      // Collapse menu after explicit pick.
+      this.autocompleteSuggestions = [];
+      this.autocompleteMenuOpen = false;
+      if (suggestion.postal) {
+        this.postalExactMatch = {
+          code: String(suggestion.postal).toUpperCase(),
+          label
+        };
+      }
     },
     async fetchNetworkIsp() {
       // Off-device lookup (request IP -> ISP). Cached to avoid repeated calls.
@@ -411,6 +858,7 @@ createApp({
       const res = await fetch(url, { cache: 'force-cache' });
       if (!res.ok) throw new Error(`fetch failed (${res.status})`);
       const buf = await res.arrayBuffer();
+      this.trackNetworkBytes(buf.byteLength);
       if (typeof DecompressionStream === 'undefined') {
         throw new Error('DecompressionStream not supported in this browser');
       }
@@ -539,6 +987,11 @@ createApp({
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     },
+    trackNetworkBytes(byteCount) {
+      const n = Number(byteCount);
+      if (!Number.isFinite(n) || n <= 0) return;
+      this.sessionNetworkBytes += n;
+    },
     formatDateTime(isoString) {
       if (!isoString) return 'N/A';
       try {
@@ -560,6 +1013,11 @@ createApp({
       this.whereResults = [];
       this.selectedState = '';
       this.cityQuery = '';
+      this.autocompleteSuggestions = [];
+      this.selectedAutocompleteSuggestion = null;
+      this.autocompleteMenuOpen = false;
+      this.autocompleteSourceLabel = '';
+      this.postalExactMatch = null;
       this.whereResult = null;
     },
     openWhereAmI() {
@@ -567,7 +1025,10 @@ createApp({
       this.resetWhereModalState();
       this.showWhereModal = true;
       this.whereLoading = true;
-      this.detectWhereAmI();
+      this.loadCountries()
+        .finally(() => {
+          this.whereLoading = false;
+        });
     },
     closeWhereModal() {
       this.showWhereModal = false;
@@ -583,16 +1044,44 @@ createApp({
         const payload = await res.json().catch(() => ({}));
         throw new Error(payload?.message || payload?.error || 'Metadata fetch failed');
       }
-      return res.json();
+      const buf = await res.arrayBuffer();
+      this.trackNetworkBytes(buf.byteLength);
+      return JSON.parse(new TextDecoder('utf-8').decode(buf));
     },
     async loadCountries(force = false) {
       if (this.countryOptions.length && !force) return this.countryOptions;
       this.countriesLoading = true;
       try {
-        const data = await this.fetchGeoMetadata();
-        this.countryOptions = data.countries || [];
+        let countries = [];
+
+        // Preferred: shipped autocomplete metadata (fully client-side, no API dependency).
+        const meta = await this.loadAutocompleteMeta().catch(() => null);
+        if (meta && Array.isArray(meta.supportedCountries) && meta.supportedCountries.length) {
+          countries = meta.supportedCountries.map((c) => String(c || '').trim().toUpperCase()).filter(Boolean);
+        }
+
+        // Fallback: server metadata API if available.
+        if (!countries.length) {
+          const data = await this.fetchGeoMetadata();
+          countries = Array.isArray(data?.countries) ? data.countries : [];
+        }
+
+        // Final fallback: local ADM0 countries pack.
+        if (!countries.length) {
+          await this.loadCountriesDataset();
+          const features = this.countriesDataset?.features || [];
+          const isoSet = new Set();
+          features.forEach((f) => {
+            const iso2 = String(f?.properties?.iso2 || '').trim().toUpperCase();
+            if (iso2) isoSet.add(iso2);
+          });
+          countries = Array.from(isoSet);
+        }
+
+        this.countryOptions = countries.sort((a, b) => String(a).localeCompare(String(b)));
       } catch (err) {
         console.warn('Failed to load countries', err);
+        this.countryOptions = [];
       } finally {
         this.countriesLoading = false;
       }
@@ -615,6 +1104,7 @@ createApp({
     },
     async loadCities(country, admin1) {
       this.setCitiesFromRecords([]);
+      this.autocompleteSuggestions = [];
       this.citiesLoading = true;
       try {
         if (!country) return [];
@@ -630,14 +1120,36 @@ createApp({
       }
     },
     async handleCountryChange() {
-      await this.loadStates(this.selectedCountry);
-      this.selectedState = this.whereStates[0] || '';
-      await this.loadCities(this.selectedCountry, this.selectedState);
+      this.whereCountry = this.selectedCountry || null;
+      this.selectedState = '';
+      // Keep this path fully client-side; no server-side state/city dependency required.
+      this.whereStates = [];
+      this.setCitiesFromRecords([]);
+      this.autocompleteSourceLabel = '';
+      if (this.selectedCountry) {
+        // Warm lite index so first autocomplete query is instant.
+        this.autocompleteLoading = true;
+        try {
+          await this.loadCountryAutocompleteIndex(this.selectedCountry, 'lite');
+        } catch (_err) {
+          // Non-fatal: query-time load will still retry as needed.
+        } finally {
+          this.autocompleteLoading = false;
+        }
+      }
       this.cityQuery = '';
+      this.autocompleteSuggestions = [];
+      this.selectedAutocompleteSuggestion = null;
+      this.autocompleteMenuOpen = false;
+      this.postalExactMatch = null;
     },
     async handleStateChange() {
       await this.loadCities(this.selectedCountry, this.selectedState);
       this.cityQuery = '';
+      this.autocompleteSuggestions = [];
+      this.selectedAutocompleteSuggestion = null;
+      this.autocompleteMenuOpen = false;
+      this.postalExactMatch = null;
     },
     updateCitiesForState() {
       if (!this.whereCityRecords.length) {
@@ -698,6 +1210,7 @@ createApp({
             await this.loadCities(this.selectedCountry, this.selectedState);
             this.cityQuery = best.name || '';
             this.updateCitiesForState();
+            await this.updateAutocompleteSuggestions();
 
             this.whereCountry = best.country || 'Unknown';
             this.whereResult = best;
@@ -1565,6 +2078,7 @@ createApp({
   },
   mounted() {
     this.loadCountries();
+    this.loadAutocompleteMeta();
     this.refreshMetrics();
     this.fetchLogEntries();
   }

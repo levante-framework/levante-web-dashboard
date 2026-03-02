@@ -1,0 +1,203 @@
+{
+  "version": "2026-03-01",
+  "generatedAt": "2026-03-01T20:48:37.491Z",
+  "supportedCountries": [
+    "US",
+    "DE",
+    "GB",
+    "NL",
+    "CA",
+    "CO",
+    "IN",
+    "AR",
+    "GH",
+    "CH"
+  ],
+  "source": "data/geocoder/cities.min.json(.gz)",
+  "notes": [
+    "Postal prefixes are included when source rows contain a postal field.",
+    "Current GeoNames cities dataset is location-name focused; postal coverage may be limited."
+  ],
+  "countries": {
+    "US": {
+      "country": "US",
+      "totalEntries": 48488,
+      "liteEntries": 2500,
+      "postalEntries": 40958,
+      "files": {
+        "full": {
+          "file": "US.full.json.gz",
+          "bytes": 1693403,
+          "sha256": "21b8f026cdad89df713f3a01f259276891810e95f94107714f39868e950f2a13"
+        },
+        "lite": {
+          "file": "US.lite.json.gz",
+          "bytes": 91795,
+          "sha256": "71520dfae8f39769bff0b0b17e9f136158af8087e480f6ab9d869c41e3e95479"
+        }
+      }
+    },
+    "DE": {
+      "country": "DE",
+      "totalEntries": 18011,
+      "liteEntries": 2500,
+      "postalEntries": 15050,
+      "files": {
+        "full": {
+          "file": "DE.full.json.gz",
+          "bytes": 676362,
+          "sha256": "e3a55d7504504dccc88a0398f0f6a7a210a3db3cb0094baf571a1241911aaed1"
+        },
+        "lite": {
+          "file": "DE.lite.json.gz",
+          "bytes": 85794,
+          "sha256": "d7a34a9b6644db7cd1fbf1500af8eac70e8a5d2ca5eca8c23cd16b1d19e01620"
+        }
+      }
+    },
+    "GB": {
+      "country": "GB",
+      "totalEntries": 29330,
+      "liteEntries": 2500,
+      "postalEntries": 27434,
+      "files": {
+        "full": {
+          "file": "GB.full.json.gz",
+          "bytes": 959052,
+          "sha256": "393a3023c4b2e6484bdba9b695305f1b628a8945e99ee1a405742a9d96df044d"
+        },
+        "lite": {
+          "file": "GB.lite.json.gz",
+          "bytes": 87268,
+          "sha256": "bda1f4f41c23751a708cb1293ca6c0fe259baea7a5f2542ba76d077009d16350"
+        }
+      }
+    },
+    "NL": {
+      "country": "NL",
+      "totalEntries": 4725,
+      "liteEntries": 2500,
+      "postalEntries": 4204,
+      "files": {
+        "full": {
+          "file": "NL.full.json.gz",
+          "bytes": 151064,
+          "sha256": "bbeee62ef87c1a56cdbbed4bb22e7bf0ecba8b15f520c1eff471169daa06243d"
+        },
+        "lite": {
+          "file": "NL.lite.json.gz",
+          "bytes": 79247,
+          "sha256": "25f1dbf3115981bfd96ff4e3df41bf2d803b2bf106d49b3054e064228899756b"
+        }
+      }
+    },
+    "CA": {
+      "country": "CA",
+      "totalEntries": 2555,
+      "liteEntries": 2500,
+      "postalEntries": 1642,
+      "files": {
+        "full": {
+          "file": "CA.full.json.gz",
+          "bytes": 113018,
+          "sha256": "0e14c7823b4d1a1a686857622d9c8549e0ffde0b3c58aed60bb835426f0d4b6a"
+        },
+        "lite": {
+          "file": "CA.lite.json.gz",
+          "bytes": 110249,
+          "sha256": "95de22a5ab158c6a1f075519b70a4f9f3083b033c671d0011d4fb31add75c5eb"
+        }
+      }
+    },
+    "CO": {
+      "country": "CO",
+      "totalEntries": 4286,
+      "liteEntries": 2500,
+      "postalEntries": 3681,
+      "files": {
+        "full": {
+          "file": "CO.full.json.gz",
+          "bytes": 99604,
+          "sha256": "f26b5fe87f64b5e7aac47d39746e232361921f9c2a04db41d0aef98dda728fbf"
+        },
+        "lite": {
+          "file": "CO.lite.json.gz",
+          "bytes": 61167,
+          "sha256": "f933f6d9d7f1357ae4659acffc9d7eff9bf767674425ff3f25269b5a22126aae"
+        }
+      }
+    },
+    "IN": {
+      "country": "IN",
+      "totalEntries": 162023,
+      "liteEntries": 2500,
+      "postalEntries": 155570,
+      "files": {
+        "full": {
+          "file": "IN.full.json.gz",
+          "bytes": 5266003,
+          "sha256": "17256d836ad27cb8b6c474292cf057667dee35421e13aeaf1b8ff59afc7d378b"
+        },
+        "lite": {
+          "file": "IN.lite.json.gz",
+          "bytes": 90429,
+          "sha256": "a8ecb57c950854dd41c4ea16421fb13ae95da4c000cfae4b53ec35c5558be38c"
+        }
+      }
+    },
+    "AR": {
+      "country": "AR",
+      "totalEntries": 20729,
+      "liteEntries": 2500,
+      "postalEntries": 20260,
+      "files": {
+        "full": {
+          "file": "AR.full.json.gz",
+          "bytes": 827876,
+          "sha256": "b8122aa0f995586abbbe509be66c99ffb312c155fe6269ef465ac725883ef73f"
+        },
+        "lite": {
+          "file": "AR.lite.json.gz",
+          "bytes": 101418,
+          "sha256": "c297c24a6e9df1bf8f8f46653103d43c3e3d4cd9693fe8f94c40171726e583d5"
+        }
+      }
+    },
+    "GH": {
+      "country": "GH",
+      "totalEntries": 109,
+      "liteEntries": 109,
+      "postalEntries": 0,
+      "files": {
+        "full": {
+          "file": "GH.full.json.gz",
+          "bytes": 3961,
+          "sha256": "a0724d6f61aacba6ebcc5ca0058357ce4ba1b32713ef4e9c1154eac6c373d47a"
+        },
+        "lite": {
+          "file": "GH.lite.json.gz",
+          "bytes": 3961,
+          "sha256": "374c7391f395fa8e9decf8340236b52001931a1ce3119347a48e6cf68bead015"
+        }
+      }
+    },
+    "CH": {
+      "country": "CH",
+      "totalEntries": 4466,
+      "liteEntries": 2500,
+      "postalEntries": 4169,
+      "files": {
+        "full": {
+          "file": "CH.full.json.gz",
+          "bytes": 175049,
+          "sha256": "2a04af5ab5dcda034ce4e14ee29341cc800b10e517c0f23e9d48a044f72a1080"
+        },
+        "lite": {
+          "file": "CH.lite.json.gz",
+          "bytes": 98123,
+          "sha256": "90a956655e0d022ac24a20f89a4ec513f13a19358a8a01c7464f4867ec0751ff"
+        }
+      }
+    }
+  }
+}

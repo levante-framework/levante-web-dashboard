@@ -347,6 +347,32 @@
             outline: 2px solid #da3d16;
             border-color: #da3d16;
         }
+        .autocomplete-menu {
+            margin-top: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #ffffff;
+            max-height: 220px;
+            overflow-y: auto;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+        }
+        .autocomplete-option {
+            width: 100%;
+            border: none;
+            background: transparent;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            color: #1f2937;
+            cursor: pointer;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .autocomplete-option:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-option:hover {
+            background: #f9fafb;
+        }
         .result-area {
             min-height: 160px;
             background: #fafafa;
@@ -742,12 +768,12 @@
             <div class="button-group">
                 <button class="btn btn-primary locate-button" :class="{ 'btn-loading': loading }" :disabled="loading" @click="locate">
                     <i class="fas fa-location-arrow"></i>
-                    <span v-if="!loading">Locate Me</span>
+                    <span v-if="!loading">Locate Me (GPS)</span>
                     <span v-else>Locating…</span>
                 </button>
                 <button class="btn btn-secondary" :disabled="whereLoading" @click="openWhereAmI">
                     <i class="fas fa-compass"></i>
-                    <span v-if="!whereLoading">Where I Am</span>
+                    <span v-if="!whereLoading">Locate Me (Choose)</span>
                     <span v-else>Checking…</span>
                 </button>
                 <button class="btn btn-secondary" @click="showLogFile">
@@ -763,6 +789,9 @@
                     Show Map
                 </button>
             </div>
+            <p style="margin: 2px 0 10px; color: #6b7280; font-size: 0.85rem;">
+                Session data downloaded: {{ formatBytes(sessionNetworkBytes) }}
+            </p>
             <div class="results-map-grid">
                 <div class="results-column">
                     <div v-if="results.length > 0" class="results-container">
@@ -1022,52 +1051,63 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="modal-empty-state" v-if="whereLoading">Detecting your location…</div>
-                    <div class="modal-empty-state" v-else-if="whereError">{{ whereError }}</div>
+                    <div class="modal-empty-state" v-if="whereLoading">Loading location options…</div>
                     <template v-else>
-                        <div class="stats-grid" style="margin-bottom: 16px;">
-                            <div class="stat-card">
-                                <h5>Country</h5>
-                                <div class="value">{{ whereCountry || 'Unknown' }}</div>
-                                <p v-if="whereCoordinates" style="margin-top: 6px; color: #475569; font-size: 0.9rem;">
-                                    {{ whereCoordinates.lat.toFixed(4) }}, {{ whereCoordinates.lon.toFixed(4) }}
-                                </p>
-                            </div>
-                            <div class="stat-card" v-if="whereResult && whereResult.admin1">
-                                <h5>Nearest Region</h5>
-                                <div class="value">{{ whereResult.admin1 }}</div>
-                            </div>
+                        <div v-if="whereError" style="margin-bottom: 10px; color: #9a3412; font-size: 0.9rem;">
+                            {{ whereError }}
                         </div>
-                        <div class="form-row" style="display:flex; gap:12px; align-items:flex-end; margin-bottom:12px;">
-                            <div style="flex:1;">
-                                <label class="form-label">Region / State</label>
-                                <select class="form-input" v-model="selectedState" @change="updateCitiesForState">
-                                    <option value="">Select a region</option>
-                                    <option v-for="state in whereStates" :key="state" :value="state">{{ state }}</option>
-                                </select>
+                        <p style="margin: 0 0 12px; color: #6b7280; font-size: 0.9rem;">
+                            Choose a country, then type a locality or postal code.
+                        </p>
+                        <div style="margin-bottom:12px;">
+                            <label class="form-label">1) Country</label>
+                            <select class="form-input" v-model="selectedCountry" @change="handleCountryChange">
+                                <option value="">Select a country</option>
+                                <option v-for="country in countryOptions" :key="country" :value="country">{{ countryDisplayLabel(country) }}</option>
+                            </select>
+                            <p v-if="autocompleteLoading" style="color:#6b7280; font-size:0.85rem; margin-top:6px;">
+                                <i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>
+                                Loading country data...
+                            </p>
+                        </div>
+                        <div v-if="selectedCountry" style="margin-bottom:12px;">
+                            <label class="form-label">2) City / Town / Postal</label>
+                            <input class="form-input" type="text" v-model="cityQuery" @input="handleCityQueryInput" placeholder="Type a locality or postal code" />
+                            <div class="autocomplete-menu" v-if="cityQuery && autocompleteMenuOpen">
+                                <button
+                                  class="autocomplete-option"
+                                  type="button"
+                                  v-for="suggestion in autocompleteSuggestions"
+                                  :key="suggestion.label"
+                                  @click="selectAutocompleteSuggestion(suggestion)"
+                                >
+                                  {{ suggestion.label }}
+                                </button>
+                                <div v-if="!autocompleteSuggestions || !autocompleteSuggestions.length" style="padding: 10px 12px; color: #6b7280; font-size: 0.9rem;">
+                                    No matches yet. Keep typing or try another locality/postal prefix.
+                                </div>
                             </div>
-                        </div>
-                        <div v-if="selectedState" style="margin-bottom:12px;">
-                            <label class="form-label">City / Town</label>
-                            <input class="form-input" type="text" v-model="cityQuery" list="cityOptions" placeholder="Start typing a city" />
-                            <datalist id="cityOptions">
-                                <option v-for="city in filteredCities" :key="city" :value="city" />
-                            </datalist>
-                            <p style="color:#71717a; font-size:0.85rem; margin-top:6px;">Showing up to 10 matches.</p>
-                        </div>
-                        <div v-if="!whereStates.length && !whereLoading" class="modal-empty-state" style="margin-top:12px;">
-                            No regions available for this country.
+                            <p v-if="postalExactMatch" style="color:#15803d; font-size:0.9rem; margin-top:6px; font-weight:600;">
+                                <i class="fas fa-check-circle" style="margin-right:6px;"></i>
+                                Exact postal match: {{ postalExactMatch.code }}
+                            </p>
+                            <p style="color:#71717a; font-size:0.85rem; margin-top:6px;">
+                                Matches: {{ autocompleteSuggestions ? autocompleteSuggestions.length : 0 }}.
+                                Suggestions include localities and available postal prefixes.
+                                <span v-if="autocompleteSourceLabel"> Source: {{ autocompleteSourceLabel }}.</span>
+                                Session data: {{ formatBytes(sessionNetworkBytes) }}.
+                            </p>
                         </div>
                     </template>
                 </div>
             </div>
         </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="./vendor/vue/vue.global.prod.js?v=2.1.2"></script>
-    <script src="./vendor/leaflet/leaflet.js?v=2.1.2"></script>
-    <script src="./js/locate-me-v2.js?v=2.1.2"></script>
+    <script src="./vendor/vue/vue.global.prod.js?v=2.1.2&rev=20260222l"></script>
+    <script src="./vendor/leaflet/leaflet.js?v=2.1.2&rev=20260222l"></script>
+    <script src="./js/locate-me-v2.js?v=2.1.2&rev=20260222l"></script>
     <footer style="text-align: center; margin-top: 40px; color: #a1a1aa; font-size: 0.8rem;">
-        Levante Locate Me · v2.1.2
+        Levante Locate Me · v2.1.2-r20260222l
     </footer>
 </body>
 </html>
