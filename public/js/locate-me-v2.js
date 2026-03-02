@@ -36,6 +36,8 @@ const LEAFLET_SOURCES = [
 const API_BASE = (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost')
   ? 'https://levante-web-dashboard.vercel.app'
   : '';
+const WHERE_MAP_POPULATION_MIN_DEFAULT = 50000;
+const US_LOWER_48_BOUNDS = [[24.396308, -124.848974], [49.384358, -66.885444]];
 
 function apiUrl(path) {
   return `${API_BASE}${path}`;
@@ -88,6 +90,14 @@ createApp({
       statesLoading: false,
       citiesLoading: false,
       selectedCountry: '',
+      showWhereMapPickerModal: false,
+      whereMapPickerInstance: null,
+      whereMapPickerMarker: null,
+      whereMapPickerCountryLayer: null,
+      whereMapPickerPlacesLayer: null,
+      whereMapPickerSelection: null,
+      whereMapPickerLoading: false,
+      whereMapPickerError: null,
       logFileContent: '',
       logEntries: [],
       mapInstance: null,
@@ -987,6 +997,11 @@ createApp({
       if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
       return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     },
+    formatInteger(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '0';
+      return Math.round(n).toLocaleString();
+    },
     trackNetworkBytes(byteCount) {
       const n = Number(byteCount);
       if (!Number.isFinite(n) || n <= 0) return;
@@ -1019,6 +1034,8 @@ createApp({
       this.autocompleteSourceLabel = '';
       this.postalExactMatch = null;
       this.whereResult = null;
+      this.whereMapPickerSelection = null;
+      this.whereMapPickerError = null;
     },
     openWhereAmI() {
       console.log('[WhereAmI] open modal');
@@ -1032,6 +1049,291 @@ createApp({
     },
     closeWhereModal() {
       this.showWhereModal = false;
+      this.closeWhereMapPickerModal();
+    },
+    async openWhereMapPickerModal() {
+      if (!this.selectedCountry) {
+        this.whereError = 'Select a country before choosing from map.';
+        return;
+      }
+      this.whereError = null;
+      this.whereMapPickerError = null;
+      this.whereMapPickerSelection = null;
+      this.showWhereMapPickerModal = true;
+      await nextTick();
+      this.initWhereMapPicker();
+    },
+    closeWhereMapPickerModal() {
+      this.showWhereMapPickerModal = false;
+      if (this.whereMapPickerInstance) {
+        try {
+          this.whereMapPickerInstance.remove();
+        } catch (_) {}
+        this.whereMapPickerInstance = null;
+      }
+      this.whereMapPickerMarker = null;
+      this.whereMapPickerCountryLayer = null;
+      this.whereMapPickerPlacesLayer = null;
+      this.whereMapPickerSelection = null;
+      this.whereMapPickerError = null;
+      this.whereMapPickerLoading = false;
+    },
+    getCountryFeatureByIso2(countryCode) {
+      const iso2 = String(countryCode || '').trim().toLowerCase();
+      const fc = this.countriesDataset;
+      if (!iso2 || !fc || !Array.isArray(fc.features)) return null;
+      return fc.features.find((f) => String(f?.properties?.iso2 || '').trim().toLowerCase() === iso2) || null;
+    },
+    getGeometryBounds(geometry) {
+      if (!geometry || !Array.isArray(geometry.coordinates)) return null;
+      let minLon = Infinity;
+      let minLat = Infinity;
+      let maxLon = -Infinity;
+      let maxLat = -Infinity;
+      const visit = (node) => {
+        if (!Array.isArray(node)) return;
+        if (node.length >= 2 && typeof node[0] === 'number' && typeof node[1] === 'number') {
+          const lon = Number(node[0]);
+          const lat = Number(node[1]);
+          if (Number.isFinite(lon) && Number.isFinite(lat)) {
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+          }
+          return;
+        }
+        node.forEach(visit);
+      };
+      visit(geometry.coordinates);
+      if (![minLon, minLat, maxLon, maxLat].every(Number.isFinite)) return null;
+      return { minLon, minLat, maxLon, maxLat };
+    },
+    async initWhereMapPicker() {
+      const ready = await this.ensureLeaflet();
+      if (!ready) {
+        this.whereMapPickerError = 'Map library failed to load. Please retry.';
+        return;
+      }
+      const mapElement = document.getElementById('whereMapPicker');
+      if (!mapElement) return;
+
+      if (this.whereMapPickerInstance) {
+        try {
+          this.whereMapPickerInstance.remove();
+        } catch (_) {}
+      }
+      this.whereMapPickerInstance = L.map(mapElement, {
+        zoomControl: true,
+        attributionControl: false
+      });
+      this.whereMapPickerInstance.zoomControl?.setPosition('topright');
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+      }).addTo(this.whereMapPickerInstance);
+
+      await this.loadCountriesDataset().catch(() => null);
+      const countryFeature = this.getCountryFeatureByIso2(this.selectedCountry);
+      let fitBounds = null;
+      const countryCode = this.getAutocompleteCountryCode(this.selectedCountry);
+      if (countryFeature?.geometry) {
+        this.whereMapPickerCountryLayer = L.geoJSON(countryFeature, {
+          style: {
+            color: '#2563eb',
+            weight: 2,
+            fillColor: '#2563eb',
+            fillOpacity: 0.03
+          }
+        }).addTo(this.whereMapPickerInstance);
+        const b = this.whereMapPickerCountryLayer.getBounds?.();
+        if (b && b.isValid && b.isValid()) {
+          fitBounds = b;
+        }
+      }
+      if (!fitBounds) {
+        const bounds = this.getGeometryBounds(countryFeature?.geometry || null);
+        if (bounds) {
+          fitBounds = L.latLngBounds([bounds.minLat, bounds.minLon], [bounds.maxLat, bounds.maxLon]);
+        }
+      }
+      if (countryCode === 'US') {
+        fitBounds = L.latLngBounds(US_LOWER_48_BOUNDS[0], US_LOWER_48_BOUNDS[1]);
+      }
+      if (fitBounds && fitBounds.isValid && fitBounds.isValid()) {
+        this.whereMapPickerInstance.fitBounds(fitBounds.pad(0.03), { padding: [20, 20] });
+        this.whereMapPickerInstance.setMaxBounds(fitBounds.pad(0.18));
+      } else {
+        this.whereMapPickerInstance.setView([20, 0], 2);
+      }
+
+      // Add lightweight place-name context markers so users can orient before clicking.
+      const contextTier = countryCode === 'US' ? 'full' : 'lite';
+      const countryIndex = await this.loadCountryAutocompleteIndex(this.selectedCountry, contextTier).catch(() => null);
+      const entries = Array.isArray(countryIndex?.entries) ? countryIndex.entries : [];
+      if (entries.length) {
+        const unique = new Set();
+        const topPlaces = entries
+          .map((entry) => ({
+            name: String(entry?.[2] || '').trim(),
+            admin1: String(entry?.[3] || '').trim(),
+            lat: Number(entry?.[4]),
+            lon: Number(entry?.[5]),
+            pop: Math.max(0, Number(entry?.[6]) || 0)
+          }))
+          .filter((p) => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lon))
+          .sort((a, b) => b.pop - a.pop)
+          .filter((p) => {
+            const key = `${p.name.toLowerCase()}|${p.admin1.toLowerCase()}`;
+            if (unique.has(key)) return false;
+            unique.add(key);
+            return true;
+          })
+          .slice(0, countryCode === 'US' ? 320 : 120);
+        this.whereMapPickerPlacesLayer = L.layerGroup().addTo(this.whereMapPickerInstance);
+
+        const drawPlaceContextForZoom = () => {
+          if (!this.whereMapPickerPlacesLayer) return;
+          this.whereMapPickerPlacesLayer.clearLayers();
+          const zoom = Number(this.whereMapPickerInstance?.getZoom?.() || 4);
+          let cap = countryCode === 'US' ? 70 : 35;
+          let popFloor = countryCode === 'US' ? 300000 : 120000;
+          if (zoom >= 7) {
+            cap = countryCode === 'US' ? 190 : 90;
+            popFloor = countryCode === 'US' ? 50000 : 25000;
+          } else if (zoom >= 6) {
+            cap = countryCode === 'US' ? 130 : 65;
+            popFloor = countryCode === 'US' ? 90000 : 50000;
+          } else if (zoom >= 5) {
+            cap = countryCode === 'US' ? 100 : 50;
+            popFloor = countryCode === 'US' ? 180000 : 90000;
+          }
+
+          let rendered = 0;
+          topPlaces.forEach((p) => {
+            if (rendered >= cap) return;
+            if (p.pop < popFloor) return;
+            const marker = L.circleMarker([p.lat, p.lon], {
+              radius: zoom >= 7 ? 3 : 2.5,
+              color: '#1f2937',
+              fillColor: '#ffffff',
+              fillOpacity: 0.9,
+              weight: 1
+            }).addTo(this.whereMapPickerPlacesLayer);
+            const label = p.admin1 ? `${p.name} (${p.admin1})` : p.name;
+            marker.bindTooltip(label, {
+              permanent: true,
+              direction: 'right',
+              offset: [4, 0],
+              opacity: 0.9
+            });
+            marker.openTooltip();
+            rendered += 1;
+          });
+        };
+
+        drawPlaceContextForZoom();
+        this.whereMapPickerInstance.on('zoomend', drawPlaceContextForZoom);
+      }
+
+      this.whereMapPickerInstance.on('click', (evt) => {
+        const lat = Number(evt?.latlng?.lat);
+        const lon = Number(evt?.latlng?.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+        this.whereMapPickerSelection = { lat, lon };
+        if (this.whereMapPickerMarker) {
+          this.whereMapPickerMarker.setLatLng([lat, lon]);
+        } else {
+          this.whereMapPickerMarker = L.marker([lat, lon], { title: 'Selected point' }).addTo(this.whereMapPickerInstance);
+        }
+      });
+
+      setTimeout(() => {
+        this.whereMapPickerInstance?.invalidateSize?.();
+        if (fitBounds && fitBounds.isValid && fitBounds.isValid()) {
+          this.whereMapPickerInstance.fitBounds(fitBounds.pad(0.03), { padding: [20, 20] });
+        }
+      }, 0);
+    },
+    async applyWhereMapSelection() {
+      if (!this.selectedCountry) {
+        this.whereMapPickerError = 'Select a country first.';
+        return;
+      }
+      const selected = this.whereMapPickerSelection;
+      if (!selected || !Number.isFinite(selected.lat) || !Number.isFinite(selected.lon)) {
+        this.whereMapPickerError = 'Click a point on the map first.';
+        return;
+      }
+
+      const minPopulation = WHERE_MAP_POPULATION_MIN_DEFAULT;
+      this.whereMapPickerLoading = true;
+      this.whereMapPickerError = null;
+      try {
+        const indexData = await this.loadCountryAutocompleteIndex(this.selectedCountry, 'full');
+        const entries = Array.isArray(indexData?.entries) ? indexData.entries : [];
+        if (!entries.length) throw new Error('Country index unavailable.');
+
+        const rankNearest = (enforcePopulationFloor) => {
+          let best = null;
+          let bestDistance = Infinity;
+          for (const entry of entries) {
+            const lat = Number(entry?.[4]);
+            const lon = Number(entry?.[5]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+            const pop = Math.max(0, Number(entry?.[6]) || 0);
+            if (enforcePopulationFloor && pop < minPopulation) continue;
+            const d = this.approxDistanceKm(selected.lat, selected.lon, lat, lon);
+            if (!Number.isFinite(d)) continue;
+            if (d < bestDistance) {
+              bestDistance = d;
+              best = {
+                name: String(entry?.[2] || '').trim(),
+                admin1: String(entry?.[3] || '').trim(),
+                postal: String(entry?.[1] || '').toUpperCase(),
+                country: this.selectedCountry,
+                lat,
+                lon,
+                population: pop,
+                distanceKm: Math.round(d * 10) / 10
+              };
+            }
+          }
+          return best;
+        };
+
+        let best = rankNearest(true);
+        let thresholdApplied = true;
+        if (!best) {
+          best = rankNearest(false);
+          thresholdApplied = false;
+        }
+        if (!best || !best.name) throw new Error('No nearby locality found in this country index.');
+
+        const labelParts = [best.name];
+        if (best.admin1) labelParts.push(best.admin1);
+        if (best.postal) labelParts.push(best.postal);
+        const suggestion = {
+          label: labelParts.join(' · '),
+          name: best.name,
+          admin1: best.admin1,
+          country: best.country,
+          lat: best.lat,
+          lon: best.lon,
+          population: best.population,
+          postal: best.postal
+        };
+        this.selectAutocompleteSuggestion(suggestion);
+        this.whereError = thresholdApplied
+          ? null
+          : `No match met population floor (${this.formatInteger(minPopulation)}); using nearest available locality instead.`;
+        this.closeWhereMapPickerModal();
+      } catch (err) {
+        this.whereMapPickerError = err?.message || 'Failed to resolve map selection.';
+      } finally {
+        this.whereMapPickerLoading = false;
+      }
     },
     setCitiesFromRecords(records = []) {
       this.whereCityRecords = records || [];

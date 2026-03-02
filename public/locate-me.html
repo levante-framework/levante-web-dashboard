@@ -1097,17 +1097,56 @@
                                 <span v-if="autocompleteSourceLabel"> Source: {{ autocompleteSourceLabel }}.</span>
                                 Session data: {{ formatBytes(sessionNetworkBytes) }}.
                             </p>
+                            <label class="form-label" style="margin-top:12px;">3) Optional: Choose from map</label>
+                            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+                                <button class="btn btn-secondary" type="button" @click="openWhereMapPickerModal">
+                                    <i class="fas fa-map-marked-alt" style="margin-right:6px;"></i>
+                                    Choose from map
+                                </button>
+                            </div>
+                            <p style="margin:0; color:#71717a; font-size:0.82rem;">
+                                Uses default population floor (50,000) and snaps to the nearest qualifying locality.
+                            </p>
                         </div>
                     </template>
                 </div>
             </div>
         </div>
+        <div v-if="showWhereMapPickerModal" class="modal-overlay" @click.self="closeWhereMapPickerModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3><i class="fas fa-map-marked-alt"></i> Choose from Map</h3>
+                    <button class="btn-close" @click="closeWhereMapPickerModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p style="margin:0 0 10px; color:#6b7280; font-size:0.9rem;">
+                        Click any point in {{ countryDisplayLabel(selectedCountry) }}. We will pick the nearest locality at or above the default population floor (50,000).
+                    </p>
+                    <div id="whereMapPicker" class="map-container"></div>
+                    <p v-if="whereMapPickerSelection" style="margin-top:8px; color:#71717a; font-size:0.82rem;">
+                        Selected point: {{ Number(whereMapPickerSelection.lat).toFixed(4) }}, {{ Number(whereMapPickerSelection.lon).toFixed(4) }}.
+                    </p>
+                    <p v-if="whereMapPickerError" style="margin-top:8px; color:#9a3412; font-size:0.85rem;">
+                        {{ whereMapPickerError }}
+                    </p>
+                    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                        <button class="btn btn-secondary" type="button" @click="closeWhereMapPickerModal">Cancel</button>
+                        <button class="btn btn-primary" type="button" :disabled="whereMapPickerLoading" @click="applyWhereMapSelection">
+                            <i v-if="whereMapPickerLoading" class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>
+                            Use this map location
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="./vendor/vue/vue.global.prod.js?v=2.1.2&rev=20260222l"></script>
-    <script src="./vendor/leaflet/leaflet.js?v=2.1.2&rev=20260222l"></script>
-    <script src="./js/locate-me-v2.js?v=2.1.2&rev=20260222l"></script>
+    <script src="./vendor/vue/vue.global.prod.js?v=2.1.2&rev=20260222q"></script>
+    <script src="./vendor/leaflet/leaflet.js?v=2.1.2&rev=20260222q"></script>
+    <script src="./js/locate-me-v2.js?v=2.1.2&rev=20260222q"></script>
     <footer style="text-align: center; margin-top: 40px; color: #a1a1aa; font-size: 0.8rem;">
-        Levante Locate Me · v2.1.2-r20260222l
+        Levante Locate Me · v2.1.2-r20260222q
     </footer>
 </body>
 </html>
