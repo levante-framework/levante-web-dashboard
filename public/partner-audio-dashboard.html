@@ -2154,17 +2154,40 @@
                 }
             }
 
+            getAudioLangAliases(langCode) {
+                const raw = String(langCode || '').trim();
+                if (!raw) return [];
+                const lower = raw.toLowerCase();
+                const aliases = new Set([raw]);
+                if (lower === 'en') {
+                    aliases.add('en-US');
+                    aliases.add('en-GB');
+                } else if (lower === 'en-us' || lower === 'en-gb') {
+                    aliases.add('en');
+                } else if (lower === 'de') {
+                    aliases.add('de-DE');
+                } else if (lower === 'de-de') {
+                    aliases.add('de');
+                }
+                return Array.from(aliases);
+            }
+
             getAudioPrefixes(langCode) {
-                const normalizedLang = (langCode || '').trim();
-                if (!normalizedLang) {
+                const aliases = this.getAudioLangAliases(langCode);
+                if (!aliases.length) {
                     return [];
                 }
-                const prefixSet = new Set([`audio/${normalizedLang}/`]);
-                (this.additionalAudioFolders || []).forEach(folder => {
-                    const cleaned = String(folder || '').trim().replace(/^\/+|\/+$/g, '');
-                    if (cleaned) {
-                        prefixSet.add(`audio/${cleaned}/${normalizedLang}/`);
-                    }
+                const prefixSet = new Set();
+                aliases.forEach((code) => {
+                    const normalizedLang = String(code || '').trim();
+                    if (!normalizedLang) return;
+                    prefixSet.add(`audio/${normalizedLang}/`);
+                    (this.additionalAudioFolders || []).forEach(folder => {
+                        const cleaned = String(folder || '').trim().replace(/^\/+|\/+$/g, '');
+                        if (cleaned) {
+                            prefixSet.add(`audio/${cleaned}/${normalizedLang}/`);
+                        }
+                    });
                 });
                 return Array.from(prefixSet);
             }
@@ -2183,7 +2206,9 @@
                 if (!path || !langCode) {
                     return 'unknown';
                 }
-                const normalizedLang = String(langCode).toLowerCase();
+                const normalizedLangs = new Set(
+                    this.getAudioLangAliases(langCode).map((code) => String(code || '').toLowerCase())
+                );
                 const segments = String(path).split('/').filter(Boolean);
                 const audioIndex = segments.indexOf('audio');
                 if (audioIndex === -1) {
@@ -2193,10 +2218,10 @@
                 if (!afterAudio.length) {
                     return 'unknown';
                 }
-                if ((afterAudio[0] || '').toLowerCase() === normalizedLang) {
+                if (normalizedLangs.has((afterAudio[0] || '').toLowerCase())) {
                     return 'standard';
                 }
-                if (afterAudio.length >= 2 && (afterAudio[1] || '').toLowerCase() === normalizedLang) {
+                if (afterAudio.length >= 2 && normalizedLangs.has((afterAudio[1] || '').toLowerCase())) {
                     return (afterAudio[0] || '').toLowerCase() || 'unknown';
                 }
                 return (afterAudio[0] || '').toLowerCase() || 'unknown';
@@ -2913,6 +2938,22 @@
                 }
                 
                 const keys = Object.keys(item);
+                const langAliases = (() => {
+                    const raw = String(langCode || '').trim();
+                    const lower = raw.toLowerCase();
+                    const set = new Set([raw]);
+                    if (lower === 'en') {
+                        set.add('en-US');
+                        set.add('en-GB');
+                    } else if (lower === 'en-us' || lower === 'en-gb') {
+                        set.add('en');
+                    } else if (lower === 'de') {
+                        set.add('de-DE');
+                    } else if (lower === 'de-de') {
+                        set.add('de');
+                    }
+                    return Array.from(set).filter(Boolean);
+                })();
                 
                 // For pt-PT, check multiple possible column names
                 if (langCode === 'pt-PT') {
@@ -2936,16 +2977,16 @@
                     }
                 }
                 
-                // Try exact match for other languages
-                let text = item[langCode];
-                if (text && text.trim()) {
-                    return text.trim();
-                }
-                
-                // Try case-insensitive match
-                const match = keys.find(k => k.toLowerCase() === langCode.toLowerCase());
-                if (match && item[match] && item[match].trim()) {
-                    return item[match].trim();
+                // Try exact + case-insensitive matches across aliases (e.g., en <-> en-US, de <-> de-DE)
+                for (const code of langAliases) {
+                    const direct = item[code];
+                    if (direct && direct.trim()) {
+                        return direct.trim();
+                    }
+                    const ciMatch = keys.find(k => k.toLowerCase() === String(code).toLowerCase());
+                    if (ciMatch && item[ciMatch] && item[ciMatch].trim()) {
+                        return item[ciMatch].trim();
+                    }
                 }
                 
                 // Try base language if langCode has a hyphen (e.g., es-CO -> es)
@@ -2963,6 +3004,11 @@
                 
                 // Try alternative column names (common variations)
                 const altNames = {
+                    'en': ['en-us', 'en_US', 'en_us', 'enus', 'en-gb', 'en_GB', 'en_gb', 'engb'],
+                    'en-US': ['en-us', 'en_US', 'en_us', 'enus', 'en'],
+                    'en-GB': ['en-gb', 'en_GB', 'en_gb', 'engb', 'en'],
+                    'de': ['de-de', 'de_DE', 'de_de', 'dede'],
+                    'de-DE': ['de-de', 'de_DE', 'de_de', 'dede', 'de'],
                     'es-CO': ['es-co', 'es_CO', 'es_co', 'esco'],
                     'es-AR': ['es-ar', 'es_AR', 'es_ar', 'esar'],
                     'de-CH': ['de-ch', 'de_CH', 'de_ch', 'dech'],
