@@ -15,11 +15,19 @@ Web dashboard application for managing Levante audio content, translations, and 
     - Checksum comparison option (MD5/CRC32C) - ignores file dates when enabled
     - Text filtering and exclude patterns
     - Automatically filters out 0-byte files and empty folders
-- **Locate Me** – GPS-based city discovery with interactive map visualization
+- **Locate Me** – Dual-path location discovery:
+  - `Locate Me (GPS)` for browser geolocation flow
+  - `Locate Me (Choose)` for country-first manual lookup (locality/postal autocomplete without GPS consent)
 
 ## Locate Me Feature
 
 The Locate Me feature (`public/locate-me.html`) allows users to discover their nearest cities using GPS coordinates and displays administrative boundaries on an interactive map.
+
+It now supports a privacy-first manual mode that does not require browser geolocation permission:
+- Select country first
+- Type locality or postal prefix
+- Pick an autocomplete match
+- Resolve boundaries/weather from that selected place
 
 **Documentation:**
 - **Implementation details**: `docs/locate-me/README.md`
@@ -76,6 +84,22 @@ The Locate Me Gallery (`public/gallery/locate-me/`) displays administrative boun
 
 3. **Weather (privacy-preserving)**
    - Uses Open‑Meteo with a coarse query point (e.g., ADM2 bbox center) and caching.
+
+4. **Manual country-first autocomplete (privacy-first path)**
+   - Uses prebuilt per-country geocoder bundles in `public/geocoder-index/`:
+     - `CC.lite.json.gz` (small, fast warm load)
+     - `CC.full.json.gz` (loaded only when lite results are sparse or query is more demanding)
+   - Tracks downloaded bytes per session and surfaces this in the UI (`Session data`).
+   - Shows an explicit loading indicator after country selection while warming country autocomplete data.
+
+### Autocomplete Index Behavior (Lite vs Full)
+
+- On country selection, the app warms the country `lite` index so first keystrokes are responsive.
+- The app upgrades to `full` only when needed (for example: substantial query length, postal-like input, or too-few lite matches).
+- Country bundles vary significantly by dataset size:
+  - Example: Argentina `lite` is ~100 KB; Argentina `full` is ~0.8 MB.
+  - Example: India `lite` is ~90 KB; India `full` is ~5.0 MB.
+- Metadata and exact file sizes are recorded in `public/geocoder-index/meta.json`.
 
 ### Supported Countries
 

@@ -41,6 +41,42 @@ The Locate Me feature requires two main components:
 
 ---
 
+### ✅ **Current: Country-First Manual Autocomplete (GeoNames + Postal Indexes)**
+
+**Status**: ✅ **In Use** (Primary for `Locate Me (Choose)` manual flow)
+
+**Implementation**:
+- **Data Sources**:
+  - GeoNames city dataset (`cities.min.json(.gz)`)
+  - GeoNames postal datasets (`data/geonames/postal/{CC}.txt`)
+- **Build Script**: `scripts/geocoder/build-country-autocomplete-index.js`
+- **Artifacts**: `public/geocoder-index/`
+  - `meta.json` (version, checksums, supported countries, file sizes)
+  - Per-country `CC.lite.json.gz` and `CC.full.json.gz`
+- **Client Code**: `public/js/locate-me-v2.js`
+
+**How It Works**:
+1. **Country-first selection**: User selects a country before typing locality/postal.
+2. **Lite warm load**: App preloads `CC.lite.json.gz` on country change (shows spinner while loading).
+3. **Autocomplete search**: Prefix-map candidate search with direct-scan fallback.
+4. **Tier escalation**: If lite results are sparse (or query looks postal / is sufficiently long), app loads `CC.full.json.gz`.
+5. **Selection lock-in**: Chosen suggestion is preserved as selected place to avoid post-click "no match" regressions.
+
+**Advantages**:
+- ✅ **Privacy-preserving manual path**: No browser GPS permission needed
+- ✅ **Responsive first input**: Lite bundle keeps initial fetches small
+- ✅ **Better recall when needed**: Full bundle available for harder queries
+- ✅ **Observable network cost**: Session byte tracking displayed in UI
+
+**Trade-offs**:
+- ⚠️ **Country variance**: Full bundle size depends on per-country data volume
+- ⚠️ **Postal quality by source**: Coverage quality varies by GeoNames source country
+
+**Used By**:
+- Interactive Locate Me page (`public/locate-me.html`) manual mode (`Locate Me (Choose)`)
+
+---
+
 ## Boundary Lookup Strategies
 
 ### ❌ **Legacy: GADM Shapefiles (Server-Side)**
@@ -175,6 +211,30 @@ Render Map (Leaflet + OSM tiles)
 - ✅ **No server API calls** for boundaries
 - ✅ **Privacy-preserving** (no GPS sent to server)
 
+### Interactive Locate Me Page (Manual Country-First Flow)
+
+```
+User opens "Locate Me (Choose)"
+    ↓
+Select Country
+    ↓
+Load Country Lite Index (show loading indicator)
+    ↓
+Type Locality / Postal Prefix
+    ↓
+Autocomplete (escalate to Full Index only if needed)
+    ↓
+Pick Suggested Place
+    ↓
+Boundary + Weather resolution from selected place
+```
+
+**Characteristics**:
+- ✅ **No geolocation consent required**
+- ✅ **Small default fetches via lite tier**
+- ✅ **Escalates to full tier only when query needs it**
+- ✅ **Session data usage visible in UI**
+
 ### API Endpoint (Fallback/Server-Side)
 
 ```
@@ -197,6 +257,7 @@ Return GeoJSON boundary
 | Strategy | Status | Location | Network | Granularity | Speed |
 |---------|-------|----------|---------|-------------|-------|
 | **GeoNames Offline** | ✅ Current | Client | ❌ No | City-level | ⚡ Fast |
+| **Country-First Autocomplete (Lite/Full)** | ✅ Current | Client | ✅ Initial country bundle fetch | Locality + postal prefix | ⚡ Fast initial / ⚖️ depends on full tier |
 | **GADM Shapefiles** | ❌ Deprecated | Server | ✅ Yes | Regional | 🐌 Slow |
 | **OSM/Overpass API** | ⚠️ Transitional | Server | ✅ Yes | Very granular | 🐌 Medium |
 | **GeoBoundaries Packs** | ✅ Current | Client | ❌ No | Regional/Local | ⚡ Fast |
