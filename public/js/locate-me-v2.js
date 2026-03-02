@@ -38,6 +38,17 @@ const API_BASE = (typeof window !== 'undefined' && window.location && window.loc
   : '';
 const WHERE_MAP_POPULATION_MIN_DEFAULT = 50000;
 const US_LOWER_48_BOUNDS = [[24.396308, -124.848974], [49.384358, -66.885444]];
+const US_STATE_ABBR = {
+  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO',
+  connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID',
+  illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
+  maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN', mississippi: 'MS',
+  missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', ohio: 'OH',
+  oklahoma: 'OK', oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+  'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA',
+  washington: 'WA', 'west virginia': 'WV', wisconsin: 'WI', wyoming: 'WY', 'district of columbia': 'DC'
+};
 
 function apiUrl(path) {
   return `${API_BASE}${path}`;
@@ -95,6 +106,7 @@ createApp({
       whereMapPickerMarker: null,
       whereMapPickerCountryLayer: null,
       whereMapPickerPlacesLayer: null,
+      whereMapPickerStateLayer: null,
       whereMapPickerSelection: null,
       whereMapPickerLoading: false,
       whereMapPickerError: null,
@@ -1074,6 +1086,7 @@ createApp({
       this.whereMapPickerMarker = null;
       this.whereMapPickerCountryLayer = null;
       this.whereMapPickerPlacesLayer = null;
+      this.whereMapPickerStateLayer = null;
       this.whereMapPickerSelection = null;
       this.whereMapPickerError = null;
       this.whereMapPickerLoading = false;
@@ -1196,6 +1209,7 @@ createApp({
         const drawPlaceContextForZoom = () => {
           if (!this.whereMapPickerPlacesLayer) return;
           this.whereMapPickerPlacesLayer.clearLayers();
+          if (this.whereMapPickerStateLayer) this.whereMapPickerStateLayer.clearLayers();
           const zoom = Number(this.whereMapPickerInstance?.getZoom?.() || 4);
           let cap = countryCode === 'US' ? 70 : 35;
           let popFloor = countryCode === 'US' ? 300000 : 120000;
@@ -1231,6 +1245,44 @@ createApp({
             marker.openTooltip();
             rendered += 1;
           });
+
+          // US orientation anchors: state abbreviation labels at low/mid zoom.
+          if (countryCode === 'US' && zoom <= 6) {
+            if (!this.whereMapPickerStateLayer) {
+              this.whereMapPickerStateLayer = L.layerGroup().addTo(this.whereMapPickerInstance);
+            }
+            const byState = new Map();
+            topPlaces.forEach((p) => {
+              const key = String(p.admin1 || '').trim().toLowerCase();
+              if (!key || !US_STATE_ABBR[key]) return;
+              const current = byState.get(key) || { latSum: 0, lonSum: 0, count: 0 };
+              current.latSum += p.lat;
+              current.lonSum += p.lon;
+              current.count += 1;
+              byState.set(key, current);
+            });
+            byState.forEach((v, key) => {
+              if (!v.count) return;
+              const abbr = US_STATE_ABBR[key];
+              if (!abbr) return;
+              const lat = v.latSum / v.count;
+              const lon = v.lonSum / v.count;
+              const marker = L.circleMarker([lat, lon], {
+                radius: 1,
+                color: '#334155',
+                fillColor: '#334155',
+                fillOpacity: 0.05,
+                weight: 0.5
+              }).addTo(this.whereMapPickerStateLayer);
+              marker.bindTooltip(abbr, {
+                permanent: true,
+                direction: 'center',
+                className: 'state-abbr-label',
+                opacity: 0.9
+              });
+              marker.openTooltip();
+            });
+          }
         };
 
         drawPlaceContextForZoom();
