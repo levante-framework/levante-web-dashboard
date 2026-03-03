@@ -1331,7 +1331,7 @@
                 const langCode = String(cfg.lang_code || '').trim().toLowerCase();
                 const preferred = String(cfg.display_name || key).trim();
                 // Normalize common generic labels into region-specific names for partner workflows.
-                if (langCode === 'es-co' && (/^spanish$/i.test(preferred) || /spanish\s*\(columbia\)/i.test(preferred))) return 'Spanish (Colombia)';
+                if (langCode === 'es-co' && (/^spanish$/i.test(preferred) || /spanish\s*\(colombia\)/i.test(preferred))) return 'Spanish (Colombia)';
                 if (langCode === 'es-ar' && /^spanish$/i.test(preferred)) return 'Spanish (Argentina)';
                 return preferred || key;
             }
@@ -2157,19 +2157,33 @@
             getAudioLangAliases(langCode) {
                 const raw = String(langCode || '').trim();
                 if (!raw) return [];
-                const lower = raw.toLowerCase();
-                const aliases = new Set([raw]);
-                if (lower === 'en') {
-                    aliases.add('en-US');
-                    aliases.add('en-GB');
-                } else if (lower === 'en-us' || lower === 'en-gb') {
+
+                const normalize = (code) => {
+                    const cleaned = String(code || '').trim().replace(/_/g, '-');
+                    if (!cleaned) return '';
+                    const parts = cleaned.split('-').filter(Boolean);
+                    if (parts.length < 2) return parts[0].toLowerCase();
+                    return `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`;
+                };
+
+                const canonical = normalize(raw);
+                const lower = canonical.toLowerCase();
+                const aliases = new Set([raw, canonical, canonical.replace('-', '_')]);
+
+                // Expand common aliases so English/German resolve across 2-letter and regional folders.
+                if (lower === 'en' || lower === 'en-us' || lower === 'en-gb') {
                     aliases.add('en');
-                } else if (lower === 'de') {
-                    aliases.add('de-DE');
-                } else if (lower === 'de-de') {
+                    aliases.add('en-US');
+                    aliases.add('en_US');
+                    aliases.add('en-GB');
+                    aliases.add('en_GB');
+                } else if (lower === 'de' || lower === 'de-de') {
                     aliases.add('de');
+                    aliases.add('de-DE');
+                    aliases.add('de_DE');
                 }
-                return Array.from(aliases);
+
+                return Array.from(aliases).filter(Boolean);
             }
 
             getAudioPrefixes(langCode) {
@@ -2396,6 +2410,24 @@
                 }
             }
 
+            pathMatchesAudioLanguage(path, langCode) {
+                if (!path || !langCode) return false;
+                const normalize = (v) => String(v || '').trim().replace(/_/g, '-').toLowerCase();
+                const aliasSet = new Set(this.getAudioLangAliases(langCode).map(normalize).filter(Boolean));
+                if (!aliasSet.size) return false;
+
+                const segments = String(path).split('/').filter(Boolean).map(normalize);
+                const audioIdx = segments.indexOf('audio');
+                if (audioIdx === -1) return false;
+                const after = segments.slice(audioIdx + 1);
+                if (!after.length) return false;
+
+                // Supported layouts:
+                //  - audio/{lang}/{id}.mp3
+                //  - audio/{folder}/{lang}/{id}.mp3
+                return aliasSet.has(after[0]) || (after.length >= 2 && aliasSet.has(after[1]));
+            }
+
             async fetchAudioFileIds(bucketName, langCode, options = {}) {
                 const cacheKey = `${bucketName}::${langCode}`;
                 if (!options.forceRefresh && this.audioListCache.has(cacheKey)) {
@@ -2406,6 +2438,25 @@
                 const ids = new Set();
                 const paths = new Map();
                 const updatedById = new Map();
+                const ingestItems = (items, enforceLangMatch = false) => {
+                    (items || []).forEach(item => {
+                        const name = item.name || '';
+                        if (enforceLangMatch && !this.pathMatchesAudioLanguage(name, langCode)) {
+                            return;
+                        }
+                        const baseId = this.extractBaseId(name);
+                        if (!baseId) return;
+                        ids.add(baseId);
+                        const updatedRaw = item.updated || item.approvedAt || null;
+                        const updatedTs = updatedRaw ? new Date(updatedRaw).getTime() : 0;
+                        const currentTs = updatedById.get(baseId) || 0;
+                        if (!paths.has(baseId) || updatedTs >= currentTs) {
+                            paths.set(baseId, name);
+                            this.audioPathCache.set(`${bucketName}::${langCode}::${baseId}`, name);
+                            updatedById.set(baseId, Number.isFinite(updatedTs) ? updatedTs : currentTs);
+                        }
+                    });
+                };
 
                 await Promise.all(prefixes.map(async prefix => {
                     try {
@@ -2421,24 +2472,36 @@
                         });
                         if (!response.ok) return;
                         const data = await response.json();
-                        (data.items || []).forEach(item => {
-                            const name = item.name || '';
-                            const baseId = this.extractBaseId(name);
-                            if (!baseId) return;
-                            ids.add(baseId);
-                            const updatedRaw = item.updated || item.approvedAt || null;
-                            const updatedTs = updatedRaw ? new Date(updatedRaw).getTime() : 0;
-                            const currentTs = updatedById.get(baseId) || 0;
-                            if (!paths.has(baseId) || updatedTs >= currentTs) {
-                                paths.set(baseId, name);
-                                this.audioPathCache.set(`${bucketName}::${langCode}::${baseId}`, name);
-                                updatedById.set(baseId, Number.isFinite(updatedTs) ? updatedTs : currentTs);
-                            }
-                        });
+                        ingestItems(data.items, false);
                     } catch (error) {
                         console.warn(`Failed to list audio files for ${bucketName}/${prefix}:`, error);
                     }
                 }));
+
+                // Fallback for unexpected folder layouts: scan audio/ and filter by lang aliases from full path.
+                if (ids.size === 0) {
+                    try {
+                        const params = new URLSearchParams({
+                            bucket: bucketName,
+                            prefix: 'audio/'
+                        });
+                        if (options.forceRefresh) {
+                            params.set('_ts', String(Date.now()));
+                        }
+                        const response = await fetch(`/api/list-draft-audio?${params.toString()}`, {
+                            cache: options.forceRefresh ? 'no-store' : 'default'
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            ingestItems(data.items, true);
+                            if (ids.size > 0) {
+                                console.log(`Fallback audio scan matched ${ids.size} items for ${langCode} in ${bucketName}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Fallback audio scan failed for ${bucketName}/${langCode}:`, error);
+                    }
+                }
 
                 const result = { ids, paths, updatedById };
                 this.audioListCache.set(cacheKey, result);
@@ -2938,22 +3001,7 @@
                 }
                 
                 const keys = Object.keys(item);
-                const langAliases = (() => {
-                    const raw = String(langCode || '').trim();
-                    const lower = raw.toLowerCase();
-                    const set = new Set([raw]);
-                    if (lower === 'en') {
-                        set.add('en-US');
-                        set.add('en-GB');
-                    } else if (lower === 'en-us' || lower === 'en-gb') {
-                        set.add('en');
-                    } else if (lower === 'de') {
-                        set.add('de-DE');
-                    } else if (lower === 'de-de') {
-                        set.add('de');
-                    }
-                    return Array.from(set).filter(Boolean);
-                })();
+                const langAliases = this.getAudioLangAliases(langCode);
                 
                 // For pt-PT, check multiple possible column names
                 if (langCode === 'pt-PT') {

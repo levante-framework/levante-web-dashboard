@@ -17,10 +17,10 @@ function normalizeLanguageDisplayNamesBootstrap(languages: Record<string, any> |
         const cfg = cfgRaw && typeof cfgRaw === 'object' ? { ...cfgRaw } : {};
         const langCode = String(cfg.lang_code || '').trim().toLowerCase();
         let nextName = String(name || '').trim();
-        if (langCode === 'es-co' && (/^spanish$/i.test(nextName) || /spanish\s*\(columbia\)/i.test(nextName))) nextName = 'Spanish (Colombia)';
+        if (langCode === 'es-co' && (/^spanish$/i.test(nextName) || /spanish\s*\(colombia\)/i.test(nextName))) nextName = 'Spanish (Colombia)';
         if (langCode === 'es-ar' && /^spanish$/i.test(nextName)) nextName = 'Spanish (Argentina)';
         if (!cfg.display_name) cfg.display_name = nextName;
-        if (langCode === 'es-co' && (/^spanish$/i.test(String(cfg.display_name)) || /spanish\s*\(columbia\)/i.test(String(cfg.display_name)))) cfg.display_name = 'Spanish (Colombia)';
+        if (langCode === 'es-co' && (/^spanish$/i.test(String(cfg.display_name)) || /spanish\s*\(colombia\)/i.test(String(cfg.display_name)))) cfg.display_name = 'Spanish (Colombia)';
         if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name))) cfg.display_name = 'Spanish (Argentina)';
         normalized[nextName] = cfg;
     });
