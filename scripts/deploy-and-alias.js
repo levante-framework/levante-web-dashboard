@@ -20,7 +20,7 @@ function run(command) {
     await run('node scripts/apply-version.js');
     // Avoid pulling large optional binaries during the Vercel build (keeps serverless bundles under size limits).
     const { stdout: deployOut } = await run(
-      'npx -y vercel --prod --yes -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1'
+      'npx -y vercel --prod --yes --archive=tgz -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1'
     );
     process.stdout.write(deployOut);
 

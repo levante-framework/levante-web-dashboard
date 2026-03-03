@@ -6,7 +6,10 @@ data/geonames/
 data/geocoder/
 data/validation/
 data/geofabrik/
+node_modules/
+node_modules
 venv/
+.venv-emb/
 __pycache__/
 *.pyc
 
