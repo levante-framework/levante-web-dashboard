@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 
 const { exec } = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 function run(command) {
   return new Promise((resolve, reject) => {
@@ -14,13 +17,44 @@ function run(command) {
   });
 }
 
+function runInDir(command, cwd) {
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd, maxBuffer: 1024 * 1024 * 20 }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr || stdout || error.message));
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+}
+
+function shellEscape(value) {
+  return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
 (async () => {
+  let deployCwd = process.cwd();
+  let tempDeployDir = null;
   try {
+    // Deploy from tracked files only to avoid Vercel upload hangs on large local dirs.
+    tempDeployDir = fs.mkdtempSync(path.join(os.tmpdir(), 'levante-deploy-'));
+    await run(`git archive --format=tar HEAD | tar -x -C ${shellEscape(tempDeployDir)}`);
+    deployCwd = tempDeployDir;
+
+    const localProjectJson = path.join(process.cwd(), '.vercel', 'project.json');
+    if (fs.existsSync(localProjectJson)) {
+      const vercelDir = path.join(tempDeployDir, '.vercel');
+      fs.mkdirSync(vercelDir, { recursive: true });
+      fs.copyFileSync(localProjectJson, path.join(vercelDir, 'project.json'));
+    }
+
     console.log('🚀 Deploying to Vercel (production)...');
-    await run('node scripts/apply-version.js');
+    await runInDir('node scripts/apply-version.js', deployCwd);
     // Avoid pulling large optional binaries during the Vercel build (keeps serverless bundles under size limits).
-    const { stdout: deployOut } = await run(
-      'npx -y vercel --prod --yes --archive=tgz -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1'
+    const { stdout: deployOut } = await runInDir(
+      'npx -y vercel --prod --yes --archive=tgz -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1',
+      deployCwd
     );
     process.stdout.write(deployOut);
 
@@ -64,5 +98,13 @@ function run(command) {
   } catch (err) {
     console.error('❌ Deployment failed:', err.message);
     process.exit(1);
+  } finally {
+    if (tempDeployDir && fs.existsSync(tempDeployDir)) {
+      try {
+        fs.rmSync(tempDeployDir, { recursive: true, force: true });
+      } catch (_) {
+        // non-fatal cleanup failure
+      }
+    }
   }
 })();
