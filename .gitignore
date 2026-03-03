@@ -10,11 +10,14 @@ data/gallery/weather-cache.json
 
 # Audio validation result files are generated locally (or via sibling repos) and should not ship to Vercel by default.
 data/validation/*.json
+data/validation/surveys-embedding-model-*.csv
+data/validation/surveys-embedding-model-*.pdf
 
 public/locations-map.html
 
 # Python virtual environment (should never be committed)
 venv/
+.venv-emb/
 __pycache__/
 *.pyc
 *.pyo
@@ -46,3 +49,4 @@ public/adm-packs/us/adm7/
 public/adm-packs/us/adm8/
 public/adm-packs/us/adm9/
 public/adm-packs/us/adm10/
+node_modules

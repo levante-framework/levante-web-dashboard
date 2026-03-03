@@ -199,6 +199,58 @@ Ensure semantic consistency across large translation datasets
 4. **Test validation** on a few sample translations
 5. **Review results** and adjust workflow as needed
 
+## Experimental: Multilingual Embedding Validation (No Back-Translation)
+
+For local experimentation, you can validate translation pairs directly using multilingual embeddings.
+This avoids back-translation and compares source/target semantic alignment with cosine similarity.
+
+### Script
+
+`scripts/embedding_translation_validation.py`
+
+### Recommended Models
+
+- `intfloat/multilingual-e5-base` (good default, faster)
+- `intfloat/multilingual-e5-large` (higher quality, heavier)
+- `google/LaBSE` (strong multilingual alignment baseline)
+
+### Local Python Setup (NVIDIA GPU)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+# Install CUDA-enabled torch for your driver/CUDA version, then:
+pip install sentence-transformers numpy
+```
+
+### Example Run
+
+```bash
+python scripts/embedding_translation_validation.py \
+  --input ../levante_translations/translations/item-bank-translations.csv \
+  --source-col en \
+  --target-col de \
+  --id-col item_id \
+  --model intfloat/multilingual-e5-large \
+  --device cuda \
+  --batch-size 256 \
+  --min-score 0.85 \
+  --warn-score 0.78 \
+  --summary-json data/validation/embedding-de-summary.json
+```
+
+### Output
+
+- CSV with per-row similarity/status (`pass` / `review` / `fail`)
+- Optional JSON summary (distribution percentiles and counts)
+
+### Notes
+
+- For E5-family models, the script automatically uses `query:` for source and `passage:` for translation.
+- Source/target text is HTML-stripped by default before embedding (can be disabled with `--no-strip-html`).
+- Calibrate thresholds against your known-good and known-bad translation pairs before operational use.
+
 ## Support
 
 For technical issues or algorithm questions, refer to:
