@@ -3661,17 +3661,18 @@
                 try {
                     this.setStatus(`Loading audio for ${itemId}...`, 'loading');
                     
-                    // Play audio from levante-assets-draft bucket (where draft items are)
-                    // Path: audio/{langCode}/{itemId}.mp3 or audio/{langCode}/{itemId}_v###.mp3
+                    // Enforce strict source routing:
+                    // - Approved tab -> dev bucket only
+                    // - Pending / No Audio tabs -> draft bucket only
                     const baseId = itemId.replace(/_v\d{3}$/, '');
                     let audioPath = null;
+                    const audioBucket = this.currentTab === 'approved'
+                        ? this.audioBuckets.dev
+                        : this.audioBuckets.draft;
                     
-                    // First, try to find the actual file via alias-aware scanner.
+                    // First, try to find the actual file in the expected bucket only.
                     try {
-                        audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
-                        if (!audioPath) {
-                            audioPath = await this.findAudioPath(this.audioBuckets.dev, this.currentLangCode, baseId, { forceRefresh: true });
-                        }
+                        audioPath = await this.findAudioPath(audioBucket, this.currentLangCode, baseId, { forceRefresh: true });
                     } catch (listError) {
                         console.warn('Could not list audio files for playback', listError);
                     }
@@ -3683,7 +3684,7 @@
                     }
                     
                     const params = new URLSearchParams({
-                        bucket: 'levante-assets-draft',
+                        bucket: audioBucket,
                         path: audioPath
                     });
                     
@@ -3711,7 +3712,8 @@
                     this.setStatus(`Playing audio for ${itemId}...`, 'success');
                 } catch (error) {
                     console.error('Play audio error:', error);
-                    this.setStatus(`No audio found for ${itemId} in draft/dev buckets. Generate audio first.`, 'error');
+                    const bucketLabel = this.currentTab === 'approved' ? 'approved (-dev)' : 'draft (-draft)';
+                    this.setStatus(`No audio found for ${itemId} in ${bucketLabel}.`, 'error');
                 }
             }
 
