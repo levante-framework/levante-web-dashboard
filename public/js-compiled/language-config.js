@@ -34,12 +34,20 @@ function normalizeLanguageDisplayNamesConfig(languages) {
             nextName = 'Spanish (Colombia)';
         if (langCode === 'es-ar' && /^spanish$/i.test(nextName))
             nextName = 'Spanish (Argentina)';
+        if ((langCode === 'en' || langCode === 'en-us') && /^english$/i.test(nextName))
+            nextName = 'English (United States)';
+        if ((langCode === 'de' || langCode === 'de-de') && /^german$/i.test(nextName))
+            nextName = 'German (Germany)';
         if (!cfg.display_name)
             cfg.display_name = nextName;
         if (langCode === 'es-co' && (/^spanish$/i.test(String(cfg.display_name)) || /spanish\s*\(colombia\)/i.test(String(cfg.display_name))))
             cfg.display_name = 'Spanish (Colombia)';
         if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name)))
             cfg.display_name = 'Spanish (Argentina)';
+        if ((langCode === 'en' || langCode === 'en-us') && /^english$/i.test(String(cfg.display_name)))
+            cfg.display_name = 'English (United States)';
+        if ((langCode === 'de' || langCode === 'de-de') && /^german$/i.test(String(cfg.display_name)))
+            cfg.display_name = 'German (Germany)';
         normalized[nextName] = cfg;
     });
     return normalized;

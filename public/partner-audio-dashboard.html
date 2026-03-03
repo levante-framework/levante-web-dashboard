@@ -19,9 +19,9 @@
         // ULTRA-EARLY VERSION CHECK - Runs before ANY other scripts
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
         console.log('%c  DASHBOARD VERSION CHECK', 'color: green; font-size: 18px; font-weight: bold;');
-        console.log('%c  VERSION: 2024-12-19-SuperAdmin-Fix-v2', 'color: blue; font-size: 16px; font-weight: bold;');
+        console.log('%c  VERSION: 2026-03-03-language-labels-fix-v2', 'color: blue; font-size: 16px; font-weight: bold;');
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
-        window.DASHBOARD_VERSION = '2024-12-19-SuperAdmin-Fix-v2';
+        window.DASHBOARD_VERSION = '2026-03-03-language-labels-fix-v2';
         window.DASHBOARD_LOADED_AT = new Date().toISOString();
         console.log('Check window.DASHBOARD_VERSION in console:', window.DASHBOARD_VERSION);
     </script>
@@ -250,6 +250,31 @@
             background: #eff6ff;
             color: #1e40af;
             border-color: #93c5fd;
+        }
+
+        .status.warning {
+            background: #fffbeb;
+            color: #92400e;
+            border-color: #fcd34d;
+        }
+
+        .status.info {
+            background: #f8fafc;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
+        .status.floating-alert {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            z-index: 10000;
+            max-width: min(620px, calc(100vw - 40px));
+            min-height: 0;
+            border: 1px solid;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
+            padding: 12px 16px;
         }
 
         .approval-stats {
@@ -1250,25 +1275,26 @@
         // IMMEDIATE VERSION CHECK - Runs before anything else
         (function() {
             console.log('%c=== PARTNER AUDIO DASHBOARD LOADED ===', 'color: green; font-size: 16px; font-weight: bold;');
-            console.log('%cVERSION: 2024-12-19-SuperAdmin-Fix-v2', 'color: blue; font-size: 14px; font-weight: bold;');
+            console.log('%cVERSION: 2026-03-03-language-labels-fix-v2', 'color: blue; font-size: 14px; font-weight: bold;');
             console.log('TIMESTAMP:', new Date().toISOString());
             console.warn('If you see old line numbers in errors, clear your browser cache!');
-            window.DASHBOARD_VERSION = '2024-12-19-SuperAdmin-Fix-v2';
+            window.DASHBOARD_VERSION = '2026-03-03-language-labels-fix-v2';
             window.DASHBOARD_LOADED = true;
         })();
         
         class PartnerAudioDashboard {
             constructor() {
                 this.defaultLanguages = {
-                    'English': { lang_code: 'en', service: 'ElevenLabs', voice: 'Clara - Children\'s Storyteller' },
+                    'English (United States)': { lang_code: 'en-US', service: 'ElevenLabs', voice: 'Clara - Children\'s Storyteller' },
                     'Spanish (Colombia)': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Malena Tango' },
-                    'German': { lang_code: 'de', service: 'ElevenLabs', voice: 'Julia' },
+                    'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
                     'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet' },
                     'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' },
                     'Portuguese': { lang_code: 'pt-PT', service: 'ElevenLabs', voice: 'Liam' }
                 };
+                this.defaultLanguages = this.normalizeLanguageEntries(this.defaultLanguages);
                 this.languages = JSON.parse(JSON.stringify(this.defaultLanguages));
                 this.legacyLanguageCodeByName = Object.fromEntries(
                     Object.entries(this.defaultLanguages).map(([name, cfg]) => [name, String(cfg.lang_code || '')])
@@ -1327,13 +1353,29 @@
             getLanguageDisplayName(languageKey) {
                 const key = String(languageKey || '').trim();
                 if (!key) return '';
-                const cfg = this.languages[key] || {};
+                return this.normalizeLanguageLabel(key, this.languages[key] || {});
+            }
+
+            normalizeLanguageLabel(fallbackName, cfg = {}) {
                 const langCode = String(cfg.lang_code || '').trim().toLowerCase();
-                const preferred = String(cfg.display_name || key).trim();
-                // Normalize common generic labels into region-specific names for partner workflows.
+                const preferred = String(cfg.display_name || fallbackName || '').trim();
                 if (langCode === 'es-co' && (/^spanish$/i.test(preferred) || /spanish\s*\(colombia\)/i.test(preferred))) return 'Spanish (Colombia)';
                 if (langCode === 'es-ar' && /^spanish$/i.test(preferred)) return 'Spanish (Argentina)';
-                return preferred || key;
+                if ((langCode === 'en' || langCode === 'en-us') && (/^english$/i.test(preferred) || /english\s*\(united states\)/i.test(preferred))) return 'English (United States)';
+                if ((langCode === 'de' || langCode === 'de-de') && (/^german$/i.test(preferred) || /german\s*\(germany\)/i.test(preferred))) return 'German (Germany)';
+                return preferred || String(fallbackName || '').trim();
+            }
+
+            normalizeLanguageEntries(inputLanguages) {
+                const input = inputLanguages && typeof inputLanguages === 'object' ? inputLanguages : {};
+                const normalized = {};
+                Object.entries(input).forEach(([name, cfgRaw]) => {
+                    const cfg = cfgRaw && typeof cfgRaw === 'object' ? { ...cfgRaw } : {};
+                    const label = this.normalizeLanguageLabel(name, cfg);
+                    cfg.display_name = label;
+                    normalized[label] = cfg;
+                });
+                return normalized;
             }
 
             async loadLanguagesFromConfig() {
@@ -1346,13 +1388,15 @@
                     const data = await response.json();
                     const remoteLanguages = data && data.languages && typeof data.languages === 'object' ? data.languages : null;
                     if (remoteLanguages && Object.keys(remoteLanguages).length > 0) {
-                        this.languages = JSON.parse(JSON.stringify(remoteLanguages));
+                        this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(remoteLanguages)));
                         console.log(`Loaded ${Object.keys(this.languages).length} languages from /api/language-config`);
                     } else {
                         console.warn('Remote language config empty; using fallback language list.');
+                        this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
                     }
                 } catch (error) {
                     console.warn('Failed to load remote language config; using fallback language list:', error);
+                    this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
                 }
             }
             
@@ -1745,8 +1789,10 @@
                                 const langMap = {
                                     'es-CO': 'Spanish (Colombia)',
                                     'es-AR': 'Spanish (Argentina)',
-                                    'en': 'English',
-                                    'de': 'German',
+                                    'en': 'English (United States)',
+                                    'en-US': 'English (United States)',
+                                    'de': 'German (Germany)',
+                                    'de-DE': 'German (Germany)',
                                     'fr-CA': 'French',
                                     'nl': 'Dutch',
                                     'de-CH': 'German (Switzerland)',
@@ -1759,8 +1805,10 @@
                                 const langMap = {
                                     'es-CO': 'Spanish (Colombia)',
                                     'es-AR': 'Spanish (Argentina)',
-                                    'en': 'English',
-                                    'de': 'German',
+                                    'en': 'English (United States)',
+                                    'en-US': 'English (United States)',
+                                    'de': 'German (Germany)',
+                                    'de-DE': 'German (Germany)',
                                     'fr-CA': 'French',
                                     'nl': 'Dutch',
                                     'de-CH': 'German (Switzerland)',
@@ -2036,7 +2084,7 @@
             
             async handlePasswordLogin() {
                 console.log('=== handlePasswordLogin CALLED ===');
-                console.log('VERSION: 2024-12-19-SuperAdmin-Fix-v2');
+                console.log('VERSION: 2026-03-03-language-labels-fix-v2');
                 const emailInput = document.getElementById('emailInput');
                 const passwordInput = document.getElementById('passwordInput');
                 const email = emailInput?.value?.trim() || '';
@@ -2509,12 +2557,14 @@
             }
 
             async findAudioPath(bucketName, langCode, baseId, options = {}) {
-                const cacheKey = `${bucketName}::${langCode}::${baseId}`;
+                const normalizedBaseId = this.extractBaseId(baseId) || String(baseId || '').trim().toLowerCase();
+                if (!normalizedBaseId) return null;
+                const cacheKey = `${bucketName}::${langCode}::${normalizedBaseId}`;
                 if (!options.forceRefresh && this.audioPathCache.has(cacheKey)) {
                     return this.audioPathCache.get(cacheKey);
                 }
                 const info = await this.fetchAudioFileIds(bucketName, langCode, { forceRefresh: true });
-                return info.paths.get(baseId) || null;
+                return info.paths.get(normalizedBaseId) || null;
             }
 
             async loadApprovalStatus() {
@@ -2738,10 +2788,12 @@
                     'es-CO': 'es-CO',
                     'es-AR': 'es-AR',
                     'de': 'de',
+                    'de-DE': 'de',
                     'de-CH': 'de-CH',
                     'fr-CA': 'fr-CA',
                     'nl': 'nl',
-                    'en': 'en'
+                    'en': 'en',
+                    'en-US': 'en'
                 };
                 
                 // Populate languages (filtered if restricted)
@@ -3614,38 +3666,11 @@
                     const baseId = itemId.replace(/_v\d{3}$/, '');
                     let audioPath = null;
                     
-                    // First, try to find the actual file in draft bucket
+                    // First, try to find the actual file via alias-aware scanner.
                     try {
-                        const bucketName = this.audioBuckets.draft;
-                        const prefixes = this.getAudioPrefixes(this.currentLangCode);
-                        for (const prefix of prefixes) {
-                            const listParams = new URLSearchParams({
-                                bucket: bucketName,
-                                prefix: `${prefix}${baseId}`
-                            });
-                            
-                            const listResponse = await fetch(`/api/list-draft-audio?${listParams.toString()}`);
-                            if (!listResponse.ok) {
-                                continue;
-                            }
-                            const listData = await listResponse.json();
-                            if (!listData.items || !listData.items.length) {
-                                continue;
-                            }
-                            const matchingFiles = listData.items.filter(item => {
-                                const fileName = (item.name || '').split('/').pop() || '';
-                                return fileName.toLowerCase().startsWith(baseId) && fileName.toLowerCase().endsWith('.mp3');
-                            });
-                            
-                            if (matchingFiles.length > 0) {
-                                matchingFiles.sort((a, b) => {
-                                    const dateA = new Date(a.updated || a.timeCreated || 0);
-                                    const dateB = new Date(b.updated || b.timeCreated || 0);
-                                    return dateB - dateA;
-                                });
-                                audioPath = matchingFiles[0].name;
-                                break;
-                            }
+                        audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
+                        if (!audioPath) {
+                            audioPath = await this.findAudioPath(this.audioBuckets.dev, this.currentLangCode, baseId, { forceRefresh: true });
                         }
                     } catch (listError) {
                         console.warn('Could not list audio files for playback', listError);
@@ -3665,7 +3690,7 @@
                     const response = await fetch(`/api/get-draft-audio?${params.toString()}`);
                     
                     if (!response.ok) {
-                        throw new Error('Audio not found in levante-assets-draft bucket');
+                        throw new Error('Audio not found in draft/dev buckets');
                     }
                     
                     const blob = await response.blob();
@@ -3686,7 +3711,7 @@
                     this.setStatus(`Playing audio for ${itemId}...`, 'success');
                 } catch (error) {
                     console.error('Play audio error:', error);
-                    this.setStatus(`No audio found for ${itemId} in levante-assets-dev. Generate audio first.`, 'error');
+                    this.setStatus(`No audio found for ${itemId} in draft/dev buckets. Generate audio first.`, 'error');
                 }
             }
 
@@ -4370,6 +4395,10 @@
                 const statusEl = document.getElementById('status');
                 statusEl.textContent = message;
                 statusEl.className = 'status' + (type ? ' ' + type : '');
+                const isFloatingAlert = type === 'error' || type === 'warning';
+                statusEl.classList.toggle('floating-alert', isFloatingAlert);
+                statusEl.setAttribute('role', isFloatingAlert ? 'alert' : 'status');
+                statusEl.setAttribute('aria-live', isFloatingAlert ? 'assertive' : 'polite');
             }
 
             escapeHtml(text) {
