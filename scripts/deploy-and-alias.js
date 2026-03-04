@@ -46,7 +46,17 @@ function shellEscape(value) {
       .split('\n')
       .map((file) => file.trim())
       .filter(Boolean);
+    const overlayIgnorePrefixes = [
+      'node_modules/',
+      '.venv/',
+      '.venv-emb/',
+      'venv/',
+    ];
     changedTrackedFiles.forEach((relativePath) => {
+      const normalizedPath = String(relativePath || '').replace(/\\/g, '/');
+      if (overlayIgnorePrefixes.some((prefix) => normalizedPath.startsWith(prefix))) {
+        return;
+      }
       const sourcePath = path.join(process.cwd(), relativePath);
       const targetPath = path.join(tempDeployDir, relativePath);
       if (fs.existsSync(sourcePath)) {
