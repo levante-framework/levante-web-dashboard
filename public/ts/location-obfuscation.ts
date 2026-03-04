@@ -9,6 +9,7 @@ interface PopulationSourceComparisonResult {
     kontur: LocationBuildResult;
     worldpop: LocationBuildResult;
     comparison: {
+        confidence: 'high' | 'medium' | 'low';
         sameEffectiveCell: boolean;
         sameEffectiveResolution: boolean;
         konturEffective: {
@@ -315,13 +316,21 @@ async function compareKonturAndWorldpopLocationBuild(
         kontur.analysis.candidates.find((c) => c.resolution === konturEffectiveRes) || null;
     const worldpopEffectiveCandidate =
         worldpop.analysis.candidates.find((c) => c.resolution === worldpopEffectiveRes) || null;
+    const sameEffectiveCell = konturEffectiveCell === worldpopEffectiveCell;
+    const sameEffectiveResolution = konturEffectiveRes === worldpopEffectiveRes;
+    const confidence: 'high' | 'medium' | 'low' = sameEffectiveCell
+        ? 'high'
+        : sameEffectiveResolution
+            ? 'medium'
+            : 'low';
 
     return {
         kontur,
         worldpop,
         comparison: {
-            sameEffectiveCell: konturEffectiveCell === worldpopEffectiveCell,
-            sameEffectiveResolution: konturEffectiveRes === worldpopEffectiveRes,
+            confidence,
+            sameEffectiveCell,
+            sameEffectiveResolution,
             konturEffective: {
                 cellId: konturEffectiveCell,
                 resolution: konturEffectiveRes,

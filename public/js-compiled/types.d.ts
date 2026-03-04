@@ -99,6 +99,7 @@ interface PopulationSourceComparisonResult {
     kontur: LocationBuildResult;
     worldpop: LocationBuildResult;
     comparison: {
+        confidence: 'high' | 'medium' | 'low';
         sameEffectiveCell: boolean;
         sameEffectiveResolution: boolean;
         konturEffective: {

@@ -195,12 +195,20 @@ async function compareKonturAndWorldpopLocationBuild(lat, lon, konturSource, wor
     const worldpopEffectiveRes = worldpop.location.h3.effective.resolution;
     const konturEffectiveCandidate = kontur.analysis.candidates.find((c) => c.resolution === konturEffectiveRes) || null;
     const worldpopEffectiveCandidate = worldpop.analysis.candidates.find((c) => c.resolution === worldpopEffectiveRes) || null;
+    const sameEffectiveCell = konturEffectiveCell === worldpopEffectiveCell;
+    const sameEffectiveResolution = konturEffectiveRes === worldpopEffectiveRes;
+    const confidence = sameEffectiveCell
+        ? 'high'
+        : sameEffectiveResolution
+            ? 'medium'
+            : 'low';
     return {
         kontur,
         worldpop,
         comparison: {
-            sameEffectiveCell: konturEffectiveCell === worldpopEffectiveCell,
-            sameEffectiveResolution: konturEffectiveRes === worldpopEffectiveRes,
+            confidence,
+            sameEffectiveCell,
+            sameEffectiveResolution,
             konturEffective: {
                 cellId: konturEffectiveCell,
                 resolution: konturEffectiveRes,

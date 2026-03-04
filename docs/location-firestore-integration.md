@@ -172,6 +172,7 @@ const comparison = await window.compareKonturAndWorldpopLocationBuild(
 
 console.log(comparison.comparison);
 // {
+//   confidence: "high" | "medium" | "low",
 //   sameEffectiveCell: true|false,
 //   sameEffectiveResolution: true|false,
 //   konturEffective: { ... },
