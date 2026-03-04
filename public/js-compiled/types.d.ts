@@ -81,6 +81,55 @@ interface Dashboard {
     cacheDataLocally(csvText: string): void;
     loadRealElevenLabsVoices(): Promise<Record<string, Voice[]>>;
 }
+interface LocationBuildOptions {
+    populationThreshold?: number;
+    baselineResolution?: number;
+    maxResolution?: number;
+    populationByResolution?: Record<string, number | null | undefined>;
+    estimatePopulationForCell?: (cellId: string, resolution: number) => Promise<number | null>;
+    latLonSource?: 'gps' | 'h3_center' | 'approximate';
+    blurRadiusMeters?: number;
+    computedAt?: string;
+}
+interface H3PopulationSource {
+    name: 'kontur' | 'worldpop' | 'unknown' | string;
+    getPopulation: (cellId: string, resolution: number) => Promise<number | null> | number | null;
+}
+interface LocationBuildResult {
+    location: {
+        schemaVersion: 'location_v1';
+        latLon: {
+            lat: number;
+            lon: number;
+            source: 'gps' | 'h3_center' | 'approximate';
+            blurRadiusMeters?: number;
+        };
+        h3: {
+            scheme: 'h3_v1';
+            baseline: {
+                cellId: string;
+                resolution: number;
+            };
+            effective: {
+                cellId: string;
+                resolution: number;
+            };
+            populationThreshold: number;
+        };
+        computedAt: string;
+        populationSource: 'unknown';
+    };
+    analysis: {
+        thresholdMet: boolean;
+        populationDataAvailable: boolean;
+        candidates: Array<{
+            resolution: number;
+            cellId: string;
+            population: number | null;
+            privacyMet: boolean;
+        }>;
+    };
+}
 declare global {
     interface Window {
         dashboard?: Dashboard;
@@ -94,6 +143,13 @@ declare global {
         marked?: {
             parse: (markdown: string) => string;
         };
+        h3?: {
+            latLngToCell: (lat: number, lon: number, resolution: number) => string;
+            cellToLatLng: (cellId: string) => [number, number];
+        };
+        buildObfuscatedLocationFromLatLon?: (lat: number, lon: number, options?: LocationBuildOptions) => Promise<LocationBuildResult>;
+        buildObfuscatedLocationFromLatLonWithPopulationSource?: (lat: number, lon: number, populationSource: H3PopulationSource, options?: LocationBuildOptions) => Promise<LocationBuildResult>;
+        createKonturPopulationSource?: (cacheByResolution: Record<string, Record<string, number | null | undefined>>) => H3PopulationSource;
     }
 }
 interface GoogleTranslateResponse {

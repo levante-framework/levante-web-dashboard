@@ -125,6 +125,8 @@ createApp({
       weatherStatus: null,
       networkIsp: null,
       networkStatus: null,
+      latestObfuscatedLocation: null,
+      latestLocationDocId: null,
       showGeoPermissionModal: false,
       geoPermissionMode: 'preprompt', // 'preprompt' | 'denied'
       logCityCoordCache: {},
@@ -1001,6 +1003,42 @@ createApp({
       } catch (err) {
         // Logging should never break locating.
         console.warn('client log append failed', err?.message || err);
+      }
+    },
+    async buildAndPersistObfuscatedLocation(rawLat, rawLon) {
+      try {
+        const builder = window.buildObfuscatedLocationFromLatLon;
+        if (typeof builder !== 'function') {
+          console.warn('buildObfuscatedLocationFromLatLon is unavailable; skipping location object persistence');
+          return null;
+        }
+        // Raw coordinates are used only transiently for H3 computation on-device.
+        const built = await builder(rawLat, rawLon, {
+          populationThreshold: 50000,
+          baselineResolution: 5,
+          maxResolution: 9,
+          latLonSource: 'h3_center'
+        });
+        const location = built?.location || null;
+        if (!location) return null;
+
+        this.latestObfuscatedLocation = location;
+
+        const response = await fetch(apiUrl('/api/location-upsert'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location })
+        });
+        if (!response.ok) {
+          const body = await response.text().catch(() => '');
+          throw new Error(`location-upsert failed (${response.status}) ${body || ''}`.trim());
+        }
+        const payload = await response.json().catch(() => ({}));
+        this.latestLocationDocId = payload?.id || null;
+        return payload;
+      } catch (error) {
+        console.warn('Failed to build/persist obfuscated location', error?.message || error);
+        return null;
       }
     },
     formatBytes(bytes) {
@@ -1921,6 +1959,10 @@ createApp({
               seedMethod: seedCountry ? 'adm0' : 'none',
               source: 'client'
             };
+
+            // Build and persist a de-identified location object.
+            // This never sends/stores the raw GPS coordinates; lat/lon are from H3 cell center.
+            const locationPersistResult = await this.buildAndPersistObfuscatedLocation(latitude, longitude);
             
             if (this.results.length > 0) {
               const best = this.results[0];
@@ -2009,6 +2051,7 @@ createApp({
                 ispPromise,
                 new Promise((resolve) => setTimeout(() => resolve(null), 1500))
               ]),
+              locationDocId: locationPersistResult?.id || this.latestLocationDocId || null,
               source: 'client'
             });
 
