@@ -150,3 +150,31 @@ const result = await window.buildObfuscatedLocationFromLatLonWithPopulationSourc
   }
 );
 ```
+
+### Compare Kontur vs WorldPop outcomes
+
+```js
+const konturSource = window.createKonturPopulationSource(konturCacheByResolution);
+const worldpopSource = window.createWorldpopPopulationSource(worldpopCacheByResolution);
+
+const comparison = await window.compareKonturAndWorldpopLocationBuild(
+  rawLat,
+  rawLon,
+  konturSource,
+  worldpopSource,
+  {
+    populationThreshold: 50000,
+    baselineResolution: 5,
+    maxResolution: 9,
+    latLonSource: "h3_center"
+  }
+);
+
+console.log(comparison.comparison);
+// {
+//   sameEffectiveCell: true|false,
+//   sameEffectiveResolution: true|false,
+//   konturEffective: { ... },
+//   worldpopEffective: { ... }
+// }
+```

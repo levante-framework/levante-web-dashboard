@@ -5,6 +5,27 @@ interface H3PopulationSource {
     getPopulation: (cellId: string, resolution: number) => Promise<number | null> | number | null;
 }
 
+interface PopulationSourceComparisonResult {
+    kontur: LocationBuildResult;
+    worldpop: LocationBuildResult;
+    comparison: {
+        sameEffectiveCell: boolean;
+        sameEffectiveResolution: boolean;
+        konturEffective: {
+            cellId: string;
+            resolution: number;
+            population: number | null;
+            thresholdMet: boolean;
+        };
+        worldpopEffective: {
+            cellId: string;
+            resolution: number;
+            population: number | null;
+            thresholdMet: boolean;
+        };
+    };
+}
+
 interface LocationBuildOptions {
     populationThreshold?: number;
     baselineResolution?: number;
@@ -69,6 +90,19 @@ function getH3Api(): any {
 function createKonturPopulationSource(
     cacheByResolution: Record<string, Record<string, number | null | undefined>>
 ): H3PopulationSource {
+    return createMapPopulationSource('kontur', cacheByResolution);
+}
+
+function createWorldpopPopulationSource(
+    cacheByResolution: Record<string, Record<string, number | null | undefined>>
+): H3PopulationSource {
+    return createMapPopulationSource('worldpop', cacheByResolution);
+}
+
+function createMapPopulationSource(
+    sourceName: 'kontur' | 'worldpop' | string,
+    cacheByResolution: Record<string, Record<string, number | null | undefined>>
+): H3PopulationSource {
     const h3 = getH3Api();
     const cache = cacheByResolution || {};
     const availableRes = Object.keys(cache)
@@ -108,7 +142,7 @@ function createKonturPopulationSource(
     };
 
     return {
-        name: 'kontur',
+        name: sourceName,
         getPopulation,
     };
 }
@@ -199,19 +233,27 @@ async function buildObfuscatedLocationFromLatLon(
     }
 
     const candidates: LocationBuildResult['analysis']['candidates'] = [];
-    for (let resolution = maxResolution; resolution >= baselineResolution; resolution -= 1) {
+    let effectiveCandidate: LocationBuildResult['analysis']['candidates'][number] | null = null;
+    for (let resolution = baselineResolution; resolution <= maxResolution; resolution += 1) {
         const cellId = h3.latLngToCell(safeLat, safeLon, resolution);
         const population = await resolvePopulation(options, cellId, resolution);
-        candidates.push({
+        const candidate = {
             resolution,
             cellId,
             population,
             privacyMet: typeof population === 'number' ? population >= populationThreshold : false,
-        });
+        };
+        candidates.push(candidate);
+
+        if (candidate.privacyMet) {
+            effectiveCandidate = candidate;
+            continue;
+        }
+        if (effectiveCandidate) break;
     }
 
     const baseline = candidates.find((c) => c.resolution === baselineResolution)!;
-    const effective = candidates.find((c) => c.privacyMet) || baseline;
+    const effective = effectiveCandidate || baseline;
     const center = h3.cellToLatLng(effective.cellId);
     const source: LatLonSource = options.latLonSource || 'h3_center';
 
@@ -249,6 +291,49 @@ async function buildObfuscatedLocationFromLatLon(
             thresholdMet: effective.privacyMet,
             populationDataAvailable: candidates.some((candidate) => typeof candidate.population === 'number'),
             candidates,
+        },
+    };
+}
+
+async function compareKonturAndWorldpopLocationBuild(
+    lat: number,
+    lon: number,
+    konturSource: H3PopulationSource,
+    worldpopSource: H3PopulationSource,
+    options: LocationBuildOptions = {}
+): Promise<PopulationSourceComparisonResult> {
+    const [kontur, worldpop] = await Promise.all([
+        buildObfuscatedLocationFromLatLonWithPopulationSource(lat, lon, konturSource, options),
+        buildObfuscatedLocationFromLatLonWithPopulationSource(lat, lon, worldpopSource, options),
+    ]);
+
+    const konturEffectiveCell = kontur.location.h3.effective.cellId;
+    const worldpopEffectiveCell = worldpop.location.h3.effective.cellId;
+    const konturEffectiveRes = kontur.location.h3.effective.resolution;
+    const worldpopEffectiveRes = worldpop.location.h3.effective.resolution;
+    const konturEffectiveCandidate =
+        kontur.analysis.candidates.find((c) => c.resolution === konturEffectiveRes) || null;
+    const worldpopEffectiveCandidate =
+        worldpop.analysis.candidates.find((c) => c.resolution === worldpopEffectiveRes) || null;
+
+    return {
+        kontur,
+        worldpop,
+        comparison: {
+            sameEffectiveCell: konturEffectiveCell === worldpopEffectiveCell,
+            sameEffectiveResolution: konturEffectiveRes === worldpopEffectiveRes,
+            konturEffective: {
+                cellId: konturEffectiveCell,
+                resolution: konturEffectiveRes,
+                population: konturEffectiveCandidate?.population ?? null,
+                thresholdMet: Boolean(konturEffectiveCandidate?.privacyMet),
+            },
+            worldpopEffective: {
+                cellId: worldpopEffectiveCell,
+                resolution: worldpopEffectiveRes,
+                population: worldpopEffectiveCandidate?.population ?? null,
+                thresholdMet: Boolean(worldpopEffectiveCandidate?.privacyMet),
+            },
         },
     };
 }
@@ -355,3 +440,5 @@ async function buildObfuscatedLocationFromLatLonWithPopulationSource(
 (window as any).buildObfuscatedLocationFromLatLon = buildObfuscatedLocationFromLatLon;
 (window as any).buildObfuscatedLocationFromLatLonWithPopulationSource = buildObfuscatedLocationFromLatLonWithPopulationSource;
 (window as any).createKonturPopulationSource = createKonturPopulationSource;
+(window as any).createWorldpopPopulationSource = createWorldpopPopulationSource;
+(window as any).compareKonturAndWorldpopLocationBuild = compareKonturAndWorldpopLocationBuild;

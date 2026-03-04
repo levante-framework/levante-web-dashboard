@@ -10,6 +10,12 @@ function getH3Api() {
     return h3;
 }
 function createKonturPopulationSource(cacheByResolution) {
+    return createMapPopulationSource('kontur', cacheByResolution);
+}
+function createWorldpopPopulationSource(cacheByResolution) {
+    return createMapPopulationSource('worldpop', cacheByResolution);
+}
+function createMapPopulationSource(sourceName, cacheByResolution) {
     const h3 = getH3Api();
     const cache = cacheByResolution || {};
     const availableRes = Object.keys(cache)
@@ -49,7 +55,7 @@ function createKonturPopulationSource(cacheByResolution) {
         return seen ? Math.round(sum) : null;
     };
     return {
-        name: 'kontur',
+        name: sourceName,
         getPopulation,
     };
 }
@@ -121,18 +127,26 @@ async function buildObfuscatedLocationFromLatLon(lat, lon, options = {}) {
         throw new Error('populationThreshold must be a positive integer');
     }
     const candidates = [];
-    for (let resolution = maxResolution; resolution >= baselineResolution; resolution -= 1) {
+    let effectiveCandidate = null;
+    for (let resolution = baselineResolution; resolution <= maxResolution; resolution += 1) {
         const cellId = h3.latLngToCell(safeLat, safeLon, resolution);
         const population = await resolvePopulation(options, cellId, resolution);
-        candidates.push({
+        const candidate = {
             resolution,
             cellId,
             population,
             privacyMet: typeof population === 'number' ? population >= populationThreshold : false,
-        });
+        };
+        candidates.push(candidate);
+        if (candidate.privacyMet) {
+            effectiveCandidate = candidate;
+            continue;
+        }
+        if (effectiveCandidate)
+            break;
     }
     const baseline = candidates.find((c) => c.resolution === baselineResolution);
-    const effective = candidates.find((c) => c.privacyMet) || baseline;
+    const effective = effectiveCandidate || baseline;
     const center = h3.cellToLatLng(effective.cellId);
     const source = options.latLonSource || 'h3_center';
     const latLon = {
@@ -167,6 +181,38 @@ async function buildObfuscatedLocationFromLatLon(lat, lon, options = {}) {
             thresholdMet: effective.privacyMet,
             populationDataAvailable: candidates.some((candidate) => typeof candidate.population === 'number'),
             candidates,
+        },
+    };
+}
+async function compareKonturAndWorldpopLocationBuild(lat, lon, konturSource, worldpopSource, options = {}) {
+    const [kontur, worldpop] = await Promise.all([
+        buildObfuscatedLocationFromLatLonWithPopulationSource(lat, lon, konturSource, options),
+        buildObfuscatedLocationFromLatLonWithPopulationSource(lat, lon, worldpopSource, options),
+    ]);
+    const konturEffectiveCell = kontur.location.h3.effective.cellId;
+    const worldpopEffectiveCell = worldpop.location.h3.effective.cellId;
+    const konturEffectiveRes = kontur.location.h3.effective.resolution;
+    const worldpopEffectiveRes = worldpop.location.h3.effective.resolution;
+    const konturEffectiveCandidate = kontur.analysis.candidates.find((c) => c.resolution === konturEffectiveRes) || null;
+    const worldpopEffectiveCandidate = worldpop.analysis.candidates.find((c) => c.resolution === worldpopEffectiveRes) || null;
+    return {
+        kontur,
+        worldpop,
+        comparison: {
+            sameEffectiveCell: konturEffectiveCell === worldpopEffectiveCell,
+            sameEffectiveResolution: konturEffectiveRes === worldpopEffectiveRes,
+            konturEffective: {
+                cellId: konturEffectiveCell,
+                resolution: konturEffectiveRes,
+                population: konturEffectiveCandidate?.population ?? null,
+                thresholdMet: Boolean(konturEffectiveCandidate?.privacyMet),
+            },
+            worldpopEffective: {
+                cellId: worldpopEffectiveCell,
+                resolution: worldpopEffectiveRes,
+                population: worldpopEffectiveCandidate?.population ?? null,
+                thresholdMet: Boolean(worldpopEffectiveCandidate?.privacyMet),
+            },
         },
     };
 }
@@ -259,4 +305,6 @@ async function buildObfuscatedLocationFromLatLonWithPopulationSource(lat, lon, p
 window.buildObfuscatedLocationFromLatLon = buildObfuscatedLocationFromLatLon;
 window.buildObfuscatedLocationFromLatLonWithPopulationSource = buildObfuscatedLocationFromLatLonWithPopulationSource;
 window.createKonturPopulationSource = createKonturPopulationSource;
+window.createWorldpopPopulationSource = createWorldpopPopulationSource;
+window.compareKonturAndWorldpopLocationBuild = compareKonturAndWorldpopLocationBuild;
 //# sourceMappingURL=location-obfuscation.js.map

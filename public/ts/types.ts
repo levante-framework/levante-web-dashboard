@@ -121,6 +121,27 @@ interface H3PopulationSource {
     getPopulation: (cellId: string, resolution: number) => Promise<number | null> | number | null;
 }
 
+interface PopulationSourceComparisonResult {
+    kontur: LocationBuildResult;
+    worldpop: LocationBuildResult;
+    comparison: {
+        sameEffectiveCell: boolean;
+        sameEffectiveResolution: boolean;
+        konturEffective: {
+            cellId: string;
+            resolution: number;
+            population: number | null;
+            thresholdMet: boolean;
+        };
+        worldpopEffective: {
+            cellId: string;
+            resolution: number;
+            population: number | null;
+            thresholdMet: boolean;
+        };
+    };
+}
+
 interface LocationBuildResult {
     location: {
         schemaVersion: 'location_v1';
@@ -189,6 +210,16 @@ declare global {
         createKonturPopulationSource?: (
             cacheByResolution: Record<string, Record<string, number | null | undefined>>
         ) => H3PopulationSource;
+        createWorldpopPopulationSource?: (
+            cacheByResolution: Record<string, Record<string, number | null | undefined>>
+        ) => H3PopulationSource;
+        compareKonturAndWorldpopLocationBuild?: (
+            lat: number,
+            lon: number,
+            konturSource: H3PopulationSource,
+            worldpopSource: H3PopulationSource,
+            options?: LocationBuildOptions
+        ) => Promise<PopulationSourceComparisonResult>;
     }
 }
 

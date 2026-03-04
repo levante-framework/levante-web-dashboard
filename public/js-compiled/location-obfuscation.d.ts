@@ -3,6 +3,26 @@ interface H3PopulationSource {
     name: 'kontur' | 'worldpop' | 'unknown' | string;
     getPopulation: (cellId: string, resolution: number) => Promise<number | null> | number | null;
 }
+interface PopulationSourceComparisonResult {
+    kontur: LocationBuildResult;
+    worldpop: LocationBuildResult;
+    comparison: {
+        sameEffectiveCell: boolean;
+        sameEffectiveResolution: boolean;
+        konturEffective: {
+            cellId: string;
+            resolution: number;
+            population: number | null;
+            thresholdMet: boolean;
+        };
+        worldpopEffective: {
+            cellId: string;
+            resolution: number;
+            population: number | null;
+            thresholdMet: boolean;
+        };
+    };
+}
 interface LocationBuildOptions {
     populationThreshold?: number;
     baselineResolution?: number;
@@ -53,6 +73,8 @@ declare const DEFAULT_BASELINE_RESOLUTION = 5;
 declare const DEFAULT_MAX_RESOLUTION = 9;
 declare function getH3Api(): any;
 declare function createKonturPopulationSource(cacheByResolution: Record<string, Record<string, number | null | undefined>>): H3PopulationSource;
+declare function createWorldpopPopulationSource(cacheByResolution: Record<string, Record<string, number | null | undefined>>): H3PopulationSource;
+declare function createMapPopulationSource(sourceName: 'kontur' | 'worldpop' | string, cacheByResolution: Record<string, Record<string, number | null | undefined>>): H3PopulationSource;
 declare function asFiniteNumber(value: unknown, field: string): number;
 declare function asLatitude(value: unknown): number;
 declare function asLongitude(value: unknown): number;
@@ -68,6 +90,7 @@ declare function resolvePopulationFromSource(populationSource: H3PopulationSourc
  * - Never copies raw precise lat/lon into the returned object.
  */
 declare function buildObfuscatedLocationFromLatLon(lat: number, lon: number, options?: LocationBuildOptions): Promise<LocationBuildResult>;
+declare function compareKonturAndWorldpopLocationBuild(lat: number, lon: number, konturSource: H3PopulationSource, worldpopSource: H3PopulationSource, options?: LocationBuildOptions): Promise<PopulationSourceComparisonResult>;
 /**
  * Geostrategy-style variant:
  * - Requires a population source.
