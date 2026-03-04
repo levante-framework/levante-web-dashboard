@@ -21,7 +21,7 @@
         console.log('%c  DASHBOARD VERSION CHECK', 'color: green; font-size: 18px; font-weight: bold;');
         console.log('%c  VERSION: 2026-03-03-language-labels-fix-v2', 'color: blue; font-size: 16px; font-weight: bold;');
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
-        window.DASHBOARD_VERSION = '2026-03-03-language-labels-fix-v2';
+        window.DASHBOARD_VERSION = '2026-03-04-english-text-fallback-v2';
         window.DASHBOARD_LOADED_AT = new Date().toISOString();
         console.log('Check window.DASHBOARD_VERSION in console:', window.DASHBOARD_VERSION);
     </script>
@@ -1278,7 +1278,7 @@
             console.log('%cVERSION: 2026-03-03-language-labels-fix-v2', 'color: blue; font-size: 14px; font-weight: bold;');
             console.log('TIMESTAMP:', new Date().toISOString());
             console.warn('If you see old line numbers in errors, clear your browser cache!');
-            window.DASHBOARD_VERSION = '2026-03-03-language-labels-fix-v2';
+            window.DASHBOARD_VERSION = '2026-03-04-english-text-fallback-v2';
             window.DASHBOARD_LOADED = true;
         })();
         
@@ -2218,13 +2218,15 @@
                 const lower = canonical.toLowerCase();
                 const aliases = new Set([raw, canonical, canonical.replace('-', '_')]);
 
-                // Expand common aliases so English/German resolve across 2-letter and regional folders.
-                if (lower === 'en' || lower === 'en-us' || lower === 'en-gb') {
+                // Expand common aliases so English/German resolve across 2-letter and regional folders/columns.
+                if (lower === 'en' || lower === 'en-us' || lower === 'en-gb' || lower === 'en-gh') {
                     aliases.add('en');
                     aliases.add('en-US');
                     aliases.add('en_US');
                     aliases.add('en-GB');
                     aliases.add('en_GB');
+                    aliases.add('en-GH');
+                    aliases.add('en_GH');
                 } else if (lower === 'de' || lower === 'de-de') {
                     aliases.add('de');
                     aliases.add('de-DE');
@@ -2963,7 +2965,23 @@
                     this.setStatus(`Finished loading - ${itemsToShow.length} items without audio`, 'success');
                 } else {
                     await this.renderPendingItems(itemsToShow);
-                    this.setStatus(`Finished loading - ${itemsToShow.length} items in To Be Approved tab (${allItemsWithAudio.length} total with audio)`, 'success');
+                    if (itemsToShow.length === 0 && allItemsWithAudio.length > 0) {
+                        const approvedItemsList = await this.getApprovedItemsFromDev(withTranslations);
+                        if (approvedItemsList.length > 0) {
+                            await this.switchTab('approved');
+                            this.setStatus(
+                                `No items in To Be Approved for ${language}. Switched to Approved tab (${approvedItemsList.length} items in -dev).`,
+                                'info'
+                            );
+                        } else {
+                            this.setStatus(
+                                `Finished loading - 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved (-dev).`,
+                                'info'
+                            );
+                        }
+                    } else {
+                        this.setStatus(`Finished loading - ${itemsToShow.length} items in To Be Approved tab (${allItemsWithAudio.length} total with audio)`, 'success');
+                    }
                 }
                 
                 // Update stats with all items
@@ -3120,6 +3138,23 @@
                     for (const altName of altNames[langCode]) {
                         if (item[altName] && item[altName].trim()) {
                             return item[altName].trim();
+                        }
+                    }
+                }
+
+                // English in item-bank CSV is typically stored in source text columns (e.g., `text`).
+                // Allow this fallback only for English so other languages never silently fall back to source.
+                const normalizedLangCode = String(langCode || '').toLowerCase().replace(/_/g, '-');
+                if (normalizedLangCode === 'en' || normalizedLangCode.startsWith('en-')) {
+                    const sourceCandidates = ['text', 'source_text', 'source'];
+                    for (const candidate of sourceCandidates) {
+                        const direct = item[candidate];
+                        if (direct && direct.trim()) {
+                            return direct.trim();
+                        }
+                        const ciMatch = keys.find(k => k.toLowerCase() === candidate);
+                        if (ciMatch && item[ciMatch] && item[ciMatch].trim()) {
+                            return item[ciMatch].trim();
                         }
                     }
                 }
@@ -3294,7 +3329,15 @@
                     // For pending tab, get items from draft bucket (excluding approved)
                     const itemsWithAudio = await this.filterItemsWithAudio(withTranslations);
                     await this.renderPendingItems(itemsWithAudio);
-                    this.setStatus(`Showing ${itemsWithAudio.length} items in To Be Approved tab`, 'success');
+                    if (itemsWithAudio.length === 0) {
+                        const approvedItemsList = await this.getApprovedItemsFromDev(withTranslations);
+                        this.setStatus(
+                            `Showing 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved (-dev).`,
+                            'info'
+                        );
+                    } else {
+                        this.setStatus(`Showing ${itemsWithAudio.length} items in To Be Approved tab`, 'success');
+                    }
                 }
                 
                 // Update stats after rendering

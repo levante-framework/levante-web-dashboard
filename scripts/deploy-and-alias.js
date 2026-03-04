@@ -40,6 +40,24 @@ function shellEscape(value) {
     // Deploy from tracked files only to avoid Vercel upload hangs on large local dirs.
     tempDeployDir = fs.mkdtempSync(path.join(os.tmpdir(), 'levante-deploy-'));
     await run(`git archive --format=tar HEAD | tar -x -C ${shellEscape(tempDeployDir)}`);
+    // Overlay local tracked changes so hotfixes can be deployed without committing.
+    const { stdout: changedTrackedFilesRaw } = await run('git diff --name-only HEAD');
+    const changedTrackedFiles = changedTrackedFilesRaw
+      .split('\n')
+      .map((file) => file.trim())
+      .filter(Boolean);
+    changedTrackedFiles.forEach((relativePath) => {
+      const sourcePath = path.join(process.cwd(), relativePath);
+      const targetPath = path.join(tempDeployDir, relativePath);
+      if (fs.existsSync(sourcePath)) {
+        const stats = fs.statSync(sourcePath);
+        if (stats.isDirectory()) return;
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.copyFileSync(sourcePath, targetPath);
+      } else if (fs.existsSync(targetPath)) {
+        fs.rmSync(targetPath, { force: true });
+      }
+    });
     deployCwd = tempDeployDir;
 
     const localProjectJson = path.join(process.cwd(), '.vercel', 'project.json');
