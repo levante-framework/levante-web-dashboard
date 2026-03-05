@@ -63,7 +63,7 @@ const CONFIG = {
         'Spanish (Argentina)': {
             lang_code: 'es-AR',
             service: 'ElevenLabs',
-            voice: 'Malena Tango',
+            voice: 'Sophia',
             display_name: 'Spanish (Argentina)'
         },
         'English (Ghana)': {
@@ -155,7 +155,7 @@ const CONFIG = {
                 'Nia Davis- Black Female'
             ],
             'es-AR': [
-                'Malena Tango',
+                'Sophia',
                 'Claudia - Credible, Competent & Authentic'
             ],
             'en-GH': [

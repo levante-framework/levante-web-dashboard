@@ -16,6 +16,9 @@ function normalizeLanguageDisplayNamesBootstrap(languages) {
             cfg.display_name = 'Spanish (Colombia)';
         if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name)))
             cfg.display_name = 'Spanish (Argentina)';
+        // Migrate legacy default voice for Spanish (Argentina).
+        if (langCode === 'es-ar' && /(malena|melania)\s+tango/i.test(String(cfg.voice || '')))
+            cfg.voice = 'Sophia';
         normalized[nextName] = cfg;
     });
     return normalized;
@@ -39,14 +42,8 @@ function languageSignature(languages) {
  * Initializes the dashboard after DOM content is loaded
  */
 document.addEventListener('DOMContentLoaded', () => {
-    // Create the global dashboard instance using the global class
-    const DashboardClass = window.Dashboard;
-    if (DashboardClass) {
-        window.dashboard = new DashboardClass();
-    }
-    else {
-        console.error('Dashboard class not found');
-    }
+    const windowAny = window;
+    windowAny.LANGUAGE_CONFIG_REMOTE_STATUS = 'pending';
     /**
      * Waits for modals to load before initializing credentials and language config
      */
@@ -62,27 +59,41 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(initializeAfterModals, 50);
         }
     }
-    // Start initialization after a brief delay
-    setTimeout(initializeAfterModals, 100);
+    // Load remote language config BEFORE creating the dashboard instance,
+    // so fallback defaults do not overwrite latest saved config.
+    loadRemoteLanguagesIntoConfig()
+        .finally(() => {
+        const DashboardClass = window.Dashboard;
+        if (DashboardClass) {
+            window.dashboard = new DashboardClass();
+        }
+        else {
+            console.error('Dashboard class not found');
+        }
+        // Start initialization after a brief delay
+        setTimeout(initializeAfterModals, 100);
+    });
 });
 /**
  * Loads remote language configuration from the API
  */
 async function loadRemoteLanguagesIntoConfig() {
+    const windowAny = window;
     try {
-        const response = await fetch(`/api/language-config?ts=${Date.now()}`);
+        const response = await fetch(`/api/language-config?ts=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) {
             console.log('No remote language_config.json found; using local config.js');
+            windowAny.LANGUAGE_CONFIG_REMOTE_STATUS = 'failed';
             return;
         }
         const data = await response.json();
         if (data && data.languages && typeof data.languages === 'object') {
-            const windowAny = window;
             windowAny.CONFIG = windowAny.CONFIG || {};
             const previousLanguages = windowAny.CONFIG.languages;
             const previousSignature = languageSignature(previousLanguages);
             windowAny.CONFIG.languages = normalizeLanguageDisplayNamesBootstrap(data.languages);
             const nextSignature = languageSignature(windowAny.CONFIG.languages);
+            windowAny.LANGUAGE_CONFIG_REMOTE_STATUS = 'loaded';
             console.log('Loaded languages from remote language_config.json');
             // If dashboard exists, refresh language-dependent UI
             const winAny = window;
@@ -103,14 +114,14 @@ async function loadRemoteLanguagesIntoConfig() {
         }
         else {
             console.log('Invalid language config format; using local config.js');
+            windowAny.LANGUAGE_CONFIG_REMOTE_STATUS = 'invalid';
         }
     }
     catch (error) {
         console.log('Failed to load remote language_config.json; using local config.js');
+        windowAny.LANGUAGE_CONFIG_REMOTE_STATUS = 'failed';
     }
 }
-// Load remote configuration immediately
-loadRemoteLanguagesIntoConfig();
 /**
  * Global click handler to close modals when clicking outside them
  */

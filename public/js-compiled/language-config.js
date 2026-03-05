@@ -48,6 +48,9 @@ function normalizeLanguageDisplayNamesConfig(languages) {
             cfg.display_name = 'English (United States)';
         if ((langCode === 'de' || langCode === 'de-de') && /^german$/i.test(String(cfg.display_name)))
             cfg.display_name = 'German (Germany)';
+        // Migrate legacy default voice for Spanish (Argentina).
+        if (langCode === 'es-ar' && /(malena|melania)\s+tango/i.test(String(cfg.voice || '')))
+            cfg.voice = 'Sophia';
         normalized[nextName] = cfg;
     });
     return normalized;
@@ -76,6 +79,7 @@ function initLanguageConfigApp() {
             return {
                 loading: true,
                 saving: false,
+                loadedFromRemote: false,
                 config: reactive({
                     languages: JSON.parse(JSON.stringify(window.CONFIG?.languages || {}))
                 }),
@@ -99,16 +103,20 @@ function initLanguageConfigApp() {
                 const self = this;
                 self.loading = true;
                 try {
-                    const response = await fetch('/api/language-config');
+                    const response = await fetch(`/api/language-config?ts=${Date.now()}`, { cache: 'no-store' });
                     if (response.ok) {
                         const data = await response.json();
                         if (data && data.languages) {
                             self.config.languages = normalizeLanguageDisplayNamesConfig(data.languages);
+                            self.loadedFromRemote = true;
+                            return;
                         }
                     }
+                    self.loadedFromRemote = false;
                 }
                 catch (error) {
                     console.warn('Failed to load remote language config, using local fallback:', error);
+                    self.loadedFromRemote = false;
                 }
                 finally {
                     self.loading = false;
@@ -121,6 +129,9 @@ function initLanguageConfigApp() {
                 const self = this;
                 self.saving = true;
                 try {
+                    if (!self.loadedFromRemote) {
+                        throw new Error('Remote language config was not loaded. Save blocked to avoid overwriting latest bucket config with local fallback defaults.');
+                    }
                     self.config.languages = normalizeLanguageDisplayNamesConfig(self.config.languages);
                     const requestData = {
                         languages: self.config.languages,
