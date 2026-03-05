@@ -2880,7 +2880,7 @@
             
             // Try to play audio with fallback for es-CO -> es
             function tryPlayAudio(bucketLangCode, isRetry = false) {
-                const audioUrl = `https://storage.googleapis.com/levante-audio-dev/${bucketLangCode}/${itemId}.mp3`;
+                const audioUrl = `https://storage.googleapis.com/levante-assets-dev/${bucketLangCode}/${itemId}.mp3`;
                 console.log(`🎵 ${isRetry ? 'Trying fallback' : 'Playing'} audio: ${audioUrl}`);
                 
                 const audio = new Audio(audioUrl);

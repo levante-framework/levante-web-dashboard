@@ -21,8 +21,8 @@ It merges operational steps for Levante (GCS, audio, deployment) with Crowdin pr
 
 ### Sources of Truth
 - Centralized language configuration JSON:
-  - Dev: `gs://levante-audio-dev/language_config.json`
-  - Prod: `gs://levante-audio-prod/language_config.json`
+  - Dev: `gs://levante-assets-dev/language_config.json`
+  - Prod: `gs://levante-assets-prod/language_config.json`
 - Translations CSV: `item-bank-translations.csv`
   - Stored in repo and deployed to `levante-dashboard-<env>` as `item-bank-translations.csv`
 

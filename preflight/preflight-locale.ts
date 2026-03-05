@@ -212,7 +212,7 @@ async function checkSurveyTranslations(langCode: string, env: 'dev' | 'prod'): P
 }
 
 async function checkAudioFiles(langCode: string, env: 'dev' | 'prod'): Promise<ReadinessReport['audio']> {
-	const bucketName = env === 'prod' ? 'levante-audio-prod' : 'levante-audio-dev';
+	const bucketName = env === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
 	const storage = new Storage();
 	const bucket = storage.bucket(bucketName);
 	const prefix = `${langCode}/`;

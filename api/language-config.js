@@ -5,13 +5,13 @@
  *
  * Environment variables expected (configure in Vercel Project Settings):
  * - GCP_SERVICE_ACCOUNT_JSON: JSON string of the GCP service account key
- * - AUDIO_DEV_BUCKET: Bucket name (default: "levante-audio-dev")
+ * - AUDIO_DEV_BUCKET: Bucket name (default: "levante-assets-dev")
  * - LANGUAGE_CONFIG_OBJECT: Object name (default: "language_config.json")
  */
 
 import { Storage } from '@google-cloud/storage';
 
-const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || 'levante-audio-dev';
+const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || 'levante-assets-dev';
 const OBJECT_NAME = process.env.LANGUAGE_CONFIG_OBJECT || 'language_config.json';
 
 function normalizeLanguageDisplayNames(languages) {
