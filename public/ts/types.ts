@@ -13,6 +13,10 @@ interface LanguageConfig {
     lang_code: string;
     service: 'ElevenLabs' | 'PlayHT';
     voice: string;
+    approver1_userid?: string;
+    approver1_password?: string;
+    approver2_userid?: string;
+    approver2_password?: string;
 }
 
 // Status types for the dashboard

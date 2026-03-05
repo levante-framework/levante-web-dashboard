@@ -104,6 +104,22 @@
                                 <label>Default Voice</label>
                                 <input v-model="newLang.voice" placeholder="e.g., Sophia" />
                             </div>
+                            <div class="info-item">
+                                <label>Approver 1 userid</label>
+                                <input v-model="newLang.approver1_userid" placeholder="e.g., user@example.com" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 1 password</label>
+                                <input v-model="newLang.approver1_password" type="password" placeholder="Enter password" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 2 userid</label>
+                                <input v-model="newLang.approver2_userid" placeholder="e.g., user2@example.com" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 2 password</label>
+                                <input v-model="newLang.approver2_password" type="password" placeholder="Enter password" />
+                            </div>
                         </div>
                         <button class="btn btn-secondary btn-compact" @click="addLanguage"><i class="fas fa-plus"></i> Add</button>
                     </div>
@@ -129,6 +145,22 @@
                             <div class="info-item">
                                 <label>Default Voice</label>
                                 <input v-model="cfg.voice" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 1 userid</label>
+                                <input v-model="cfg.approver1_userid" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 1 password</label>
+                                <input v-model="cfg.approver1_password" type="password" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 2 userid</label>
+                                <input v-model="cfg.approver2_userid" />
+                            </div>
+                            <div class="info-item">
+                                <label>Approver 2 password</label>
+                                <input v-model="cfg.approver2_password" type="password" />
                             </div>
                             <div class="info-item">
                                 <label>&nbsp;</label>

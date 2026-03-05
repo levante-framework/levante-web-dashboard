@@ -81,7 +81,11 @@ function initLanguageConfigApp(): void {
                     name: '',
                     lang_code: '',
                     service: 'ElevenLabs' as 'ElevenLabs' | 'PlayHT',
-                    voice: ''
+                    voice: '',
+                    approver1_userid: '',
+                    approver1_password: '',
+                    approver2_userid: '',
+                    approver2_password: ''
                 }
             };
         },
@@ -188,10 +192,23 @@ function initLanguageConfigApp(): void {
                     lang_code: self.newLang.lang_code,
                     service: self.newLang.service,
                     voice: self.newLang.voice,
+                    approver1_userid: self.newLang.approver1_userid,
+                    approver1_password: self.newLang.approver1_password,
+                    approver2_userid: self.newLang.approver2_userid,
+                    approver2_password: self.newLang.approver2_password,
                     display_name: name // Use the display name as entered
                 } as LanguageConfig;
                 // clear form
-                self.newLang = { name: '', lang_code: '', service: 'ElevenLabs', voice: '' };
+                self.newLang = {
+                    name: '',
+                    lang_code: '',
+                    service: 'ElevenLabs',
+                    voice: '',
+                    approver1_userid: '',
+                    approver1_password: '',
+                    approver2_userid: '',
+                    approver2_password: ''
+                };
             },
 
             removeLanguage(name: string) {
@@ -218,6 +235,10 @@ interface LanguageConfig {
     service: 'ElevenLabs' | 'PlayHT';
     voice: string;
     display_name?: string;
+    approver1_userid?: string;
+    approver1_password?: string;
+    approver2_userid?: string;
+    approver2_password?: string;
 }
 
 // Functions are globally available - no exports needed in non-module mode

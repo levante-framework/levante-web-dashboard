@@ -12,5 +12,9 @@ interface LanguageConfig {
     service: 'ElevenLabs' | 'PlayHT';
     voice: string;
     display_name?: string;
+    approver1_userid?: string;
+    approver1_password?: string;
+    approver2_userid?: string;
+    approver2_password?: string;
 }
 //# sourceMappingURL=language-config.d.ts.map

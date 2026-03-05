@@ -88,7 +88,11 @@ function initLanguageConfigApp() {
                     name: '',
                     lang_code: '',
                     service: 'ElevenLabs',
-                    voice: ''
+                    voice: '',
+                    approver1_userid: '',
+                    approver1_password: '',
+                    approver2_userid: '',
+                    approver2_password: ''
                 }
             };
         },
@@ -199,10 +203,23 @@ function initLanguageConfigApp() {
                     lang_code: self.newLang.lang_code,
                     service: self.newLang.service,
                     voice: self.newLang.voice,
+                    approver1_userid: self.newLang.approver1_userid,
+                    approver1_password: self.newLang.approver1_password,
+                    approver2_userid: self.newLang.approver2_userid,
+                    approver2_password: self.newLang.approver2_password,
                     display_name: name // Use the display name as entered
                 };
                 // clear form
-                self.newLang = { name: '', lang_code: '', service: 'ElevenLabs', voice: '' };
+                self.newLang = {
+                    name: '',
+                    lang_code: '',
+                    service: 'ElevenLabs',
+                    voice: '',
+                    approver1_userid: '',
+                    approver1_password: '',
+                    approver2_userid: '',
+                    approver2_password: ''
+                };
             },
             removeLanguage(name) {
                 const self = this;
