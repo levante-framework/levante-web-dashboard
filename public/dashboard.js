@@ -48,7 +48,34 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             refreshLanguagesFromConfig() {
                 try {
                     if (window.CONFIG && window.CONFIG.languages) {
-                        this.languages = window.CONFIG.languages;
+                        const nextLanguages = window.CONFIG.languages;
+                        if (nextLanguages && typeof nextLanguages === 'object') {
+                            const sanitized = {};
+                            Object.entries(nextLanguages).forEach(([name, cfg]) => {
+                                if (!cfg || typeof cfg !== 'object') return;
+                                sanitized[name] = {
+                                    ...cfg,
+                                    lang_code: String(cfg.lang_code || '').trim(),
+                                    service: String(cfg.service || ''),
+                                    voice: String(cfg.voice || '')
+                                };
+                            });
+                            if (Object.keys(sanitized).length > 0) {
+                                this.languages = sanitized;
+                            }
+                        }
+                    }
+
+                    const languageNames = Object.keys(this.languages || {});
+                    if (languageNames.length > 0) {
+                        if (!this.languages[this.currentLanguage]) {
+                            this.currentLanguage = languageNames[0];
+                        }
+                        const currentCfg = this.languages[this.currentLanguage];
+                        if (!currentCfg || !String(currentCfg.lang_code || '').trim()) {
+                            const withLangCode = languageNames.find((name) => String(this.languages[name]?.lang_code || '').trim());
+                            this.currentLanguage = withLangCode || languageNames[0];
+                        }
                     }
                 } catch (e) {
                     // ignore
@@ -141,6 +168,15 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             getDisplayName(languageKey) {
                 const lang = this.languages[languageKey];
                 return (lang && lang.display_name) ? lang.display_name : languageKey;
+            }
+
+            getCurrentLanguageCode() {
+                const currentCode = String(this.languages?.[this.currentLanguage]?.lang_code || '').trim();
+                if (currentCode) return currentCode;
+                const fallbackLanguage = Object.keys(this.languages || {}).find((name) => String(this.languages?.[name]?.lang_code || '').trim());
+                if (!fallbackLanguage) return '';
+                this.currentLanguage = fallbackLanguage;
+                return String(this.languages?.[fallbackLanguage]?.lang_code || '').trim();
             }
 
             getFlagForLanguage(language) {
@@ -2010,34 +2046,45 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 tabButtons.innerHTML = '';
                 tabContent.innerHTML = '';
                 
-                Object.keys(this.languages).forEach((language, index) => {
+                const languageNames = Object.keys(this.languages || {});
+                if (languageNames.length === 0) {
+                    this.setStatus('No valid languages configured. Please check language settings.', 'error');
+                    return;
+                }
+
+                if (!this.languages[this.currentLanguage]) {
+                    this.currentLanguage = languageNames[0];
+                }
+
+                languageNames.forEach((language, index) => {
                     // Create tab button
                     const button = document.createElement('button');
-                    button.className = `tab-button ${index === 0 ? 'active' : ''}`;
+                    const isActive = language === this.currentLanguage || (index === 0 && !this.languages[this.currentLanguage]);
+                    button.className = `tab-button ${isActive ? 'active' : ''}`;
                     button.textContent = this.getDisplayName(language);
                     button.addEventListener('click', () => this.switchTab(language, button));
                     tabButtons.appendChild(button);
 
                     // Create tab content
                     const content = document.createElement('div');
-                    content.className = `tab-content ${index === 0 ? 'active' : ''}`;
+                    content.className = `tab-content ${isActive ? 'active' : ''}`;
                     content.id = `tab-${language}`;
                     
-                    const langConfig = this.languages[language];
+                    const langConfig = this.languages[language] || {};
                     content.innerHTML = `
                         <h3>${this.getFlagForLanguage(language)}${language} Configuration</h3>
                         <div class="language-info">
                             <div class="info-card">
                                 <strong>Language Code</strong>
-                                <span>${langConfig.lang_code}</span>
+                                <span>${langConfig.lang_code || '—'}</span>
                             </div>
                             <div class="info-card">
                                 <strong>Default Service</strong>
-                                <span>${langConfig.service}</span>
+                                <span>${langConfig.service || '—'}</span>
                             </div>
                             <div class="info-card">
                                 <strong>Default Voice</strong>
-                                <span>${langConfig.voice}</span>
+                                <span>${langConfig.voice || '—'}</span>
                             </div>
                         </div>
                         <div class="data-table">
@@ -2084,16 +2131,33 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             populateDataTable() {
                 const renderStart = this.perfNow();
                 this.refreshLanguagesFromConfig();
-                const renderLanguage = this.currentLanguage;
-                const langCode = this.languages[this.currentLanguage].lang_code;
-                const tableContent = document.getElementById(`table-${this.currentLanguage}`);
+                let renderLanguage = this.currentLanguage;
+                let langConfig = this.languages?.[renderLanguage];
+                if (!langConfig) {
+                    const fallbackLanguage = Object.keys(this.languages || {})[0];
+                    if (!fallbackLanguage) {
+                        this.setStatus('No valid languages configured. Please check language settings.', 'error');
+                        return;
+                    }
+                    this.currentLanguage = fallbackLanguage;
+                    renderLanguage = fallbackLanguage;
+                    langConfig = this.languages?.[renderLanguage];
+                }
+
+                const langCode = String(langConfig?.lang_code || '').trim();
+                if (!langCode) {
+                    this.setStatus(`Language "${renderLanguage}" is missing a language code.`, 'warning');
+                    return;
+                }
+
+                const tableContent = document.getElementById(`table-${renderLanguage}`);
                 if (!tableContent) return;
-                const currentSignature = this.getCurrentRenderSignature(this.currentLanguage);
-                const previousSignature = this.renderSignatureByLanguage.get(this.currentLanguage);
+                const currentSignature = this.getCurrentRenderSignature(renderLanguage);
+                const previousSignature = this.renderSignatureByLanguage.get(renderLanguage);
                 if (previousSignature === currentSignature && tableContent.children.length > 0) {
                     if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();
-                    this.logPerf(`Render table skipped (${this.currentLanguage})`, renderStart, `rows=${tableContent.children.length}`);
+                    this.logPerf(`Render table skipped (${renderLanguage})`, renderStart, `rows=${tableContent.children.length}`);
                     return;
                 }
                 const inFlightSignature = this.inFlightRenderSignatureByLanguage.get(renderLanguage);
@@ -2113,7 +2177,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     ? baseRows
                     : baseRows.filter((item) => this.getItemSourcePaths(item).includes(selectedFile));
                 
-                const itemCountSpan = document.getElementById(`item-count-${this.currentLanguage}`);
+                const itemCountSpan = document.getElementById(`item-count-${renderLanguage}`);
                 if (itemCountSpan) {
                     itemCountSpan.textContent = `(${dataToShow.length} items)`;
                     itemCountSpan.style.color = '#6c757d';
@@ -2326,7 +2390,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             
             setupSortAndReviewHandlers() {
                 const self = this;
-                const langCode = this.languages[this.currentLanguage].lang_code;
                 const tableContent = document.getElementById(`table-${this.currentLanguage}`);
                 if (!tableContent) return;
                 
@@ -2467,7 +2530,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 rowElement.classList.add('selected');
                 this.selectedRow = item;
                 
-                                    const langCode = this.languages[this.currentLanguage].lang_code;
+                                    const langCode = this.getCurrentLanguageCode();
                     // Try exact lang code, then base language (e.g., de-CH -> de), then any case variations
                     let text = item[langCode];
                     if (!text && langCode.includes('-')) {
@@ -2519,7 +2582,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 playhtSelect.innerHTML = '<option value="">Select PlayHT Voice...</option>';
                 elevenlabsSelect.innerHTML = '<option value="">Select ElevenLabs Voice...</option>';
                 
-                const langCode = this.languages[this.currentLanguage].lang_code;
+                const langCode = this.getCurrentLanguageCode();
+                if (!langCode) {
+                    this.setStatus('Current language is missing a language code. Please check language settings.', 'warning');
+                    return;
+                }
                 
                 // Filter and populate PlayHT voices for current language (accept base language of BCP-47)
                 const baseLang = langCode.includes('-') ? langCode.split('-')[0] : langCode;
@@ -3387,7 +3454,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     return;
                 }
                 
-                const langCode = this.languages[this.currentLanguage].lang_code;
+                const langCode = this.getCurrentLanguageCode();
+                if (!langCode) {
+                    this.setStatus('Current language is missing a language code. Please check language settings.', 'warning');
+                    return;
+                }
                 const { service: selectedService, voiceId: selectedVoice, voiceName } = await this.resolveVoiceSelection(langCode, null, { allowMetadataFallback: false });
                 
                 if (!selectedService || !selectedVoice) {
@@ -3554,7 +3625,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     return;
                 }
                 
-                const langCode = this.languages[this.currentLanguage].lang_code;
+                const langCode = this.getCurrentLanguageCode();
+                if (!langCode) {
+                    this.setStatus('Current language is missing a language code. Please check language settings.', 'warning');
+                    return;
+                }
                 const text = this.selectedRow[langCode] || this.selectedRow.en || 'No translation available';
                 
                 document.getElementById('textInput').value = text;
