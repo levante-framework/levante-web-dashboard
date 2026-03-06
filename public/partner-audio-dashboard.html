@@ -19,9 +19,9 @@
         // ULTRA-EARLY VERSION CHECK - Runs before ANY other scripts
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
         console.log('%c  DASHBOARD VERSION CHECK', 'color: green; font-size: 18px; font-weight: bold;');
-        console.log('%c  VERSION: 2026-03-03-language-labels-fix-v2', 'color: blue; font-size: 16px; font-weight: bold;');
+        console.log('%c  VERSION: 2026-01-27-approver-userid-login-v1', 'color: blue; font-size: 16px; font-weight: bold;');
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
-        window.DASHBOARD_VERSION = '2026-03-04-english-text-fallback-v2';
+        window.DASHBOARD_VERSION = '2026-01-27-approver-userid-login-v1';
         window.DASHBOARD_LOADED_AT = new Date().toISOString();
         console.log('Check window.DASHBOARD_VERSION in console:', window.DASHBOARD_VERSION);
     </script>
@@ -1131,7 +1131,7 @@
         <div class="auth-modal">
             <div class="auth-header">
                 <h2><i class="fas fa-shield-alt"></i> Admin Access Required</h2>
-                <p>Sign in with your Levante site admin or superadmin account</p>
+                <p>Sign in with your Levante approver, site admin, or superadmin account</p>
             </div>
             
             <!-- Single login method -->
@@ -1139,10 +1139,10 @@
             
             <!-- Password Login Form -->
             <form class="auth-form" id="passwordAuthForm" style="display: block;" novalidate>
-                <input type="email" id="emailInput" class="auth-input" placeholder="Email" required>
+                <input type="text" id="emailInput" class="auth-input" placeholder="User ID" autocomplete="username" required>
                 <input type="password" id="passwordInput" class="auth-input" placeholder="Password (optional for SuperAdmin)" autocomplete="current-password">
                 <p class="auth-hint" style="font-size: 12px; color: #71717a; margin-top: -8px; margin-bottom: 12px;">
-                    SuperAdmin emails can sign in without a password
+                    Use approver User ID + password, or superadmin email without a password
                 </p>
                 <button type="submit" class="auth-button" id="passwordLoginBtn">
                     <i class="fas fa-sign-in-alt"></i> Sign In with Password
@@ -1275,10 +1275,10 @@
         // IMMEDIATE VERSION CHECK - Runs before anything else
         (function() {
             console.log('%c=== PARTNER AUDIO DASHBOARD LOADED ===', 'color: green; font-size: 16px; font-weight: bold;');
-            console.log('%cVERSION: 2026-03-03-language-labels-fix-v2', 'color: blue; font-size: 14px; font-weight: bold;');
+            console.log('%cVERSION: 2026-01-27-approver-userid-login-v1', 'color: blue; font-size: 14px; font-weight: bold;');
             console.log('TIMESTAMP:', new Date().toISOString());
             console.warn('If you see old line numbers in errors, clear your browser cache!');
-            window.DASHBOARD_VERSION = '2026-03-04-english-text-fallback-v2';
+            window.DASHBOARD_VERSION = '2026-01-27-approver-userid-login-v1';
             window.DASHBOARD_LOADED = true;
         })();
         
@@ -1409,7 +1409,7 @@
                 if (tab !== 'password') {
                     const errorEl = document.getElementById('passwordAuthError');
                     if (errorEl) {
-                        errorEl.textContent = 'Crowdin username login is disabled. Use your site admin/superadmin account.';
+                        errorEl.textContent = 'Crowdin login is disabled. Use Levante User ID/password or superadmin email.';
                         errorEl.style.display = 'block';
                     }
                     tab = 'password';
@@ -1588,42 +1588,26 @@
                 if (this.isSuperAdmin || this.isOverrideEmail) {
                     return true;
                 }
-                
-                // If no user email, deny access
-                if (!this.currentUserEmail) {
-                    console.warn('No Crowdin username available for permission check');
-                    return false;
+
+                // Approver credentials are scoped to one configured language.
+                if (this.authMethod === 'approver-config') {
+                    const allowed = this.resolveLanguageKey(this.allowedLanguage);
+                    if (!allowed || !this.languages[allowed]) return false;
+                    const allowedCode = String(this.languages[allowed].lang_code || '');
+                    return String(langCode || '').toLowerCase() === allowedCode.toLowerCase();
                 }
-                
-                try {
-                    // Check Crowdin permissions
-                    const response = await fetch('/api/crowdin-check-permissions', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            identifier: this.currentUserEmail,
-                            email: this.currentUserEmail,
-                            langCode: langCode
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        console.error('Failed to check Crowdin permissions:', response.status);
-                        // Fail closed: deny access on API error
-                        return false;
-                    }
-                    
-                    const result = await response.json();
-                    console.log('Crowdin permission check:', result);
-                    
-                    return result.hasAccess === true;
-                } catch (error) {
-                    console.error('Error checking Crowdin permissions:', error);
-                    // Fail closed: deny access on error
-                    return false;
+
+                // Firebase admins: if a language restriction is present in claims, enforce it.
+                // Otherwise allow all languages for admin users.
+                if (this.authMethod === 'firebase') {
+                    const allowed = this.resolveLanguageKey(this.allowedLanguage);
+                    if (!allowed || !this.languages[allowed]) return true;
+                    const allowedCode = String(this.languages[allowed].lang_code || '');
+                    return String(langCode || '').toLowerCase() === allowedCode.toLowerCase();
                 }
+
+                // Unknown auth state: deny by default.
+                return false;
             }
 
             async init() {
@@ -1708,16 +1692,16 @@
                     
                     // Listen for auth state changes (only for Firebase auth)
                     auth.onAuthStateChanged(async (user) => {
-                        // Skip if user is authenticated via Crowdin or SuperAdmin bypass
-                        if (this.authMethod === 'superadmin') {
+                        // Skip if user is authenticated via local bypass flows.
+                        if (this.authMethod === 'superadmin' || this.authMethod === 'approver-config') {
                             return;
                         }
                         
                         console.log('Auth state changed, user:', user ? user.email : 'null');
                         
                         if (!user) {
-                            // Only show auth modal if not already authenticated via SuperAdmin bypass
-                            if (this.authMethod !== 'superadmin') {
+                            // Only show auth modal if no local bypass session is active.
+                            if (this.authMethod !== 'superadmin' && this.authMethod !== 'approver-config') {
                                 this.showAuthModal();
                             }
                             return;
@@ -1856,10 +1840,10 @@
                         <div class="auth-modal">
                             <div class="auth-header">
                                 <h2><i class="fas fa-shield-alt"></i> Admin Access Required</h2>
-                                <p>Please sign in with your Levante site admin or superadmin account</p>
+                                <p>Please sign in with your Levante approver, site admin, or superadmin account</p>
                             </div>
                             <form class="auth-form" id="authForm">
-                                <input type="email" id="emailInput" class="auth-input" placeholder="Email" required>
+                                <input type="text" id="emailInput" class="auth-input" placeholder="User ID" autocomplete="username" required>
                                 <input type="password" id="passwordInput" class="auth-input" placeholder="Password (optional for SuperAdmin)">
                                 <button type="submit" class="auth-button" id="loginBtn">
                                     <i class="fas fa-sign-in-alt"></i> Sign In
@@ -2046,6 +2030,53 @@
                 console.log('SuperAdmin check result:', normalized, '->', isSuperAdmin ? 'YES (MATCH)' : 'NO (NO MATCH)', '| List size:', superadminEmails.length);
                 return isSuperAdmin;
             }
+
+            normalizeUserId(value) {
+                return String(value || '').trim().toLowerCase();
+            }
+
+            findApproverLanguageByCredentials(userId, password) {
+                const normalizedUserId = this.normalizeUserId(userId);
+                const passwordValue = String(password || '');
+                if (!normalizedUserId || !passwordValue) return null;
+
+                for (const [languageName, cfgRaw] of Object.entries(this.languages || {})) {
+                    const cfg = cfgRaw && typeof cfgRaw === 'object' ? cfgRaw : {};
+                    for (const slot of [1, 2]) {
+                        const approverUserId = this.normalizeUserId(cfg[`approver${slot}_userid`]);
+                        const approverPassword = String(cfg[`approver${slot}_password`] || '');
+                        if (!approverUserId || !approverPassword) continue;
+                        if (approverUserId === normalizedUserId && approverPassword === passwordValue) {
+                            return { languageName, slot };
+                        }
+                    }
+                }
+
+                return null;
+            }
+
+            async performApproverConfigLogin(userId, approverMatch) {
+                const resolvedLanguage =
+                    this.resolveLanguageKey(approverMatch?.languageName) ||
+                    approverMatch?.languageName ||
+                    null;
+                if (!resolvedLanguage) {
+                    throw new Error('Approver is configured, but no matching language was found.');
+                }
+
+                this.currentUserEmail = String(userId || '').trim();
+                this.isSuperAdmin = false;
+                this.isOverrideEmail = false;
+                this.authMethod = 'approver-config';
+                this.allowedLanguage = resolvedLanguage;
+
+                const authContainerEl = document.getElementById('authContainer');
+                const containerEl = document.querySelector('.container');
+                if (authContainerEl) authContainerEl.style.display = 'none';
+                if (containerEl) containerEl.style.display = 'block';
+
+                await this.initDashboard({ forceReloadData: false, refreshCurrentLanguage: true });
+            }
             
             async performSuperadminBypassLogin(email) {
                 try {
@@ -2084,7 +2115,7 @@
             
             async handlePasswordLogin() {
                 console.log('=== handlePasswordLogin CALLED ===');
-                console.log('VERSION: 2026-03-03-language-labels-fix-v2');
+                console.log('VERSION: 2026-01-27-approver-userid-login-v1');
                 const emailInput = document.getElementById('emailInput');
                 const passwordInput = document.getElementById('passwordInput');
                 const email = emailInput?.value?.trim() || '';
@@ -2133,7 +2164,7 @@
                 // Regular login flow (non-SuperAdmin only)
                 if (!email) {
                     if (errorEl) {
-                        errorEl.textContent = 'Please enter your email';
+                        errorEl.textContent = 'Please enter your user ID';
                         errorEl.style.display = 'block';
                     }
                     return;
@@ -2157,6 +2188,33 @@
                 if (errorEl) {
                     errorEl.style.display = 'none';
                 }
+
+                // Try language-level approver credentials first (approver1/2 in language config).
+                await this.loadLanguagesFromConfig();
+                const approverMatch = this.findApproverLanguageByCredentials(email, password);
+                if (approverMatch) {
+                    try {
+                        await this.performApproverConfigLogin(email, approverMatch);
+                        return;
+                    } catch (error) {
+                        console.error('Approver config login failed:', error);
+                        if (errorEl) {
+                            errorEl.textContent = error?.message || 'Approver login failed.';
+                            errorEl.style.display = 'block';
+                        }
+                        return;
+                    }
+                }
+
+                // If user ID is not email-shaped and no approver match, avoid Firebase email auth.
+                const looksLikeEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '').trim());
+                if (!looksLikeEmail) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Invalid user ID or password.';
+                        errorEl.style.display = 'block';
+                    }
+                    return;
+                }
                 
                 try {
                     if (typeof firebase === 'undefined' || !firebase.apps || firebase.apps.length === 0) {
@@ -2175,11 +2233,11 @@
                     if (errorEl) {
                         let errorMessage = 'Login failed. Please try again.';
                         if (error.code === 'auth/user-not-found') {
-                            errorMessage = 'No account found with this email.';
+                            errorMessage = 'No account found for this user ID.';
                         } else if (error.code === 'auth/wrong-password') {
                             errorMessage = 'Incorrect password.';
                         } else if (error.code === 'auth/invalid-email') {
-                            errorMessage = 'Invalid email address.';
+                            errorMessage = 'Invalid email format.';
                         } else if (error.message) {
                             errorMessage = error.message;
                         }
@@ -2197,7 +2255,7 @@
             async handleCrowdinLogin() {
                 const errorEl = document.getElementById('crowdinAuthError') || document.getElementById('passwordAuthError');
                 if (errorEl) {
-                    errorEl.textContent = 'Crowdin username login is disabled. Use Firebase site admin/superadmin authentication.';
+                    errorEl.textContent = 'Crowdin login is disabled. Use Levante User ID/password or superadmin email.';
                     errorEl.style.display = 'block';
                 }
             }
@@ -2883,10 +2941,10 @@
                 
                 const langCode = this.languages[language].lang_code;
                 
-                // Check permissions: superadmin OR Crowdin editor access for this language
+                // Check permissions for local auth modes (superadmin/firebase/approver-config).
                 const hasAccess = await this.checkLanguageAccess(langCode);
                 if (!hasAccess) {
-                    this.setStatus(`Access denied: You do not have editor permissions for ${language} in Crowdin`, 'error');
+                    this.setStatus(`Access denied: You do not have permission for ${language}.`, 'error');
                     return;
                 }
                 
