@@ -1,0 +1,301 @@
+dataset,model,target_col,identifier,similarity,status,source_text,target_text
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNeighborhood,0.905298,pass,Please answer the following questions about the community where you live.,Responda a las siguientes preguntas sobre la comunidad en la que vive.
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7a,0.871525,pass,Does your neighborhood have sidewalks or walking paths?,¿En su vecindario hay aceras o caminos peatonales?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7a,0.85281,pass,Yes,Sí
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7a,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7b,0.887809,pass,Is there a park or playground in your neighborhood?,¿En su vecindario hay un parque o área de juegos?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7b,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7b,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7c,0.899567,pass,Does your neighborhood have a community center or recreation center where families get together?,¿En su vecindario hay un centro de recreación o centro comunitario donde se reúnen las familias?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7c,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7c,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7d,0.889562,pass,Is there a library or other place to get free books in your neighborhood?,¿En su vecindario hay una biblioteca o un lugar donde conseguir libros gratis?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7d,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7d,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7e,0.891024,pass,Is there litter or garbage on the street or sidewalk in your neighborhood?,¿En su vecindario hay basura o desperdicios en las calles o aceras?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7e,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7e,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7f,0.867391,pass,Are there poorly kept or rundown housing in your neighborhood?,¿En su vecindario hay viviendas deterioradas o en mal estado?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7f,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7f,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7g,0.8974,pass,Is there vandalism such as broken windows or graffiti in your neighborhood?,"¿En su vecindario hay vandalismo, como romper ventanas o pintar grafitis?"
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7g,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi7g,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.902325,pass,To what extent do you agree with these statements about your neighborhood or community?,¿En qué medida está de acuerdo con estas afirmaciones sobre su vecindario o comunidad?
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.907899,pass,Definitely Agree,Definitivamente de acuerdo
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.888344,pass,Somewhat Agree,Algo de acuerdo
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.880932,pass,Somewhat Disagree,Algo en descuerdo
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.91639,pass,Definitely Disagree,Definitivamente en desacuerdo
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.916592,pass,People in your neighborhood help each other out.,La gente de su vecindario se ayuda mutuamente.
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.872337,pass,People in your neighborhood watch out for each other's children.,La gente de su vecindario cuida mutuamente de nuestros niños(as).
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.907246,pass,Your child is safe in your neighborhood.,Su niño(a) está seguro(a) en su vecindario.
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.884105,pass,"When you encounter difficulties, you know where to go for help in your community.","Ustedes saben a quién acudir en su comunidad para buscar ayuda, cuando enfrentan dificultades."
+surveys,intfloat/multilingual-e5-base,es-CO,HomeNSCHi8items,0.889424,pass,Your child is safe at school.,Su niño(a) está seguro(a) en la escuela.
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFood,0.875536,pass,"These are statements people have made about their food situation. For these statements, please mark whether the statement was often true, sometimes true, or never true for your household in the last 12 months .","Estas son declaraciones que las personas han hecho sobre situaciones alimentarias. Para cada uno, favor de indicar si ha ocurrido frecuentemente, a veces, o nunca (a Ud. / en su hogar) en los últimos 12 meses ."
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodLast,0.879486,pass,"The food we bought just didn't last, and we didn't have enough money to get more.","La comida que comprábamos no alcanzaba, y no teníamos dinero para comprar más."
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodLast,0.875537,pass,Never true,Nunca
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodLast,0.878339,pass,Sometimes true,A veces
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodLast,0.883672,pass,Often true,Frecuentemente
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodBalanced,0.851427,pass,We couldn't afford to eat balanced meals.,No teníamos recursos suficientes para comer comida variada y nutritiva.
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodBalanced,0.927056,pass,Never true,Never true
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodBalanced,0.964751,pass,Sometimes true,Sometimes true
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodBalanced,0.969809,pass,Often true,Often true
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMeal,0.897386,pass,"In the last 12 months , did you or other adults in your household ever cut the size of your meals or skip meals because there wasn't enough money for food?","En los últimos 12 meses , ¿usted u otros adultos del hogar redujeron la cantidad de sus comidas o se saltaron comidas porque les faltaba dinero para alimentos?"
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMeal,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMeal,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMealAmount,0.865081,pass,"If yes, how often did this happen - almost every month, some months but not every month, or in only 1 or 2 months?","En caso afirmativo, ¿con qué frecuencia: casi todos los meses, algunos meses, solo 1 o 2 meses?"
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMealAmount,0.914799,pass,Almost every month,Casi todos los meses
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMealAmount,0.861046,pass,Some months but not every month,Algunos meses
+surveys,intfloat/multilingual-e5-base,es-CO,HomeFoodSkipMealAmount,0.922162,pass,Only 1 or 2 months,Solo 1 ó 2 meses
+surveys,intfloat/multilingual-e5-base,es-CO,HomeCHAOS,0.86745,pass,Below are statements about the environment in your home. Please indicate how much you agree that the statement is true of your home.,A continuación encontrará una serie de afirmaciones sobre el entorno de su hogar. Indique qué tan cierta es cada afirmación para su hogar.
+surveys,intfloat/multilingual-e5-base,es-CO,HomeCHAOS4,0.866086,pass,We are usually able to stay on top of things.,Normalmente somos capaces de estar al día con las actividades.
+surveys,intfloat/multilingual-e5-base,de,HomeNeighborhood,0.911646,pass,Please answer the following questions about the community where you live.,"Bitte beantworten Sie die folgenden Fragen zu der Gemeinschaft, in der Sie leben."
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7a,0.86723,pass,Does your neighborhood have sidewalks or walking paths?,Gibt es in Ihrer Nachbarschaft Bürgersteige oder Spazierwege?
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7a,0.840613,review,Yes,Ja
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7a,0.837813,review,No,Nein
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7b,0.894008,pass,Is there a park or playground in your neighborhood?,Gibt es in Ihrer Nachbarschaft einen Park oder Spielplatz?
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7b,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7b,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7c,0.895161,pass,Does your neighborhood have a community center or recreation center where families get together?,"Gibt es in Ihrer Nachbarschaft ein Gemeindezentrum oder ein Freizeitzentrum, in dem sich Familien treffen?"
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7c,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7c,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7d,0.884366,pass,Is there a library or other place to get free books in your neighborhood?,"Gibt es in Ihrer Nachbarschaft eine Bibliothek oder einen anderen Ort, an dem man kostenlose Bücher erhalten kann?"
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7d,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7d,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7e,0.888767,pass,Is there litter or garbage on the street or sidewalk in your neighborhood?,Gibt es in Ihrer Nachbarschaft Abfall oder Müll auf der Straße oder dem Gehweg?
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7e,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7e,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7f,0.867512,pass,Are there poorly kept or rundown housing in your neighborhood?,Gibt es in Ihrer Nachbarschaft schlecht erhaltene oder heruntergekommene Wohnungen?
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7f,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7f,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7g,0.863042,pass,Is there vandalism such as broken windows or graffiti in your neighborhood?,Gibt es in Ihrer Nachbarschaft Vandalismus wie z.B. eingeschlagene Fensterscheiben oder Graffiti?
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7g,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi7g,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.899932,pass,To what extent do you agree with these statements about your neighborhood or community?,Inwieweit stimmen Sie diesen Aussagen über Ihre Nachbarschaft oder Gemeinde zu?
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.900809,pass,Definitely Agree,Voll und ganz zustimmen
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.87995,pass,Somewhat Agree,Eher zustimmen
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.886739,pass,Somewhat Disagree,Eher nicht zustimmen
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.890855,pass,Definitely Disagree,Überhaupt nicht zustimmen
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.886305,pass,People in your neighborhood help each other out.,Die Menschen in deiner Nachbarschaft helfen sich gegenseitig.
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.852899,pass,People in your neighborhood watch out for each other's children.,Die Menschen in Ihrer Nachbarschaft passen auf die Kinder der anderen auf.
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.881599,pass,Your child is safe in your neighborhood.,Ihr Kind ist in Ihrer Nachbarschaft sicher.
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.888978,pass,"When you encounter difficulties, you know where to go for help in your community.","Wenn Sie auf Schwierigkeiten stoßen, wissen Sie, an wen Sie sich in Ihrer Gemeinde wenden können, um Hilfe zu erhalten."
+surveys,intfloat/multilingual-e5-base,de,HomeNSCHi8items,0.888873,pass,Your child is safe at school.,Ihr Kind ist in der Schule sicher.
+surveys,intfloat/multilingual-e5-base,de,HomeFood,0.874796,pass,"These are statements people have made about their food situation. For these statements, please mark whether the statement was often true, sometimes true, or never true for your household in the last 12 months .","Dies sind Aussagen, die Menschen über ihre Ernährungssituation gemacht haben. Bitte kreuzen Sie für diese Aussagen an, ob die Aussage in den letzten 12 Monaten für Ihren Haushalt oft, manchmal oder nie stimmte."
+surveys,intfloat/multilingual-e5-base,de,HomeFoodLast,0.887657,pass,"The food we bought just didn't last, and we didn't have enough money to get more.","Die Lebensmittel, die wir gekauft hatten, reichten einfach nicht aus, und wir hatten nicht genug Geld, um mehr zu kaufen."
+surveys,intfloat/multilingual-e5-base,de,HomeFoodLast,0.873165,pass,Never true,Trifft nie zu
+surveys,intfloat/multilingual-e5-base,de,HomeFoodLast,0.86817,pass,Sometimes true,Trifft manchmal zu
+surveys,intfloat/multilingual-e5-base,de,HomeFoodLast,0.879568,pass,Often true,Trifft oft zu
+surveys,intfloat/multilingual-e5-base,de,HomeFoodBalanced,0.87826,pass,We couldn't afford to eat balanced meals.,"Wir konnten es uns nicht leisten, ausgewogene Mahlzeiten zu essen."
+surveys,intfloat/multilingual-e5-base,de,HomeFoodBalanced,0.927056,pass,Never true,Never true
+surveys,intfloat/multilingual-e5-base,de,HomeFoodBalanced,0.964751,pass,Sometimes true,Sometimes true
+surveys,intfloat/multilingual-e5-base,de,HomeFoodBalanced,0.969809,pass,Often true,Often true
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMeal,0.875908,pass,"In the last 12 months , did you or other adults in your household ever cut the size of your meals or skip meals because there wasn't enough money for food?","Haben Sie oder andere Erwachsene in Ihrem Haushalt in den letzten 12 Monaten jemals die Menge Ihrer Mahlzeiten reduziert oder Mahlzeiten ausgelassen, weil nicht genug Geld für Lebensmittel vorhanden war?"
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMeal,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMeal,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMealAmount,0.888459,pass,"If yes, how often did this happen - almost every month, some months but not every month, or in only 1 or 2 months?","Wenn ja, wie oft ist kam dies vor - fast jeden Monat, in einigen Monaten aber nicht in jedem Monat, nur in 1 oder 2 Monaten?"
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMealAmount,0.935069,pass,Almost every month,Fast jeden Monat
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMealAmount,0.91303,pass,Some months but not every month,In einigen Monaten aber nicht jeden Monat
+surveys,intfloat/multilingual-e5-base,de,HomeFoodSkipMealAmount,0.932241,pass,Only 1 or 2 months,Nur in 1 oder 2 Monaten
+surveys,intfloat/multilingual-e5-base,de,HomeCHAOS,0.857499,pass,Below are statements about the environment in your home. Please indicate how much you agree that the statement is true of your home.,"Im Folgenden finden Sie Aussagen über die häusliche Umgebung. Bitte geben Sie an, inwieweit Sie der Aussage zustimmen, dass sie auf Ihr Zuhause zutrifft."
+surveys,intfloat/multilingual-e5-base,de,HomeCHAOS4,0.856575,pass,We are usually able to stay on top of things.,"Wir sind in der Regel in der Lage, den Überblick zu behalten."
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNeighborhood,0.900152,pass,Please answer the following questions about the community where you live.,Veuillez répondre aux questions suivantes concernant la communauté dans laquelle vous vivez.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7a,0.868835,pass,Does your neighborhood have sidewalks or walking paths?,"Dans votre quartier, y a-t-il des trottoirs ou des sentiers de marche?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7a,0.854738,pass,Yes,Oui
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7a,0.85616,pass,No,Non
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7b,0.891084,pass,Is there a park or playground in your neighborhood?,"Dans votre quartier, y a-t-il un parc ou un terrain de jeu?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7b,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7b,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7c,0.896877,pass,Does your neighborhood have a community center or recreation center where families get together?,"Dans votre quartier, y a-t-il un centre communautaire ou un centre de loisirs où les familles se réunissent?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7c,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7c,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7d,0.900884,pass,Is there a library or other place to get free books in your neighborhood?,"Dans votre quartier, y a-t-il une bibliothèque ou un autre endroit pour obtenir des livres gratuits?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7d,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7d,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7e,0.889796,pass,Is there litter or garbage on the street or sidewalk in your neighborhood?,"Dans votre quartier, y a-t-il des déchets ou des ordures sur la rue ou le trottoir?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7e,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7e,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7f,0.874864,pass,Are there poorly kept or rundown housing in your neighborhood?,"Dans votre quartier, y a-t-il des maisons mal entretenues ou délabrées?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7f,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7f,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7g,0.895641,pass,Is there vandalism such as broken windows or graffiti in your neighborhood?,"Dans votre quartier, y a-t-il du vandalisme tel que des vitres cassées ou des graffitis?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7g,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi7g,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.908351,pass,To what extent do you agree with these statements about your neighborhood or community?,Dans quelle mesure êtes-vous d'accord avec ces déclarations sur votre quartier ou communauté?
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.893317,pass,Definitely Agree,Tout à fait d'accord
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.875274,pass,Somewhat Agree,Plutôt d'accord
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.88909,pass,Somewhat Disagree,Plutôt en désaccord
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.86803,pass,Definitely Disagree,Pas du tout d'accord
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.896785,pass,People in your neighborhood help each other out.,Les gens dans votre quartier s'entraident.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.911893,pass,People in your neighborhood watch out for each other's children.,Les gens dans votre quartier veillent sur les enfants des uns et des autres.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.908188,pass,Your child is safe in your neighborhood.,Votre enfant est en sécurité dans votre quartier.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.900551,pass,"When you encounter difficulties, you know where to go for help in your community.","Quand vous rencontrez des difficultés, vous savez où aller chercher de l'aide dans votre communauté."
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeNSCHi8items,0.896899,pass,Your child is safe at school.,Votre enfant est en sécurité à l'école.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFood,0.885858,pass,"These are statements people have made about their food situation. For these statements, please mark whether the statement was often true, sometimes true, or never true for your household in the last 12 months .","Ce sont des affirmations que les gens ont faites concernant leur situation alimentaire. Pour ces déclarations, indiquez s'il était souvent vrai, parfois vrai ou jamais vrai pour votre foyer au cours des 12 derniers mois ."
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodLast,0.899973,pass,"The food we bought just didn't last, and we didn't have enough money to get more.","La nourriture que nous avons achetée n'a tout simplement pas duré, et nous n'avions pas assez d'argent pour en acheter plus."
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodLast,0.906344,pass,Never true,Jamais vrai
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodLast,0.91312,pass,Sometimes true,Parfois vrai
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodLast,0.91692,pass,Often true,Souvent vrai
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodBalanced,0.88062,pass,We couldn't afford to eat balanced meals.,Nous ne pouvions pas nous permettre de manger des repas équilibrés.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodBalanced,0.927056,pass,Never true,Never true
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodBalanced,0.964751,pass,Sometimes true,Sometimes true
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodBalanced,0.969809,pass,Often true,Often true
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMeal,0.909709,pass,"In the last 12 months , did you or other adults in your household ever cut the size of your meals or skip meals because there wasn't enough money for food?","Au cours des 12 derniers mois , avez-vous ou d'autres adultes de votre foyer réduit la taille de vos repas ou sauté des repas parce qu'il n'y avait pas assez d'argent pour acheter de la nourriture?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMeal,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMeal,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMealAmount,0.901344,pass,"If yes, how often did this happen - almost every month, some months but not every month, or in only 1 or 2 months?","Si oui, combien de fois est-ce arrivé - presque chaque mois, certains mois mais pas tous les mois, ou seulement dans 1 ou 2 mois?"
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMealAmount,0.907828,pass,Almost every month,Presque chaque mois
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMealAmount,0.905506,pass,Some months but not every month,Certains mois mais pas tous les mois
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeFoodSkipMealAmount,0.907411,pass,Only 1 or 2 months,Seulement 1 ou 2 mois
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeCHAOS,0.892162,pass,Below are statements about the environment in your home. Please indicate how much you agree that the statement is true of your home.,Voici des déclarations sur l'environnement dans votre maison. Veuillez indiquer dans quelle mesure vous êtes d'accord que la déclaration est vraie pour votre maison.
+surveys,intfloat/multilingual-e5-base,fr-CA,HomeCHAOS4,0.898125,pass,We are usually able to stay on top of things.,Nous sommes généralement capables de rester au top des choses.
+surveys,intfloat/multilingual-e5-base,nl,HomeNeighborhood,0.921303,pass,Please answer the following questions about the community where you live.,Beantwoord alstublieft de volgende vragen over de gemeenschap waarin u woont.
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7a,0.876032,pass,Does your neighborhood have sidewalks or walking paths?,Zijn er in uw buurt stoepen of wandelpaden?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7a,0.840613,review,Yes,Ja
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7a,0.846588,review,No,Nee
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7b,0.915207,pass,Is there a park or playground in your neighborhood?,Is er in uw buurt een park of speeltuin?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7b,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7b,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7c,0.904214,pass,Does your neighborhood have a community center or recreation center where families get together?,Is er in uw buurt een gemeenschapscentrum of recreatiecentrum waar gezinnen samenkomen?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7c,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7c,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7d,0.898444,pass,Is there a library or other place to get free books in your neighborhood?,Is er in uw buurt een bibliotheek of andere plek om gratis boeken te krijgen?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7d,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7d,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7e,0.911476,pass,Is there litter or garbage on the street or sidewalk in your neighborhood?,Is er in uw buurt afval of zwerfvuil op de straat of stoep?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7e,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7e,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7f,0.876694,pass,Are there poorly kept or rundown housing in your neighborhood?,Zijn er in uw buurt slecht onderhouden of vervallen woningen?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7f,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7f,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7g,0.881771,pass,Is there vandalism such as broken windows or graffiti in your neighborhood?,"Is er in uw buurt sprake van vandalisme, zoals gebroken ramen of graffiti?"
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7g,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi7g,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.910141,pass,To what extent do you agree with these statements about your neighborhood or community?,In hoeverre bent u het eens met deze uitspraken over uw buurt of gemeenschap?
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.896947,pass,Definitely Agree,Helemaal mee eens
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.898114,pass,Somewhat Agree,Enigszins mee eens
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.853147,pass,Somewhat Disagree,Enigszins mee oneens
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.855583,pass,Definitely Disagree,Helemaal mee oneens
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.927241,pass,People in your neighborhood help each other out.,Mensen in uw buurt helpen elkaar.
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.925179,pass,People in your neighborhood watch out for each other's children.,Mensen in uw buurt letten op elkaars kinderen.
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.922235,pass,Your child is safe in your neighborhood.,Uw kind is veilig in uw buurt.
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.900382,pass,"When you encounter difficulties, you know where to go for help in your community.","Wanneer u moeilijkheden tegenkomt, weet u waar u in uw gemeenschap terecht kunt voor hulp."
+surveys,intfloat/multilingual-e5-base,nl,HomeNSCHi8items,0.925701,pass,Your child is safe at school.,Uw kind is veilig op school.
+surveys,intfloat/multilingual-e5-base,nl,HomeFood,0.872128,pass,"These are statements people have made about their food situation. For these statements, please mark whether the statement was often true, sometimes true, or never true for your household in the last 12 months .","Dit zijn uitspraken die mensen hebben gedaan over hun voedselsituatie. Voor deze uitspraken, markeer of de uitspraak vaak waar, soms waar of nooit waar was voor uw huishouden in de afgelopen 12 maanden ."
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodLast,0.896776,pass,"The food we bought just didn't last, and we didn't have enough money to get more.","Het voedsel dat we kochten was gewoon niet genoeg, en we hadden niet genoeg geld om meer te krijgen."
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodLast,0.896959,pass,Never true,Nooit waar
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodLast,0.891478,pass,Sometimes true,Soms waar
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodLast,0.899311,pass,Often true,Vaak waar
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodBalanced,0.922257,pass,We couldn't afford to eat balanced meals.,We konden ons geen uitgebalanceerde maaltijden veroorloven.
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodBalanced,0.927056,pass,Never true,Never true
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodBalanced,0.964751,pass,Sometimes true,Sometimes true
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodBalanced,0.969809,pass,Often true,Often true
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMeal,0.864026,pass,"In the last 12 months , did you or other adults in your household ever cut the size of your meals or skip meals because there wasn't enough money for food?",Hebt u of andere volwassenen in uw huishouden in de afgelopen 12 maanden ooit de hoeveelheid van uw maaltijden verminderd of maaltijden overgeslagen omdat er niet genoeg geld was voor voedsel?
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMeal,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMeal,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMealAmount,0.920954,pass,"If yes, how often did this happen - almost every month, some months but not every month, or in only 1 or 2 months?","Als ja, hoe vaak gebeurde dit - bijna elke maand, sommige maanden maar niet elke maand, of slechts in 1 of 2 maanden?"
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMealAmount,0.93132,pass,Almost every month,Bijna elke maand
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMealAmount,0.931387,pass,Some months but not every month,Sommige maanden maar niet elke maand
+surveys,intfloat/multilingual-e5-base,nl,HomeFoodSkipMealAmount,0.915077,pass,Only 1 or 2 months,Slechts in 1 of 2 maanden
+surveys,intfloat/multilingual-e5-base,nl,HomeCHAOS,0.876068,pass,Below are statements about the environment in your home. Please indicate how much you agree that the statement is true of your home.,Hieronder staan uitspraken over de omgeving in uw huis. Geef aan in hoeverre u het ermee eens bent dat de uitspraak waar is voor uw huis.
+surveys,intfloat/multilingual-e5-base,nl,HomeCHAOS4,0.874586,pass,We are usually able to stay on top of things.,We zijn meestal in staat om de zaken onder controle te houden.
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNeighborhood,0.911646,pass,Please answer the following questions about the community where you live.,"Bitte beantworten Sie die folgenden Fragen zu der Gemeinschaft, in der Sie leben."
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7a,0.86723,pass,Does your neighborhood have sidewalks or walking paths?,Gibt es in Ihrer Nachbarschaft Bürgersteige oder Spazierwege?
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7a,0.840613,review,Yes,Ja
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7a,0.837813,review,No,Nein
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7b,0.894008,pass,Is there a park or playground in your neighborhood?,Gibt es in Ihrer Nachbarschaft einen Park oder Spielplatz?
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7b,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7b,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7c,0.895161,pass,Does your neighborhood have a community center or recreation center where families get together?,"Gibt es in Ihrer Nachbarschaft ein Gemeindezentrum oder ein Freizeitzentrum, in dem sich Familien treffen?"
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7c,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7c,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7d,0.884366,pass,Is there a library or other place to get free books in your neighborhood?,"Gibt es in Ihrer Nachbarschaft eine Bibliothek oder einen anderen Ort, an dem man kostenlose Bücher erhalten kann?"
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7d,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7d,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7e,0.888767,pass,Is there litter or garbage on the street or sidewalk in your neighborhood?,Gibt es in Ihrer Nachbarschaft Abfall oder Müll auf der Straße oder dem Gehweg?
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7e,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7e,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7f,0.867512,pass,Are there poorly kept or rundown housing in your neighborhood?,Gibt es in Ihrer Nachbarschaft schlecht erhaltene oder heruntergekommene Wohnungen?
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7f,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7f,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7g,0.863042,pass,Is there vandalism such as broken windows or graffiti in your neighborhood?,Gibt es in Ihrer Nachbarschaft Vandalismus wie z.B. eingeschlagene Fensterscheiben oder Graffiti?
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7g,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi7g,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.899932,pass,To what extent do you agree with these statements about your neighborhood or community?,Inwieweit stimmen Sie diesen Aussagen über Ihre Nachbarschaft oder Gemeinde zu?
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.900809,pass,Definitely Agree,Voll und ganz zustimmen
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.87995,pass,Somewhat Agree,Eher zustimmen
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.886739,pass,Somewhat Disagree,Eher nicht zustimmen
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.890855,pass,Definitely Disagree,Überhaupt nicht zustimmen
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.886305,pass,People in your neighborhood help each other out.,Die Menschen in deiner Nachbarschaft helfen sich gegenseitig.
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.852899,pass,People in your neighborhood watch out for each other's children.,Die Menschen in Ihrer Nachbarschaft passen auf die Kinder der anderen auf.
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.881599,pass,Your child is safe in your neighborhood.,Ihr Kind ist in Ihrer Nachbarschaft sicher.
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.888978,pass,"When you encounter difficulties, you know where to go for help in your community.","Wenn Sie auf Schwierigkeiten stoßen, wissen Sie, an wen Sie sich in Ihrer Gemeinde wenden können, um Hilfe zu erhalten."
+surveys,intfloat/multilingual-e5-base,de-CH,HomeNSCHi8items,0.888873,pass,Your child is safe at school.,Ihr Kind ist in der Schule sicher.
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFood,0.874796,pass,"These are statements people have made about their food situation. For these statements, please mark whether the statement was often true, sometimes true, or never true for your household in the last 12 months .","Dies sind Aussagen, die Menschen über ihre Ernährungssituation gemacht haben. Bitte kreuzen Sie für diese Aussagen an, ob die Aussage in den letzten 12 Monaten für Ihren Haushalt oft, manchmal oder nie stimmte."
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodLast,0.887657,pass,"The food we bought just didn't last, and we didn't have enough money to get more.","Die Lebensmittel, die wir gekauft hatten, reichten einfach nicht aus, und wir hatten nicht genug Geld, um mehr zu kaufen."
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodLast,0.873165,pass,Never true,Trifft nie zu
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodLast,0.86817,pass,Sometimes true,Trifft manchmal zu
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodLast,0.879568,pass,Often true,Trifft oft zu
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodBalanced,0.87826,pass,We couldn't afford to eat balanced meals.,"Wir konnten es uns nicht leisten, ausgewogene Mahlzeiten zu essen."
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodBalanced,0.927056,pass,Never true,Never true
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodBalanced,0.964751,pass,Sometimes true,Sometimes true
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodBalanced,0.969809,pass,Often true,Often true
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMeal,0.875908,pass,"In the last 12 months , did you or other adults in your household ever cut the size of your meals or skip meals because there wasn't enough money for food?","Haben Sie oder andere Erwachsene in Ihrem Haushalt in den letzten 12 Monaten jemals die Menge Ihrer Mahlzeiten reduziert oder Mahlzeiten ausgelassen, weil nicht genug Geld für Lebensmittel vorhanden war?"
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMeal,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMeal,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMealAmount,0.888459,pass,"If yes, how often did this happen - almost every month, some months but not every month, or in only 1 or 2 months?","Wenn ja, wie oft ist kam dies vor - fast jeden Monat, in einigen Monaten aber nicht in jedem Monat, nur in 1 oder 2 Monaten?"
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMealAmount,0.935069,pass,Almost every month,Fast jeden Monat
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMealAmount,0.91303,pass,Some months but not every month,In einigen Monaten aber nicht jeden Monat
+surveys,intfloat/multilingual-e5-base,de-CH,HomeFoodSkipMealAmount,0.932241,pass,Only 1 or 2 months,Nur in 1 oder 2 Monaten
+surveys,intfloat/multilingual-e5-base,de-CH,HomeCHAOS,0.857499,pass,Below are statements about the environment in your home. Please indicate how much you agree that the statement is true of your home.,"Im Folgenden finden Sie Aussagen über die häusliche Umgebung. Bitte geben Sie an, inwieweit Sie der Aussage zustimmen, dass sie auf Ihr Zuhause zutrifft."
+surveys,intfloat/multilingual-e5-base,de-CH,HomeCHAOS4,0.856575,pass,We are usually able to stay on top of things.,"Wir sind in der Regel in der Lage, den Überblick zu behalten."
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNeighborhood,0.905298,pass,Please answer the following questions about the community where you live.,Responda a las siguientes preguntas sobre la comunidad en la que vive.
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7a,0.871525,pass,Does your neighborhood have sidewalks or walking paths?,¿En su vecindario hay aceras o caminos peatonales?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7a,0.85281,pass,Yes,Sí
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7a,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7b,0.887809,pass,Is there a park or playground in your neighborhood?,¿En su vecindario hay un parque o área de juegos?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7b,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7b,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7c,0.899567,pass,Does your neighborhood have a community center or recreation center where families get together?,¿En su vecindario hay un centro de recreación o centro comunitario donde se reúnen las familias?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7c,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7c,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7d,0.889562,pass,Is there a library or other place to get free books in your neighborhood?,¿En su vecindario hay una biblioteca o un lugar donde conseguir libros gratis?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7d,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7d,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7e,0.891024,pass,Is there litter or garbage on the street or sidewalk in your neighborhood?,¿En su vecindario hay basura o desperdicios en las calles o aceras?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7e,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7e,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7f,0.867391,pass,Are there poorly kept or rundown housing in your neighborhood?,¿En su vecindario hay viviendas deterioradas o en mal estado?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7f,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7f,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7g,0.8974,pass,Is there vandalism such as broken windows or graffiti in your neighborhood?,"¿En su vecindario hay vandalismo, como romper ventanas o pintar grafitis?"
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7g,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi7g,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.902325,pass,To what extent do you agree with these statements about your neighborhood or community?,¿En qué medida está de acuerdo con estas afirmaciones sobre su vecindario o comunidad?
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.907899,pass,Definitely Agree,Definitivamente de acuerdo
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.888344,pass,Somewhat Agree,Algo de acuerdo
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.880932,pass,Somewhat Disagree,Algo en descuerdo
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.91639,pass,Definitely Disagree,Definitivamente en desacuerdo
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.916592,pass,People in your neighborhood help each other out.,La gente de su vecindario se ayuda mutuamente.
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.872337,pass,People in your neighborhood watch out for each other's children.,La gente de su vecindario cuida mutuamente de nuestros niños(as).
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.907246,pass,Your child is safe in your neighborhood.,Su niño(a) está seguro(a) en su vecindario.
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.884105,pass,"When you encounter difficulties, you know where to go for help in your community.","Ustedes saben a quién acudir en su comunidad para buscar ayuda, cuando enfrentan dificultades."
+surveys,intfloat/multilingual-e5-base,es-AR,HomeNSCHi8items,0.889424,pass,Your child is safe at school.,Su niño(a) está seguro(a) en la escuela.
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFood,0.875536,pass,"These are statements people have made about their food situation. For these statements, please mark whether the statement was often true, sometimes true, or never true for your household in the last 12 months .","Estas son declaraciones que las personas han hecho sobre situaciones alimentarias. Para cada uno, favor de indicar si ha ocurrido frecuentemente, a veces, o nunca (a Ud. / en su hogar) en los últimos 12 meses ."
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodLast,0.879486,pass,"The food we bought just didn't last, and we didn't have enough money to get more.","La comida que comprábamos no alcanzaba, y no teníamos dinero para comprar más."
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodLast,0.875537,pass,Never true,Nunca
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodLast,0.878339,pass,Sometimes true,A veces
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodLast,0.883672,pass,Often true,Frecuentemente
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodBalanced,0.851427,pass,We couldn't afford to eat balanced meals.,No teníamos recursos suficientes para comer comida variada y nutritiva.
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodBalanced,0.927056,pass,Never true,Never true
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodBalanced,0.964751,pass,Sometimes true,Sometimes true
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodBalanced,0.969809,pass,Often true,Often true
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMeal,0.897386,pass,"In the last 12 months , did you or other adults in your household ever cut the size of your meals or skip meals because there wasn't enough money for food?","En los últimos 12 meses , ¿usted u otros adultos del hogar redujeron la cantidad de sus comidas o se saltaron comidas porque les faltaba dinero para alimentos?"
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMeal,0.810074,review,Yes,Yes
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMeal,0.789735,review,No,No
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMealAmount,0.865081,pass,"If yes, how often did this happen - almost every month, some months but not every month, or in only 1 or 2 months?","En caso afirmativo, ¿con qué frecuencia: casi todos los meses, algunos meses, solo 1 o 2 meses?"
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMealAmount,0.914799,pass,Almost every month,Casi todos los meses
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMealAmount,0.861046,pass,Some months but not every month,Algunos meses
+surveys,intfloat/multilingual-e5-base,es-AR,HomeFoodSkipMealAmount,0.922162,pass,Only 1 or 2 months,Solo 1 ó 2 meses
+surveys,intfloat/multilingual-e5-base,es-AR,HomeCHAOS,0.86745,pass,Below are statements about the environment in your home. Please indicate how much you agree that the statement is true of your home.,A continuación encontrará una serie de afirmaciones sobre el entorno de su hogar. Indique qué tan cierta es cada afirmación para su hogar.
+surveys,intfloat/multilingual-e5-base,es-AR,HomeCHAOS4,0.866086,pass,We are usually able to stay on top of things.,Normalmente somos capaces de estar al día con las actividades.

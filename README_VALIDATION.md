@@ -217,7 +217,7 @@ This avoids back-translation and compares source/target semantic alignment with 
 
 - `intfloat/multilingual-e5-base` (good default, faster)
 - `intfloat/multilingual-e5-large` (higher quality, heavier)
-- `google/LaBSE` (strong multilingual alignment baseline)
+- `sentence-transformers/LaBSE` (strong multilingual alignment baseline)
 
 ### Local Python Setup (NVIDIA GPU)
 
@@ -249,6 +249,32 @@ python scripts/embedding_translation_validation.py \
 
 - CSV with per-row similarity/status (`pass` / `review` / `fail`)
 - Optional JSON summary (distribution percentiles and counts)
+
+### Multi-Dataset Model Compare (Surveys + Item Bank)
+
+Use this script to compare multiple embedding models across surveys and item bank in one run:
+
+`scripts/embedding_multidataset_model_compare.py`
+
+```bash
+python scripts/embedding_multidataset_model_compare.py \
+  --dataset both \
+  --models intfloat/multilingual-e5-base,intfloat/multilingual-e5-large,sentence-transformers/LaBSE \
+  --device cuda \
+  --batch-size 256 \
+  --min-score 0.85 \
+  --warn-score 0.78 \
+  --output-prefix data/validation/embedding-model-compare
+```
+
+Outputs include:
+- Per-dataset files:
+  - `data/validation/embedding-model-compare-surveys-summary.csv/json`
+  - `data/validation/embedding-model-compare-surveys-details.csv`
+  - `data/validation/embedding-model-compare-itembank-summary.csv/json`
+  - `data/validation/embedding-model-compare-itembank-details.csv`
+- Combined rollup:
+  - `data/validation/embedding-model-compare-rollup-summary.csv/json`
 
 ### Notes
 
