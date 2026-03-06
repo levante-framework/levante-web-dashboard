@@ -2031,34 +2031,30 @@
                 return isSuperAdmin;
             }
 
-            normalizeUserId(value) {
-                return String(value || '').trim().toLowerCase();
-            }
-
-            findApproverLanguageByCredentials(userId, password) {
-                const normalizedUserId = this.normalizeUserId(userId);
-                const passwordValue = String(password || '');
-                if (!normalizedUserId || !passwordValue) return null;
-
-                for (const [languageName, cfgRaw] of Object.entries(this.languages || {})) {
-                    const cfg = cfgRaw && typeof cfgRaw === 'object' ? cfgRaw : {};
-                    for (const slot of [1, 2]) {
-                        const approverUserId = this.normalizeUserId(cfg[`approver${slot}_userid`]);
-                        const approverPassword = String(cfg[`approver${slot}_password`] || '');
-                        if (!approverUserId || !approverPassword) continue;
-                        if (approverUserId === normalizedUserId && approverPassword === passwordValue) {
-                            return { languageName, slot };
-                        }
-                    }
+            async verifyApproverCredentials(userId, password) {
+                const response = await fetch('/api/language-config?action=verify-approver', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, password }),
+                });
+                let payload = {};
+                try {
+                    payload = await response.json();
+                } catch (_error) {
+                    payload = {};
                 }
-
-                return null;
+                if (!response.ok || !payload?.success) {
+                    throw new Error(payload?.error || 'Invalid user ID or password.');
+                }
+                return payload;
             }
 
             async performApproverConfigLogin(userId, approverMatch) {
                 const resolvedLanguage =
                     this.resolveLanguageKey(approverMatch?.languageName) ||
+                    this.resolveLanguageKey(approverMatch?.allowedLanguage) ||
                     approverMatch?.languageName ||
+                    approverMatch?.allowedLanguage ||
                     null;
                 if (!resolvedLanguage) {
                     throw new Error('Approver is configured, but no matching language was found.');
@@ -2189,24 +2185,18 @@
                     errorEl.style.display = 'none';
                 }
 
-                // Try language-level approver credentials first (approver1/2 in language config).
-                await this.loadLanguagesFromConfig();
-                const approverMatch = this.findApproverLanguageByCredentials(email, password);
-                if (approverMatch) {
-                    try {
-                        await this.performApproverConfigLogin(email, approverMatch);
-                        return;
-                    } catch (error) {
-                        console.error('Approver config login failed:', error);
-                        if (errorEl) {
-                            errorEl.textContent = error?.message || 'Approver login failed.';
-                            errorEl.style.display = 'block';
-                        }
-                        return;
-                    }
+                // Verify approver credentials on the server first.
+                // Password hashes are stored server-side and never sent to the browser.
+                try {
+                    const approverMatch = await this.verifyApproverCredentials(email, password);
+                    await this.performApproverConfigLogin(email, approverMatch);
+                    return;
+                } catch (error) {
+                    // Continue to Firebase only when input looks like an email;
+                    // non-email IDs should never hit Firebase email auth.
                 }
 
-                // If user ID is not email-shaped and no approver match, avoid Firebase email auth.
+                // If user ID is not email-shaped and no server approver match, avoid Firebase email auth.
                 const looksLikeEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '').trim());
                 if (!looksLikeEmail) {
                     if (errorEl) {

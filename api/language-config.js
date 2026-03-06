@@ -10,9 +10,164 @@
  */
 
 import { Storage } from '@google-cloud/storage';
+import crypto from 'crypto';
 
 const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || 'levante-assets-dev';
 const OBJECT_NAME = process.env.LANGUAGE_CONFIG_OBJECT || 'language_config.json';
+const HASH_PREFIX = 'scrypt$';
+
+function isObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeUserId(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isHashedApproverPassword(value) {
+  return String(value || '').startsWith(HASH_PREFIX);
+}
+
+function hashApproverPassword(password) {
+  const plain = String(password || '');
+  const N = 16384;
+  const r = 8;
+  const p = 1;
+  const keyLength = 64;
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(plain, salt, keyLength, { N, r, p }).toString('hex');
+  return `${HASH_PREFIX}${N}$${r}$${p}$${salt}$${derived}`;
+}
+
+function timingSafeEqualHex(aHex, bHex) {
+  const a = Buffer.from(String(aHex || ''), 'hex');
+  const b = Buffer.from(String(bHex || ''), 'hex');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+function verifyApproverPassword(candidatePassword, storedPassword) {
+  const provided = String(candidatePassword || '');
+  const stored = String(storedPassword || '');
+  if (!provided || !stored) return false;
+
+  if (!isHashedApproverPassword(stored)) {
+    return provided === stored;
+  }
+
+  const parts = stored.split('$');
+  if (parts.length !== 6) return false;
+  const N = Number(parts[1]);
+  const r = Number(parts[2]);
+  const p = Number(parts[3]);
+  const salt = parts[4];
+  const expectedHex = parts[5];
+  if (!Number.isFinite(N) || !Number.isFinite(r) || !Number.isFinite(p) || !salt || !expectedHex) {
+    return false;
+  }
+  try {
+    const derivedHex = crypto.scryptSync(provided, salt, 64, { N, r, p }).toString('hex');
+    return timingSafeEqualHex(derivedHex, expectedHex);
+  } catch (_error) {
+    return false;
+  }
+}
+
+function findMatchingApprover(languages, userId, password) {
+  const normalized = normalizeUserId(userId);
+  const providedPassword = String(password || '');
+  if (!normalized || !providedPassword) return null;
+  for (const [languageName, cfgRaw] of Object.entries(languages || {})) {
+    const cfg = isObject(cfgRaw) ? cfgRaw : {};
+    for (const slot of [1, 2]) {
+      const userKey = `approver${slot}_userid`;
+      const passKey = `approver${slot}_password`;
+      const candidateUser = normalizeUserId(cfg[userKey]);
+      const storedPassword = String(cfg[passKey] || '');
+      if (!candidateUser || !storedPassword) continue;
+      if (candidateUser === normalized && verifyApproverPassword(providedPassword, storedPassword)) {
+        return { languageName, slot, langCode: String(cfg.lang_code || '') };
+      }
+    }
+  }
+  return null;
+}
+
+async function loadRemoteLanguageConfigObject() {
+  const storage = getStorageClient();
+  const bucket = storage.bucket(BUCKET_NAME);
+  const file = bucket.file(OBJECT_NAME);
+  const [exists] = await file.exists();
+  if (!exists) return {};
+  const [contents] = await file.download();
+  return JSON.parse(contents.toString('utf8'));
+}
+
+function stripApproverPasswords(languages) {
+  const input = isObject(languages) ? languages : {};
+  const redacted = {};
+  Object.entries(input).forEach(([name, cfgRaw]) => {
+    const cfg = isObject(cfgRaw) ? { ...cfgRaw } : {};
+    const approver1PasswordRaw = String(cfg.approver1_password || '');
+    const approver2PasswordRaw = String(cfg.approver2_password || '');
+    delete cfg.approver1_password;
+    delete cfg.approver2_password;
+    cfg.approver1_password_set = Boolean(approver1PasswordRaw);
+    cfg.approver2_password_set = Boolean(approver2PasswordRaw);
+    redacted[name] = cfg;
+  });
+  return redacted;
+}
+
+function mergeAndHashApproverCredentials(nextLanguages, existingLanguages) {
+  const next = normalizeLanguageDisplayNames(nextLanguages);
+  const existing = normalizeLanguageDisplayNames(existingLanguages);
+  const merged = {};
+
+  Object.entries(next).forEach(([name, cfgRaw]) => {
+    const cfg = isObject(cfgRaw) ? { ...cfgRaw } : {};
+    const previous = isObject(existing[name]) ? { ...existing[name] } : {};
+
+    for (const slot of [1, 2]) {
+      const userKey = `approver${slot}_userid`;
+      const passKey = `approver${slot}_password`;
+      const nextUserId = normalizeUserId(cfg[userKey]);
+      const prevUserId = normalizeUserId(previous[userKey]);
+      const nextPasswordRaw = String(cfg[passKey] || '');
+      const prevPasswordRaw = String(previous[passKey] || '');
+      const trimmedPassword = nextPasswordRaw.trim();
+
+      if (!nextUserId) {
+        delete cfg[userKey];
+        delete cfg[passKey];
+        continue;
+      }
+
+      cfg[userKey] = String(cfg[userKey] || '').trim();
+
+      if (!trimmedPassword || trimmedPassword === '********') {
+        if (nextUserId === prevUserId && prevPasswordRaw) {
+          cfg[passKey] = prevPasswordRaw;
+        } else {
+          delete cfg[passKey];
+        }
+        continue;
+      }
+
+      if (isHashedApproverPassword(trimmedPassword)) {
+        cfg[passKey] = trimmedPassword;
+      } else {
+        cfg[passKey] = hashApproverPassword(trimmedPassword);
+      }
+    }
+
+    delete cfg.approver1_password_set;
+    delete cfg.approver2_password_set;
+    merged[name] = cfg;
+  });
+
+  return merged;
+}
 
 function normalizeLanguageDisplayNames(languages) {
   const input = languages && typeof languages === 'object' ? languages : {};
@@ -54,7 +209,7 @@ function getStorageClient() {
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -66,6 +221,11 @@ export default async function handler(req, res) {
         return await handleGet(req, res);
       case 'PUT':
         return await handlePut(req, res);
+      case 'POST':
+        if (String(req.query?.action || '').toLowerCase() === 'verify-approver') {
+          return await handleApproverVerify(req, res);
+        }
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
       default:
         return res.status(405).json({ error: 'Method not allowed' });
     }
@@ -78,22 +238,13 @@ export default async function handler(req, res) {
 
 async function handleGet(_req, res) {
   try {
-    const storage = getStorageClient();
-    const bucket = storage.bucket(BUCKET_NAME);
-    const file = bucket.file(OBJECT_NAME);
-
-    const [exists] = await file.exists();
-    if (!exists) {
+    const json = await loadRemoteLanguageConfigObject();
+    if (!json || !json.languages) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       return res.status(200).json({ success: true, languages: null, message: 'No remote language_config.json found' });
     }
-
-    const [contents] = await file.download();
-    const json = JSON.parse(contents.toString('utf8'));
-    if (json && json.languages) {
-      json.languages = normalizeLanguageDisplayNames(json.languages);
-    }
+    json.languages = stripApproverPasswords(normalizeLanguageDisplayNames(json.languages));
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     return res.status(200).json({ success: true, ...json });
@@ -103,6 +254,33 @@ async function handleGet(_req, res) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     return res.status(200).json({ success: false, languages: null, error: error.message });
+  }
+}
+
+async function handleApproverVerify(req, res) {
+  try {
+    const payload = req.body && typeof req.body === 'object' ? req.body : {};
+    const userId = String(payload.userId || '').trim();
+    const password = String(payload.password || '');
+    if (!userId || !password) {
+      return res.status(400).json({ success: false, error: 'Missing userId or password' });
+    }
+
+    const json = await loadRemoteLanguageConfigObject();
+    const languages = normalizeLanguageDisplayNames(json?.languages || {});
+    const match = findMatchingApprover(languages, userId, password);
+    if (!match) {
+      return res.status(401).json({ success: false, error: 'Invalid user ID or password.' });
+    }
+    return res.status(200).json({
+      success: true,
+      allowedLanguage: match.languageName,
+      langCode: match.langCode,
+      slot: match.slot,
+    });
+  } catch (error) {
+    console.error('language-config approver verify error:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Authentication failed' });
   }
 }
 
@@ -117,11 +295,26 @@ async function handlePut(req, res) {
     if (!languages || typeof languages !== 'object') {
       return res.status(400).json({ success: false, error: 'Missing or invalid languages object' });
     }
-    const normalizedLanguages = normalizeLanguageDisplayNames(languages);
 
     const storage = getStorageClient();
     const bucket = storage.bucket(BUCKET_NAME);
     const file = bucket.file(OBJECT_NAME);
+
+    let existingLanguages = {};
+    try {
+      const [exists] = await file.exists();
+      if (exists) {
+        const [contents] = await file.download();
+        const parsed = JSON.parse(contents.toString('utf8'));
+        if (parsed && isObject(parsed.languages)) {
+          existingLanguages = parsed.languages;
+        }
+      }
+    } catch (readError) {
+      console.warn('language-config PUT warning: failed to read existing config before merge:', readError?.message || readError);
+    }
+
+    const normalizedLanguages = mergeAndHashApproverCredentials(languages, existingLanguages);
 
     const now = new Date().toISOString();
     const toWrite = JSON.stringify({ languages: normalizedLanguages, metadata: { saved_at: now, ...(metadata || {}) } }, null, 2);
