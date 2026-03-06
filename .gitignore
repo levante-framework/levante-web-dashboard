@@ -12,11 +12,15 @@ data/gallery/weather-cache.json
 data/validation/*.json
 data/validation/surveys-embedding-model-*.csv
 data/validation/surveys-embedding-model-*.pdf
+data/validation/embedding-model-compare-*.csv
+data/validation/embedding-model-compare-*.json
+data/validation/embedding-model-compare-*.pdf
 
 public/locations-map.html
 
 # Python virtual environment (should never be committed)
 venv/
+venv-emb/
 .venv-emb/
 __pycache__/
 *.pyc
@@ -49,4 +53,5 @@ public/adm-packs/us/adm7/
 public/adm-packs/us/adm8/
 public/adm-packs/us/adm9/
 public/adm-packs/us/adm10/
+node_modules
 node_modules
