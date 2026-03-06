@@ -378,6 +378,9 @@
             const modal = document.getElementById('validationResultsModal');
             const dash = window.dashboard;
             const safeResult = result || (dash && typeof dash.getValidationEntry === 'function' ? dash.getValidationEntry(itemId, langCode) : {}) || {};
+            const embeddingAdvisory = (dash && typeof dash.getEmbeddingAdvisoryEntry === 'function')
+                ? dash.getEmbeddingAdvisoryEntry(itemId, langCode)
+                : null;
             const itemRow = dash && Array.isArray(dash.data)
                 ? dash.data.find((row) => String(row.item_id || row.identifier || '') === String(itemId))
                 : null;
@@ -421,6 +424,12 @@
                     : 'Poor translation quality; review recommended.';
             const notes = [safeResult.notes || generatedNote];
             if (safeResult.aiUsed && safeResult.aiNotes) notes.push(`AI notes: ${safeResult.aiNotes}`);
+            if (embeddingAdvisory && Number.isFinite(Number(embeddingAdvisory.score))) {
+                const embScore = (Number(embeddingAdvisory.score) * 100).toFixed(2);
+                const embStatus = String(embeddingAdvisory.status || 'unknown').toUpperCase();
+                const embModel = embeddingAdvisory.model || 'unknown model';
+                notes.push(`Embedding advisory (${embModel}): ${embScore}% [${embStatus}]`);
+            }
             document.getElementById('validationNotes').textContent = notes.filter(Boolean).join('\n\n');
             
             // Update metadata
@@ -438,6 +447,29 @@
                     aiInfo.textContent = `Yes (baseline ${base}%, AI ${ai}%)`;
                 } else {
                     aiInfo.textContent = 'No';
+                }
+            }
+            const embeddingInfo = document.getElementById('validationEmbeddingInfo');
+            if (embeddingInfo) {
+                if (embeddingAdvisory && Number.isFinite(Number(embeddingAdvisory.score))) {
+                    const embScore = (Number(embeddingAdvisory.score) * 100).toFixed(2);
+                    const embStatus = String(embeddingAdvisory.status || 'unknown').toUpperCase();
+                    const embModel = embeddingAdvisory.model || 'unknown model';
+                    const dataset = embeddingAdvisory.dataset ? `, ${embeddingAdvisory.dataset}` : '';
+                    embeddingInfo.textContent = `${embScore}% (${embStatus}) via ${embModel}${dataset} [Advisory only]`;
+                } else {
+                    embeddingInfo.textContent = 'Not available';
+                }
+            }
+            const embeddingArtifactInfo = document.getElementById('validationEmbeddingArtifactInfo');
+            if (embeddingArtifactInfo) {
+                const generatedAt = dash?.embeddingAdvisoryMeta?.generatedAt || '';
+                const sourceUrl = dash?.embeddingAdvisoryMeta?.sourceUrl || '';
+                if (generatedAt || sourceUrl) {
+                    const dateLabel = generatedAt ? new Date(generatedAt).toLocaleString() : 'unknown date';
+                    embeddingArtifactInfo.textContent = `${dateLabel}${sourceUrl ? ` (${sourceUrl})` : ''}`;
+                } else {
+                    embeddingArtifactInfo.textContent = 'Not available';
                 }
             }
             
@@ -935,7 +967,7 @@
     <script src="./js-compiled/audio.js"></script>
     <script src="./js-compiled/language-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
-    <script src="./dashboard.js"></script>
+    <script src="./dashboard.js?v=20260306-embeddingfix2"></script>
     <script src="./js-compiled/bootstrap.js"></script>
     
     <script>

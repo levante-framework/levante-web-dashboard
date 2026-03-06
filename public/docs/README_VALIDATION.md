@@ -262,14 +262,66 @@ python scripts/embedding_multidataset_model_compare.py \
   --output-prefix data/validation/embedding-model-compare
 ```
 
+### Run From The Same Crowdin XLIFF Pipeline
+
+To align embedding validation with the dashboard's Crowdin CSV/XLIFF merge source, first export merged CSVs from Crowdin XLIFF:
+
+```bash
+node scripts/export-crowdin-xliff-merged.js \
+  --approved-only \
+  --output-all data/validation/crowdin-xliff-merged.csv \
+  --output-surveys data/validation/crowdin-xliff-surveys.csv \
+  --output-itembank data/validation/crowdin-xliff-itembank.csv \
+  --output-dashboard data/validation/crowdin-xliff-dashboard.csv
+```
+
+Then run model compare against those generated files:
+
+```bash
+python scripts/embedding_multidataset_model_compare.py \
+  --dataset all \
+  --surveys-input-file data/validation/crowdin-xliff-surveys.csv \
+  --itembank-input-file data/validation/crowdin-xliff-itembank.csv \
+  --dashboard-input-file data/validation/crowdin-xliff-dashboard.csv \
+  --models intfloat/multilingual-e5-base,intfloat/multilingual-e5-large,sentence-transformers/LaBSE \
+  --device cuda \
+  --batch-size 256 \
+  --min-score 0.85 \
+  --warn-score 0.78 \
+  --output-prefix data/validation/embedding-model-compare
+```
+
 Outputs include:
 - Per-dataset files:
   - `data/validation/embedding-model-compare-surveys-summary.csv/json`
   - `data/validation/embedding-model-compare-surveys-details.csv`
   - `data/validation/embedding-model-compare-itembank-summary.csv/json`
   - `data/validation/embedding-model-compare-itembank-details.csv`
+  - `data/validation/embedding-model-compare-dashboard-summary.csv/json`
+  - `data/validation/embedding-model-compare-dashboard-details.csv`
 - Combined rollup:
   - `data/validation/embedding-model-compare-rollup-summary.csv/json`
+
+### Build Dashboard Advisory Artifact (Offline → Online)
+
+After the local compare run completes, build an advisory artifact for the web dashboard:
+
+```bash
+python scripts/build_embedding_advisory_artifact.py \
+  --input-prefix data/validation/embedding-model-compare-full \
+  --output-json data/validation/embedding-advisory.json
+```
+
+Upload it to the dev bucket so the online dashboard can load it:
+
+```bash
+gsutil cp data/validation/embedding-advisory.json \
+  gs://levante-assets-dev/validation/embedding-advisory.json
+```
+
+Notes:
+- Advisory data is display-only; it does not override current back-translation scoring.
+- Dashboard API endpoint: `/api/embedding-advisory` (reads `validation/embedding-advisory.json` by default).
 
 ### Notes
 

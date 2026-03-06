@@ -63,7 +63,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--dataset",
         default="both",
-        choices=["surveys", "itembank", "both"],
+        choices=["surveys", "itembank", "dashboard", "both", "all"],
         help="Dataset to run (default: both).",
     )
     p.add_argument(
@@ -85,6 +85,16 @@ def parse_args() -> argparse.Namespace:
         "--itembank-input-url",
         default="",
         help="Optional item bank CSV URL fallback if local file does not exist.",
+    )
+    p.add_argument(
+        "--dashboard-input-file",
+        default="",
+        help="Optional local dashboard CSV path.",
+    )
+    p.add_argument(
+        "--dashboard-input-url",
+        default="",
+        help="Optional dashboard CSV URL fallback if local file does not exist.",
     )
     p.add_argument("--source-col", default="en", help="Source language column (default: en).")
     p.add_argument(
@@ -188,6 +198,34 @@ def write_csv(path: Path, rows: List[Dict[str, object]]) -> None:
         writer.writerows(rows)
 
 
+def infer_content_type(row: Dict[str, str]) -> str:
+    raw = str(row.get("contentType") or row.get("content_type") or "").strip().lower()
+    if raw:
+        return raw
+    pathish = " ".join(
+        [
+            str(row.get("_path") or ""),
+            str(row.get("identifier") or ""),
+            str(row.get("item_id") or ""),
+        ]
+    ).lower()
+    if "/main/surveys/" in pathish or "/surveys/" in pathish:
+        return "survey"
+    if "/main/itembank_by_task/" in pathish or "itembank_by_task" in pathish:
+        return "itembank"
+    return ""
+
+
+def filter_rows_for_dataset(rows: List[Dict[str, str]], dataset: str) -> List[Dict[str, str]]:
+    dataset_key = "survey" if dataset == "surveys" else ("itembank" if dataset == "itembank" else "dashboard")
+    typed_rows = [row for row in rows if infer_content_type(row)]
+    # Keep legacy behavior for plain CSV inputs that do not include content type signals.
+    if not typed_rows:
+        return rows
+    filtered = [row for row in typed_rows if infer_content_type(row) == dataset_key]
+    return filtered
+
+
 def run_dataset(
     dataset: str,
     csv_text: str,
@@ -196,7 +234,8 @@ def run_dataset(
     device: str | None,
     strip_html: bool,
 ) -> Dict[str, object]:
-    rows = list(csv.DictReader(io.StringIO(csv_text)))
+    all_rows = list(csv.DictReader(io.StringIO(csv_text)))
+    rows = filter_rows_for_dataset(all_rows, dataset)
     if not rows:
         raise RuntimeError(f"No rows found for dataset '{dataset}'.")
     fieldnames = list(rows[0].keys())
@@ -237,7 +276,7 @@ def run_dataset(
     detail_rows: List[Dict[str, object]] = []
 
     print(f"\n=== Dataset: {dataset} ===")
-    print(f"Rows: {len(rows)} | Targets: {target_cols}")
+    print(f"Rows: {len(rows)} (from input rows: {len(all_rows)}) | Targets: {target_cols}")
     for model_name in models:
         print(f"\nLoading model: {model_name}")
         SentenceTransformer = get_sentence_transformer()
@@ -334,6 +373,7 @@ def run_dataset(
         "detail_rows": detail_rows,
         "best_by_target": best_by_target,
         "raw_row_count": len(rows),
+        "input_row_count": len(all_rows),
     }
 
 
@@ -346,7 +386,12 @@ def main() -> None:
     if not models:
         raise RuntimeError("No models specified.")
 
-    datasets = ["surveys", "itembank"] if args.dataset == "both" else [args.dataset]
+    if args.dataset == "both":
+        datasets = ["surveys", "itembank"]
+    elif args.dataset == "all":
+        datasets = ["surveys", "itembank", "dashboard"]
+    else:
+        datasets = [args.dataset]
     output_prefix = Path(args.output_prefix).expanduser().resolve()
     output_prefix.parent.mkdir(parents=True, exist_ok=True)
     strip_html = not args.no_strip_html
@@ -368,12 +413,20 @@ def main() -> None:
                 else args.surveys_input_url
             )
         else:
-            csv_text = fetch_csv_text(args.itembank_input_file, args.itembank_input_url, "itembank")
-            source_ref = (
-                str(Path(args.itembank_input_file).expanduser().resolve())
-                if args.itembank_input_file
-                else args.itembank_input_url
-            )
+            if dataset == "itembank":
+                csv_text = fetch_csv_text(args.itembank_input_file, args.itembank_input_url, "itembank")
+                source_ref = (
+                    str(Path(args.itembank_input_file).expanduser().resolve())
+                    if args.itembank_input_file
+                    else args.itembank_input_url
+                )
+            else:
+                csv_text = fetch_csv_text(args.dashboard_input_file, args.dashboard_input_url, "dashboard")
+                source_ref = (
+                    str(Path(args.dashboard_input_file).expanduser().resolve())
+                    if args.dashboard_input_file
+                    else args.dashboard_input_url
+                )
 
         result = run_dataset(dataset, csv_text, args, models, device, strip_html)
         result["input_source"] = source_ref
@@ -386,8 +439,13 @@ def main() -> None:
         summary_csv_path = Path(str(output_prefix) + "-summary.csv")
         summary_json_path = Path(str(output_prefix) + "-summary.json")
         details_csv_path = Path(str(output_prefix) + "-details.csv")
+        dataset_summary_csv_path = Path(str(output_prefix) + f"-{dataset}-summary.csv")
+        dataset_summary_json_path = Path(str(output_prefix) + f"-{dataset}-summary.json")
+        dataset_details_csv_path = Path(str(output_prefix) + f"-{dataset}-details.csv")
         write_csv(summary_csv_path, result["summary_rows"])  # type: ignore[arg-type]
         write_csv(details_csv_path, result["detail_rows"])  # type: ignore[arg-type]
+        write_csv(dataset_summary_csv_path, result["summary_rows"])  # type: ignore[arg-type]
+        write_csv(dataset_details_csv_path, result["detail_rows"])  # type: ignore[arg-type]
         summary_json_path.write_text(
             json.dumps(
                 {
@@ -403,11 +461,15 @@ def main() -> None:
             ),
             encoding="utf-8",
         )
+        dataset_summary_json_path.write_text(summary_json_path.read_text(encoding="utf-8"), encoding="utf-8")
         print("\nOutputs")
         print("-------")
         print(f"Summary CSV: {summary_csv_path}")
         print(f"Summary JSON: {summary_json_path}")
         print(f"Details CSV: {details_csv_path}")
+        print(f"{dataset} summary CSV: {dataset_summary_csv_path}")
+        print(f"{dataset} summary JSON: {dataset_summary_json_path}")
+        print(f"{dataset} details CSV: {dataset_details_csv_path}")
         return
 
     for dataset in datasets:

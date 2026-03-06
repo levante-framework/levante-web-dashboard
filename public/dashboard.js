@@ -27,6 +27,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
                 this.validation_results = {};
+                this.embeddingAdvisoryEnabled = (window.CONFIG?.embeddingAdvisoryEnabled !== false);
+                this.embeddingAdvisoryMeta = null;
+                this.embeddingAdvisoryByItem = {};
                 this.latestGeneratedAudio = null;
                 this.audioCopyright = DEFAULT_AUDIO_COPYRIGHT;
                 this.audioMetadataCache = new Map();
@@ -217,6 +220,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     
                     // Load validation results from previous sessions (but don't apply yet)
                     await this.loadValidationResults();
+                    await this.loadEmbeddingAdvisory();
                     
                     // Setup auto-save on page unload
                     this.setupAutoSave();
@@ -385,6 +389,110 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 for (let i = 0; i < aliases.length; i++) {
                     const alias = aliases[i];
                     if (byItem[alias]) return byItem[alias];
+                }
+                return null;
+            }
+
+            getEmbeddingAdvisoryUrls() {
+                const configured = window.CONFIG?.embeddingAdvisoryUrl;
+                if (Array.isArray(configured)) return configured.filter(Boolean);
+                if (typeof configured === 'string' && configured.trim()) return [configured.trim()];
+                return ['/api/embedding-advisory', './data/validation/embedding-advisory.json'];
+            }
+
+            async loadEmbeddingAdvisory() {
+                this.embeddingAdvisoryByItem = {};
+                this.embeddingAdvisoryMeta = null;
+                if (!this.embeddingAdvisoryEnabled) {
+                    console.log('Embedding advisory disabled by config.');
+                    return false;
+                }
+                const urls = this.getEmbeddingAdvisoryUrls();
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(url, { cache: 'no-store' });
+                        if (!response.ok) continue;
+                        const payload = await response.json();
+                        const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+                        if (!entries.length) continue;
+
+                        const index = {};
+                        const putIndex = (key, langCode, advisoryEntry) => {
+                            const normalizedKey = String(key || '').trim();
+                            if (!normalizedKey) return;
+                            if (!index[normalizedKey]) index[normalizedKey] = {};
+                            index[normalizedKey][langCode] = advisoryEntry;
+                            const lowerKey = normalizedKey.toLowerCase();
+                            if (!index[lowerKey]) index[lowerKey] = {};
+                            index[lowerKey][langCode] = advisoryEntry;
+                        };
+                        entries.forEach((entryRaw) => {
+                            const entry = entryRaw && typeof entryRaw === 'object' ? entryRaw : {};
+                            const itemId = String(entry.itemId || '').trim();
+                            const langCode = String(entry.langCode || '').trim();
+                            if (!itemId || !langCode) return;
+                            const advisoryEntry = {
+                                itemId,
+                                langCode,
+                                dataset: String(entry.dataset || ''),
+                                model: String(entry.model || ''),
+                                score: Number(entry.score),
+                                status: String(entry.status || ''),
+                                source: String(entry.source || 'embedding_offline'),
+                                advisoryOnly: true,
+                            };
+                            putIndex(itemId, langCode, advisoryEntry);
+                            // Dashboard/advisory IDs are often "path::key"; rows may only carry "key".
+                            if (itemId.includes('::')) {
+                                const tail = String(itemId.split('::').pop() || '').trim();
+                                if (tail) putIndex(tail, langCode, advisoryEntry);
+                            }
+                        });
+                        this.embeddingAdvisoryByItem = index;
+                        this.embeddingAdvisoryMeta = {
+                            sourceUrl: url,
+                            generatedAt: payload?.generatedAt || null,
+                            schemaVersion: payload?.schemaVersion || null,
+                            thresholds: payload?.thresholds || null,
+                            entryCount: entries.length,
+                            advisoryOnly: true,
+                        };
+                        console.log(`✅ Loaded embedding advisory entries: ${entries.length} from ${url}`);
+                        return true;
+                    } catch (error) {
+                        console.log(`Embedding advisory load skipped for ${url}:`, error?.message || error);
+                    }
+                }
+                console.log('No embedding advisory artifact found; continuing without advisory data.');
+                return false;
+            }
+
+            getEmbeddingAdvisoryEntry(itemId, langCode) {
+                const rawItemId = String(itemId || '').trim();
+                if (!rawItemId) return null;
+                const candidates = [rawItemId];
+                if (rawItemId.includes('::')) {
+                    candidates.push(String(rawItemId.split('::').pop() || '').trim());
+                }
+                candidates.push(rawItemId.toLowerCase());
+                if (rawItemId.includes('::')) {
+                    const tail = String(rawItemId.split('::').pop() || '').trim();
+                    if (tail) candidates.push(tail.toLowerCase());
+                }
+
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const langCandidates = [langCode, preferred, ...aliases]
+                    .map((code) => String(code || '').trim())
+                    .filter(Boolean);
+
+                for (let i = 0; i < candidates.length; i++) {
+                    const byItem = this.embeddingAdvisoryByItem?.[candidates[i]];
+                    if (!byItem) continue;
+                    for (let j = 0; j < langCandidates.length; j++) {
+                        const code = langCandidates[j];
+                        if (byItem[code]) return byItem[code];
+                    }
                 }
                 return null;
             }
@@ -2249,6 +2357,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let buttonText = 'Validate';
                     let scoreBadgeHtml = '';
                     let sourceBadgeHtml = '';
+                    let embeddingBadgeHtml = '';
+                    let embeddingRowHtml = '';
+                    let advisoryMismatchHtml = '';
                     let approvedHtml = '';
                     let scoreValue = -1;
                     const storedResult = this.getValidationEntry(itemId, langCode);
@@ -2274,6 +2385,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         : '';
                     if (storedResult && storedResult.score !== undefined) {
                         const scorePercent = Math.round((storedResult.score * 100) * 100) / 100;
+                        const scorePercentRounded = Math.round(scorePercent);
                         scoreValue = scorePercent;
                         if (scorePercent >= 85) {
                             statusClass = 'status-good';
@@ -2289,7 +2401,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             buttonText = '❌ View Issues';
                         }
                         const badgeColor = scorePercent >= 85 ? '#155724' : scorePercent >= 70 ? '#856404' : '#721c24';
-                        scoreBadgeHtml = `<span class="score-badge" style="color: ${badgeColor}">${scorePercent.toFixed(2)}%</span>`;
+                        scoreBadgeHtml = `<span class="score-badge" style="color: ${badgeColor}">${scorePercentRounded}%</span>`;
                         const scoreSource = String(
                             storedResult.scoreSource ||
                             (storedResult.manualApproved ? 'manual' : ((storedResult.aiUsed || Number.isFinite(Number(storedResult.aiScore))) ? 'ai' : 'calculated'))
@@ -2299,7 +2411,38 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         } else if (scoreSource === 'ai') {
                             sourceBadgeHtml = `<span class="score-source-badge" title="AI-refined score" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #0d47a1; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 1px 4px;">AI</span>`;
                         } else {
-                            sourceBadgeHtml = `<span class="score-source-badge" title="Calculated from back-translation overlap" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 1px 4px;">Calculated</span>`;
+                            sourceBadgeHtml = `<span class="score-source-badge" title="Calculated from back-translation overlap" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 1px 4px;">Calc</span>`;
+                        }
+                    }
+                    const advisory = this.getEmbeddingAdvisoryEntry(itemId, langCode);
+                    if (advisory && Number.isFinite(Number(advisory.score))) {
+                        const advisoryScorePercent = Number(advisory.score) * 100;
+                        const advisoryScoreRounded = Math.round(advisoryScorePercent);
+                        const advisoryStatus = String(advisory.status || '').toLowerCase();
+                        const advisoryColor =
+                            advisoryStatus === 'pass' ? '#0d47a1' :
+                            advisoryStatus === 'review' ? '#8a6d1a' :
+                            '#721c24';
+                        const advisoryBg =
+                            advisoryStatus === 'pass' ? '#e3f2fd' :
+                            advisoryStatus === 'review' ? '#fff8e1' :
+                            '#fdecea';
+                        const advisoryLabel = advisoryStatus ? advisoryStatus.toUpperCase() : 'N/A';
+                        const advisoryTitle = `Embedding advisory (${advisory.model || 'unknown model'}) ${advisoryScorePercent.toFixed(2)}%`;
+                        embeddingBadgeHtml = `<span class="embedding-advisory-badge" title="${escapeHtml(advisoryTitle)}" style="font-size: 10px; font-weight: 700; margin-left: 4px; color: ${advisoryColor}; background: ${advisoryBg}; border: 1px solid rgba(0,0,0,0.12); border-radius: 3px; padding: 1px 4px;">Emb ${advisoryScoreRounded}% (${advisoryLabel})</span>`;
+                        const rowStatusClass =
+                            advisoryStatus === 'pass' ? 'embedding-row-pass' :
+                            advisoryStatus === 'review' ? 'embedding-row-review' :
+                            'embedding-row-fail';
+                        const advisoryDataset = advisory.dataset ? ` ${escapeHtml(String(advisory.dataset).toUpperCase())}` : '';
+                        const advisoryModel = advisory.model ? ` · ${escapeHtml(String(advisory.model))}` : '';
+                        embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}${advisoryModel}"><span class="item-embedding-label">Embedding${advisoryDataset}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
+                        if (storedResult && Number.isFinite(Number(storedResult.score))) {
+                            const backtranslationPercent = Number(storedResult.score) * 100;
+                            const btStatus = backtranslationPercent >= 85 ? 'pass' : (backtranslationPercent >= 70 ? 'review' : 'fail');
+                            if (advisoryStatus && btStatus !== advisoryStatus) {
+                                advisoryMismatchHtml = `<span class="embedding-mismatch-badge" title="Back-translation and embedding advisory disagree" style="font-size: 10px; font-weight: 700; margin-left: 4px; color: #b71c1c; background: #ffebee; border: 1px solid #ef9a9a; border-radius: 3px; padding: 1px 4px;">Mismatch</span>`;
+                            }
                         }
                     }
                     const manualApproved = !!storedResult?.manualApproved;
@@ -2325,6 +2468,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 <span class="item-task" title="${escapedTaskName}">${escapedTaskName}</span>
                                 <span class="item-type" title="${escapedTypeName}">${escapedTypeName}</span>
                             </div>
+                            ${embeddingRowHtml}
                         </div>
                         <div class="item-english">
                             <div class="item-english-source">${escapedOriginalText}</div>
@@ -2334,10 +2478,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             ${escapedDisplayText}
                             <div class="validation-status">
                                 <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}" ${indicatorOnClick}></div>
-                                <button class="validate-btn" onclick="${validateOnClick}">${buttonText}</button>
-                                <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
+                                <div class="validation-action-buttons">
+                                    <button class="validate-btn" onclick="${validateOnClick}">${buttonText}</button>
+                                    <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
+                                </div>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
+                                ${embeddingBadgeHtml}
+                                ${advisoryMismatchHtml}
                                 <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
                                 ${approvedHtml}
                             </div>
