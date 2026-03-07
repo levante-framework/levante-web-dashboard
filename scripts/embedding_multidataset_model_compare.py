@@ -36,6 +36,20 @@ DEFAULT_MODELS = [
 LANG_COL_RE = re.compile(r"^[a-z]{2}(?:[-_][A-Za-z]{2})?$", re.I)
 HTML_TAG_RE = re.compile(r"<[^>]+>")
 SPACE_RE = re.compile(r"\s+")
+CANONICAL_LANG = {
+    "en": "en",
+    "en-us": "en-US",
+    "en-gb": "en-GB",
+    "en-gh": "en-GH",
+    "de": "de",
+    "de-de": "de-DE",
+    "de-ch": "de-CH",
+    "es-co": "es-CO",
+    "es-ar": "es-AR",
+    "fr-ca": "fr-CA",
+    "pt-pt": "pt-PT",
+    "pt-br": "pt-BR",
+}
 
 
 def get_sentence_transformer() -> Any:
@@ -136,19 +150,54 @@ def fetch_csv_text(input_file: str, input_url: str, label: str) -> str:
     raise RuntimeError(f"No readable input for dataset '{label}'.")
 
 
+def canonical_lang_code(code: str) -> str:
+    token = str(code or "").strip().replace("_", "-")
+    if not token:
+        return ""
+    lowered = token.lower()
+    return CANONICAL_LANG.get(lowered, token)
+
+
+def get_row_text_for_lang(row: Dict[str, str], lang_code: str) -> str:
+    wanted = canonical_lang_code(lang_code)
+    if not wanted:
+        return ""
+    # Direct key lookup first.
+    direct = row.get(wanted, "")
+    if str(direct or "").strip():
+        return str(direct)
+    # Canonicalized case-insensitive fallback.
+    for key, value in row.items():
+        if canonical_lang_code(key) == wanted:
+            return str(value or "")
+    return ""
+
+
 def resolve_target_columns(fieldnames: Sequence[str], source_col: str, target_cols_arg: str) -> List[str]:
     if target_cols_arg.strip().lower() != "auto":
-        return [c.strip() for c in target_cols_arg.split(",") if c.strip()]
+        dedup = []
+        seen = set()
+        for col in [c.strip() for c in target_cols_arg.split(",") if c.strip()]:
+            canonical = canonical_lang_code(col)
+            if canonical and canonical not in seen:
+                seen.add(canonical)
+                dedup.append(canonical)
+        return dedup
     targets: List[str] = []
+    seen: set[str] = set()
+    source_canonical = canonical_lang_code(source_col)
     for col in fieldnames:
         if not LANG_COL_RE.match(col or ""):
             continue
-        col_l = col.lower()
-        if col_l == source_col.lower():
+        canonical = canonical_lang_code(col)
+        if not canonical:
             continue
-        if col_l.startswith("en"):
+        if canonical == source_canonical:
             continue
-        targets.append(col)
+        if canonical in seen:
+            continue
+        seen.add(canonical)
+        targets.append(canonical)
     return targets
 
 
@@ -253,8 +302,8 @@ def run_dataset(
         src_texts: List[str] = []
         tgt_texts: List[str] = []
         for row in rows:
-            src = normalize_text(row.get(source_col, ""), strip_html=strip_html)
-            tgt = normalize_text(row.get(lang, ""), strip_html=strip_html)
+            src = normalize_text(get_row_text_for_lang(row, source_col), strip_html=strip_html)
+            tgt = normalize_text(get_row_text_for_lang(row, lang), strip_html=strip_html)
             if not src or not tgt:
                 continue
             rid = (

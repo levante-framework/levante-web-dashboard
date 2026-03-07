@@ -11,7 +11,9 @@ const DEFAULT_PROJECT_ID = '756721';
 
 const LANG_ID_TO_CODE = {
   en: 'en',
-  'en-us': 'en',
+  'en-us': 'en-US',
+  'en-gb': 'en-GB',
+  'en-gh': 'en-GH',
   'es-co': 'es-CO',
   es: 'es-CO',
   'es-ar': 'es-AR',
@@ -21,8 +23,8 @@ const LANG_ID_TO_CODE = {
   'fr-ca': 'fr-CA',
   fr: 'fr-CA',
   nl: 'nl',
-  'en-gh': 'en-GH',
   'pt-pt': 'pt-PT',
+  'pt-br': 'pt-BR',
 };
 
 function parseArgs(argv) {

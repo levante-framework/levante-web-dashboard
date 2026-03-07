@@ -362,8 +362,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const aliasMap = {
                     'en': ['en', 'en-US'],
                     'en-us': ['en', 'en-US'],
+                    'en-gb': ['en-GB', 'en-gb'],
+                    'en-gh': ['en-GH', 'en-gh'],
                     'de': ['de', 'de-DE'],
-                    'de-de': ['de', 'de-DE']
+                    'de-de': ['de', 'de-DE'],
+                    'pt-br': ['pt-BR', 'pt-br'],
+                    'pt-pt': ['pt-PT', 'pt-pt']
                 };
                 (aliasMap[lower] || []).forEach((code) => out.add(code));
                 return Array.from(out);
@@ -2336,7 +2340,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         const match = keys.find(k => k.toLowerCase() === langCode.toLowerCase());
                         text = match ? item[match] : null;
                     }
-                    if (!text) text = item.en || 'No translation available';
+                    const hasTranslatedText = !!String(text || '').trim();
+                    if (!text) text = 'Missing translation';
+                    const isSourceEnglishTab = String(langCode).split('-')[0].toLowerCase() === 'en';
+                    const canValidateTranslation = isSourceEnglishTab || hasTranslatedText;
                 
                     const row = document.createElement('div');
                     row.className = 'data-row';
@@ -2376,14 +2383,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const escapedTypeName = escapeHtml(String(contentType));
                     const escapedOriginalText = escapeHtml(String(originalEnglish || ''));
                     const escapedDisplayText = escapeHtml(String(text || ''));
-                    const hasStoredScore = !!(storedResult && storedResult.score !== undefined);
+                    const hasStoredScore = !!(storedResult && storedResult.score !== undefined) && canValidateTranslation;
                     const validateOnClick = hasStoredScore
                         ? `(window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}'))`
-                        : `if (window.validateByItemId) { window.validateByItemId('${escapedItemId}', '${langCode}'); } else { validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}'); }`;
+                        : (canValidateTranslation
+                            ? `if (window.validateByItemId) { window.validateByItemId('${escapedItemId}', '${langCode}'); } else { validateSingle('${escapedItemId}', '${escapedOriginal}', '${escapedTranslation}', '${langCode}'); }`
+                            : `return false;`);
                     const indicatorOnClick = hasStoredScore
                         ? `onclick="window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}')" style="cursor: pointer;"`
                         : '';
-                    if (storedResult && storedResult.score !== undefined) {
+                    if (storedResult && storedResult.score !== undefined && canValidateTranslation) {
                         const scorePercent = Math.round((storedResult.score * 100) * 100) / 100;
                         const scorePercentRounded = Math.round(scorePercent);
                         scoreValue = scorePercent;
@@ -2413,6 +2422,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         } else {
                             sourceBadgeHtml = `<span class="score-source-badge" title="Calculated from back-translation overlap" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 1px 4px;">Calc</span>`;
                         }
+                    }
+                    if (!canValidateTranslation) {
+                        statusClass = 'status-pending';
+                        statusTitle = `Missing ${langCode} translation`;
+                        buttonText = 'Missing';
                     }
                     const advisory = this.getEmbeddingAdvisoryEntry(itemId, langCode);
                     if (advisory && Number.isFinite(Number(advisory.score))) {
@@ -2479,7 +2493,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             <div class="validation-status">
                                 <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}" ${indicatorOnClick}></div>
                                 <div class="validation-action-buttons">
-                                    <button class="validate-btn" onclick="${validateOnClick}">${buttonText}</button>
+                                    <button class="validate-btn" onclick="${validateOnClick}" ${canValidateTranslation ? '' : 'disabled'}>${buttonText}</button>
                                     <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
                                 </div>
                                 ${scoreBadgeHtml}

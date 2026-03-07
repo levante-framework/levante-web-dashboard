@@ -344,6 +344,17 @@ function showStoredValidationResult(itemId, langCode) {
     }
 }
 
+function resolveTranslatedTextForLang(item, langCode) {
+    if (!item) return '';
+    let translatedText = item[langCode];
+    if (!translatedText && String(langCode).includes('-')) translatedText = item[String(langCode).split('-')[0]];
+    if (!translatedText) {
+        const key = Object.keys(item).find((k) => k.toLowerCase() === String(langCode).toLowerCase());
+        translatedText = key ? item[key] : '';
+    }
+    return toPlainValidationText(String(translatedText || ''));
+}
+
 function validateByItemId(itemId, langCode) {
     const dashboard = window.dashboard;
     if (!dashboard || !Array.isArray(dashboard.data)) return;
@@ -354,14 +365,13 @@ function validateByItemId(itemId, langCode) {
         return false;
     }
     const originalText = toPlainValidationText(item.en || '');
-    let translatedText = item[langCode];
-    if (!translatedText && String(langCode).includes('-')) translatedText = item[String(langCode).split('-')[0]];
-    if (!translatedText) {
-        const key = Object.keys(item).find((k) => k.toLowerCase() === String(langCode).toLowerCase());
-        translatedText = key ? item[key] : '';
+    const translatedText = resolveTranslatedTextForLang(item, langCode);
+    const isSourceEnglish = String(langCode).split('-')[0].toLowerCase() === 'en';
+    if (!isSourceEnglish && !translatedText) {
+        dashboard.setStatus(`⚠️ Missing ${langCode} translation for ${targetId}; skipped validation.`, 'warning');
+        return false;
     }
-    if (!translatedText) translatedText = originalText;
-    validateSingle(targetId, toPlainValidationText(originalText || ''), toPlainValidationText(translatedText || ''), langCode);
+    validateSingle(targetId, toPlainValidationText(originalText || ''), translatedText, langCode);
     return true;
 }
 
@@ -502,6 +512,7 @@ async function validateAll() {
     const visibleRows = Array.from(currentTable.querySelectorAll('.data-row'));
     const jobs = [];
     let skippedAlreadyValidated = 0;
+    let skippedMissingTranslation = 0;
     visibleRows.forEach(row => {
         const itemId = String(row.dataset.itemId || '');
         if (!itemId) return;
@@ -513,15 +524,14 @@ async function validateAll() {
         }
         const item = itemById.get(itemId);
         if (!item) return;
-        let translatedText = item[langCode];
-        if (!translatedText && langCode.includes('-')) translatedText = item[langCode.split('-')[0]];
-        if (!translatedText) {
-            const key = Object.keys(item).find(k => k.toLowerCase() === langCode.toLowerCase());
-            translatedText = key ? item[key] : '';
+        const translatedText = resolveTranslatedTextForLang(item, langCode);
+        const isSourceEnglish = String(langCode).split('-')[0].toLowerCase() === 'en';
+        if (!isSourceEnglish && !translatedText) {
+            skippedMissingTranslation++;
+            return;
         }
-        if (!translatedText) translatedText = item.en || '';
         const cleanOriginalText = toPlainValidationText(item.en || '');
-        const cleanTranslatedText = toPlainValidationText(String(translatedText || ''));
+        const cleanTranslatedText = translatedText;
         jobs.push({
             itemId,
             originalText: cleanOriginalText,
@@ -534,7 +544,7 @@ async function validateAll() {
         if (forceAll) {
             alert('No translations available to validate in the current language/filter.');
         } else {
-            alert('No pending translations to validate in the current language/filter.');
+            alert('No pending translations to validate in the current language/filter (or translations are missing).');
         }
         return;
     }
@@ -544,9 +554,10 @@ async function validateAll() {
     const concurrency = tuning.concurrency;
     const actionLabel = forceAll ? 're-validate' : 'validate';
     const skippedCount = forceAll ? 0 : skippedAlreadyValidated;
+    const skippedMissing = forceAll ? 0 : skippedMissingTranslation;
     if (confirm(
         `This will ${actionLabel} ${jobs.length} ${currentLanguage.toUpperCase()} translations ` +
-        `(${skippedCount} already validated skipped).\n` +
+        `(${skippedCount} already validated skipped${skippedMissing ? `, ${skippedMissing} missing translation skipped` : ''}).\n` +
         `Mode: ${speedMode.toUpperCase()} | Concurrency: ${concurrency} | Delay: ${perItemDelayMs}ms\n\nContinue?`
     )) {
         validationRunState.active = true;
