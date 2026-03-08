@@ -1,5 +1,5 @@
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || null;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
 
 function toNumberInRange(value, min, max, fallback) {
   const n = Number(value);
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       return;
     }
     if (!OPENAI_API_KEY) {
-      res.status(200).json({ ok: false, skipped: true, reason: 'OPENAI_API_KEY not configured' });
+      res.status(200).json({ ok: false, skipped: true, reason: 'OPENAI_API_KEY not configured', modelUsed: OPENAI_MODEL });
       return;
     }
 
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      res.status(200).json({ ok: false, skipped: true, reason: `OpenAI error: ${response.status}`, details: errorText });
+      res.status(200).json({ ok: false, skipped: true, reason: `OpenAI error: ${response.status}`, details: errorText, modelUsed: OPENAI_MODEL });
       return;
     }
 
@@ -81,17 +81,18 @@ export default async function handler(req, res) {
 
     const aiScore = toNumberInRange(parsed?.ai_score, 0, 100, null);
     if (aiScore == null) {
-      res.status(200).json({ ok: false, skipped: true, reason: 'Could not parse ai_score', raw });
+      res.status(200).json({ ok: false, skipped: true, reason: 'Could not parse ai_score', raw, modelUsed: OPENAI_MODEL });
       return;
     }
 
     res.status(200).json({
       ok: true,
       ai_score: aiScore,
-      notes: typeof parsed?.notes === 'string' ? parsed.notes : ''
+      notes: typeof parsed?.notes === 'string' ? parsed.notes : '',
+      modelUsed: OPENAI_MODEL
     });
   } catch (error) {
-    res.status(500).json({ error: 'AI judge failed', details: error.message || String(error) });
+    res.status(500).json({ error: 'AI judge failed', details: error.message || String(error), modelUsed: OPENAI_MODEL });
   }
 }
 

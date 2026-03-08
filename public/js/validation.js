@@ -151,8 +151,8 @@ async function checkAiJudgeHealth(force = false) {
 async function runAiJudge({ originalText, translatedText, backTranslation, langCode, baseScore }) {
     const mode = getAiJudgeMode();
     // Hybrid mode runs AI judge only for borderline scores.
-    if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < 60 || baseScore > 85)) {
-        return { used: false };
+    if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < 20 || baseScore > 90)) {
+        return { used: false, modelUsed: null };
     }
     try {
         const resp = await fetch('/api/translation-ai-judge', {
@@ -160,23 +160,23 @@ async function runAiJudge({ originalText, translatedText, backTranslation, langC
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ originalText, translatedText, backTranslation, langCode })
         });
-        if (!resp.ok) return { used: false };
+        if (!resp.ok) return { used: false, modelUsed: null };
         const data = await resp.json();
         if (!data || data.ok !== true || typeof data.ai_score !== 'number') {
             // Keep noisy warnings out of UI, but log useful reasons once we get data.
             if (data && data.reason) console.warn('AI judge skipped:', data.reason);
-            return { used: false };
+            return { used: false, modelUsed: data?.modelUsed || null };
         }
         const aiScore = Math.round(Number(data.ai_score) * 100) / 100;
         // In AI-only mode, use direct AI score (no baseline blending).
         if (mode === 'all') {
-            return { used: true, aiScore, finalScore: aiScore, aiNotes: data.notes || '' };
+            return { used: true, aiScore, finalScore: aiScore, aiNotes: data.notes || '', modelUsed: data.modelUsed || null };
         }
         // Hybrid mode blends baseline + AI score for continuity.
         const blended = Math.round((0.6 * baseScore + 0.4 * aiScore) * 100) / 100;
-        return { used: true, aiScore, finalScore: blended, aiNotes: data.notes || '' };
+        return { used: true, aiScore, finalScore: blended, aiNotes: data.notes || '', modelUsed: data.modelUsed || null };
     } catch (_) {
-        return { used: false };
+        return { used: false, modelUsed: null };
     }
 }
 
@@ -188,7 +188,7 @@ function inferScoreSource(result) {
     return '';
 }
 
-function ensureScoreSourceBadge(containerEl, source) {
+function ensureScoreSourceBadge(containerEl, source, aiModel = '') {
     if (!containerEl) return;
     let badge = containerEl.querySelector('.score-source-badge');
     if (!source) {
@@ -208,8 +208,9 @@ function ensureScoreSourceBadge(containerEl, source) {
         badge.style.background = '#f3e5f5';
         badge.style.border = '1px solid #ce93d8';
     } else if (source === 'ai') {
-        badge.textContent = 'AI';
-        badge.title = 'AI-refined score';
+        const modelName = String(aiModel || 'gpt-4.1').trim();
+        badge.textContent = modelName ? `AI ${modelName}` : 'AI';
+        badge.title = modelName ? `AI-refined score via ${modelName}` : 'AI-refined score';
         badge.style.color = '#0d47a1';
         badge.style.background = '#e3f2fd';
         badge.style.border = '1px solid #90caf9';
@@ -315,7 +316,7 @@ function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
     scoreBadge.textContent = `${score.toFixed(2)}%`;
     scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
 
-    ensureScoreSourceBadge(statusWrap, inferScoreSource(result));
+    ensureScoreSourceBadge(statusWrap, inferScoreSource(result), result?.aiModel || '');
     syncApprovedRowUi(row, !!result.manualApproved);
 
     if (button) {
@@ -813,7 +814,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         const aiMode = getAiJudgeMode();
         let backTranslation = '';
         let baselineScore = null;
-        let aiJudge = { used: false, aiScore: null, finalScore: null, aiNotes: '' };
+        let aiJudge = { used: false, aiScore: null, finalScore: null, aiNotes: '', modelUsed: null };
         let score = null;
 
         // Fast path: AI-only mode skips Google back-translation.
@@ -894,6 +895,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             aiScore: aiJudge.used ? aiJudge.aiScore : null,
             aiUsed: aiJudge.used === true,
             aiNotes: aiJudge.used ? aiJudge.aiNotes : '',
+            aiModel: aiJudge.used ? (aiJudge.modelUsed || '') : '',
             scoreSource: aiJudge.used ? 'ai' : 'calculated',
             manualApproved: false,
             needsReview: !!existingResult.needsReview,
@@ -963,7 +965,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         scoreBadge.textContent = `${score}%`;
         scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
 
-        ensureScoreSourceBadge(indicator.parentElement, aiJudge.used ? 'ai' : 'calculated');
+        ensureScoreSourceBadge(indicator.parentElement, aiJudge.used ? 'ai' : 'calculated', aiJudge.modelUsed || '');
 
         console.log('✅ Updated validation UI:', {
             indicatorClass: indicator.className,

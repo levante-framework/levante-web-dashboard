@@ -2418,7 +2418,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (scoreSource === 'manual') {
                             sourceBadgeHtml = `<span class="score-source-badge" title="Manually approved" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #4a148c; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 3px; padding: 1px 4px;">Manual</span>`;
                         } else if (scoreSource === 'ai') {
-                            sourceBadgeHtml = `<span class="score-source-badge" title="AI-refined score" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #0d47a1; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 1px 4px;">AI</span>`;
+                            const aiModelName = String(storedResult.aiModel || 'gpt-4.1').trim();
+                            const aiBadgeText = aiModelName ? `AI ${escapeHtml(aiModelName)}` : 'AI';
+                            const aiTitle = aiModelName ? `AI-refined score via ${escapeHtml(aiModelName)}` : 'AI-refined score';
+                            sourceBadgeHtml = `<span class="score-source-badge" title="${aiTitle}" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #0d47a1; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 1px 4px;">${aiBadgeText}</span>`;
                         } else {
                             sourceBadgeHtml = `<span class="score-source-badge" title="Calculated from back-translation overlap" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 1px 4px;">Calc</span>`;
                         }

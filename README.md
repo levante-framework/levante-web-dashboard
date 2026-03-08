@@ -181,7 +181,7 @@ Required/optional keys used by current translation and AI features:
 - `CROWDIN_API_TOKEN` – Crowdin API token for translation export endpoints
 - `LEVANTE_TRANSLATIONS_PROJECT_ID` – optional Crowdin project ID (defaults to `756721`)
 - `OPENAI_API_KEY` – enables AI-assisted translation judging
-- `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4o-mini`)
+- `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4.1`)
 
 ### Version Management
 

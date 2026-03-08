@@ -444,7 +444,10 @@
                 if (safeResult.aiUsed) {
                     const base = Number.isFinite(Number(safeResult.baselineScore)) ? Number(safeResult.baselineScore).toFixed(2) : 'n/a';
                     const ai = Number.isFinite(Number(safeResult.aiScore)) ? Number(safeResult.aiScore).toFixed(2) : 'n/a';
-                    aiInfo.textContent = `Yes (baseline ${base}%, AI ${ai}%)`;
+                    const aiModel = String(safeResult.aiModel || '').trim();
+                    aiInfo.textContent = aiModel
+                        ? `Yes (baseline ${base}%, AI ${ai}% via ${aiModel})`
+                        : `Yes (baseline ${base}%, AI ${ai}%)`;
                 } else {
                     aiInfo.textContent = 'No';
                 }

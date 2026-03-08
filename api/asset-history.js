@@ -11,7 +11,7 @@ const SURVEY_PATH_PREFIX = process.env.SURVEY_PATH_PREFIX || 'translations/xliff
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GITHUB_PAT || null;
 const GITHUB_USER_AGENT = 'levante-dashboard-asset-history';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || null;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4.1';
 
 const LOCALE_LABELS = {
     'de': 'German',
