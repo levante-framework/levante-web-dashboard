@@ -40,6 +40,7 @@
   "license": "MIT",
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
+    "@google/generative-ai": "^0.24.1",
     "@levante-framework/levante-zod": "^1.0.6",
     "@turf/area": "^7.3.0",
     "@turf/boolean-point-in-polygon": "^7.3.0",
