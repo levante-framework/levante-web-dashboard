@@ -382,6 +382,10 @@
 
         .search-container {
             margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
         .search-box {
@@ -433,6 +437,38 @@
         .search-clear:hover {
             background: #f4f4f5;
             color: #27272a;
+        }
+
+        .task-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            border: 2px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .task-filter label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #52525b;
+            white-space: nowrap;
+        }
+
+        .task-filter select {
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            color: #27272a;
+            min-width: 220px;
+            font-family: inherit;
+        }
+
+        .task-filter:focus-within {
+            border-color: #da3d16;
+            box-shadow: 0 0 0 3px rgba(218, 61, 22, 0.1);
         }
 
         .tab-button {
@@ -1122,6 +1158,21 @@
             .language-select select {
                 width: 100%;
             }
+
+            .search-container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .task-filter {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .task-filter select {
+                min-width: 0;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -1240,6 +1291,12 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
+            <div class="task-filter">
+                <label for="taskFilterSelect"><i class="fas fa-filter"></i> Task</label>
+                <select id="taskFilterSelect" onchange="dashboard.handleTaskFilterChange(this.value)">
+                    <option value="__all__">All tasks</option>
+                </select>
+            </div>
         </div>
         <div class="tab-content active" id="tabContentPending">
             <div class="items-list" id="itemsList">
@@ -1312,6 +1369,7 @@
                 this.latestGeneratedAudio = null;
                 this.pendingSaveKey = null;
                 this.currentSearchQuery = ''; // Current search filter
+                this.currentTaskFilter = '__all__'; // Current task filter
                 this.audioBuckets = {
                     draft: 'levante-assets-draft',
                     dev: 'levante-assets-dev'
@@ -1333,6 +1391,102 @@
                 this.crowdinAuthData = null; // Store Crowdin auth response
                 
                 this.init();
+            }
+
+            getTaskFilterStorageKey(langCode) {
+                const normalized = String(langCode || '').trim().toLowerCase();
+                return normalized
+                    ? `partnerAudioTaskFilter::${normalized}`
+                    : 'partnerAudioTaskFilter::global';
+            }
+
+            extractTaskName(item) {
+                if (!item || typeof item !== 'object') return 'Uncategorized';
+                const directCandidates = [
+                    item.task,
+                    item.labels,
+                    item.task_name,
+                    item.taskName,
+                    item.label,
+                    item.module
+                ];
+                for (const value of directCandidates) {
+                    const text = String(value || '').trim();
+                    if (text) return text;
+                }
+
+                const keys = Object.keys(item);
+                const keyMatch = keys.find((key) => /task|label|module|section|category/i.test(key));
+                if (keyMatch) {
+                    const text = String(item[keyMatch] || '').trim();
+                    if (text) return text;
+                }
+
+                const itemId = String(item.item_id || '').trim();
+                if (itemId.includes('::')) {
+                    const [path] = itemId.split('::');
+                    if (path && path.includes('/')) {
+                        const segments = path.split('/').filter(Boolean);
+                        if (segments.length > 0) {
+                            return segments[segments.length - 1];
+                        }
+                    }
+                    return path || 'Uncategorized';
+                }
+                return 'Uncategorized';
+            }
+
+            getTaskFilterOptions(items) {
+                const taskSet = new Set();
+                (Array.isArray(items) ? items : []).forEach((item) => {
+                    taskSet.add(this.extractTaskName(item));
+                });
+                return Array.from(taskSet).sort((a, b) => a.localeCompare(b));
+            }
+
+            applyTaskFilterToItems(items) {
+                const list = Array.isArray(items) ? items : [];
+                if (!this.currentTaskFilter || this.currentTaskFilter === '__all__') return list;
+                return list.filter((item) => this.extractTaskName(item) === this.currentTaskFilter);
+            }
+
+            populateTaskFilter(items) {
+                const select = document.getElementById('taskFilterSelect');
+                if (!select) return;
+
+                const options = this.getTaskFilterOptions(items);
+                const storageKey = this.getTaskFilterStorageKey(this.currentLangCode);
+                const saved = String(localStorage.getItem(storageKey) || '__all__');
+                const requested = this.currentTaskFilter && this.currentTaskFilter !== '__all__'
+                    ? this.currentTaskFilter
+                    : saved;
+                const hasRequested = requested !== '__all__' && options.includes(requested);
+                this.currentTaskFilter = hasRequested ? requested : '__all__';
+
+                while (select.firstChild) {
+                    select.removeChild(select.firstChild);
+                }
+
+                const allOption = document.createElement('option');
+                allOption.value = '__all__';
+                allOption.textContent = `All tasks (${options.length})`;
+                select.appendChild(allOption);
+
+                options.forEach((taskName) => {
+                    const option = document.createElement('option');
+                    option.value = taskName;
+                    option.textContent = taskName;
+                    select.appendChild(option);
+                });
+
+                select.value = this.currentTaskFilter;
+                select.disabled = options.length === 0;
+
+                if (this.currentTaskFilter === '__all__') {
+                    localStorage.removeItem(storageKey);
+                } else {
+                    localStorage.setItem(storageKey, this.currentTaskFilter);
+                }
             }
 
             resolveLanguageKey(languageName) {
@@ -2652,6 +2806,7 @@
                     const text = this.getTextForItem(item, this.currentLangCode);
                     return text && text.trim();
                 });
+                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
                 
                 const [draftInfo, devInfo] = await Promise.all([
                     this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode),
@@ -2659,13 +2814,13 @@
                 ]);
                 const combinedIds = new Set([...draftInfo.ids, ...devInfo.ids]);
                 
-                const itemsWithoutAudio = await this.getItemsWithoutAudio(withTranslations);
-                const total = withTranslations.length;
+                const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
+                const total = taskFilteredTranslations.length;
                 const noAudio = itemsWithoutAudio.length;
                 let approved = 0;
                 let pending = 0;
                 
-                withTranslations.forEach(item => {
+                taskFilteredTranslations.forEach(item => {
                     const baseId = this.extractBaseId(item.item_id || '');
                     if (!baseId || !combinedIds.has(baseId)) {
                         return;
@@ -2980,21 +3135,23 @@
                 
                 // Then check which items have audio files
                 this.setStatus(`Checking audio availability for ${withTranslations.length} items...`, 'loading');
+                this.populateTaskFilter(withTranslations);
+                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
                 
                 // Get all items with audio (both draft and dev buckets) for stats
-                const allItemsWithAudio = await this.getAllItemsWithAudio(withTranslations);
+                const allItemsWithAudio = await this.getAllItemsWithAudio(taskFilteredTranslations);
                 
                 // Filter based on current tab
                 let itemsToShow;
                 if (this.currentTab === 'approved') {
                     // For approved tab, get items from dev bucket
-                    itemsToShow = await this.getApprovedItemsFromDev(withTranslations);
+                    itemsToShow = await this.getApprovedItemsFromDev(taskFilteredTranslations);
                 } else if (this.currentTab === 'noaudio') {
                     // For no audio tab, get items without audio
-                    itemsToShow = await this.getItemsWithoutAudio(withTranslations);
+                    itemsToShow = await this.getItemsWithoutAudio(taskFilteredTranslations);
                 } else {
                     // For pending tab, get items from draft bucket (excluding approved)
-                    itemsToShow = await this.filterItemsWithAudio(withTranslations);
+                    itemsToShow = await this.filterItemsWithAudio(taskFilteredTranslations);
                 }
                 
                 console.log(`Found ${allItemsWithAudio.length} total items with audio (${itemsToShow.length} shown in ${this.currentTab} tab)`);
@@ -3014,7 +3171,7 @@
                 } else {
                     await this.renderPendingItems(itemsToShow);
                     if (itemsToShow.length === 0 && allItemsWithAudio.length > 0) {
-                        const approvedItemsList = await this.getApprovedItemsFromDev(withTranslations);
+                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
                         if (approvedItemsList.length > 0) {
                             await this.switchTab('approved');
                             this.setStatus(
@@ -3272,7 +3429,8 @@
                         const text = this.getTextForItem(item, this.currentLangCode);
                         return text && text.trim();
                     });
-                    const pendingItems = await this.filterItemsWithAudio(withTranslations);
+                    const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
+                    const pendingItems = await this.filterItemsWithAudio(taskFilteredTranslations);
                     if (!pendingItems.length) {
                         this.setStatus(`No pending audio items to approve for ${this.currentLanguage}.`, 'info');
                         return;
@@ -3362,23 +3520,25 @@
                     const text = this.getTextForItem(item, this.currentLangCode);
                     return text && text.trim();
                 });
+                this.populateTaskFilter(withTranslations);
+                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
                 
                 if (this.currentTab === 'approved') {
                     // For approved tab, get items from dev bucket
-                    const approvedItemsList = await this.getApprovedItemsFromDev(withTranslations);
+                    const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
                     this.renderApprovedItems(approvedItemsList);
                     this.setStatus(`Showing ${approvedItemsList.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
                     // For no audio tab, get items without audio files
-                    const itemsWithoutAudio = await this.getItemsWithoutAudio(withTranslations);
+                    const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
                     this.renderNoAudioItems(itemsWithoutAudio);
                     this.setStatus(`Showing ${itemsWithoutAudio.length} items without audio`, 'success');
                 } else {
                     // For pending tab, get items from draft bucket (excluding approved)
-                    const itemsWithAudio = await this.filterItemsWithAudio(withTranslations);
+                    const itemsWithAudio = await this.filterItemsWithAudio(taskFilteredTranslations);
                     await this.renderPendingItems(itemsWithAudio);
                     if (itemsWithAudio.length === 0) {
-                        const approvedItemsList = await this.getApprovedItemsFromDev(withTranslations);
+                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
                         this.setStatus(
                             `Showing 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved (-dev).`,
                             'info'
@@ -3866,7 +4026,8 @@
                             const text = this.getTextForItem(item, this.currentLangCode);
                             return text && text.trim();
                         });
-                        const itemsWithoutAudio = await this.getItemsWithoutAudio(withTranslations);
+                        const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
+                        const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
                         this.renderNoAudioItems(itemsWithoutAudio);
                     } else {
                         await this.refreshItemsForCurrentTab();
@@ -4447,9 +4608,12 @@
                 }
                 
                 const lowerQuery = query.toLowerCase();
-                const container = this.currentTab === 'approved' 
-                    ? document.getElementById('itemsListApproved')
-                    : document.getElementById('itemsList');
+                let container = document.getElementById('itemsList');
+                if (this.currentTab === 'approved') {
+                    container = document.getElementById('itemsListApproved');
+                } else if (this.currentTab === 'noaudio') {
+                    container = document.getElementById('itemsListNoAudio');
+                }
                 
                 if (!container) return;
                 
@@ -4481,6 +4645,19 @@
                     `;
                 } else if (emptyState) {
                     emptyState.style.display = 'none';
+                }
+            }
+
+            async handleTaskFilterChange(taskName) {
+                this.currentTaskFilter = String(taskName || '__all__');
+                const storageKey = this.getTaskFilterStorageKey(this.currentLangCode);
+                if (this.currentTaskFilter === '__all__') {
+                    localStorage.removeItem(storageKey);
+                } else {
+                    localStorage.setItem(storageKey, this.currentTaskFilter);
+                }
+                if (this.currentLanguage && this.currentLangCode) {
+                    await this.refreshItemsForCurrentTab();
                 }
             }
 
