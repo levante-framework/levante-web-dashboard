@@ -41,6 +41,8 @@ Changelog: `docs/dashboard-updates-2026-01.md`
 ### Partner Audio Dashboard
 - Added **Approve All Audio (Language)** action in pending view.
 - Approval state now uses timestamp ordering (dev must be newest vs draft) to avoid passive false approvals.
+- Added **Task** filter dropdown (next to search), applied across all tabs and stats.
+- Task labels are normalized for consistency (for example, "Thoughts & Feelings" appears under **Child Survey**), with ID-based fallback mapping for unlabeled rows.
 
 ## Files
 

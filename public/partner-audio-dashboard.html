@@ -1400,8 +1400,63 @@
                     : 'partnerAudioTaskFilter::global';
             }
 
+            formatTaskSlug(slug) {
+                const clean = String(slug || '').trim().replace(/[_-]+/g, ' ');
+                if (!clean) return '';
+                return clean
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                    .join(' ');
+            }
+
+            normalizeTaskName(rawTask, itemId = '') {
+                const raw = String(rawTask || '').trim();
+                const normalized = raw.toLowerCase();
+                const id = String(itemId || '').trim().toLowerCase();
+
+                if (!raw) {
+                    if (id.startsWith('vocab-')) return 'Vocabulary';
+                    if (id.startsWith('trog-')) return 'Sentence Understanding';
+                    if (id.startsWith('theory-of-mind-') || id.startsWith('theory_of_mind-')) return 'Stories';
+                    if (id.startsWith('hearts-and-flowers-') || id.startsWith('hearts_and_flowers-')) return 'Hearts & Flowers';
+                    if (id.startsWith('memory-game-') || id.startsWith('memory_game-')) return 'Memory';
+                    if (id.startsWith('matrix-reasoning-') || id.startsWith('matrix_reasoning-')) return 'Pattern Matching';
+                    if (id.startsWith('mental-rotation-') || id.startsWith('mental_rotation-')) return 'Shape Rotation';
+                    if (id.startsWith('same-different-selection-') || id.startsWith('same_different_selection-')) return 'Same & Different';
+                    if (id.startsWith('childsurvey') || id.startsWith('child-survey') || id.startsWith('survey-')) return 'Child Survey';
+                    return 'General';
+                }
+
+                if (normalized === 'child_survey' || normalized === 'child-survey' || normalized === 'child survey') {
+                    return 'Child Survey';
+                }
+                if (normalized.includes('thoughts & feelings') || normalized.includes('thoughts and feelings')) {
+                    return 'Child Survey';
+                }
+                if (normalized === 'general') return 'General';
+
+                // Labels often arrive as "<slug>, <display name>"
+                if (raw.includes(',')) {
+                    const parts = raw.split(',').map((part) => part.trim()).filter(Boolean);
+                    if (parts.length >= 2) {
+                        if (parts[1].toLowerCase().includes('thoughts') && parts[1].toLowerCase().includes('feelings')) {
+                            return 'Child Survey';
+                        }
+                        return parts[1];
+                    }
+                }
+
+                if (/[_-]/.test(raw) && /^[a-z0-9_\-\s]+$/i.test(raw)) {
+                    return this.formatTaskSlug(raw);
+                }
+
+                return raw;
+            }
+
             extractTaskName(item) {
-                if (!item || typeof item !== 'object') return 'Uncategorized';
+                if (!item || typeof item !== 'object') return 'General';
+                const itemId = String(item.item_id || '').trim();
                 const directCandidates = [
                     item.task,
                     item.labels,
@@ -1412,28 +1467,27 @@
                 ];
                 for (const value of directCandidates) {
                     const text = String(value || '').trim();
-                    if (text) return text;
+                    if (text) return this.normalizeTaskName(text, itemId);
                 }
 
                 const keys = Object.keys(item);
                 const keyMatch = keys.find((key) => /task|label|module|section|category/i.test(key));
                 if (keyMatch) {
                     const text = String(item[keyMatch] || '').trim();
-                    if (text) return text;
+                    if (text) return this.normalizeTaskName(text, itemId);
                 }
 
-                const itemId = String(item.item_id || '').trim();
                 if (itemId.includes('::')) {
                     const [path] = itemId.split('::');
                     if (path && path.includes('/')) {
                         const segments = path.split('/').filter(Boolean);
                         if (segments.length > 0) {
-                            return segments[segments.length - 1];
+                            return this.normalizeTaskName(segments[segments.length - 1], itemId);
                         }
                     }
-                    return path || 'Uncategorized';
+                    return this.normalizeTaskName(path || '', itemId);
                 }
-                return 'Uncategorized';
+                return this.normalizeTaskName('', itemId);
             }
 
             getTaskFilterOptions(items) {

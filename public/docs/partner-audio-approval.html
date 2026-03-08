@@ -389,6 +389,24 @@
         </div>
 
         <div class="card">
+            <h2>Task Filter</h2>
+            <ul>
+                <li>Use the <strong>Task</strong> dropdown next to search to focus on one task at a time.</li>
+                <li>Select <strong>All tasks</strong> to show everything for the current language.</li>
+                <li>The selected task applies across all tabs (<strong>To Be Approved</strong>, <strong>Approved</strong>, and <strong>No Audio</strong>).</li>
+                <li>Dashboard statistics update based on the active task filter.</li>
+                <li>Your task selection is saved per language in your browser and restored automatically.</li>
+            </ul>
+
+            <h3>Task Name Normalization</h3>
+            <ul>
+                <li><code>survey, Thoughts &amp; Feelings</code> is grouped under <strong>Child Survey</strong>.</li>
+                <li>Rows with missing task labels are inferred from item IDs where possible (for example, <code>vocab-*</code> -> <strong>Vocabulary</strong>).</li>
+                <li>If no explicit or inferred task is available, items are grouped under <strong>General</strong>.</li>
+            </ul>
+        </div>
+
+        <div class="card">
             <h2>Statistics</h2>
             <p>The top of the dashboard shows four statistics:</p>
             <ul>
@@ -419,6 +437,7 @@
             <ul>
                 <li>Ensure your language has translations in the CSV file</li>
                 <li>Check that translations exist for your language</li>
+                <li>Clear Search and set Task to <strong>All tasks</strong> to rule out active filters</li>
                 <li>Contact Levante support if items should be available</li>
             </ul>
 
