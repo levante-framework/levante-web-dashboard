@@ -188,85 +188,60 @@
         </a>
 
         <h1><i class="fas fa-book"></i> Partner Audio Approval Tool</h1>
-        <p class="subtitle">A guide for research partners to review and approve audio translations</p>
+        <p class="subtitle">A guide for LEVANTE research partners to review and approve audio translations</p>
 
         <div class="card">
-            <h2>Overview</h2>
+          <h2>Overview</h2>
             <p>The Partner Audio Approval Tool is a streamlined interface designed for research partners to:</p>
             <ul>
-                <li>Review audio translations for their specific language</li>
-                <li>Listen to existing audio clips</li>
+                <li>Listen to proposed audio translations for their language+dialect</li>
+                <li>&nbsp;Review the audio and&nbsp;regenerate it as needed</li>
                 <li>Generate audio for items without audio files</li>
-                <li>Regenerate audio with custom text if needed</li>
-                <li>Approve audio clips for deployment (immediate approval workflow)</li>
+                <li>&nbsp;Modify audio-specific text for better enunciation a  needed</li>
+                <li>When ready, approve audio clips for deployment (immediate approval workflow)</li>
                 <li>Search and filter items for efficient review</li>
             </ul>
         </div>
 
         <div class="card">
-            <h2>Access</h2>
-            <p>The Partner Audio Approval Tool is available at:</p>
+            <h2>Access from the Web:</h2>
+            <p>The Partner Audio pproval Tool is available at:</p>
             <div class="url-box">https://levante-partner-tools.vercel.app/audio-approval.html</div>
-            <p>Development version:</p>
-            <div class="url-box">https://levante-pitwall.vercel.app/partner-audio-dashboard.html</div>
         </div>
 
         <div class="card">
             <h2>Prerequisites</h2>
             <ul>
-                <li>Valid admin credentials for your research site</li>
-                <li>Access granted by Levante administrators</li>
-                <li>Your site's language must be configured in the system</li>
+                <li>Valid Approval credentials from DCC for your language+dialect</li>
+                
             </ul>
         </div>
 
         <div class="card">
             <h2>Authentication</h2>
-            <p>The dashboard supports three authentication methods:</p>
+            <p>The dashboard supports two authentication methods:</p>
             
-            <h3>1. Firebase Password Login</h3>
+            <h3>1. Language Approver Login</h3>
             <ul>
-                <li>Enter your email address and password</li>
-                <li>Standard authentication for users with Firebase accounts</li>
+              <li>Enter the email address and password you were given as an authorized approver for your language+dialect</li>
                 <li>The system will automatically restrict you to your site's assigned language</li>
             </ul>
             
-            <h3>2. SuperAdmin Passwordless Login</h3>
+            <h3>2. DCC Login</h3>
             <ul>
-                <li><strong>SuperAdmin emails can log in without a password</strong></li>
                 <li>Enter your SuperAdmin email address</li>
-                <li>Leave the password field empty (or don't fill it)</li>
-                <li>Click "Sign In with Password"</li>
-                <li>You will be automatically logged in</li>
-                <li>SuperAdmin users have full access to all languages</li>
             </ul>
-            <p><strong>SuperAdmin Email List:</strong> managed privately in configuration; specific addresses are intentionally omitted from docs.</p>
-            <!-- Privacy note: do not publish individual email addresses in documentation. -->
             <!--
             <ul>
                 <li><code>&lt;redacted&gt;</code></li>
             </ul>
             -->
             
-            <h3>3. Crowdin Username Login</h3>
-            <ul>
-                <li>Click the "Crowdin Username" tab</li>
-                <li>Enter your Crowdin username (no password needed — find it in Crowdin → Profile)</li>
-                <li>Click "Sign In with Crowdin Username"</li>
-                <li>The system verifies your username with Crowdin and grants access based on your role:
-                    <ul>
-                        <li><strong>Crowdin Owner/Manager</strong>: Full access to all languages</li>
-                        <li><strong>Crowdin Editor</strong>: Access to languages you have editor permissions for</li>
-                        <li><strong>Crowdin Translator</strong>: Access to languages you have translator permissions for (other languages appear grayed out in dropdown)</li>
-                    </ul>
-                </li>
-            </ul>
             
-            <h3>Language Access</h3>
+          <h3>Language Access</h3>
             <ul>
-                <li><strong>Full Access Users</strong> (SuperAdmin, Crowdin Owner/Manager): Can access all languages</li>
-                <li><strong>Language-Specific Users</strong> (Crowdin Editor/Translator): Can only access languages they have permissions for</li>
-                <li><strong>Crowdin Translators</strong>: See language dropdown with accessible languages enabled and others grayed out</li>
+                <li><strong>Full Access Users</strong> (DCC) Can access all languages</li>
+                <li><strong>Language-Specific Users:</strong> Can only access languages they have permissions for</li>
             </ul>
         </div>
 
@@ -292,7 +267,7 @@
                     <ul>
                         <li><strong>Source (English)</strong>: The original English text</li>
                         <li><strong>Translation</strong>: The translated text in your language</li>
-                        <li><strong>Audio-enhanced string</strong>: Editable text field for custom audio generation</li>
+                        <li><strong>Audio-enhanced string</strong>: (Optional) Editable text field for custom audio generation</li>
                         <li><strong>Action buttons</strong>: Play, Approve, Regenerate, Approve & Save</li>
                     </ul>
                 </li>
@@ -475,18 +450,6 @@
         <div class="card">
             <h2>Technical Details</h2>
 
-            <h3>Buckets</h3>
-            <ul>
-                <li><strong>levante-assets-draft</strong>: Contains draft audio files awaiting approval</li>
-                <li><strong>levante-assets-dev</strong>: Contains approved audio files ready for deployment</li>
-            </ul>
-
-            <h3>File Structure</h3>
-            <ul>
-                <li>Audio files are stored as: <code>audio/{language-code}/{item-id}.mp3</code></li>
-                <li>Versioned files use format: <code>{item-id}_v###.mp3</code></li>
-            </ul>
-
             <h3>Approval Process</h3>
             <ol>
                 <li>User clicks "Approve" → File immediately moves from draft to dev bucket</li>
@@ -507,17 +470,13 @@
             <h2>Support</h2>
             <p>For issues or questions:</p>
             <ul>
-                <li>Contact your Levante administrator</li>
+                <li>Contact your Levante partner representative</li>
                 <li>Check the documentation link at the top of the dashboard</li>
                 <li>Review the console for error messages (F12 → Console)</li>
             </ul>
         </div>
 
-        <div class="note">
-            <strong>Related Documentation:</strong><br>
-            <a href="patching.html" style="color: #7dd3fc;">Patch & Deploy Workflow</a> - For administrators<br>
-            <a href="../dashboard-app.html" style="color: #7dd3fc;">Main Dashboard</a> - Full audio generation dashboard
-        </div>
+        
     </div>
 </body>
 </html>
