@@ -3871,43 +3871,11 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
                     const sourceText = item.en || item.english || item.text || '';
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText || '');
-                    let debugInfo = null;
-                    if (this.noAudioDebugInfo instanceof Map) {
-                        if (item.item_id && this.noAudioDebugInfo.has(item.item_id)) {
-                            debugInfo = this.noAudioDebugInfo.get(item.item_id);
-                        } else {
-                            const derivedBaseId = this.extractBaseId(item.item_id || '');
-                            if (derivedBaseId && this.noAudioDebugInfo.has(derivedBaseId)) {
-                                debugInfo = this.noAudioDebugInfo.get(derivedBaseId);
-                            }
-                        }
-                    }
-                    const diagnosticsHtml = debugInfo ? `
-                        <div class="no-audio-diagnostics">
-                            <div class="no-audio-diagnostics-row">
-                                <span class="no-audio-diagnostics-label">Prefixes:</span>
-                                <div class="no-audio-diagnostics-values">
-                                    ${(debugInfo.prefixes || []).length
-                                        ? debugInfo.prefixes.map(prefix => `<code>${this.escapeHtml(prefix)}</code>`).join('')
-                                        : '<em>Not recorded</em>'}
-                                </div>
-                            </div>
-                            <div class="no-audio-diagnostics-row">
-                                <span class="no-audio-diagnostics-label">Paths to check:</span>
-                                <div class="no-audio-diagnostics-values">
-                                    ${(debugInfo.expectedLocations || []).length
-                                        ? debugInfo.expectedLocations.map(path => `<code>${this.escapeHtml(path)}</code>`).join('')
-                                        : '<em>No suggested paths</em>'}
-                                </div>
-                            </div>
-                        </div>
-                    ` : '';
                     
                     // Check if audio has been generated for this item
                     const pendingKey = this.pendingSaveKey;
@@ -3926,7 +3894,6 @@
                                 <div class="item-card-compact-id">${escapedItemId}</div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
                                 <div class="item-card-compact-text">${escapedTranslated || '<em style="color: #999;">Translation not available</em>'}</div>
-                                ${diagnosticsHtml}
                             </div>
                             <div class="item-card-compact-actions">
                                 <button class="btn btn-primary" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate audio for this item">
