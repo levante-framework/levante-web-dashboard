@@ -35,6 +35,8 @@ Changelog: `docs/dashboard-updates-2026-01.md`
 - Validation modal now handles sparse historical records by backfilling original/translated text.
 - When old records lack back-translation, modal can generate it on demand and cache it.
 - Compact snapshots now keep `backTranslation` so detail panels stay informative after reload.
+- Runtime validation now uses Gemini embeddings (`gemini-embedding-001` fallback chain) for semantic scoring.
+- AI adjudication is currently configured to run for all non-English rows (AI-all mode), with deterministic composite fallback if AI is unavailable.
 
 ### Locale Migration Compatibility
 - Added alias-safe validation key resolution for `en`<->`en-US` and `de`<->`de-DE`.

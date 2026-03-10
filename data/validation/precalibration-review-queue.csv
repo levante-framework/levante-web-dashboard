@@ -1,0 +1,1 @@
+risk_score,risk_reasons,item_id,lang_code,final_score,composite_score,ai_score,semantic_score,lexical_score,embedding_score,diff_ai_vs_calc,final_rank,calc_rank,ai_rank,embedding_rank,score_source,scoring_version,ai_item_type,ai_model,semantic_model

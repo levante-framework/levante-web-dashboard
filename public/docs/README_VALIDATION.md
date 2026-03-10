@@ -36,51 +36,61 @@ graph LR
 
 ### 2. Similarity Calculation Algorithm
 
-The system uses a **word-based similarity algorithm** that:
+The runtime scorer uses a **deterministic composite baseline + AI adjudication**:
 
-1. **Tokenizes** both texts into words (case-insensitive)
-2. **Filters** words shorter than 3 characters (removes articles, prepositions)  
-3. **Identifies** common words between original and back-translated text
-4. **Calculates** similarity using the Sørensen–Dice coefficient:
+1. **Semantic score (0-100)** via embedding cosine similarity on original vs back-translation
+2. **Lexical score (0-100)** via normalized Levenshtein distance
+3. **Composite score (0-100)** with content-aware weights:
+   - Vocab-like rows: `0.35 * semantic + 0.65 * lexical`
+   - Sentence/survey-like rows: `0.80 * semantic + 0.20 * lexical`
+4. **AI adjudication**: Gemini evaluates each non-English row and returns an AI score.
+5. **Final score selection**:
+   - If AI judge succeeds: final score = AI score
+   - If AI judge is unavailable: final score = deterministic composite baseline
 
-```javascript
-similarity = (common_words × 2) / (original_words + back_translated_words) × 100
-```
+### Current Runtime Mode (Jan 2026)
 
-#### Example Calculation:
+- **AI mode**: `all` (not hybrid-gated in production).
+- **Back-translation generation**: always computed for non-English rows so reviewers can inspect source/translation/back-translation together.
+- **Semantic scorer model**: runtime endpoint uses Gemini embeddings with fallback order:
+  - `GEMINI_EMBEDDING_MODEL` (if configured)
+  - `gemini-embedding-001`
+  - `embedding-001`
+  - `text-embedding-004`
+- **Semantic fallback behavior**: if semantic API fails, semantic score falls back to legacy overlap (`word-overlap-fallback`).
 
-**Original:** "the boy chasing the horse is tall"  
-**Back-translated:** "the child pursuing the horse is big"  
-
-- Original words (>2 chars): `["boy", "chasing", "the", "horse", "tall"]` (5 words)
-- Back-translated words (>2 chars): `["the", "child", "pursuing", "the", "horse", "big"]` (6 words)  
-- Common words: `["the", "horse"]` (2 words)
-- **Similarity:** `(2 × 2) / (5 + 6) × 100 = 36%`
+Implementation fields persisted per validation record:
+- `semanticScore`
+- `lexicalScore`
+- `compositeScore`
+- `semanticModel`
+- `lexicalMethod`
+- `scoringVersion`
 
 ## Quality Score Thresholds
 
 | Score Range | Status | Indicator | Meaning |
 |-------------|--------|-----------|---------|
-| **≥ 85%** | ✅ **Excellent** | 🟢 Green | Translation preserves meaning accurately |
-| **70-84%** | ⚠️ **Warning** | 🟡 Yellow | Minor semantic differences, review recommended |
-| **< 70%** | ❌ **Poor** | 🔴 Red | Significant meaning loss, revision needed |
+| **≥ 90%** | ✅ **Excellent** | 🟢 Green | Translation preserves meaning accurately |
+| **80-89%** | ⚠️ **Warning** | 🟡 Yellow | Borderline quality; review recommended |
+| **< 80%** | ❌ **Poor** | 🔴 Red | Significant meaning loss, revision needed |
 | **English** | 🔵 **Source** | 🔵 Blue | Original text, no validation needed |
 
 ## Interpreting Results
 
-### ✅ **Excellent (85%+)**
+### ✅ **Excellent (90%+)**
 - **High semantic preservation**
 - Translation accurately conveys original meaning
 - Safe for audio generation
 - **Example:** "Hello world" → "Hola mundo" → "Hello world" (100%)
 
-### ⚠️ **Warning (70-84%)**  
+### ⚠️ **Warning (80-89%)**  
 - **Moderate semantic drift**
 - Core meaning preserved but nuanced differences
 - Review for context-sensitive content
 - **Example:** "big house" → "casa grande" → "large house" (75%)
 
-### ❌ **Poor (<70%)**
+### ❌ **Poor (<80%)**
 - **Significant meaning loss**
 - Translation may be incorrect or missing context
 - **Requires human review**
@@ -107,6 +117,17 @@ This ensures compatibility with Google Translate's supported language codes.
 ```
 POST /proxy/translate
 ```
+
+Additional runtime validation endpoints:
+- `POST /api/translation-semantic-score` - deterministic semantic score (embedding cosine, 0-100)
+- `POST /api/translation-ai-judge` - Gemini adjudicator (used on each non-English row in current runtime mode)
+
+### Gemini Prompt Assumptions (Current)
+
+- Runtime AI adjudication uses prompt variants by `itemType` (`vocab`, `instruction_ui`, `proper_noun`, `survey_sentence`).
+- Current prompts assume child-facing content for **elementary school** audiences.
+- For task prompts/instructions and child survey items, prompts assume delivery in **both text and generated audio**.
+- Scoring guidance explicitly prioritizes child comprehension, spoken clarity/naturalness, actionability, and tone preservation.
 
 ### Request Format
 ```json
@@ -322,6 +343,22 @@ gsutil cp data/validation/embedding-advisory.json \
 Notes:
 - Advisory data is display-only; it does not override current back-translation scoring.
 - Dashboard API endpoint: `/api/embedding-advisory` (reads `validation/embedding-advisory.json` by default).
+
+### Compare Signals Against Human Labels
+
+Use this script to benchmark calculated composite scores, AI adjudication, and embedding advisory data against reviewer labels:
+
+```bash
+python scripts/compare_validation_signals.py \
+  --human-csv data/validation/human-labeled.csv \
+  --validation-json data/validation/validation-export.json \
+  --embedding-json data/validation/embedding-advisory.json \
+  --output-prefix data/validation/validation-signals-compare
+```
+
+Outputs:
+- `data/validation/validation-signals-compare-details.csv`
+- `data/validation/validation-signals-compare-summary.json` (includes Kendall tau + language threshold suggestions)
 
 ### Notes
 

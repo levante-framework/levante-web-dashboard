@@ -2364,7 +2364,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let buttonText = 'Validate';
                     let scoreBadgeHtml = '';
                     let sourceBadgeHtml = '';
-                    let embeddingBadgeHtml = '';
                     let embeddingRowHtml = '';
                     let advisoryMismatchHtml = '';
                     let approvedHtml = '';
@@ -2410,11 +2409,30 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             buttonText = '❌ View Issues';
                         }
                         const badgeColor = scorePercent >= 85 ? '#155724' : scorePercent >= 70 ? '#856404' : '#721c24';
-                        scoreBadgeHtml = `<span class="score-badge" style="color: ${badgeColor}">${scorePercentRounded}%</span>`;
+                        const compositeScore = Number.isFinite(Number(storedResult.compositeScore))
+                            ? Number(storedResult.compositeScore)
+                            : (Number.isFinite(Number(storedResult.baselineScore)) ? Number(storedResult.baselineScore) : null);
+                        const semanticScore = Number.isFinite(Number(storedResult.semanticScore)) ? Number(storedResult.semanticScore) : null;
+                        const lexicalScore = Number.isFinite(Number(storedResult.lexicalScore)) ? Number(storedResult.lexicalScore) : null;
                         const scoreSource = String(
                             storedResult.scoreSource ||
                             (storedResult.manualApproved ? 'manual' : ((storedResult.aiUsed || Number.isFinite(Number(storedResult.aiScore))) ? 'ai' : 'calculated'))
                         ).toLowerCase();
+                        const tooltipParts = [
+                            `Final score: ${scorePercent.toFixed(2)}%`,
+                            `Status: ${statusClass === 'status-good' ? 'PASS' : statusClass === 'status-warning' ? 'REVIEW' : 'FAIL'}`,
+                            `Source: ${scoreSource || 'unknown'}`
+                        ];
+                        if (compositeScore != null) tooltipParts.push(`Composite: ${compositeScore.toFixed(2)}%`);
+                        if (semanticScore != null) tooltipParts.push(`Semantic: ${semanticScore.toFixed(2)}%`);
+                        if (lexicalScore != null) tooltipParts.push(`Lexical: ${lexicalScore.toFixed(2)}%`);
+                        if (storedResult.aiUsed && Number.isFinite(Number(storedResult.aiScore))) {
+                            const aiScoreNum = Number(storedResult.aiScore);
+                            const aiModel = String(storedResult.aiModel || '').trim();
+                            tooltipParts.push(`AI score: ${aiScoreNum.toFixed(2)}%${aiModel ? ` via ${aiModel}` : ''}`);
+                        }
+                        if (storedResult.scoringVersion) tooltipParts.push(`Scoring version: ${storedResult.scoringVersion}`);
+                        scoreBadgeHtml = `<span class="score-badge" title="${escapeHtml(tooltipParts.join(' | '))}" style="color: ${badgeColor}">${scorePercentRounded}%</span>`;
                         if (scoreSource === 'manual') {
                             sourceBadgeHtml = `<span class="score-source-badge" title="Manually approved" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #4a148c; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 3px; padding: 1px 4px;">Manual</span>`;
                         } else if (scoreSource === 'ai') {
@@ -2445,15 +2463,21 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             advisoryStatus === 'review' ? '#fff8e1' :
                             '#fdecea';
                         const advisoryLabel = advisoryStatus ? advisoryStatus.toUpperCase() : 'N/A';
-                        const advisoryTitle = `Embedding advisory (${advisory.model || 'unknown model'}) ${advisoryScorePercent.toFixed(2)}%`;
-                        embeddingBadgeHtml = `<span class="embedding-advisory-badge" title="${escapeHtml(advisoryTitle)}" style="font-size: 10px; font-weight: 700; margin-left: 4px; color: ${advisoryColor}; background: ${advisoryBg}; border: 1px solid rgba(0,0,0,0.12); border-radius: 3px; padding: 1px 4px;">Emb ${advisoryScoreRounded}% (${advisoryLabel})</span>`;
+                        const advisoryDataset = advisory.dataset ? String(advisory.dataset).toUpperCase() : '';
+                        const advisoryModel = advisory.model ? String(advisory.model) : 'unknown model';
+                        const advisoryTitle = [
+                            'Embedding advisory (info only)',
+                            `Score: ${advisoryScorePercent.toFixed(2)}%`,
+                            `Status: ${advisoryLabel}`,
+                            `Model: ${advisoryModel}`,
+                            advisoryDataset ? `Dataset: ${advisoryDataset}` : ''
+                        ].filter(Boolean).join(' | ');
                         const rowStatusClass =
                             advisoryStatus === 'pass' ? 'embedding-row-pass' :
                             advisoryStatus === 'review' ? 'embedding-row-review' :
                             'embedding-row-fail';
-                        const advisoryDataset = advisory.dataset ? ` ${escapeHtml(String(advisory.dataset).toUpperCase())}` : '';
-                        const advisoryModel = advisory.model ? ` · ${escapeHtml(String(advisory.model))}` : '';
-                        embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}${advisoryModel}"><span class="item-embedding-label">Embedding${advisoryDataset}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
+                        const advisoryDatasetLabel = advisoryDataset ? ` ${escapeHtml(advisoryDataset)}` : '';
+                        embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}"><span class="item-embedding-label">Embedding${advisoryDatasetLabel}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
                         if (storedResult && Number.isFinite(Number(storedResult.score))) {
                             const backtranslationPercent = Number(storedResult.score) * 100;
                             const btStatus = backtranslationPercent >= 85 ? 'pass' : (backtranslationPercent >= 70 ? 'review' : 'fail');
@@ -2501,7 +2525,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 </div>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
-                                ${embeddingBadgeHtml}
                                 ${advisoryMismatchHtml}
                                 <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
                                 ${approvedHtml}

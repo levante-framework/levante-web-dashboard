@@ -1,5 +1,11 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;
-const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL || 'text-embedding-004';
+const CONFIGURED_EMBEDDING_MODEL = String(process.env.GEMINI_EMBEDDING_MODEL || '').trim();
+const EMBEDDING_MODEL_CANDIDATES = [
+  CONFIGURED_EMBEDDING_MODEL,
+  'gemini-embedding-001',
+  'embedding-001',
+  'text-embedding-004',
+].filter(Boolean);
 
 function cosineSimilarity(vecA, vecB) {
   if (!Array.isArray(vecA) || !Array.isArray(vecB) || vecA.length === 0 || vecB.length === 0) return 0;
@@ -18,13 +24,13 @@ function cosineSimilarity(vecA, vecB) {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-async function embedText(text) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(EMBEDDING_MODEL)}:embedContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+async function embedText(text, modelName) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelName)}:embedContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
   const resp = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: `models/${EMBEDDING_MODEL}`,
+      model: `models/${modelName}`,
       content: {
         parts: [{ text: String(text || '') }]
       },
@@ -33,14 +39,30 @@ async function embedText(text) {
   });
   if (!resp.ok) {
     const body = await resp.text();
-    throw new Error(`Embedding request failed: ${resp.status} ${body}`);
+    throw new Error(`Embedding request failed for ${modelName}: ${resp.status} ${body}`);
   }
   const data = await resp.json();
   const values = data?.embedding?.values;
   if (!Array.isArray(values) || values.length === 0) {
-    throw new Error('Embedding response missing vector values');
+    throw new Error(`Embedding response missing vector values for ${modelName}`);
   }
   return values;
+}
+
+async function embedPairWithFallback(originalText, backTranslation) {
+  let lastError = null;
+  for (const modelName of EMBEDDING_MODEL_CANDIDATES) {
+    try {
+      const [origVec, backVec] = await Promise.all([
+        embedText(originalText, modelName),
+        embedText(backTranslation, modelName),
+      ]);
+      return { origVec, backVec, modelUsed: modelName };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Embedding request failed for all model candidates');
 }
 
 export default async function handler(req, res) {
@@ -63,14 +85,11 @@ export default async function handler(req, res) {
       return;
     }
     if (!GEMINI_API_KEY) {
-      res.status(200).json({ ok: false, skipped: true, reason: 'GEMINI_API_KEY not configured', modelUsed: EMBEDDING_MODEL });
+      res.status(200).json({ ok: false, skipped: true, reason: 'GEMINI_API_KEY not configured', modelUsed: EMBEDDING_MODEL_CANDIDATES[0] || '' });
       return;
     }
 
-    const [origVec, backVec] = await Promise.all([
-      embedText(originalText),
-      embedText(backTranslation),
-    ]);
+    const { origVec, backVec, modelUsed } = await embedPairWithFallback(originalText, backTranslation);
     const cosine = cosineSimilarity(origVec, backVec);
     const semanticScore = Math.max(0, Math.min(100, cosine * 100));
 
@@ -78,7 +97,7 @@ export default async function handler(req, res) {
       ok: true,
       semantic_score: semanticScore,
       cosine_similarity: cosine,
-      modelUsed: EMBEDDING_MODEL,
+      modelUsed,
     });
   } catch (error) {
     res.status(200).json({
@@ -86,7 +105,7 @@ export default async function handler(req, res) {
       skipped: true,
       reason: 'Semantic scorer failed',
       details: error?.message || String(error),
-      modelUsed: EMBEDDING_MODEL,
+      modelUsed: EMBEDDING_MODEL_CANDIDATES[0] || '',
     });
   }
 }

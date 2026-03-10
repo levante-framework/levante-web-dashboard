@@ -57,9 +57,8 @@ function validateSelected() {
 }
 
 function getAiJudgeMode() {
-    const el = document.getElementById('aiJudgeMode');
-    const mode = String(el?.value || 'hybrid').toLowerCase();
-    return mode === 'all' ? 'all' : 'hybrid';
+    // Product decision: always run AI adjudication for all rows.
+    return 'all';
 }
 
 function getValidateSpeedMode() {
@@ -111,6 +110,144 @@ function toPlainValidationText(value) {
     }
 }
 
+const VALIDATION_SCORING_VERSION = 'composite-v1';
+const VALIDATION_PASS_THRESHOLD = 90;
+const VALIDATION_REVIEW_THRESHOLD = 80;
+
+function tokenizeValidationWords(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s'-]/gi, ' ')
+        .split(/\s+/)
+        .map(w => w.trim())
+        .filter(Boolean);
+}
+
+function levenshteinDistance(a, b) {
+    const s = String(a || '');
+    const t = String(b || '');
+    const m = s.length;
+    const n = t.length;
+    if (!m) return n;
+    if (!n) return m;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,
+                dp[i][j - 1] + 1,
+                dp[i - 1][j - 1] + cost
+            );
+        }
+    }
+    return dp[m][n];
+}
+
+function computeLexicalScore(originalText, backTranslation) {
+    const src = String(originalText || '').trim().toLowerCase();
+    const bt = String(backTranslation || '').trim().toLowerCase();
+    if (!src || !bt) return 0;
+    if (src === bt) return 100;
+    const distance = levenshteinDistance(src, bt);
+    const maxLen = Math.max(src.length, bt.length, 1);
+    const score = 100 * (1 - (distance / maxLen));
+    return Math.max(0, Math.min(100, Math.round(score * 100) / 100));
+}
+
+function computeLegacyOverlapScore(originalText, backTranslation) {
+    const originalWords = tokenizeValidationWords(originalText);
+    const backWords = tokenizeValidationWords(backTranslation);
+    if (!originalWords.length || !backWords.length) return 0;
+    const backSet = new Set(backWords);
+    const common = originalWords.filter(word => backSet.has(word)).length;
+    const similarity = common / Math.max(originalWords.length, backWords.length);
+    return Math.round((similarity * 100) * 100) / 100;
+}
+
+function isVocabLikePair(originalText, translatedText) {
+    const originalWords = tokenizeValidationWords(originalText);
+    const translatedWords = tokenizeValidationWords(translatedText);
+    const sourceChars = String(originalText || '').trim().length;
+    const targetChars = String(translatedText || '').trim().length;
+    return originalWords.length <= 3
+        && translatedWords.length <= 3
+        && sourceChars <= 40
+        && targetChars <= 60;
+}
+
+function inferAiJudgeItemType({ itemId, originalText, translatedText, taskName }) {
+    const id = String(itemId || '').toLowerCase();
+    const task = String(taskName || '').toLowerCase();
+    const src = String(originalText || '').trim();
+    const srcLower = src.toLowerCase();
+
+    if (
+        isVocabLikePair(originalText, translatedText)
+        || id.startsWith('vocab-')
+        || task.includes('vocab')
+        || task.includes('vocabulary')
+    ) {
+        return 'vocab';
+    }
+
+    if (
+        id.includes('instruction')
+        || task.includes('instruction')
+        || task.includes('ui')
+        || /^(select|choose|click|tap|press|enter|continue|next|back|submit|save|cancel|allow|deny|open|close)\b/i.test(srcLower)
+    ) {
+        return 'instruction_ui';
+    }
+
+    const sourceTokens = String(src || '').split(/\s+/).filter(Boolean);
+    const looksTitleCaseShort =
+        sourceTokens.length > 0
+        && sourceTokens.length <= 4
+        && sourceTokens.every((t) => /^[A-Z][A-Za-z0-9'’.-]*$/.test(t));
+    if (
+        id.includes('brand')
+        || id.includes('name')
+        || task.includes('brand')
+        || task.includes('name')
+        || looksTitleCaseShort
+    ) {
+        return 'proper_noun';
+    }
+
+    return 'survey_sentence';
+}
+
+function computeCompositeScore(semanticScore, lexicalScore, isVocabLike) {
+    const sem = Number.isFinite(Number(semanticScore)) ? Number(semanticScore) : 0;
+    const lex = Number.isFinite(Number(lexicalScore)) ? Number(lexicalScore) : 0;
+    const weighted = isVocabLike
+        ? (0.35 * sem + 0.65 * lex)
+        : (0.80 * sem + 0.20 * lex);
+    return Math.max(0, Math.min(100, Math.round(weighted * 100) / 100));
+}
+
+async function runSemanticScorer({ originalText, backTranslation, langCode }) {
+    try {
+        const resp = await fetch('/api/translation-semantic-score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ originalText, backTranslation, langCode })
+        });
+        if (!resp.ok) return { used: false, score: null, modelUsed: '' };
+        const data = await resp.json();
+        if (!data || data.ok !== true || !Number.isFinite(Number(data.semantic_score))) {
+            return { used: false, score: null, modelUsed: data?.modelUsed || '' };
+        }
+        const score = Math.max(0, Math.min(100, Math.round(Number(data.semantic_score) * 100) / 100));
+        return { used: true, score, modelUsed: String(data.modelUsed || '').trim() };
+    } catch (_) {
+        return { used: false, score: null, modelUsed: '' };
+    }
+}
+
 let _aiJudgeHealthCache = null;
 let _aiJudgeHealthCheckedAt = 0;
 const AI_HEALTH_TTL_MS = 30000;
@@ -148,17 +285,17 @@ async function checkAiJudgeHealth(force = false) {
     return _aiJudgeHealthCache;
 }
 
-async function runAiJudge({ originalText, translatedText, backTranslation, langCode, baseScore }) {
+async function runAiJudge({ originalText, translatedText, backTranslation, langCode, baseScore, itemType = 'survey_sentence' }) {
     const mode = getAiJudgeMode();
     // Hybrid mode runs AI judge only for borderline scores.
-    if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < 20 || baseScore > 90)) {
+    if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < VALIDATION_REVIEW_THRESHOLD || baseScore > VALIDATION_PASS_THRESHOLD)) {
         return { used: false, modelUsed: null };
     }
     try {
         const resp = await fetch('/api/translation-ai-judge', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ originalText, translatedText, backTranslation, langCode })
+            body: JSON.stringify({ originalText, translatedText, backTranslation, langCode, itemType })
         });
         if (!resp.ok) return { used: false, modelUsed: null };
         const data = await resp.json();
@@ -216,11 +353,37 @@ function ensureScoreSourceBadge(containerEl, source, aiModel = '') {
         badge.style.border = '1px solid #90caf9';
     } else {
         badge.textContent = 'Calculated';
-        badge.title = 'Calculated from back-translation overlap';
+        badge.title = 'Calculated from semantic + lexical back-translation scoring';
         badge.style.color = '#1b5e20';
         badge.style.background = '#e8f5e9';
         badge.style.border = '1px solid #a5d6a7';
     }
+}
+
+function buildScoreTooltip(result, scorePercent) {
+    const finalScore = Number.isFinite(Number(scorePercent)) ? Number(scorePercent) : null;
+    const compositeScore = Number.isFinite(Number(result?.compositeScore))
+        ? Number(result.compositeScore)
+        : (Number.isFinite(Number(result?.baselineScore)) ? Number(result.baselineScore) : null);
+    const semanticScore = Number.isFinite(Number(result?.semanticScore)) ? Number(result.semanticScore) : null;
+    const lexicalScore = Number.isFinite(Number(result?.lexicalScore)) ? Number(result.lexicalScore) : null;
+    const aiScore = Number.isFinite(Number(result?.aiScore)) ? Number(result.aiScore) : null;
+    const scoreSource = inferScoreSource(result) || 'unknown';
+    const status = finalScore == null ? 'PENDING' : (finalScore >= 85 ? 'PASS' : finalScore >= 70 ? 'REVIEW' : 'FAIL');
+    const parts = [
+        finalScore == null ? 'Final score: n/a' : `Final score: ${finalScore.toFixed(2)}%`,
+        `Status: ${status}`,
+        `Source: ${scoreSource}`
+    ];
+    if (compositeScore != null) parts.push(`Composite: ${compositeScore.toFixed(2)}%`);
+    if (semanticScore != null) parts.push(`Semantic: ${semanticScore.toFixed(2)}%`);
+    if (lexicalScore != null) parts.push(`Lexical: ${lexicalScore.toFixed(2)}%`);
+    if (aiScore != null) {
+        const aiModel = String(result?.aiModel || '').trim();
+        parts.push(`AI score: ${aiScore.toFixed(2)}%${aiModel ? ` via ${aiModel}` : ''}`);
+    }
+    if (result?.scoringVersion) parts.push(`Scoring version: ${result.scoringVersion}`);
+    return parts.join(' | ');
 }
 
 function findCurrentTableRowByItemId(itemId) {
@@ -229,6 +392,25 @@ function findCurrentTableRowByItemId(itemId) {
     if (!table) return null;
     const rows = Array.from(table.querySelectorAll('.data-row'));
     return rows.find(r => String(r.dataset.itemId || '') === String(itemId)) || null;
+}
+
+function upsertBackTranslationInRow(row, backTranslation) {
+    if (!row) return;
+    const englishCell = row.querySelector('.item-english');
+    if (!englishCell) return;
+    let backEl = englishCell.querySelector('.item-backtranslation');
+    const text = String(backTranslation || '').trim();
+    const isSourcePlaceholder = text.toLowerCase().startsWith('n/a');
+    const displayText = isSourcePlaceholder
+        ? 'Back-translation unavailable for source language'
+        : (text || 'Back-translation unavailable');
+    if (!backEl) {
+        backEl = document.createElement('div');
+        backEl.className = 'item-backtranslation';
+        backEl.title = 'Back-translation';
+        englishCell.appendChild(backEl);
+    }
+    backEl.textContent = displayText;
 }
 
 function syncApprovedRowUi(row, approved) {
@@ -256,6 +438,7 @@ function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
     if (!row) return;
     const result = window.dashboard?.validation_results?.[itemId]?.[langCode];
     if (!result) return;
+    upsertBackTranslationInRow(row, result?.backTranslation || '');
 
     // Pending/no-score state.
     if (typeof result.score !== 'number') {
@@ -315,6 +498,7 @@ function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
     }
     scoreBadge.textContent = `${score.toFixed(2)}%`;
     scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
+    scoreBadge.title = buildScoreTooltip(result, score);
 
     ensureScoreSourceBadge(statusWrap, inferScoreSource(result), result?.aiModel || '');
     syncApprovedRowUi(row, !!result.manualApproved);
@@ -694,6 +878,16 @@ async function loadValidationsFromShared() {
 async function validateSingle(itemId, originalText, translatedText, langCode) {
     const normalizedOriginalText = toPlainValidationText(originalText);
     const normalizedTranslatedText = toPlainValidationText(translatedText);
+    const itemRow = Array.isArray(window.dashboard?.data)
+        ? window.dashboard.data.find((row) => String(row.item_id || row.identifier || '') === String(itemId))
+        : null;
+    const taskName = itemRow?.task || itemRow?.labels || itemRow?.task_name || '';
+    const aiItemType = inferAiJudgeItemType({
+        itemId,
+        originalText: normalizedOriginalText,
+        translatedText: normalizedTranslatedText,
+        taskName,
+    });
     const credentials = getCredentials();
     const userKey = credentials.google_translate_api_key && credentials.google_translate_api_key.trim() ? credentials.google_translate_api_key.trim() : null;
 
@@ -811,71 +1005,67 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             return { scoreSource: 'calculated' };
         }
 
-        const aiMode = getAiJudgeMode();
         let backTranslation = '';
-        let baselineScore = null;
+        let baselineScore = null; // composite baseline score
+        let semanticScore = null;
+        let lexicalScore = null;
+        let compositeScore = null;
+        let semanticModel = '';
+        let lexicalMethod = 'normalized-levenshtein';
+        let isVocabLike = isVocabLikePair(normalizedOriginalText, normalizedTranslatedText);
         let aiJudge = { used: false, aiScore: null, finalScore: null, aiNotes: '', modelUsed: null };
-        let score = null;
+        const googleLangCode = mapToGoogleTranslateCode(langCode);
+        console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
 
-        // Fast path: AI-only mode skips Google back-translation.
-        if (aiMode === 'all') {
-            aiJudge = await runAiJudge({
-                originalText: normalizedOriginalText,
-                translatedText: normalizedTranslatedText,
-                backTranslation: '',
-                langCode,
-                baseScore: 0
-            });
-            if (aiJudge.used) {
-                score = aiJudge.finalScore;
-                backTranslation = 'N/A (AI-only mode)';
+        // Always compute back-translation for explainability/UI context.
+        const headers = {};
+        if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
+        const response = await fetch(`/api/google-translate?text=${encodeURIComponent(normalizedTranslatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
+            method: 'GET',
+            headers
+        });
+
+        if (!response.ok) {
+            let errorDetails = `Translation API error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                console.error('🚨 Translation API error details:', errorData);
+                errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
+            } catch (e) {
+                console.error('🚨 Could not parse error response');
             }
+            throw new Error(errorDetails);
         }
 
-        // Fallback path (hybrid mode, or AI-only when AI judge failed): use Google back-translation baseline.
-        if (typeof score !== 'number') {
-            const googleLangCode = mapToGoogleTranslateCode(langCode);
-            console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
+        const data = await response.json();
+        backTranslation = toPlainValidationText(data.translatedText);
 
-            // Call Google Translate API to back-translate from target language to English.
-            const headers = {};
-            if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
-            const response = await fetch(`/api/google-translate?text=${encodeURIComponent(normalizedTranslatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
-                method: 'GET',
-                headers
-            });
-
-            if (!response.ok) {
-                let errorDetails = `Translation API error: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    console.error('🚨 Translation API error details:', errorData);
-                    errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
-                } catch (e) {
-                    console.error('🚨 Could not parse error response');
-                }
-                throw new Error(errorDetails);
-            }
-
-            const data = await response.json();
-            backTranslation = toPlainValidationText(data.translatedText);
-
-            // Calculate similarity score (simple word overlap for now).
-            const originalWords = normalizedOriginalText.toLowerCase().split(/\s+/);
-            const backTranslatedWords = backTranslation.toLowerCase().split(/\s+/);
-            const commonWords = originalWords.filter(word => backTranslatedWords.includes(word));
-            const similarity = commonWords.length / Math.max(originalWords.length, backTranslatedWords.length);
-            baselineScore = Math.round((similarity * 100) * 100) / 100;
-
-            aiJudge = await runAiJudge({
-                originalText: normalizedOriginalText,
-                translatedText: normalizedTranslatedText,
-                backTranslation,
-                langCode,
-                baseScore: baselineScore
-            });
-            score = aiJudge.used ? aiJudge.finalScore : baselineScore;
+        // Deterministic scoring layer: semantic + lexical -> composite baseline
+        lexicalScore = computeLexicalScore(normalizedOriginalText, backTranslation);
+        const semantic = await runSemanticScorer({
+            originalText: normalizedOriginalText,
+            backTranslation,
+            langCode
+        });
+        if (semantic.used) {
+            semanticScore = semantic.score;
+            semanticModel = semantic.modelUsed || '';
+        } else {
+            semanticScore = computeLegacyOverlapScore(normalizedOriginalText, backTranslation);
+            semanticModel = 'word-overlap-fallback';
         }
+        compositeScore = computeCompositeScore(semanticScore, lexicalScore, isVocabLike);
+        baselineScore = compositeScore;
+
+        aiJudge = await runAiJudge({
+            originalText: normalizedOriginalText,
+            translatedText: normalizedTranslatedText,
+            backTranslation,
+            langCode,
+            baseScore: baselineScore,
+            itemType: aiItemType
+        });
+        const score = aiJudge.used ? aiJudge.finalScore : baselineScore;
 
         // Store validation result
         if (!window.dashboard.validation_results[itemId]) {
@@ -890,8 +1080,16 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             translatedText: normalizedTranslatedText,
             backTranslation: backTranslation,
             timestamp: new Date().toISOString(),
-            notes: score >= 85 ? 'Excellent translation' : score >= 70 ? 'Good translation, review recommended' : 'Poor translation quality',
+            notes: score >= VALIDATION_PASS_THRESHOLD ? 'Excellent translation' : score >= VALIDATION_REVIEW_THRESHOLD ? 'Good translation, review recommended' : 'Poor translation quality',
             baselineScore: baselineScore,
+            semanticScore: semanticScore,
+            lexicalScore: lexicalScore,
+            compositeScore: compositeScore,
+            semanticModel: semanticModel,
+            lexicalMethod: lexicalMethod,
+            isVocabLike: isVocabLike,
+            aiItemType: aiItemType,
+            scoringVersion: VALIDATION_SCORING_VERSION,
             aiScore: aiJudge.used ? aiJudge.aiScore : null,
             aiUsed: aiJudge.used === true,
             aiNotes: aiJudge.used ? aiJudge.aiNotes : '',
@@ -904,12 +1102,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
 
         // Determine status based on score (using original dashboard-core.js logic)
         let statusClass, statusTitle, buttonText, scoreEmoji;
-        if (score >= 85) {
+        if (score >= VALIDATION_PASS_THRESHOLD) {
             statusClass = 'status-good';
             statusTitle = `✅ Excellent: ${score}% similarity`;
             buttonText = 'Good match';
             scoreEmoji = '✅';
-        } else if (score >= 70) {
+        } else if (score >= VALIDATION_REVIEW_THRESHOLD) {
             statusClass = 'status-warning';
             statusTitle = `⚠️ Warning: ${score}% similarity`;
             buttonText = 'View Warning';
@@ -934,6 +1132,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         indicator.title = statusTitle;
         const rowEl = indicator.closest('.data-row');
         if (rowEl) rowEl.dataset.score = String(score);
+        upsertBackTranslationInRow(rowEl, backTranslation);
         const approvedCheckbox = indicator.parentElement.querySelector('.approved-checkbox');
         if (approvedCheckbox) approvedCheckbox.checked = false;
         
@@ -963,7 +1162,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             indicator.parentElement.appendChild(scoreBadge);
         }
         scoreBadge.textContent = `${score}%`;
-        scoreBadge.style.color = score >= 85 ? '#155724' : score >= 70 ? '#856404' : '#721c24';
+        scoreBadge.style.color = score >= VALIDATION_PASS_THRESHOLD ? '#155724' : score >= VALIDATION_REVIEW_THRESHOLD ? '#856404' : '#721c24';
+        scoreBadge.title = buildScoreTooltip(window.dashboard.validation_results[itemId]?.[langKey], score);
 
         ensureScoreSourceBadge(indicator.parentElement, aiJudge.used ? 'ai' : 'calculated', aiJudge.modelUsed || '');
 
@@ -980,7 +1180,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             showValidationResults(itemId, langCode, result, scoreEmoji, score, statusClass);
         };
 
-        window.dashboard.setStatus(`${scoreEmoji} Validated ${itemId}: ${score}% similarity`, 'success');
+        window.dashboard.setStatus(`${scoreEmoji} Validated ${itemId}: ${score}% composite similarity`, 'success');
         return { scoreSource: aiJudge.used ? 'ai' : 'calculated' };
 
     } catch (error) {

@@ -390,7 +390,13 @@
             const backTranslation = safeResult.backTranslation || '';
             
             // Update title and score
-            document.getElementById('validationModalTitle').innerHTML = `<i class="fas fa-clipboard-check"></i> Validation Results - ${itemId}`;
+            const escapedItemId = String(itemId || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+            document.getElementById('validationModalTitle').innerHTML = `<i class="fas fa-clipboard-check"></i> Validation Results - <span class="validation-modal-item-key">${escapedItemId}</span>`;
             document.getElementById('validationScoreEmoji').textContent = scoreEmoji;
             document.getElementById('validationScoreText').textContent = `${score}% Similarity`;
             
@@ -450,6 +456,34 @@
                         : `Yes (baseline ${base}%, AI ${ai}%)`;
                 } else {
                     aiInfo.textContent = 'No';
+                }
+            }
+            const compositeInfo = document.getElementById('validationCompositeInfo');
+            if (compositeInfo) {
+                const composite = Number.isFinite(Number(safeResult.compositeScore))
+                    ? Number(safeResult.compositeScore).toFixed(2)
+                    : (Number.isFinite(Number(safeResult.baselineScore)) ? Number(safeResult.baselineScore).toFixed(2) : 'n/a');
+                const version = String(safeResult.scoringVersion || '').trim();
+                compositeInfo.textContent = version ? `${composite}% (${version})` : `${composite}%`;
+            }
+            const semanticInfo = document.getElementById('validationSemanticInfo');
+            if (semanticInfo) {
+                if (Number.isFinite(Number(safeResult.semanticScore))) {
+                    const semantic = Number(safeResult.semanticScore).toFixed(2);
+                    const model = String(safeResult.semanticModel || '').trim();
+                    semanticInfo.textContent = model ? `${semantic}% via ${model}` : `${semantic}%`;
+                } else {
+                    semanticInfo.textContent = 'Not available';
+                }
+            }
+            const lexicalInfo = document.getElementById('validationLexicalInfo');
+            if (lexicalInfo) {
+                if (Number.isFinite(Number(safeResult.lexicalScore))) {
+                    const lexical = Number(safeResult.lexicalScore).toFixed(2);
+                    const method = String(safeResult.lexicalMethod || '').trim();
+                    lexicalInfo.textContent = method ? `${lexical}% via ${method}` : `${lexical}%`;
+                } else {
+                    lexicalInfo.textContent = 'Not available';
                 }
             }
             const embeddingInfo = document.getElementById('validationEmbeddingInfo');
@@ -873,6 +907,51 @@
         function openMermaidSlides() {
             window.open('./levante-slides-with-mermaid.html', '_blank');
         }
+
+        function buildValidationTooltip(itemId, langCode, result, dashboard) {
+            const r = result || {};
+            const finalScoreRaw = Number(r.score);
+            const finalScore = Number.isFinite(finalScoreRaw)
+                ? (finalScoreRaw <= 1 ? finalScoreRaw * 100 : finalScoreRaw)
+                : null;
+            const composite = Number.isFinite(Number(r.compositeScore))
+                ? Number(r.compositeScore)
+                : (Number.isFinite(Number(r.baselineScore)) ? Number(r.baselineScore) : null);
+            const semantic = Number.isFinite(Number(r.semanticScore)) ? Number(r.semanticScore) : null;
+            const lexical = Number.isFinite(Number(r.lexicalScore)) ? Number(r.lexicalScore) : null;
+            const aiScore = Number.isFinite(Number(r.aiScore)) ? Number(r.aiScore) : null;
+            const source = String(
+                r.scoreSource ||
+                (r.manualApproved ? 'manual' : ((r.aiUsed || aiScore != null) ? 'ai' : 'calculated'))
+            ).toLowerCase();
+            const status = finalScore == null ? 'PENDING' : (finalScore >= 85 ? 'PASS' : finalScore >= 70 ? 'REVIEW' : 'FAIL');
+            const parts = [
+                `Item: ${itemId}`,
+                `Language: ${langCode}`,
+                finalScore == null ? 'Final score: n/a' : `Final score: ${finalScore.toFixed(2)}%`,
+                `Status: ${status}`,
+                `Source: ${source || 'unknown'}`
+            ];
+            if (composite != null) parts.push(`Composite: ${composite.toFixed(2)}%`);
+            if (semantic != null) parts.push(`Semantic: ${semantic.toFixed(2)}%`);
+            if (lexical != null) parts.push(`Lexical: ${lexical.toFixed(2)}%`);
+            if (aiScore != null) {
+                const aiModel = String(r.aiModel || '').trim();
+                parts.push(`AI score: ${aiScore.toFixed(2)}%${aiModel ? ` via ${aiModel}` : ''}`);
+            }
+            if (r.scoringVersion) parts.push(`Scoring version: ${r.scoringVersion}`);
+            if (r.notes) parts.push(`Notes: ${String(r.notes).trim()}`);
+            const advisory = (dashboard && typeof dashboard.getEmbeddingAdvisoryEntry === 'function')
+                ? dashboard.getEmbeddingAdvisoryEntry(itemId, langCode)
+                : null;
+            if (advisory && Number.isFinite(Number(advisory.score))) {
+                const emb = Number(advisory.score) * 100;
+                const embStatus = String(advisory.status || 'unknown').toUpperCase();
+                const embModel = String(advisory.model || 'unknown model');
+                parts.push(`Embedding advisory: ${emb.toFixed(2)}% (${embStatus}) via ${embModel} [info only]`);
+            }
+            return parts.join(' | ');
+        }
         
         function showValidationSummaryReport() {
             const modal = document.getElementById('validationSummaryModal');
@@ -940,11 +1019,11 @@
                     if (r && typeof r.score === 'number') {
                         const score = Math.round((r.score <= 1 ? r.score * 100 : r.score));
                         if (score >= 85) cls = 'dot-good'; else if (score >= 70) cls = 'dot-warning'; else cls = 'dot-error';
-                        td.title = `${score}% - ${r.notes || ''}`;
+                        td.title = buildValidationTooltip(itemId, code, r, window.dashboard);
                         td.style.cursor = 'pointer';
                         td.onclick = () => showValidationResults(itemId, code, r, score >= 85 ? '✅' : score >= 70 ? '⚠️' : '❌', score, score >= 85 ? 'status-good' : score >= 70 ? 'status-warning' : 'status-error');
                     } else {
-                        td.title = r ? 'Pending - No score' : 'Pending - Not validated';
+                        td.title = buildValidationTooltip(itemId, code, r, window.dashboard);
                     }
                     td.innerHTML = `<span class="status-dot ${cls}"></span>`;
                     tr.appendChild(td);

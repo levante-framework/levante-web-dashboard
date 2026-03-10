@@ -4,7 +4,14 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || null;
 const GEMINI_MODEL_PRIMARY = 'gemini-2.5-pro-preview-03-25';
 const GEMINI_MODEL_FALLBACK = 'gemini-2.5-pro';
 const DEFAULT_EXPLANATION = 'No significant meaning loss detected.';
-const SYSTEM_PROMPT = 'You are a translation quality evaluator. Your job is to assess how well a back-translation preserves the meaning of the original text. Be sensitive to subtle shifts in meaning, tone, emphasis, and any concepts that were lost or distorted.';
+const CHILD_TEXT_AUDIO_CONTEXT = 'Audience context: elementary school children. Delivery context: this content is consumed in both written text and generated audio. Prioritize child comprehension, spoken naturalness, and preserving intended action/meaning.';
+
+const SYSTEM_PROMPTS = {
+  vocab: 'You are a strict translation evaluator for vocabulary terms used in child-facing learning content. Prioritize denotation accuracy, specificity, part of speech, number (singular/plural), and false-friend errors. Penalize semantic drift and broad synonym substitution when it changes the tested concept.',
+  instruction_ui: 'You are a translation evaluator for child-facing task prompts and UI instructions delivered as both text and audio. Prioritize preserving user intent, actionability, imperative force, and simple age-appropriate wording. Penalize ambiguity, softened directives, or wording that could cause a child to take the wrong action.',
+  proper_noun: 'You are a translation evaluator for names, brands, and entities in child-facing content. Prioritize exact preservation of entity identity. Penalize changes to names/brands unless transliteration is clearly valid and preserves identity.',
+  survey_sentence: 'You are a translation evaluator for child survey prompts delivered as both text and audio for elementary school children. Assess semantic equivalence, tone, emotional framing, and clarity; penalize shifts that could confuse children or alter what they are being asked.',
+};
 
 function toNumberInRange(value, min, max, fallback) {
   const n = Number(value);
@@ -12,11 +19,36 @@ function toNumberInRange(value, min, max, fallback) {
   return Math.max(min, Math.min(max, n));
 }
 
-function buildUserPrompt(originalText, backTranslatedText) {
+function normalizeItemType(itemType) {
+  const raw = String(itemType || '').trim().toLowerCase();
+  if (raw === 'vocab') return 'vocab';
+  if (raw === 'instruction_ui' || raw === 'instruction' || raw === 'ui') return 'instruction_ui';
+  if (raw === 'proper_noun' || raw === 'propernoun') return 'proper_noun';
+  return 'survey_sentence';
+}
+
+function getSystemPrompt(itemType) {
+  const normalized = normalizeItemType(itemType);
+  return SYSTEM_PROMPTS[normalized] || SYSTEM_PROMPTS.survey_sentence;
+}
+
+function buildUserPrompt(originalText, backTranslatedText, itemType) {
+  const normalizedType = normalizeItemType(itemType);
+  const typeGuidance = {
+    vocab: 'Item type: vocabulary term. Be strict on exact meaning and tested concept fidelity. Small meaning shifts should reduce score meaningfully.',
+    instruction_ui: 'Item type: task prompt/instruction/UI. Assume elementary children read and hear this. Judge whether a child would take the same action after text+audio delivery.',
+    proper_noun: 'Item type: proper noun/entity. Check identity preservation and avoid substitutions.',
+    survey_sentence: 'Item type: child survey sentence. Assume elementary children read and hear this. Evaluate semantic equivalence, emotional tone, and child-level clarity.',
+  };
+
   return [
     'Compare the following two English texts for semantic equivalence. The first is',
     'the original. The second is a back-translation (translated to another language',
     'and then back to English).',
+    '',
+    CHILD_TEXT_AUDIO_CONTEXT,
+    '',
+    typeGuidance[normalizedType],
     '',
     `Original: ${String(originalText)}`,
     '',
@@ -66,7 +98,7 @@ function parseJudgeResponse(rawText) {
   return { score, explanation };
 }
 
-async function compareBackTranslation(originalText, backTranslatedText) {
+async function compareBackTranslation(originalText, backTranslatedText, itemType = 'survey_sentence') {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY not configured');
   }
@@ -78,9 +110,9 @@ async function compareBackTranslation(originalText, backTranslatedText) {
     try {
       const model = genAI.getGenerativeModel({
         model: modelName,
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: getSystemPrompt(itemType),
       });
-      const userPrompt = buildUserPrompt(originalText, backTranslatedText);
+      const userPrompt = buildUserPrompt(originalText, backTranslatedText, itemType);
       const result = await model.generateContent({
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
         generationConfig: {
@@ -90,7 +122,7 @@ async function compareBackTranslation(originalText, backTranslatedText) {
       });
       const raw = result?.response?.text?.() || '';
       const parsed = parseJudgeResponse(raw);
-      return { ...parsed, modelUsed: modelName };
+      return { ...parsed, modelUsed: modelName, itemTypeUsed: normalizeItemType(itemType) };
     } catch (error) {
       lastError = error;
     }
@@ -114,7 +146,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { originalText, translatedText, backTranslation, langCode } = req.body || {};
+    const { originalText, translatedText, backTranslation, langCode, itemType } = req.body || {};
     if (!originalText || !translatedText) {
       res.status(400).json({ error: 'Missing required fields: originalText, translatedText' });
       return;
@@ -124,13 +156,14 @@ export default async function handler(req, res) {
       return;
     }
     const comparisonText = String(backTranslation || translatedText || '');
-    const judged = await compareBackTranslation(originalText, comparisonText);
+    const judged = await compareBackTranslation(originalText, comparisonText, itemType);
 
     res.status(200).json({
       ok: true,
       ai_score: judged.score,
       notes: judged.explanation,
       modelUsed: judged.modelUsed,
+      itemTypeUsed: judged.itemTypeUsed,
       langCode: langCode || 'unknown',
     });
   } catch (error) {

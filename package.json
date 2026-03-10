@@ -29,7 +29,10 @@
     "adm:build:de": "node scripts/adm/build-packs.js --countries=DE",
     "adm:build:us": "node scripts/adm/build-packs.js --countries=US",
     "adm:build:us-place": "node scripts/us/build-us-place-boundaries.js --states=AK,CA,FL,IL,MI,MN,MT,NY,OR,TX --year=2024 --precision=3 --maxPoints=300",
-    "validation:estimate": "node scripts/estimate-validation-cost.js"
+    "validation:estimate": "node scripts/estimate-validation-cost.js",
+    "validation:precalibrate": "python3 scripts/precalibrate_validation_without_humans.py",
+    "validation:pull-shared": "node scripts/fetch-shared-validation-results.js",
+    "validation:precalibrate:shared": "npm run validation:pull-shared && npm run validation:precalibrate -- --validation-json data/validation/validation_results.shared.json"
   },
   "keywords": [
     "audio",
