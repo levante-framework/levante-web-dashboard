@@ -43,6 +43,10 @@ Changelog: `docs/dashboard-updates-2026-01.md`
 ### Partner Audio Dashboard
 - Added **Approve All Audio (Language)** action in pending view.
 - Approval state now uses timestamp ordering (dev must be newest vs draft) to avoid passive false approvals.
+- Added nightly screenshot artifact automation via GitHub Actions:
+  - Workflow: `.github/workflows/crowdin-screenshot-artifact.yml`
+  - Script: `scripts/build-crowdin-screenshot-artifact.js`
+  - Output: JSON artifact uploaded to GCS for item-level screenshot thumbnails.
 
 ## Files
 

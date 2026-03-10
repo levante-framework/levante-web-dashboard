@@ -43,6 +43,10 @@ Changelog: `docs/dashboard-updates-2026-01.md`
 - Approval state now uses timestamp ordering (dev must be newest vs draft) to avoid passive false approvals.
 - Added **Task** filter dropdown (next to search), applied across all tabs and stats.
 - Task labels are normalized for consistency (for example, "Thoughts & Feelings" appears under **Child Survey**), with ID-based fallback mapping for unlabeled rows.
+- Added nightly screenshot artifact automation via GitHub Actions:
+  - Workflow: `.github/workflows/crowdin-screenshot-artifact.yml`
+  - Script: `scripts/build-crowdin-screenshot-artifact.js`
+  - Output: JSON artifact uploaded to GCS for item-level screenshot thumbnails.
 
 ## Files
 

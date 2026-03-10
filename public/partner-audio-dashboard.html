@@ -732,6 +732,12 @@
             font-size: 14px;
         }
 
+        .item-card-compact-id-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
         .item-card-compact-source {
             color: #6b7280;
             font-size: 0.85rem;
@@ -884,6 +890,47 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             letter-spacing: 0.5px;
+        }
+
+        .item-screenshot-thumb {
+            margin-top: 8px;
+            width: 140px;
+            max-width: 100%;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #fafafa;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        .item-screenshot-thumb img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        .item-screenshot-thumb-link {
+            display: block;
+            text-decoration: none;
+        }
+
+        .item-screenshot-thumb.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 72px;
+            color: #71717a;
+            font-size: 12px;
+            font-weight: 600;
+            border-style: dashed;
+            background: #f4f4f5;
+        }
+
+        .item-screenshot-thumb.placeholder i {
+            color: #a1a1aa;
+            font-size: 13px;
         }
 
         .item-content-wrapper {
@@ -1389,8 +1436,104 @@
                 this.isOverrideEmail = false;
                 this.authMethod = null; // 'firebase' or 'crowdin'
                 this.crowdinAuthData = null; // Store Crowdin auth response
+                this.screenshotByItemId = new Map();
+                this.screenshotArtifactMeta = null;
+                this.screenshotArtifactLoaded = false;
                 
                 this.init();
+            }
+
+            getScreenshotArtifactUrls() {
+                return [
+                    '/api/crowdin-screenshot-artifact',
+                ];
+            }
+
+            normalizeScreenshotItemKeys(itemId) {
+                const raw = String(itemId || '').trim();
+                if (!raw) return [];
+                const keys = new Set([raw.toLowerCase()]);
+                const base = this.extractBaseId(raw);
+                if (base) keys.add(base.toLowerCase());
+                if (raw.includes('::')) {
+                    const tail = raw.split('::').pop();
+                    if (tail) keys.add(String(tail).toLowerCase());
+                }
+                return Array.from(keys);
+            }
+
+            async loadCrowdinScreenshotArtifact() {
+                const urls = this.getScreenshotArtifactUrls();
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(url, { cache: 'no-store' });
+                        if (!response.ok) continue;
+                        const payload = await response.json();
+                        const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+                        const index = new Map();
+                        entries.forEach((entry) => {
+                            const itemId = String(entry?.itemId || '').trim();
+                            if (!itemId) return;
+                            const screenshots = Array.isArray(entry?.screenshots) ? entry.screenshots : [];
+                            const best = screenshots.find((shot) => String(shot?.url || '').trim()) || null;
+                            if (!best) return;
+                            this.normalizeScreenshotItemKeys(itemId).forEach((key) => {
+                                if (!index.has(key)) index.set(key, best);
+                            });
+                        });
+                        this.screenshotByItemId = index;
+                        this.screenshotArtifactMeta = {
+                            sourceUrl: url,
+                            generatedAt: payload?.generatedAt || null,
+                            itemKeys: index.size,
+                        };
+                        this.screenshotArtifactLoaded = true;
+                        console.log(`Loaded screenshot artifact (${index.size} item keys) from ${url}`);
+                        return true;
+                    } catch (error) {
+                        console.warn(`Screenshot artifact load failed from ${url}:`, error?.message || error);
+                    }
+                }
+                this.screenshotArtifactLoaded = true;
+                return false;
+            }
+
+            getScreenshotForItem(itemId) {
+                const keys = this.normalizeScreenshotItemKeys(itemId);
+                for (const key of keys) {
+                    if (this.screenshotByItemId.has(key)) return this.screenshotByItemId.get(key);
+                }
+                return null;
+            }
+
+            buildScreenshotThumbHtml(itemId) {
+                const shot = this.getScreenshotForItem(itemId);
+                if (!shot) {
+                    return `
+                        <div class="item-screenshot-thumb placeholder" title="No screenshot linked in Crowdin">
+                            <i class="fas fa-image"></i>
+                            <span>No screenshot</span>
+                        </div>
+                    `;
+                }
+                const url = String(shot.url || '').trim();
+                if (!url) {
+                    return `
+                        <div class="item-screenshot-thumb placeholder" title="No screenshot URL available">
+                            <i class="fas fa-image"></i>
+                            <span>No screenshot</span>
+                        </div>
+                    `;
+                }
+                const name = this.escapeHtml(String(shot.name || 'Screenshot'));
+                const escapedUrl = this.escapeHtml(url);
+                return `
+                    <div class="item-screenshot-thumb">
+                        <a class="item-screenshot-thumb-link" href="${escapedUrl}" target="_blank" rel="noopener noreferrer" title="${name}">
+                            <img src="${escapedUrl}" alt="${name}" loading="lazy" />
+                        </a>
+                    </div>
+                `;
             }
 
             getTaskFilterStorageKey(langCode) {
@@ -1861,6 +2004,13 @@
                     if (!Array.isArray(this.data) || this.data.length === 0) {
                         await this.loadData();
                     }
+                    this.loadCrowdinScreenshotArtifact().then((loaded) => {
+                        if (loaded && this.currentLanguage && this.currentLangCode) {
+                            this.refreshItemsForCurrentTab();
+                        }
+                    }).catch((error) => {
+                        console.warn('Screenshot artifact load warning:', error?.message || error);
+                    });
                     if (this.currentLangCode) {
                         await this.loadApprovalStatus();
                     }
@@ -3755,6 +3905,7 @@
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText || ''); // Ensure empty string if no translation
+                    const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     const pendingKey = this.pendingSaveKey;
                     const key = `${this.currentLangCode}::${itemId}`;
@@ -3771,7 +3922,10 @@
                     return `
                         <div class="item-card ${isApproved ? 'approved' : ''}" data-item-id="${escapedItemId}">
                             <div class="item-header">
-                                <div class="item-id">${escapedItemId}</div>
+                                <div>
+                                    <div class="item-id">${escapedItemId}</div>
+                                    ${screenshotThumbHtml}
+                                </div>
                             </div>
                             <div class="item-content-wrapper">
                                 <div class="item-grid-top">
@@ -3835,11 +3989,15 @@
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText);
+                    const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     return `
                         <div class="item-card-compact" data-item-id="${escapedItemId}">
                             <div class="item-card-compact-info">
-                                <div class="item-card-compact-id">${escapedItemId}</div>
+                                <div class="item-card-compact-id-wrap">
+                                    <div class="item-card-compact-id">${escapedItemId}</div>
+                                    ${screenshotThumbHtml}
+                                </div>
                                 <div class="item-card-compact-text">${escapedTranslated}</div>
                             </div>
                             <div class="item-card-compact-actions">
@@ -3876,6 +4034,7 @@
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText || '');
+                    const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     // Check if audio has been generated for this item
                     const pendingKey = this.pendingSaveKey;
@@ -3891,7 +4050,10 @@
                     return `
                         <div class="item-card-compact" data-item-id="${escapedItemId}">
                             <div class="item-card-compact-info">
-                                <div class="item-card-compact-id">${escapedItemId}</div>
+                                <div class="item-card-compact-id-wrap">
+                                    <div class="item-card-compact-id">${escapedItemId}</div>
+                                    ${screenshotThumbHtml}
+                                </div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
                                 <div class="item-card-compact-text">${escapedTranslated || '<em style="color: #999;">Translation not available</em>'}</div>
                             </div>

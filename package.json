@@ -21,6 +21,7 @@
     "test:partner-audio-regression": "node scripts/check-partner-audio-approval-regression.js",
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
     "geocoder:build": "node scripts/geocoder/build-geocoder.js",
+    "crowdin:screenshots:artifact": "node scripts/build-crowdin-screenshot-artifact.js",
     "geocoder:index:autocomplete": "node scripts/geocoder/build-country-autocomplete-index.js",
     "geocoder:index:autocomplete:10": "node scripts/geocoder/build-country-autocomplete-index.js --countries=US,DE,GB,NL,CA,CO,IN,AR,GH,CH",
     "adm:build": "node scripts/adm/build-packs.js",
