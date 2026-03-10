@@ -1,0 +1,45 @@
+name: Nightly Crowdin Screenshot Artifact
+
+on:
+  schedule:
+    # Nightly at 03:20 UTC
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    name: Build and Upload Artifact to GCS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build screenshot artifact and upload to GCS
+        env:
+          CROWDIN_API_TOKEN: ${{ secrets.CROWDIN_API_TOKEN }}
+          LEVANTE_TRANSLATIONS_PROJECT_ID: ${{ vars.LEVANTE_TRANSLATIONS_PROJECT_ID }}
+          GCP_SERVICE_ACCOUNT_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          DASHBOARD_DATA_BUCKET: ${{ vars.DASHBOARD_DATA_BUCKET }}
+          CROWDIN_SCREENSHOT_ARTIFACT_PREFIX: ${{ vars.CROWDIN_SCREENSHOT_ARTIFACT_PREFIX }}
+          CROWDIN_SCREENSHOT_ARTIFACT_OBJECT: ${{ vars.CROWDIN_SCREENSHOT_ARTIFACT_OBJECT }}
+        run: |
+          node scripts/build-crowdin-screenshot-artifact.js \
+            --output-json data/validation/crowdin-screenshot-artifact.json
+
+      - name: Upload local artifact (debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: crowdin-screenshot-artifact
+          path: data/validation/crowdin-screenshot-artifact.json
+          if-no-files-found: error
