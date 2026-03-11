@@ -43,6 +43,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.approvedDrafts = new Set();
                 this.pendingSaveKey = null;
                 this.isRefreshingTranslations = false;
+                this.elevenLabsStability = 0.65;
+                this.elevenLabsStyle = 0.0;
                 
                 this.setupGlobalActions();
                 this.init();
@@ -213,6 +215,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     
                     // Setup event listeners
                     this.setupEventListeners();
+                    this.syncElevenLabsSettingsFromUi();
                     this.setupDataSourceControl();
                     
                     // Load comprehensive voices
@@ -3657,6 +3660,29 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 });
             }
 
+            getElevenLabsSettingValue(selectId, fallback) {
+                const el = document.getElementById(selectId);
+                const value = el ? Number.parseFloat(String(el.value || '')) : NaN;
+                return Number.isFinite(value) ? value : fallback;
+            }
+
+            syncElevenLabsSettingsFromUi() {
+                this.elevenLabsStability = this.getElevenLabsSettingValue('elevenlabsStabilitySelect', 0.65);
+                this.elevenLabsStyle = this.getElevenLabsSettingValue('elevenlabsStyleSelect', 0.0);
+
+                const stabilityEl = document.getElementById('elevenlabsStabilitySelect');
+                if (stabilityEl && !stabilityEl.dataset.bound) {
+                    stabilityEl.addEventListener('change', () => this.syncElevenLabsSettingsFromUi());
+                    stabilityEl.dataset.bound = 'true';
+                }
+
+                const styleEl = document.getElementById('elevenlabsStyleSelect');
+                if (styleEl && !styleEl.dataset.bound) {
+                    styleEl.addEventListener('change', () => this.syncElevenLabsSettingsFromUi());
+                    styleEl.dataset.bound = 'true';
+                }
+            }
+
             async generateAudioFromText() {
                 const textInput = document.getElementById('textInput');
                 const text = textInput.value.trim();
@@ -3778,7 +3804,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const requestData = {
                     text: text,
                     model_id: "eleven_multilingual_v2",
-                    output_format: "mp3_22050_32"
+                    output_format: "mp3_22050_32",
+                    voice_settings: {
+                        stability: this.elevenLabsStability,
+                        style: this.elevenLabsStyle
+                    }
                 };
                 
                 console.log('Calling ElevenLabs API with:', requestData);
