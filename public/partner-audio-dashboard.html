@@ -1450,6 +1450,7 @@
                 this.enhancedTextLoadedLangs = new Set();
                 this.enhancedTextSyncQueue = new Map();
                 this.enhancedTextSyncTimer = null;
+                this.missingEnhancedKeyLogs = new Set();
                 
                 this.init();
             }
@@ -1555,10 +1556,14 @@
             }
 
             getEnhancedTextStorageKey(langCode) {
-                const normalized = String(langCode || '').trim().toLowerCase();
+                const normalized = this.normalizeEnhancedLangCode(langCode);
                 return normalized
                     ? `partnerAudioEnhancedText::${normalized}`
                     : 'partnerAudioEnhancedText::global';
+            }
+
+            normalizeEnhancedLangCode(langCode) {
+                return String(langCode || '').trim().replace(/_/g, '-').toLowerCase();
             }
 
             getEnhancedTextState(langCode) {
@@ -1577,6 +1582,26 @@
                     }
                 } catch (_) {
                     state = {};
+                }
+                if (!Object.keys(state).length && langCode) {
+                    const altKey = String(langCode || '').includes('_')
+                        ? this.getEnhancedTextStorageKey(String(langCode).replace(/_/g, '-'))
+                        : this.getEnhancedTextStorageKey(String(langCode).replace(/-/g, '_'));
+                    if (altKey && altKey !== storageKey) {
+                        try {
+                            const altRaw = localStorage.getItem(altKey);
+                            if (altRaw) {
+                                const altParsed = JSON.parse(altRaw);
+                                if (altParsed && typeof altParsed === 'object' && !Array.isArray(altParsed)) {
+                                    state = altParsed;
+                                    localStorage.removeItem(altKey);
+                                    localStorage.setItem(storageKey, JSON.stringify(state));
+                                }
+                            }
+                        } catch (_) {
+                            // ignore
+                        }
+                    }
                 }
                 this.enhancedTextByLang.set(storageKey, state);
                 return state;
@@ -1656,7 +1681,7 @@
             }
 
             async loadEnhancedTextFromServer(langCode) {
-                const normalized = String(langCode || '').trim();
+                const normalized = this.normalizeEnhancedLangCode(langCode);
                 if (!normalized) return false;
                 const cacheKey = normalized.toLowerCase();
                 if (this.enhancedTextLoadedLangs.has(cacheKey)) return true;
@@ -1669,14 +1694,37 @@
                     if (!payload || payload.ok !== true) return false;
                     this.mergeEnhancedTextEntries(normalized, payload.entries || {});
                     this.enhancedTextLoadedLangs.add(cacheKey);
+                    this.syncEnhancedTextInputs();
                     return true;
                 } catch (_) {
                     return false;
                 }
             }
 
+            syncEnhancedTextInputs(root = document) {
+                if (!this.currentLangCode) return;
+                const inputs = root.querySelectorAll('.audio-enhanced-input');
+                inputs.forEach((input) => {
+                    const rawId = input.dataset?.itemId || input.id?.replace('audioEnhanced_', '') || '';
+                    const itemId = String(rawId || '').trim();
+                    if (!itemId) return;
+                    const enhancedEntry = this.getEnhancedEntryForItem(itemId);
+                    const enhancedText = this.getEnhancedTextForItem(itemId, input.value || '');
+                    if (document.activeElement !== input && enhancedText !== input.value) {
+                        input.value = enhancedText;
+                    }
+                    const metaEl = input.closest('.item-audio-enhanced')?.querySelector('.audio-enhanced-meta');
+                    if (metaEl) {
+                        const metaText = enhancedEntry
+                            ? `${enhancedEntry.updatedBy ? `Edited by ${enhancedEntry.updatedBy}` : 'Edited'}${enhancedEntry.updatedAt ? ` • ${new Date(enhancedEntry.updatedAt).toLocaleString()}` : ''}`
+                            : 'Using translation text';
+                        metaEl.textContent = metaText;
+                    }
+                });
+            }
+
             queueEnhancedTextServerSync(itemId, text) {
-                const langCode = String(this.currentLangCode || '').trim();
+                const langCode = this.normalizeEnhancedLangCode(this.currentLangCode);
                 const rawId = String(itemId || '').trim();
                 if (!langCode || !rawId) return;
                 this.enhancedTextSyncQueue.set(`${langCode}::${rawId}`, {
@@ -1715,21 +1763,7 @@
 
             getEnhancedTextItemKeys(itemId) {
                 const raw = String(itemId || '').trim();
-                if (!raw) return [];
-                const keys = new Set([raw, raw.toLowerCase()]);
-                if (raw.includes('::')) {
-                    const tail = String(raw.split('::').pop() || '').trim();
-                    if (tail) {
-                        keys.add(tail);
-                        keys.add(tail.toLowerCase());
-                    }
-                }
-                const base = this.extractBaseId(raw);
-                if (base) {
-                    keys.add(base);
-                    keys.add(base.toLowerCase());
-                }
-                return Array.from(keys).filter(Boolean);
+                return raw ? [raw] : [];
             }
 
             getEnhancedEntryForItem(itemId) {
@@ -1740,6 +1774,19 @@
                     if (state[key] !== undefined) {
                         const entry = this.normalizeEnhancedEntry(state[key]);
                         if (entry.text) return entry;
+                    }
+                }
+                if (keys.length === 1) {
+                    const logKey = `${String(this.currentLangCode)}::${keys[0]}`;
+                    if (!this.missingEnhancedKeyLogs.has(logKey)) {
+                        this.missingEnhancedKeyLogs.add(logKey);
+                        const stateKeys = Object.keys(state || {});
+                        console.warn('Enhanced text missing for exact key', {
+                            langCode: this.currentLangCode,
+                            itemId: keys[0],
+                            availableKeyCount: stateKeys.length,
+                            sampleKeys: stateKeys.slice(0, 12)
+                        });
                     }
                 }
                 return null;
@@ -4173,6 +4220,8 @@
                         </div>
                     `;
                 }).join('');
+
+                this.syncEnhancedTextInputs(container);
                 
                 // Update save button states
                 this.updateSaveButtonStates();
@@ -4372,8 +4421,12 @@
                     // Get audio-enhanced string from textarea, fallback to translated text
                     const audioEnhancedInput = document.getElementById(`audioEnhanced_${itemId}`);
                     let text = '';
+                    let textSource = 'translation';
                     if (audioEnhancedInput && audioEnhancedInput.value) {
                         text = audioEnhancedInput.value.trim();
+                        if (text) {
+                            textSource = 'enhanced';
+                        }
                     }
                     
                     // Fallback to translated text if audio-enhanced string is empty
@@ -4387,7 +4440,8 @@
                     this.setEnhancedTextForItem(itemId, text);
                     this.queueEnhancedTextServerSync(itemId, text);
                     
-                    this.setStatus(`Generating audio for ${itemId}...`, 'loading');
+                    const sourceLabel = textSource === 'enhanced' ? 'audio-enhanced text' : 'translation text';
+                    this.setStatus(`Generating audio for ${itemId} using ${sourceLabel}...`, 'loading');
                     
                     const langConfig = this.languages[this.currentLanguage];
                     const voiceId = await this.getVoiceId(langConfig.voice);

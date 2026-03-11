@@ -15,9 +15,17 @@ function getStorageClient() {
 }
 
 function sanitizeLangCode(langCode) {
-  const cleaned = String(langCode || '').trim().toLowerCase();
+  const cleaned = String(langCode || '').trim().toLowerCase().replace(/_/g, '-');
   if (!cleaned) return '';
   return cleaned.replace(/[^a-z0-9._-]/g, '');
+}
+
+function alternateLangCode(langCode) {
+  const safe = sanitizeLangCode(langCode);
+  if (!safe) return '';
+  if (safe.includes('-')) return safe.replace(/-/g, '_');
+  if (safe.includes('_')) return safe.replace(/_/g, '-');
+  return '';
 }
 
 function objectPathForLang(langCode) {
@@ -29,8 +37,23 @@ function objectPathForLang(langCode) {
 async function readLangPayload(storage, langCode) {
   const objectPath = objectPathForLang(langCode);
   if (!objectPath) return { entries: {}, objectPath: '' };
-  const file = storage.bucket(BUCKET_NAME).file(objectPath);
-  const [exists] = await file.exists();
+  const bucket = storage.bucket(BUCKET_NAME);
+  let file = bucket.file(objectPath);
+  let [exists] = await file.exists();
+  let resolvedPath = objectPath;
+  if (!exists) {
+    const alt = alternateLangCode(langCode);
+    if (alt) {
+      const altPath = `${PREFIX}/${alt}.json`;
+      const altFile = bucket.file(altPath);
+      const [altExists] = await altFile.exists();
+      if (altExists) {
+        file = altFile;
+        exists = true;
+        resolvedPath = altPath;
+      }
+    }
+  }
   if (!exists) return { entries: {}, objectPath };
   const [buf] = await file.download();
   let parsed = {};
@@ -42,13 +65,14 @@ async function readLangPayload(storage, langCode) {
   const entries = parsed && typeof parsed.entries === 'object' && !Array.isArray(parsed.entries)
     ? parsed.entries
     : {};
-  return { entries, objectPath, metadata: parsed?.metadata || {} };
+  return { entries, objectPath: resolvedPath, metadata: parsed?.metadata || {} };
 }
 
 async function writeLangPayload(storage, langCode, entries) {
   const objectPath = objectPathForLang(langCode);
   if (!objectPath) throw new Error('Invalid langCode');
-  const file = storage.bucket(BUCKET_NAME).file(objectPath);
+  const bucket = storage.bucket(BUCKET_NAME);
+  const file = bucket.file(objectPath);
   const payload = {
     metadata: {
       langCode: sanitizeLangCode(langCode),
@@ -61,6 +85,14 @@ async function writeLangPayload(storage, langCode, entries) {
     contentType: 'application/json',
     resumable: false,
   });
+  const alt = alternateLangCode(langCode);
+  if (alt) {
+    const altFile = bucket.file(`${PREFIX}/${alt}.json`);
+    await altFile.save(JSON.stringify(payload, null, 2), {
+      contentType: 'application/json',
+      resumable: false,
+    });
+  }
   return objectPath;
 }
 
