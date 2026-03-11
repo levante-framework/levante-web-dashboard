@@ -13,6 +13,11 @@ const DEFAULT_PROJECT_ID = '756721';
 const DEFAULT_BUCKET = process.env.DASHBOARD_DATA_BUCKET || 'levante-dashboard-dev';
 const DEFAULT_PREFIX = process.env.CROWDIN_SCREENSHOT_ARTIFACT_PREFIX || 'pitwall/crowdin';
 const DEFAULT_OBJECT = process.env.CROWDIN_SCREENSHOT_ARTIFACT_OBJECT || 'crowdin-screenshot-artifact.json';
+const DEFAULT_CACHE_BUCKET = process.env.CROWDIN_SCREENSHOT_CACHE_BUCKET || DEFAULT_BUCKET;
+const DEFAULT_CACHE_PREFIX = process.env.CROWDIN_SCREENSHOT_CACHE_PREFIX || `${DEFAULT_PREFIX}/screenshots`;
+const DEFAULT_CACHE_PUBLIC_BASE =
+  process.env.CROWDIN_SCREENSHOT_CACHE_PUBLIC_BASE ||
+  (DEFAULT_CACHE_BUCKET ? `https://storage.googleapis.com/${DEFAULT_CACHE_BUCKET}` : '');
 
 const argv = yargs(hideBin(process.argv))
   .option('project-id', {
@@ -40,6 +45,31 @@ const argv = yargs(hideBin(process.argv))
     default: DEFAULT_OBJECT,
     describe: 'GCS object name for uploaded artifact',
   })
+  .option('cache-bucket', {
+    type: 'string',
+    default: DEFAULT_CACHE_BUCKET,
+    describe: 'GCS bucket for cached screenshots',
+  })
+  .option('cache-prefix', {
+    type: 'string',
+    default: DEFAULT_CACHE_PREFIX,
+    describe: 'GCS prefix/folder for cached screenshots',
+  })
+  .option('cache-public-base', {
+    type: 'string',
+    default: DEFAULT_CACHE_PUBLIC_BASE,
+    describe: 'Public base URL for cached screenshots',
+  })
+  .option('cache-concurrency', {
+    type: 'number',
+    default: Number(process.env.CROWDIN_SCREENSHOT_CACHE_CONCURRENCY || 6),
+    describe: 'Concurrency for screenshot caching',
+  })
+  .option('skip-cache', {
+    type: 'boolean',
+    default: false,
+    describe: 'Skip caching screenshots to GCS',
+  })
   .option('skip-upload', {
     type: 'boolean',
     default: false,
@@ -53,6 +83,28 @@ function normalizePrefix(prefix) {
   return String(prefix).endsWith('/') ? String(prefix) : `${String(prefix)}/`;
 }
 
+function normalizePublicBase(value) {
+  if (!value) return '';
+  return String(value).replace(/\/+$/, '');
+}
+
+function guessImageExtension(url, contentType) {
+  if (contentType) {
+    const type = String(contentType).toLowerCase();
+    if (type.includes('image/png')) return '.png';
+    if (type.includes('image/jpeg') || type.includes('image/jpg')) return '.jpg';
+    if (type.includes('image/webp')) return '.webp';
+    if (type.includes('image/gif')) return '.gif';
+  }
+  try {
+    const parsed = new URL(url);
+    const ext = path.extname(parsed.pathname || '');
+    return ext || '.png';
+  } catch (_e) {
+    return '.png';
+  }
+}
+
 function getStorageClient() {
   const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
   if (raw) {
@@ -60,6 +112,48 @@ function getStorageClient() {
     return new Storage({ credentials: creds, projectId: creds.project_id });
   }
   return new Storage();
+}
+
+async function cacheScreenshot(storage, bucketName, prefix, publicBase, screenshotId, sourceUrl) {
+  if (!bucketName || !publicBase || !screenshotId || !sourceUrl) return null;
+  const safePrefix = normalizePrefix(prefix);
+  const bucket = storage.bucket(bucketName);
+  const placeholderExt = path.extname(sourceUrl.split('?')[0] || '') || '.png';
+  const objectPath = `${safePrefix}${screenshotId}${placeholderExt}`;
+  const file = bucket.file(objectPath);
+  const [exists] = await file.exists();
+  if (exists) {
+    return `${normalizePublicBase(publicBase)}/${objectPath}`;
+  }
+
+  const response = await fetch(sourceUrl);
+  if (!response.ok) {
+    throw new Error(`Screenshot download failed: ${response.status}`);
+  }
+  const contentType = response.headers.get('content-type') || '';
+  const buffer = Buffer.from(await response.arrayBuffer());
+  const ext = guessImageExtension(sourceUrl, contentType);
+  const finalPath = `${safePrefix}${screenshotId}${ext}`;
+  const finalFile = bucket.file(finalPath);
+  try {
+    await finalFile.save(buffer, {
+      resumable: false,
+      metadata: {
+        contentType: contentType || undefined,
+        cacheControl: 'public, max-age=31536000, immutable',
+      },
+      predefinedAcl: 'publicRead',
+    });
+  } catch (_error) {
+    await finalFile.save(buffer, {
+      resumable: false,
+      metadata: {
+        contentType: contentType || undefined,
+        cacheControl: 'public, max-age=31536000, immutable',
+      },
+    });
+  }
+  return `${normalizePublicBase(publicBase)}/${finalPath}`;
 }
 
 async function crowdinFetchJson(url, token, options = {}) {
@@ -285,7 +379,7 @@ async function buildArtifact() {
   });
 
   // De-dupe entries per item by screenshotId + stringId
-  const entries = Array.from(byItemId.entries())
+  let entries = Array.from(byItemId.entries())
     .map(([itemId, screenshots]) => {
       const uniq = new Map();
       screenshots.forEach((shot) => {
@@ -299,6 +393,61 @@ async function buildArtifact() {
     })
     .sort((a, b) => a.itemId.localeCompare(b.itemId));
 
+  let cachedScreenshots = 0;
+  let cacheErrors = 0;
+  if (!argv['skip-cache']) {
+    const bucketName = String(argv['cache-bucket'] || '').trim();
+    const prefix = String(argv['cache-prefix'] || '').trim();
+    const publicBase = normalizePublicBase(String(argv['cache-public-base'] || '').trim());
+    if (bucketName && publicBase) {
+      console.log(`🖼️  Caching screenshots to gs://${bucketName}/${normalizePrefix(prefix)}...`);
+      const storage = getStorageClient();
+      const screenshotMap = new Map();
+      entries.forEach((entry) => {
+        entry.screenshots.forEach((shot) => {
+          const id = String(shot.screenshotId || '').trim();
+          const url = String(shot.url || '').trim();
+          if (id && url && !screenshotMap.has(id)) {
+            screenshotMap.set(id, url);
+          }
+        });
+      });
+      const cacheConcurrency = Number(argv['cache-concurrency'] || 6);
+      const cacheIds = Array.from(screenshotMap.keys());
+      const cachedById = new Map();
+      await mapWithConcurrency(cacheIds, cacheConcurrency, async (id) => {
+        const url = screenshotMap.get(id);
+        try {
+          const cachedUrl = await cacheScreenshot(storage, bucketName, prefix, publicBase, id, url);
+          if (cachedUrl) {
+            cachedById.set(id, cachedUrl);
+            cachedScreenshots += 1;
+          }
+        } catch (error) {
+          cacheErrors += 1;
+          console.warn(`⚠️  Screenshot cache failed (${id}):`, error?.message || error);
+        }
+      });
+      entries = entries.map((entry) => ({
+        ...entry,
+        screenshots: entry.screenshots.map((shot) => {
+          const cachedUrl = cachedById.get(String(shot.screenshotId || '').trim());
+          if (!cachedUrl) return shot;
+          return {
+            ...shot,
+            sourceUrl: shot.url,
+            url: cachedUrl,
+            cached: true,
+          };
+        }),
+      }));
+    } else {
+      console.log('⚠️  Screenshot cache skipped: missing cache bucket or public base URL');
+    }
+  } else {
+    console.log('⏭️  Skipped screenshot caching (--skip-cache)');
+  }
+
   return {
     schemaVersion: 1,
     generatedAt,
@@ -310,6 +459,8 @@ async function buildArtifact() {
       matchedScreenshots,
       skippedScreenshots,
       itemKeys: entries.length,
+      cachedScreenshots,
+      cacheErrors,
     },
     entries,
   };

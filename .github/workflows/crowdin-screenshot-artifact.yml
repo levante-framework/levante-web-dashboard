@@ -33,6 +33,9 @@ jobs:
           DASHBOARD_DATA_BUCKET: ${{ vars.DASHBOARD_DATA_BUCKET }}
           CROWDIN_SCREENSHOT_ARTIFACT_PREFIX: ${{ vars.CROWDIN_SCREENSHOT_ARTIFACT_PREFIX }}
           CROWDIN_SCREENSHOT_ARTIFACT_OBJECT: ${{ vars.CROWDIN_SCREENSHOT_ARTIFACT_OBJECT }}
+          CROWDIN_SCREENSHOT_CACHE_BUCKET: ${{ vars.CROWDIN_SCREENSHOT_CACHE_BUCKET }}
+          CROWDIN_SCREENSHOT_CACHE_PREFIX: ${{ vars.CROWDIN_SCREENSHOT_CACHE_PREFIX }}
+          CROWDIN_SCREENSHOT_CACHE_PUBLIC_BASE: ${{ vars.CROWDIN_SCREENSHOT_CACHE_PUBLIC_BASE }}
         run: |
           node scripts/build-crowdin-screenshot-artifact.js \
             --output-json data/validation/crowdin-screenshot-artifact.json
