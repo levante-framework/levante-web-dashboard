@@ -345,7 +345,8 @@ function ensureScoreSourceBadge(containerEl, source, aiModel = '') {
         badge.style.background = '#f3e5f5';
         badge.style.border = '1px solid #ce93d8';
     } else if (source === 'ai') {
-        const modelName = String(aiModel || 'gpt-4.1').trim();
+        const rawModelName = String(aiModel || '').trim();
+        const modelName = rawModelName.toLowerCase() === 'gpt-4.1' ? '' : rawModelName;
         badge.textContent = modelName ? `AI ${modelName}` : 'AI';
         badge.title = modelName ? `AI-refined score via ${modelName}` : 'AI-refined score';
         badge.style.color = '#0d47a1';
@@ -605,6 +606,78 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
     if (typeof updateValidationSummary === 'function') updateValidationSummary();
 }
 
+let _validationAutoSaveTimer = null;
+let _validationAutoSaveInFlight = false;
+let _validationAutoSaveQueued = false;
+let _validationSummaryTimer = null;
+
+function requestValidationSummaryUpdate(delayMs = 120) {
+    if (_validationSummaryTimer) clearTimeout(_validationSummaryTimer);
+    _validationSummaryTimer = setTimeout(() => {
+        _validationSummaryTimer = null;
+        updateValidationSummary();
+    }, delayMs);
+}
+
+function queueValidationAutoSave() {
+    const dashboard = window.dashboard;
+    if (!dashboard || typeof dashboard.saveValidationResults !== 'function') return;
+    _validationAutoSaveQueued = true;
+    if (_validationAutoSaveTimer) clearTimeout(_validationAutoSaveTimer);
+    _validationAutoSaveTimer = setTimeout(async () => {
+        if (_validationAutoSaveInFlight) {
+            queueValidationAutoSave();
+            return;
+        }
+        _validationAutoSaveInFlight = true;
+        _validationAutoSaveQueued = false;
+        try {
+            await dashboard.saveValidationResults();
+        } catch (e) {
+            console.warn('Auto-save failed:', e?.message || e);
+        } finally {
+            _validationAutoSaveInFlight = false;
+            if (_validationAutoSaveQueued) queueValidationAutoSave();
+        }
+    }, 1200);
+}
+
+function resetValidationUiForRow(row, langCode) {
+    if (!row) return;
+    const indicator = row.querySelector('.status-indicator');
+    const button = row.querySelector('.validate-btn');
+    const statusWrap = indicator ? indicator.parentElement : null;
+    if (indicator) {
+        indicator.className = 'status-indicator status-pending';
+        indicator.title = 'Not validated yet';
+        indicator.onclick = null;
+    }
+    if (button) {
+        button.textContent = 'Validate';
+        button.disabled = false;
+        const itemId = String(row.dataset.itemId || '');
+        button.onclick = () => {
+            if (window.validateByItemId) {
+                window.validateByItemId(itemId, langCode);
+            }
+        };
+    }
+    if (statusWrap) {
+        const scoreBadge = statusWrap.querySelector('.score-badge');
+        if (scoreBadge) scoreBadge.remove();
+        const sourceBadge = statusWrap.querySelector('.score-source-badge');
+        if (sourceBadge) sourceBadge.remove();
+        const approvedIndicator = statusWrap.querySelector('.approved-indicator');
+        if (approvedIndicator) approvedIndicator.style.display = 'none';
+        const approvedCheckbox = statusWrap.querySelector('.approved-checkbox');
+        if (approvedCheckbox) approvedCheckbox.checked = false;
+    }
+    const backEl = row.querySelector('.item-backtranslation');
+    if (backEl) backEl.remove();
+    row.dataset.score = '-1';
+    row.dataset.approved = '0';
+}
+
 const validationRunState = {
     active: false,
     cancelRequested: false,
@@ -701,7 +774,7 @@ async function validateAll() {
     visibleRows.forEach(row => {
         const itemId = String(row.dataset.itemId || '');
         if (!itemId) return;
-        const existing = dashboard.validation_results?.[itemId]?.[langCode];
+        const existing = getValidationResult(dashboard, itemId, langCode);
         const alreadyValidated = existing && typeof existing.score === 'number';
         if (alreadyValidated && !forceAll) {
             skippedAlreadyValidated++;
@@ -745,6 +818,39 @@ async function validateAll() {
         `(${skippedCount} already validated skipped${skippedMissing ? `, ${skippedMissing} missing translation skipped` : ''}).\n` +
         `Mode: ${speedMode.toUpperCase()} | Concurrency: ${concurrency} | Delay: ${perItemDelayMs}ms\n\nContinue?`
     )) {
+        if (forceAll) {
+            const langKey = resolveValidationLangCode(dashboard, langCode);
+            jobs.forEach((job) => {
+                const rawId = String(job.itemId || '');
+                const candidateKeys = new Set([rawId, rawId.toLowerCase()]);
+                if (rawId.includes('::')) {
+                    const tail = String(rawId.split('::').pop() || '').trim();
+                    if (tail) {
+                        candidateKeys.add(tail);
+                        candidateKeys.add(tail.toLowerCase());
+                    }
+                }
+                Object.keys(dashboard.validation_results || {}).forEach((storedKey) => {
+                    const s = String(storedKey || '');
+                    const sLower = s.toLowerCase();
+                    if (
+                        candidateKeys.has(s)
+                        || candidateKeys.has(sLower)
+                        || s.endsWith(`::${rawId}`)
+                        || sLower.endsWith(`::${rawId.toLowerCase()}`)
+                    ) {
+                        const byItem = dashboard.validation_results[storedKey];
+                        if (byItem && byItem[langKey]) {
+                            delete byItem[langKey];
+                            if (Object.keys(byItem).length === 0) delete dashboard.validation_results[storedKey];
+                        }
+                    }
+                });
+            });
+            visibleRows.forEach((row) => resetValidationUiForRow(row, langCode));
+            if (typeof updateValidationSummary === 'function') updateValidationSummary();
+            queueValidationAutoSave();
+        }
         validationRunState.active = true;
         validationRunState.cancelRequested = false;
         validationRunState.completed = 0;
@@ -1002,6 +1108,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
 
             window.dashboard.setStatus(`✅ Validated ${itemId}: Source language (100%)`, 'success');
             updatedButtonText = true;
+            queueValidationAutoSave();
             return { scoreSource: 'calculated' };
         }
 
@@ -1181,6 +1288,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         };
 
         window.dashboard.setStatus(`${scoreEmoji} Validated ${itemId}: ${score}% composite similarity`, 'success');
+        queueValidationAutoSave();
         return { scoreSource: aiJudge.used ? 'ai' : 'calculated' };
 
     } catch (error) {
@@ -1198,8 +1306,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
                 button.disabled = false;
             }
             
-            // Update summary counts
-            setTimeout(updateValidationSummary, 100);
+            // Update summary counts (debounced to avoid expensive per-row recomputation storms).
+            requestValidationSummaryUpdate();
         }
 }
 
@@ -1245,7 +1353,13 @@ function updateValidationSummary() {
     const currentTable = document.getElementById(`table-${currentLanguage}`);
     if (!currentTable) return;
     const indicators = currentTable.querySelectorAll('.status-indicator');
-    const allowedIds = typeof getReviewTableAllowedItemIds === 'function' ? getReviewTableAllowedItemIds() : null;
+    let allowedIds = null;
+    const filterEl = document.getElementById('reviewTablePathFilter');
+    const filter = String(filterEl?.value || 'all').toLowerCase();
+    // Fast path: when viewing all files, skip expensive full data scan/set creation.
+    if (filter !== 'all' && typeof getReviewTableAllowedItemIds === 'function') {
+        allowedIds = getReviewTableAllowedItemIds();
+    }
     let good = 0, warning = 0, error = 0, pending = 0;
     indicators.forEach(indicator => {
         const row = indicator.closest('.data-row');

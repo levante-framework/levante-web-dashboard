@@ -385,7 +385,31 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             getValidationEntry(itemId, langCode) {
-                const byItem = this.validation_results?.[itemId];
+                const rawItemId = String(itemId || '').trim();
+                if (!rawItemId) return null;
+                const candidates = [rawItemId, rawItemId.toLowerCase()];
+                if (rawItemId.includes('::')) {
+                    const tail = String(rawItemId.split('::').pop() || '').trim();
+                    if (tail) {
+                        candidates.push(tail, tail.toLowerCase());
+                    }
+                }
+                // Legacy caches may only have the short key; newer data often has path::short-key.
+                const directSuffixMatches = Object.keys(this.validation_results || {}).filter((storedKey) => {
+                    const s = String(storedKey || '');
+                    return s && (s.endsWith(`::${rawItemId}`) || s.toLowerCase().endsWith(`::${rawItemId.toLowerCase()}`));
+                });
+                directSuffixMatches.forEach((m) => candidates.push(m));
+                const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
+
+                let byItem = null;
+                for (let i = 0; i < uniqueCandidates.length; i++) {
+                    const key = uniqueCandidates[i];
+                    if (this.validation_results?.[key]) {
+                        byItem = this.validation_results[key];
+                        break;
+                    }
+                }
                 if (!byItem) return null;
                 const preferred = this.resolvePreferredLangCode(langCode);
                 if (byItem[preferred]) return byItem[preferred];
@@ -2008,7 +2032,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         
                                         const sharedTs = sharedValidation?.updated || sharedValidation?.timestamp || '';
                                         const localTs = localValidation?.updated || localValidation?.timestamp || '';
-                                        if (!localValidation || (sharedTs && (!localTs || sharedTs > localTs))) {
+                                        const localBack = String(localValidation?.backTranslation || '').trim();
+                                        const sharedBack = String(sharedValidation?.backTranslation || '').trim();
+                                        const shouldHydrateBackTranslation = !localBack && !!sharedBack;
+                                        if (
+                                            !localValidation
+                                            || (sharedTs && (!localTs || sharedTs > localTs))
+                                            || shouldHydrateBackTranslation
+                                        ) {
                                             localResults[itemId][lang] = sharedValidation;
                                         }
                                     });
@@ -2365,7 +2396,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let scoreBadgeHtml = '';
                     let sourceBadgeHtml = '';
                     let embeddingRowHtml = '';
-                    let advisoryMismatchHtml = '';
                     let approvedHtml = '';
                     let scoreValue = -1;
                     const storedResult = this.getValidationEntry(itemId, langCode);
@@ -2428,7 +2458,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (lexicalScore != null) tooltipParts.push(`Lexical: ${lexicalScore.toFixed(2)}%`);
                         if (storedResult.aiUsed && Number.isFinite(Number(storedResult.aiScore))) {
                             const aiScoreNum = Number(storedResult.aiScore);
-                            const aiModel = String(storedResult.aiModel || '').trim();
+                            const rawAiModel = String(storedResult.aiModel || '').trim();
+                            const aiModel = rawAiModel.toLowerCase() === 'gpt-4.1' ? '' : rawAiModel;
                             tooltipParts.push(`AI score: ${aiScoreNum.toFixed(2)}%${aiModel ? ` via ${aiModel}` : ''}`);
                         }
                         if (storedResult.scoringVersion) tooltipParts.push(`Scoring version: ${storedResult.scoringVersion}`);
@@ -2436,7 +2467,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (scoreSource === 'manual') {
                             sourceBadgeHtml = `<span class="score-source-badge" title="Manually approved" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #4a148c; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 3px; padding: 1px 4px;">Manual</span>`;
                         } else if (scoreSource === 'ai') {
-                            const aiModelName = String(storedResult.aiModel || 'gpt-4.1').trim();
+                            const rawAiModelName = String(storedResult.aiModel || '').trim();
+                            const aiModelName = rawAiModelName.toLowerCase() === 'gpt-4.1' ? '' : rawAiModelName;
                             const aiBadgeText = aiModelName ? `AI ${escapeHtml(aiModelName)}` : 'AI';
                             const aiTitle = aiModelName ? `AI-refined score via ${escapeHtml(aiModelName)}` : 'AI-refined score';
                             sourceBadgeHtml = `<span class="score-source-badge" title="${aiTitle}" style="font-size: 10px; font-weight: 700; margin-left: 4px; opacity: 0.95; color: #0d47a1; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 1px 4px;">${aiBadgeText}</span>`;
@@ -2478,13 +2510,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             'embedding-row-fail';
                         const advisoryDatasetLabel = advisoryDataset ? ` ${escapeHtml(advisoryDataset)}` : '';
                         embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}"><span class="item-embedding-label">Embedding${advisoryDatasetLabel}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
-                        if (storedResult && Number.isFinite(Number(storedResult.score))) {
-                            const backtranslationPercent = Number(storedResult.score) * 100;
-                            const btStatus = backtranslationPercent >= 85 ? 'pass' : (backtranslationPercent >= 70 ? 'review' : 'fail');
-                            if (advisoryStatus && btStatus !== advisoryStatus) {
-                                advisoryMismatchHtml = `<span class="embedding-mismatch-badge" title="Back-translation and embedding advisory disagree" style="font-size: 10px; font-weight: 700; margin-left: 4px; color: #b71c1c; background: #ffebee; border: 1px solid #ef9a9a; border-radius: 3px; padding: 1px 4px;">Mismatch</span>`;
-                            }
-                        }
                     }
                     const manualApproved = !!storedResult?.manualApproved;
                     approvedHtml = `<label class="approved-toggle-label" title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? '#2e7d32' : '#6c757d'}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? 'checked' : ''} onchange="window.setManualApprovalForValidation && window.setManualApprovalForValidation('${escapedItemId}', '${langCode}', this.checked, this.closest('.data-row'))" style="cursor: pointer;">Approved</label>`;
@@ -2525,7 +2550,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 </div>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
-                                ${advisoryMismatchHtml}
                                 <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
                                 ${approvedHtml}
                             </div>

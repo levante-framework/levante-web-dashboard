@@ -98,13 +98,21 @@ export default async function handler(req, res) {
       const langCode = String(req.body?.langCode || '').trim();
       const itemId = String(req.body?.itemId || '').trim();
       const text = String(req.body?.text || '').trim();
+      const updatedBy = String(req.body?.updatedBy || '').trim();
       if (!langCode || !itemId) {
         return res.status(400).json({ ok: false, error: 'Missing required fields: langCode, itemId' });
       }
       const loaded = await readLangPayload(storage, langCode);
       const entries = { ...(loaded.entries || {}) };
-      if (!text) delete entries[itemId];
-      else entries[itemId] = text;
+      if (!text) {
+        delete entries[itemId];
+      } else {
+        entries[itemId] = {
+          text,
+          updatedAt: new Date().toISOString(),
+          updatedBy: updatedBy || '',
+        };
+      }
       const objectPath = await writeLangPayload(storage, langCode, entries);
       return res.status(200).json({
         ok: true,

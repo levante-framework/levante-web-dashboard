@@ -1002,6 +1002,13 @@
             letter-spacing: 0.5px;
         }
 
+        .audio-enhanced-meta {
+            font-size: 11px;
+            color: #71717a;
+            margin-top: -2px;
+            margin-bottom: 4px;
+        }
+
         .text-content {
             font-size: 15px;
             color: #27272a;
@@ -1439,6 +1446,10 @@
                 this.screenshotByItemId = new Map();
                 this.screenshotArtifactMeta = null;
                 this.screenshotArtifactLoaded = false;
+                this.enhancedTextByLang = new Map();
+                this.enhancedTextLoadedLangs = new Set();
+                this.enhancedTextSyncQueue = new Map();
+                this.enhancedTextSyncTimer = null;
                 
                 this.init();
             }
@@ -1541,6 +1552,197 @@
                 return normalized
                     ? `partnerAudioTaskFilter::${normalized}`
                     : 'partnerAudioTaskFilter::global';
+            }
+
+            getEnhancedTextStorageKey(langCode) {
+                const normalized = String(langCode || '').trim().toLowerCase();
+                return normalized
+                    ? `partnerAudioEnhancedText::${normalized}`
+                    : 'partnerAudioEnhancedText::global';
+            }
+
+            getEnhancedTextState(langCode) {
+                const storageKey = this.getEnhancedTextStorageKey(langCode);
+                if (this.enhancedTextByLang.has(storageKey)) {
+                    return this.enhancedTextByLang.get(storageKey);
+                }
+                let state = {};
+                try {
+                    const raw = localStorage.getItem(storageKey);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                            state = parsed;
+                        }
+                    }
+                } catch (_) {
+                    state = {};
+                }
+                this.enhancedTextByLang.set(storageKey, state);
+                return state;
+            }
+
+            normalizeEnhancedEntry(raw) {
+                if (typeof raw === 'string') {
+                    return { text: raw, updatedAt: '', updatedBy: '' };
+                }
+                if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+                    return {
+                        text: String(raw.text || '').trim(),
+                        updatedAt: String(raw.updatedAt || '').trim(),
+                        updatedBy: String(raw.updatedBy || '').trim(),
+                    };
+                }
+                return { text: '', updatedAt: '', updatedBy: '' };
+            }
+
+            saveEnhancedTextState(langCode, state) {
+                const storageKey = this.getEnhancedTextStorageKey(langCode);
+                const safeState = state && typeof state === 'object' ? state : {};
+                this.enhancedTextByLang.set(storageKey, safeState);
+                if (Object.keys(safeState).length === 0) {
+                    localStorage.removeItem(storageKey);
+                    return;
+                }
+                localStorage.setItem(storageKey, JSON.stringify(safeState));
+            }
+
+            getEnhancedTextForItem(itemId, fallbackText = '') {
+                const entry = this.getEnhancedEntryForItem(itemId);
+                if (entry && entry.text) return entry.text;
+                return String(fallbackText || '');
+            }
+
+            setEnhancedTextForItem(itemId, text) {
+                if (!this.currentLangCode) return;
+                const keys = this.getEnhancedTextItemKeys(itemId);
+                if (!keys.length) return;
+                const normalized = String(text || '').trim();
+                const state = { ...this.getEnhancedTextState(this.currentLangCode) };
+                if (!normalized) {
+                    keys.forEach((key) => { delete state[key]; });
+                } else {
+                    const updatedBy = String(this.currentUserEmail || '').trim();
+                    const entry = {
+                        text: normalized,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy
+                    };
+                    keys.forEach((key) => { state[key] = entry; });
+                }
+                this.saveEnhancedTextState(this.currentLangCode, state);
+            }
+
+            handleEnhancedTextInput(itemId, value) {
+                this.setEnhancedTextForItem(itemId, value);
+                this.queueEnhancedTextServerSync(itemId, value);
+            }
+
+            mergeEnhancedTextEntries(langCode, entries) {
+                const state = { ...this.getEnhancedTextState(langCode) };
+                if (entries && typeof entries === 'object' && !Array.isArray(entries)) {
+                    Object.entries(entries).forEach(([rawId, rawEntry]) => {
+                        const entry = this.normalizeEnhancedEntry(rawEntry);
+                        const normalizedText = String(entry.text || '').trim();
+                        const keys = this.getEnhancedTextItemKeys(rawId);
+                        if (!normalizedText) {
+                            keys.forEach((key) => { delete state[key]; });
+                        } else {
+                            keys.forEach((key) => { state[key] = entry; });
+                        }
+                    });
+                }
+                this.saveEnhancedTextState(langCode, state);
+            }
+
+            async loadEnhancedTextFromServer(langCode) {
+                const normalized = String(langCode || '').trim();
+                if (!normalized) return false;
+                const cacheKey = normalized.toLowerCase();
+                if (this.enhancedTextLoadedLangs.has(cacheKey)) return true;
+                try {
+                    const response = await fetch(`/api/partner-audio-enhanced-text?langCode=${encodeURIComponent(normalized)}`, {
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) return false;
+                    const payload = await response.json();
+                    if (!payload || payload.ok !== true) return false;
+                    this.mergeEnhancedTextEntries(normalized, payload.entries || {});
+                    this.enhancedTextLoadedLangs.add(cacheKey);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            queueEnhancedTextServerSync(itemId, text) {
+                const langCode = String(this.currentLangCode || '').trim();
+                const rawId = String(itemId || '').trim();
+                if (!langCode || !rawId) return;
+                this.enhancedTextSyncQueue.set(`${langCode}::${rawId}`, {
+                    langCode,
+                    itemId: rawId,
+                    text: String(text || ''),
+                    updatedBy: String(this.currentUserEmail || '').trim(),
+                });
+                if (this.enhancedTextSyncTimer) clearTimeout(this.enhancedTextSyncTimer);
+                this.enhancedTextSyncTimer = setTimeout(() => {
+                    this.flushEnhancedTextServerSync();
+                }, 900);
+            }
+
+            async flushEnhancedTextServerSync() {
+                if (this.enhancedTextSyncQueue.size === 0) return;
+                const entries = Array.from(this.enhancedTextSyncQueue.values());
+                this.enhancedTextSyncQueue.clear();
+                for (const entry of entries) {
+                    try {
+                        await fetch('/api/partner-audio-enhanced-text', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                langCode: entry.langCode,
+                                itemId: entry.itemId,
+                                text: entry.text,
+                                updatedBy: entry.updatedBy || '',
+                            })
+                        });
+                    } catch (_) {
+                        // localStorage persistence still works as fallback
+                    }
+                }
+            }
+
+            getEnhancedTextItemKeys(itemId) {
+                const raw = String(itemId || '').trim();
+                if (!raw) return [];
+                const keys = new Set([raw, raw.toLowerCase()]);
+                if (raw.includes('::')) {
+                    const tail = String(raw.split('::').pop() || '').trim();
+                    if (tail) {
+                        keys.add(tail);
+                        keys.add(tail.toLowerCase());
+                    }
+                }
+                const base = this.extractBaseId(raw);
+                if (base) {
+                    keys.add(base);
+                    keys.add(base.toLowerCase());
+                }
+                return Array.from(keys).filter(Boolean);
+            }
+
+            getEnhancedEntryForItem(itemId) {
+                if (!this.currentLangCode) return null;
+                const state = this.getEnhancedTextState(this.currentLangCode);
+                const keys = this.getEnhancedTextItemKeys(itemId);
+                for (const key of keys) {
+                    if (state[key] !== undefined) {
+                        const entry = this.normalizeEnhancedEntry(state[key]);
+                        if (entry.text) return entry;
+                    }
+                }
+                return null;
             }
 
             formatTaskSlug(slug) {
@@ -3300,6 +3502,7 @@
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
                 this.resetNoAudioDebugInfo();
+                await this.loadEnhancedTextFromServer(this.currentLangCode);
                 
                 // Clear unapproved items when switching languages
                 this.unapprovedItems.clear();
@@ -3904,7 +4107,14 @@
                     
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
+                    const enhancedEntry = this.getEnhancedEntryForItem(itemId);
+                    const enhancedText = this.getEnhancedTextForItem(itemId, translatedText || '');
                     const escapedTranslated = this.escapeHtml(translatedText || ''); // Ensure empty string if no translation
+                    const escapedEnhancedText = this.escapeHtml(enhancedText || '');
+                    const enhancedMetaText = enhancedEntry
+                        ? `${enhancedEntry.updatedBy ? `Edited by ${enhancedEntry.updatedBy}` : 'Edited'}${enhancedEntry.updatedAt ? ` • ${new Date(enhancedEntry.updatedAt).toLocaleString()}` : ''}`
+                        : 'Using translation text';
+                    const escapedEnhancedMeta = this.escapeHtml(enhancedMetaText);
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     const pendingKey = this.pendingSaveKey;
@@ -3955,7 +4165,8 @@
                                     </div>
                                     <div class="text-block item-audio-enhanced">
                                         <div class="text-label">Audio-enhanced string</div>
-                                        <textarea class="audio-enhanced-input" id="audioEnhanced_${escapedItemId}" data-item-id="${escapedItemId}" rows="3" placeholder="Edit text for audio generation...">${escapedTranslated || ''}</textarea>
+                                        <div class="audio-enhanced-meta">${escapedEnhancedMeta}</div>
+                                        <textarea class="audio-enhanced-input" id="audioEnhanced_${escapedItemId}" data-item-id="${escapedItemId}" rows="3" placeholder="Edit text for audio generation..." oninput="dashboard.handleEnhancedTextInput('${escapedItemId}', this.value)">${escapedEnhancedText || ''}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -4173,6 +4384,8 @@
                     if (!text) {
                         throw new Error(`No translation text available for ${itemId}`);
                     }
+                    this.setEnhancedTextForItem(itemId, text);
+                    this.queueEnhancedTextServerSync(itemId, text);
                     
                     this.setStatus(`Generating audio for ${itemId}...`, 'loading');
                     
