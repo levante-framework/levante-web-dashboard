@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Levante Layout Editor (POC)</title>
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f4f5;
+            color: #27272a;
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #d4d4d8;
+            background: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .topbar h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .field {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+        .field select, .field input {
+            height: 32px;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+            padding: 0 10px;
+            background: #fff;
+            min-width: 180px;
+        }
+        .btn {
+            height: 32px;
+            border: 1px solid #d4d4d8;
+            border-radius: 6px;
+            background: #fff;
+            color: #27272a;
+            padding: 0 10px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn.primary {
+            background: #0ea5e9;
+            border-color: #0ea5e9;
+            color: white;
+        }
+        .btn:hover { filter: brightness(0.97); }
+        .status {
+            margin-left: auto;
+            font-size: 12px;
+            color: #52525b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 38vw;
+        }
+        .editor-workspace {
+            display: grid;
+            grid-template-columns: 260px 1fr 300px;
+            gap: 0;
+            height: calc(100vh - 230px);
+            min-height: 520px;
+            border-top: 1px solid #d4d4d8;
+        }
+        .editor-sidebar {
+            background: #ffffff;
+            border-right: 1px solid #e4e4e7;
+            overflow: auto;
+            padding: 8px;
+        }
+        .editor-sidebar.right {
+            border-right: 0;
+            border-left: 1px solid #e4e4e7;
+        }
+        .editor-sidebar-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #3f3f46;
+            margin: 6px 4px 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .panel-slot {
+            margin-bottom: 12px;
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            overflow: auto;
+            background: #fafafa;
+            min-height: 120px;
+            max-height: 34vh;
+        }
+        #editorRoot {
+            height: 100%;
+        }
+        .debug-panel {
+            border-top: 1px solid #d4d4d8;
+            background: #ffffff;
+            padding: 10px 14px;
+            font-size: 12px;
+            color: #3f3f46;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .debug-box {
+            border: 1px solid #e4e4e7;
+            border-radius: 8px;
+            padding: 8px;
+            min-height: 88px;
+            background: #fafafa;
+            overflow: auto;
+        }
+        .debug-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #18181b;
+        }
+        .gjs-one-bg { background-color: #18181b; }
+        .gjs-two-color { color: #f4f4f5; }
+        .gjs-three-bg { background-color: #0ea5e9; color: #fff; }
+        .gjs-four-color, .gjs-four-color-h:hover { color: #0ea5e9; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>Layout Editor (POC)</h1>
+        <label class="field">
+            Page
+            <select id="pageSelect">
+                <option value="partner-audio-dashboard">partner-audio-dashboard</option>
+            </select>
+        </label>
+        <label class="field">
+            Region
+            <select id="regionSelect">
+                <option value="header-copy">header-copy</option>
+                <option value="logout-label">logout-label</option>
+                <option value="documentation-label">documentation-label</option>
+                <option value="language-label">language-label</option>
+                <option value="refresh-button-label">refresh-button-label</option>
+                <option value="approve-all-button-label">approve-all-button-label</option>
+                <option value="tab-pending-label">tab-pending-label</option>
+                <option value="tab-approved-label">tab-approved-label</option>
+                <option value="tab-noaudio-label">tab-noaudio-label</option>
+                <option value="empty-pending-copy">empty-pending-copy</option>
+                <option value="empty-approved-copy">empty-approved-copy</option>
+                <option value="empty-noaudio-copy">empty-noaudio-copy</option>
+            </select>
+        </label>
+        <label class="field">
+            Editor token
+            <input id="tokenInput" type="password" placeholder="Optional (LAYOUT_EDITOR_TOKEN)">
+        </label>
+        <button id="loadDefaultBtn" class="btn">Load current page region</button>
+        <button id="loadSavedBtn" class="btn">Load saved override</button>
+        <button id="saveBtn" class="btn primary">Save override</button>
+        <button id="showTestContentBtn" class="btn">Show test content</button>
+        <a class="btn" href="/partner-audio-dashboard.html" target="_blank" rel="noopener noreferrer">Preview target page</a>
+        <div class="status" id="statusText">Ready.</div>
+    </div>
+    <div class="debug-panel">
+        <div class="debug-box">
+            <div class="debug-title">Loaded HTML Debug</div>
+            <div id="debugInfo">No region loaded yet.</div>
+        </div>
+        <div class="debug-box">
+            <div class="debug-title">Fallback Preview (outside GrapesJS)</div>
+            <div id="fallbackPreview">No preview yet.</div>
+        </div>
+    </div>
+    <div class="editor-workspace">
+        <aside class="editor-sidebar">
+            <div class="editor-sidebar-title">Blocks (Drag Into Canvas)</div>
+            <div id="blocksPanel" class="panel-slot"></div>
+        </aside>
+        <div id="editorRoot"></div>
+        <aside class="editor-sidebar right">
+            <div class="editor-sidebar-title">Styles</div>
+            <div id="stylesPanel" class="panel-slot"></div>
+            <div class="editor-sidebar-title">Layers</div>
+            <div id="layersPanel" class="panel-slot"></div>
+        </aside>
+    </div>
+
+    <script src="https://unpkg.com/grapesjs"></script>
+    <script src="https://unpkg.com/grapesjs-preset-webpage"></script>
+    <script src="https://unpkg.com/grapesjs-blocks-basic"></script>
+    <script>
+        const EDITABLE_ROOT_ID = 'layoutEditableRoot';
+        const pageSelect = document.getElementById('pageSelect');
+        const regionSelect = document.getElementById('regionSelect');
+        const tokenInput = document.getElementById('tokenInput');
+        const statusText = document.getElementById('statusText');
+        const debugInfo = document.getElementById('debugInfo');
+        const fallbackPreview = document.getElementById('fallbackPreview');
+
+        function setStatus(msg) {
+            statusText.textContent = msg;
+        }
+
+        function escapeHtml(input) {
+            return String(input || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function setDebugPreview(html, sourceLabel) {
+            const safe = String(html || '');
+            const trimmed = safe.trim();
+            const snippet = trimmed.slice(0, 600);
+            debugInfo.innerHTML = `
+                <div><strong>Source:</strong> ${escapeHtml(sourceLabel || 'unknown')}</div>
+                <div><strong>Length:</strong> ${trimmed.length}</div>
+                <div style="margin-top:6px;"><strong>Snippet:</strong></div>
+                <pre style="white-space:pre-wrap;word-break:break-word;margin:4px 0 0;">${escapeHtml(snippet || '(empty)')}</pre>
+            `;
+            fallbackPreview.innerHTML = trimmed || '<em>(Empty content)</em>';
+        }
+
+        function currentKey() {
+            return {
+                page: String(pageSelect.value || '').trim(),
+                region: String(regionSelect.value || '').trim(),
+            };
+        }
+
+        function getTokenHeaders() {
+            const token = String(tokenInput.value || '').trim();
+            if (!token) return {};
+            return { 'x-layout-editor-token': token };
+        }
+
+        function wrapForEditor(innerHtml) {
+            return `
+                <section data-gjs-selectable="false" data-gjs-hoverable="false" data-gjs-droppable="false" style="padding: 24px; background: #f8fafc; min-height: 220px;">
+                    <div style="font: 600 13px/1.4 ui-sans-serif,system-ui; color: #334155; margin-bottom: 10px;">
+                        Editable region preview
+                    </div>
+                    <div id="${EDITABLE_ROOT_ID}" data-gjs-droppable="true" data-gjs-editable="true" style="background:#fff; border:1px dashed #94a3b8; border-radius:10px; padding:16px; color:#111827;">
+                        ${innerHtml || '<p style=\"margin:0\">(No content loaded)</p>'}
+                    </div>
+                </section>
+            `;
+        }
+
+        function extractEditableHtml(editor) {
+            const html = String(editor.getHtml() || '');
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const root = doc.getElementById(EDITABLE_ROOT_ID);
+            const inner = root ? root.innerHTML : html;
+            const css = String(editor.getCss() || '').trim();
+            if (!css) return inner.trim();
+            return `<style>${css}</style>\n${inner.trim()}`;
+        }
+
+        async function fetchLiveRegionHtml(page, region) {
+            const baseName = page === 'partner-audio-dashboard'
+                ? 'partner-audio-dashboard.html'
+                : `${page}.html`;
+            const candidates = [
+                `/${baseName}`,
+                `/public/${baseName}`,
+            ];
+            let text = '';
+            let usedUrl = '';
+            let lastStatus = 0;
+            for (const url of candidates) {
+                const response = await fetch(url, { cache: 'no-store' });
+                if (!response.ok) {
+                    lastStatus = response.status;
+                    continue;
+                }
+                text = await response.text();
+                usedUrl = url;
+                break;
+            }
+            if (!text) {
+                throw new Error(`Could not load page HTML. Tried ${candidates.join(', ')} (last status ${lastStatus || 'n/a'})`);
+            }
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const selector = `[data-layout-page="${page}"][data-layout-region="${region}"]`;
+            const regionEl = doc.querySelector(selector);
+            if (!regionEl) throw new Error(`Region not found in ${usedUrl}: ${selector}`);
+            return regionEl.innerHTML;
+        }
+
+        async function fetchSavedOverride(page, region) {
+            const query = `?page=${encodeURIComponent(page)}&region=${encodeURIComponent(region)}`;
+            const response = await fetch(`/api/layout-overrides${query}`, {
+                method: 'GET',
+                headers: getTokenHeaders(),
+                credentials: 'same-origin',
+            });
+            if (!response.ok) throw new Error(`Load failed: ${response.status}`);
+            const data = await response.json();
+            if (!data || !data.ok) throw new Error(data?.error || data?.reason || 'Load failed');
+            return {
+                html: String(data.html || '').trim(),
+                updatedAt: String(data.updatedAt || '').trim(),
+                updatedBy: String(data.updatedBy || '').trim(),
+                exists: !!data.exists,
+            };
+        }
+
+        async function saveOverride(page, region, html) {
+            const response = await fetch('/api/layout-overrides', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getTokenHeaders(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    page,
+                    region,
+                    html,
+                    updatedBy: 'layout-editor',
+                }),
+            });
+            if (!response.ok) throw new Error(`Save failed: ${response.status}`);
+            const data = await response.json();
+            if (!data || !data.ok) throw new Error(data?.error || data?.reason || 'Save failed');
+            return data;
+        }
+
+        const editor = grapesjs.init({
+            container: '#editorRoot',
+            fromElement: false,
+            height: '100%',
+            width: 'auto',
+            storageManager: false,
+            allowScripts: 0,
+            plugins: ['gjs-preset-webpage', 'gjs-blocks-basic'],
+            pluginsOpts: {
+                'gjs-preset-webpage': {
+                    blocks: [],
+                    customStyleManager: false,
+                },
+                'gjs-blocks-basic': {
+                    flexGrid: true,
+                    blocks: ['column1', 'column2', 'column3', 'text', 'link', 'image', 'video'],
+                },
+            },
+            selectorManager: { componentFirst: true },
+            layerManager: {
+                appendTo: '#layersPanel',
+            },
+            styleManager: {
+                appendTo: '#stylesPanel',
+                sectors: [
+                    {
+                        name: 'Layout',
+                        open: true,
+                        buildProps: ['display', 'position', 'top', 'right', 'left', 'bottom', 'width', 'height', 'margin', 'padding'],
+                    },
+                    {
+                        name: 'Typography',
+                        open: true,
+                        buildProps: ['font-family', 'font-size', 'font-weight', 'letter-spacing', 'line-height', 'color', 'text-align'],
+                    },
+                    {
+                        name: 'Decorations',
+                        open: false,
+                        buildProps: ['background-color', 'border', 'border-radius', 'box-shadow', 'opacity'],
+                    }
+                ]
+            },
+            blockManager: {
+                appendTo: '#blocksPanel',
+                blocks: [
+                    { id: 'text', label: 'Text', content: '<div>Editable text</div>' },
+                    { id: 'heading', label: 'Heading', content: '<h2>Heading</h2>' },
+                    { id: 'paragraph', label: 'Paragraph', content: '<p>Paragraph text</p>' },
+                    { id: 'button', label: 'Button', content: '<button type="button" style="padding:8px 12px;border-radius:8px;border:1px solid #94a3b8;">Button</button>' },
+                    { id: 'image', label: 'Image', content: '<img alt="Image" src="https://via.placeholder.com/320x120?text=Image" style="max-width:100%;">' },
+                    { id: 'two-cols', label: '2 Columns', content: '<div style="display:flex;gap:12px;"><div style="flex:1">Column A</div><div style="flex:1">Column B</div></div>' },
+                    { id: 'link', label: 'Link', content: '<a href="#">Link text</a>' },
+                ]
+            },
+        });
+
+        editor.on('load', () => {
+            editor.setComponents(wrapForEditor('<h1>Loading...</h1>'));
+        });
+
+        document.getElementById('loadDefaultBtn').addEventListener('click', async () => {
+            const { page, region } = currentKey();
+            try {
+                setStatus('Loading current page region...');
+                const html = await fetchLiveRegionHtml(page, region);
+                editor.setComponents(wrapForEditor(html));
+                setDebugPreview(html, 'Live page region');
+                setStatus(`Loaded live region: ${page}/${region}`);
+            } catch (error) {
+                setStatus(`Load current failed: ${error.message}`);
+            }
+        });
+
+        document.getElementById('loadSavedBtn').addEventListener('click', async () => {
+            const { page, region } = currentKey();
+            try {
+                setStatus('Loading saved override...');
+                const saved = await fetchSavedOverride(page, region);
+                if (saved.exists && saved.html) {
+                    editor.setComponents(wrapForEditor(saved.html));
+                    setDebugPreview(saved.html, 'Saved override');
+                    setStatus(`Loaded saved override (${saved.updatedAt || 'timestamp unavailable'})`);
+                } else {
+                    setStatus('No saved override found for this region.');
+                    setDebugPreview('', 'Saved override');
+                }
+            } catch (error) {
+                setStatus(`Load saved failed: ${error.message}`);
+            }
+        });
+
+        document.getElementById('showTestContentBtn').addEventListener('click', () => {
+            const testHtml = '<h2 style="margin:0 0 8px;">Test content is rendering</h2><p style="margin:0;">If you see this here and in the canvas, the editor is working.</p>';
+            editor.setComponents(wrapForEditor(testHtml));
+            setDebugPreview(testHtml, 'Local test content');
+            setStatus('Injected local test content.');
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            const { page, region } = currentKey();
+            try {
+                setStatus('Saving override...');
+                const html = extractEditableHtml(editor);
+                const saved = await saveOverride(page, region, html);
+                setStatus(`Saved override to ${saved.objectPath} at ${saved.updatedAt}`);
+            } catch (error) {
+                setStatus(`Save failed: ${error.message}`);
+            }
+        });
+
+        (async () => {
+            try {
+                const { page, region } = currentKey();
+                const html = await fetchLiveRegionHtml(page, region);
+                editor.setComponents(wrapForEditor(html));
+                setDebugPreview(html, 'Initial live load');
+                setStatus(`Loaded live region: ${page}/${region}`);
+            } catch (error) {
+                editor.setComponents(wrapForEditor('<h2>Unable to load initial region</h2>'));
+                setDebugPreview('', 'Initial live load failed');
+                setStatus(`Initial load failed: ${error.message}`);
+            }
+        })();
+    </script>
+</body>
+</html>
+

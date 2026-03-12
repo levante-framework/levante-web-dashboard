@@ -1271,24 +1271,47 @@
         <div class="header">
             <div class="header-left">
                 <img src="./images/levante_icon.svg" alt="Levante" class="header-logo" onerror="this.src='https://levante-dashboard.web.app/levante_icon.svg'; this.onerror=function(){this.style.display='none';};">
-                <div class="header-content">
+                <div
+                    class="header-content"
+                    id="layoutRegionPartnerHeaderCopy"
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="header-copy"
+                >
                     <h1><i class="fas fa-microphone-alt"></i> Levante - Partner Audio Approval Tool</h1>
                     <p>Review and approve audio translations for your language</p>
                 </div>
             </div>
             <div class="header-right">
                 <button class="logout-button" id="logoutBtn" onclick="dashboard.handleLogout()" title="Sign out">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="logout-label"
+                    >Logout</span>
                 </button>
                 <a href="./docs/partner-audio-approval.html" class="docs-link" target="_blank" title="View documentation">
-                    <i class="fas fa-book"></i> Documentation
+                    <i class="fas fa-book"></i>
+                    <span
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="documentation-label"
+                    >Documentation</span>
                 </a>
             </div>
         </div>
 
         <div class="controls">
             <div class="language-select">
-                <label for="languageSelect"><i class="fas fa-globe"></i> Language:</label>
+                <label for="languageSelect">
+                    <i class="fas fa-globe"></i>
+                    <span
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="language-label"
+                    >Language:</span>
+                </label>
                 <select id="languageSelect">
                     <option value="">Select a language...</option>
                 </select>
@@ -1297,10 +1320,20 @@
         <div class="refresh-status">
             <span id="refreshTimestamp">Last refreshed: Not yet</span>
             <button class="refresh-button" id="refreshDataBtn" disabled>
-                <i class="fas fa-sync-alt"></i> Refresh Data
+                <i class="fas fa-sync-alt"></i>
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="refresh-button-label"
+                >Refresh Data</span>
             </button>
             <button class="refresh-button bulk-approve-button" id="approveAllLanguageBtn" onclick="dashboard.approveAllForCurrentLanguage()" disabled>
-                <i class="fas fa-check-double"></i> Approve All Audio (Language)
+                <i class="fas fa-check-double"></i>
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="approve-all-button-label"
+                >Approve All Audio (Language)</span>
             </button>
         </div>
 
@@ -1328,13 +1361,25 @@
 
         <div class="tabs-container">
             <button class="tab-button active" id="tabPending" onclick="dashboard.switchTab('pending')">
-                To Be Approved
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-pending-label"
+                >To Be Approved</span>
             </button>
             <button class="tab-button" id="tabApproved" onclick="dashboard.switchTab('approved')">
-                Approved
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-approved-label"
+                >Approved</span>
             </button>
             <button class="tab-button" id="tabNoAudio" onclick="dashboard.switchTab('noaudio')">
-                No Audio
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-noaudio-label"
+                >No Audio</span>
             </button>
         </div>
         <div class="search-container">
@@ -1356,8 +1401,14 @@
             <div class="items-list" id="itemsList">
                 <div class="empty-state">
                     <i class="fas fa-language"></i>
-                    <h3>No language selected</h3>
-                    <p>Please select a language from the dropdown above</p>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-pending-copy"
+                    >
+                        <h3>No language selected</h3>
+                        <p>Please select a language from the dropdown above</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1365,8 +1416,14 @@
             <div class="items-list" id="itemsListApproved">
                 <div class="empty-state">
                     <i class="fas fa-check-circle"></i>
-                    <h3>No approved items</h3>
-                    <p>Approved items will appear here</p>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-approved-copy"
+                    >
+                        <h3>No approved items</h3>
+                        <p>Approved items will appear here</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1375,8 +1432,14 @@
             <div class="items-list" id="itemsListNoAudio">
                 <div class="empty-state">
                     <i class="fas fa-volume-mute"></i>
-                    <h3>No items without audio</h3>
-                    <p>Items without audio files will appear here</p>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-noaudio-copy"
+                    >
+                        <h3>No items without audio</h3>
+                        <p>Items without audio files will appear here</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1487,7 +1550,7 @@
                             const itemId = String(entry?.itemId || '').trim();
                             if (!itemId) return;
                             const screenshots = Array.isArray(entry?.screenshots) ? entry.screenshots : [];
-                            const best = screenshots.find((shot) => String(shot?.url || '').trim()) || null;
+                            const best = this.selectPreferredScreenshot(screenshots);
                             if (!best) return;
                             this.normalizeScreenshotItemKeys(itemId).forEach((key) => {
                                 if (!index.has(key)) index.set(key, best);
@@ -1510,12 +1573,44 @@
                 return false;
             }
 
+            selectPreferredScreenshot(screenshots) {
+                if (!Array.isArray(screenshots) || !screenshots.length) return null;
+                const firstWithAnyUrl = screenshots.find((shot) => (
+                    String(shot?.cachedUrl || '').trim()
+                    || String(shot?.url || '').trim()
+                    || String(shot?.sourceUrl || '').trim()
+                ));
+                if (!firstWithAnyUrl) return null;
+
+                const firstCached = screenshots.find((shot) => {
+                    const cachedUrl = String(shot?.cachedUrl || '').trim();
+                    const directUrl = String(shot?.url || '').trim();
+                    return (
+                        String(shot?.cached || '').toLowerCase() === 'true'
+                        || /storage\.googleapis\.com/i.test(cachedUrl)
+                        || /storage\.googleapis\.com/i.test(directUrl)
+                    );
+                });
+                return firstCached || firstWithAnyUrl;
+            }
+
             getScreenshotForItem(itemId) {
                 const keys = this.normalizeScreenshotItemKeys(itemId);
                 for (const key of keys) {
                     if (this.screenshotByItemId.has(key)) return this.screenshotByItemId.get(key);
                 }
                 return null;
+            }
+
+            getScreenshotRenderUrl(shot) {
+                const cachedUrl = String(shot?.cachedUrl || '').trim();
+                const directUrl = cachedUrl || String(shot?.url || '').trim();
+                const screenshotId = String(shot?.screenshotId || '').trim();
+                const isCrowdinSigned = /crowdin-screenshots\.cf-downloads\.crowdin\.com/i.test(directUrl);
+                if (!screenshotId || !isCrowdinSigned) return directUrl;
+                const params = new URLSearchParams({ screenshotId });
+                if (directUrl) params.set('fallbackUrl', directUrl);
+                return `/api/crowdin-screenshot-artifact?${params.toString()}`;
             }
 
             buildScreenshotThumbHtml(itemId) {
@@ -1538,7 +1633,8 @@
                     `;
                 }
                 const name = this.escapeHtml(String(shot.name || 'Screenshot'));
-                const escapedUrl = this.escapeHtml(url);
+                const renderUrl = this.getScreenshotRenderUrl(shot) || url;
+                const escapedUrl = this.escapeHtml(renderUrl);
                 return `
                     <div class="item-screenshot-thumb">
                         <a class="item-screenshot-thumb-link" href="${escapedUrl}" target="_blank" rel="noopener noreferrer" title="${name}">
@@ -5177,10 +5273,38 @@
             }
         }
 
+        async function applyLayoutOverridesForPartnerDashboard() {
+            const editableRegions = Array.from(
+                document.querySelectorAll('[data-layout-page="partner-audio-dashboard"][data-layout-region]')
+            );
+            if (!editableRegions.length) return;
+            const seenRegions = new Set();
+            for (const target of editableRegions) {
+                const region = String(target.getAttribute('data-layout-region') || '').trim();
+                if (!region || seenRegions.has(region)) continue;
+                seenRegions.add(region);
+                try {
+                    const response = await fetch(`/api/layout-overrides?page=partner-audio-dashboard&region=${encodeURIComponent(region)}`, {
+                        method: 'GET',
+                        credentials: 'same-origin'
+                    });
+                    if (!response.ok) continue;
+                    const payload = await response.json();
+                    if (!payload || !payload.ok) continue;
+                    const html = String(payload.html || '').trim();
+                    if (!html) continue;
+                    target.innerHTML = html;
+                } catch (_) {
+                    // Non-fatal: keep built-in layout copy when override read fails.
+                }
+            }
+        }
+
         // Initialize dashboard when DOM is ready
         let dashboard;
         function initDashboard() {
             try {
+                applyLayoutOverridesForPartnerDashboard();
                 initFirebase();
                 dashboard = new PartnerAudioDashboard();
                 

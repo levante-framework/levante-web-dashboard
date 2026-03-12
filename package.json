@@ -22,6 +22,8 @@
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
     "geocoder:build": "node scripts/geocoder/build-geocoder.js",
     "crowdin:screenshots:artifact": "node scripts/build-crowdin-screenshot-artifact.js",
+    "crowdin:screenshots:refresh-cache": "node scripts/build-crowdin-screenshot-artifact.js --output-json data/validation/crowdin-screenshot-artifact.json --cache-bucket levante-assets-draft --cache-prefix screenshots --cache-public-base https://storage.googleapis.com/levante-assets-draft",
+    "crowdin:screenshots:cache-status": "node scripts/check-crowdin-screenshot-cache.js",
     "geocoder:index:autocomplete": "node scripts/geocoder/build-country-autocomplete-index.js",
     "geocoder:index:autocomplete:10": "node scripts/geocoder/build-country-autocomplete-index.js --countries=US,DE,GB,NL,CA,CO,IN,AR,GH,CH",
     "adm:build": "node scripts/adm/build-packs.js",
@@ -64,6 +66,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "playwright": "^1.58.2",
     "serve": "^14.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.0",

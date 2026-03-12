@@ -13,11 +13,11 @@ const DEFAULT_PROJECT_ID = '756721';
 const DEFAULT_BUCKET = process.env.DASHBOARD_DATA_BUCKET || 'levante-dashboard-dev';
 const DEFAULT_PREFIX = process.env.CROWDIN_SCREENSHOT_ARTIFACT_PREFIX || 'pitwall/crowdin';
 const DEFAULT_OBJECT = process.env.CROWDIN_SCREENSHOT_ARTIFACT_OBJECT || 'crowdin-screenshot-artifact.json';
-const DEFAULT_CACHE_BUCKET = process.env.CROWDIN_SCREENSHOT_CACHE_BUCKET || DEFAULT_BUCKET;
-const DEFAULT_CACHE_PREFIX = process.env.CROWDIN_SCREENSHOT_CACHE_PREFIX || `${DEFAULT_PREFIX}/screenshots`;
+const DEFAULT_CACHE_BUCKET = process.env.CROWDIN_SCREENSHOT_CACHE_BUCKET || 'levante-assets-draft';
+const DEFAULT_CACHE_PREFIX = process.env.CROWDIN_SCREENSHOT_CACHE_PREFIX || 'screenshots';
 const DEFAULT_CACHE_PUBLIC_BASE =
   process.env.CROWDIN_SCREENSHOT_CACHE_PUBLIC_BASE ||
-  (DEFAULT_CACHE_BUCKET ? `https://storage.googleapis.com/${DEFAULT_CACHE_BUCKET}` : '');
+  'https://storage.googleapis.com/levante-assets-draft';
 
 const argv = yargs(hideBin(process.argv))
   .option('project-id', {
@@ -436,6 +436,7 @@ async function buildArtifact() {
           return {
             ...shot,
             sourceUrl: shot.url,
+            cachedUrl,
             url: cachedUrl,
             cached: true,
           };
