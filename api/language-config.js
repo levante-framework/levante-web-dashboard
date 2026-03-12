@@ -185,8 +185,11 @@ function normalizeLanguageDisplayNames(languages) {
     if (langCode === 'es-ar' && /^spanish$/i.test(String(cfg.display_name))) cfg.display_name = 'Spanish (Argentina)';
     if ((langCode === 'en' || langCode === 'en-us') && /^english$/i.test(String(cfg.display_name))) cfg.display_name = 'English (United States)';
     if ((langCode === 'de' || langCode === 'de-de') && /^german$/i.test(String(cfg.display_name))) cfg.display_name = 'German (Germany)';
-    // Migrate legacy default voice for Spanish (Argentina).
-    if (langCode === 'es-ar' && /(malena|melania)\s+tango/i.test(String(cfg.voice || ''))) cfg.voice = 'Sophia';
+    // Migrate legacy default voice for Spanish (Argentina) to current Melody voice.
+    if (langCode === 'es-ar' && /(malena|melania)\s+tango|sophia|melanie/i.test(String(cfg.voice || ''))) {
+      cfg.voice = 'Melody - Ecommerce Voice';
+      cfg.voice_id = 'bN1bDXgDIGX5lw0rtY2B';
+    }
     normalized[nextName] = cfg;
   });
   return normalized;

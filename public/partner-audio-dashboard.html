@@ -1083,6 +1083,11 @@
             box-shadow: none;
         }
 
+        .btn.is-loading {
+            pointer-events: none;
+            opacity: 0.75;
+        }
+
         .btn-primary {
             background: linear-gradient(135deg, #da3d16 0%, #a22d10 100%);
             color: #ffffff;
@@ -1461,7 +1466,7 @@
                 this.defaultLanguages = {
                     'English (United States)': { lang_code: 'en-US', service: 'ElevenLabs', voice: 'Clara - Children\'s Storyteller' },
                     'Spanish (Colombia)': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
-                    'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Sophia' },
+                    'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Melody - Ecommerce Voice', voice_id: 'bN1bDXgDIGX5lw0rtY2B' },
                     'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
                     'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet' },
                     'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
@@ -4293,21 +4298,21 @@
                                 </div>
                                 <div class="item-grid-bottom">
                                     <div class="item-actions">
-                                        <button class="btn btn-secondary" onclick="dashboard.playAudio('${escapedItemId}')" title="Play existing audio">
+                                        <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play existing audio">
                                             <i class="fas fa-play"></i> Play
                                         </button>
                                 <button class="btn btn-approve" onclick="dashboard.approveAudio('${escapedItemId}')" title="Approve this audio and move to approved bucket">
                                     <i class="fas fa-check-circle"></i> Approve
                                 </button>
-                                        <button class="btn btn-primary" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate new audio">
+                                        <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate new audio">
                                             <i class="fas fa-arrows-rotate"></i> Regenerate
                                         </button>
-                                        <button class="btn btn-success save-btn" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Approve & save generated audio' : 'Generate audio before saving'}">
+                                        <button class="btn btn-success save-btn" data-audio-action="save" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Approve & save generated audio' : 'Generate audio before saving'}">
                                             <i class="fas fa-check-circle"></i> Approve & Save
                                         </button>
                                     </div>
                                     <div class="text-block item-audio-enhanced">
-                                        <div class="text-label">Audio-enhanced string</div>
+                                        <div class="text-label">Your string enhanced for improved audio (optional)</div>
                                         <div class="audio-enhanced-meta">${escapedEnhancedMeta}</div>
                                         <textarea class="audio-enhanced-input" id="audioEnhanced_${escapedItemId}" data-item-id="${escapedItemId}" rows="3" placeholder="Edit text for audio generation..." oninput="dashboard.handleEnhancedTextInput('${escapedItemId}', this.value)">${escapedEnhancedText || ''}</textarea>
                                     </div>
@@ -4357,7 +4362,7 @@
                                 <div class="item-card-compact-text">${escapedTranslated}</div>
                             </div>
                             <div class="item-card-compact-actions">
-                                <button class="btn btn-secondary" onclick="dashboard.playAudio('${escapedItemId}')" title="Play audio">
+                                <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play audio">
                                     <i class="fas fa-play"></i> Play
                                 </button>
                                 <button class="btn btn-warning" onclick="dashboard.unapproveAudio('${escapedItemId}')" title="Unapprove this item">
@@ -4414,10 +4419,10 @@
                                 <div class="item-card-compact-text">${escapedTranslated || '<em style="color: #999;">Translation not available</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
-                                <button class="btn btn-primary" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate audio for this item">
+                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate audio for this item">
                                     <i class="fas fa-microphone"></i> Generate Audio
                                 </button>
-                                <button class="btn btn-success save-approve-btn" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and approve immediately' : 'Generate audio before saving and approving'}">
+                                <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and approve immediately' : 'Generate audio before saving and approving'}">
                                     <i class="fas fa-check-double"></i> Save & Approve
                                 </button>
                             </div>
@@ -4447,7 +4452,34 @@
                 });
             }
 
+            setAudioActionLoading(itemId, action, isLoading, loadingLabel = 'Working...') {
+                const normalizedId = String(itemId || '').trim();
+                const normalizedAction = String(action || '').trim().toLowerCase();
+                if (!normalizedId || !normalizedAction) return;
+                const buttons = document.querySelectorAll(`button[data-audio-action="${normalizedAction}"]`);
+                buttons.forEach((btn) => {
+                    if (String(btn.dataset.audioItemId || '').trim() !== normalizedId) return;
+                    if (!btn.dataset.originalHtml) {
+                        btn.dataset.originalHtml = btn.innerHTML;
+                    }
+                    if (isLoading) {
+                        btn.disabled = true;
+                        btn.classList.add('is-loading');
+                        btn.setAttribute('aria-busy', 'true');
+                        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${this.escapeHtml(loadingLabel)}`;
+                        return;
+                    }
+                    btn.disabled = false;
+                    btn.classList.remove('is-loading');
+                    btn.removeAttribute('aria-busy');
+                    if (btn.dataset.originalHtml) {
+                        btn.innerHTML = btn.dataset.originalHtml;
+                    }
+                });
+            }
+
             async playAudio(itemId) {
+                this.setAudioActionLoading(itemId, 'play', true, 'Loading...');
                 try {
                     this.setStatus(`Loading audio for ${itemId}...`, 'loading');
                     
@@ -4504,10 +4536,13 @@
                     console.error('Play audio error:', error);
                     const bucketLabel = this.currentTab === 'approved' ? 'approved (-dev)' : 'draft (-draft)';
                     this.setStatus(`No audio found for ${itemId} in ${bucketLabel}.`, 'error');
+                } finally {
+                    this.setAudioActionLoading(itemId, 'play', false);
                 }
             }
 
             async regenerateAudio(itemId) {
+                this.setAudioActionLoading(itemId, 'regenerate', true, 'Generating...');
                 try {
                     const item = this.data.find(entry => entry.item_id === itemId);
                     if (!item) {
@@ -4540,13 +4575,11 @@
                     this.setStatus(`Generating audio for ${itemId} using ${sourceLabel}...`, 'loading');
                     
                     const langConfig = this.languages[this.currentLanguage];
-                    const voiceId = await this.getVoiceId(langConfig.voice);
+                    const configuredVoice = String(langConfig?.voice || '').trim();
+                    const configuredVoiceId = String(langConfig?.voice_id || '').trim();
+                    const resolvedVoice = await this.resolveVoiceForRegeneration(itemId, configuredVoice, configuredVoiceId);
                     
-                    if (!voiceId) {
-                        throw new Error('Voice not found');
-                    }
-                    
-                    const audioBlob = await this.generateElevenLabsAudio(text, voiceId);
+                    const audioBlob = await this.generateElevenLabsAudio(text, resolvedVoice.voiceId);
                     const audioBase64 = await this.convertBlobToBase64(audioBlob);
                     
                     const itemLabel = item?.labels || item?.task || itemId;
@@ -4557,8 +4590,8 @@
                         audioBlob,
                         audioBase64,
                         service: 'ElevenLabs',
-                        voiceId,
-                        voiceName: langConfig.voice,
+                        voiceId: resolvedVoice.voiceId,
+                        voiceName: resolvedVoice.voiceName,
                         text,
                         itemLabel
                     };
@@ -4590,7 +4623,37 @@
                 } catch (error) {
                     console.error('Regenerate audio error:', error);
                     this.setStatus(`Error generating audio: ${error.message}`, 'error');
+                } finally {
+                    this.setAudioActionLoading(itemId, 'regenerate', false);
                 }
+            }
+
+            async getExistingGeneratedVoice(itemId) {
+                const baseId = this.extractBaseId(itemId || '');
+                if (!baseId || !this.currentLangCode) return '';
+
+                const candidateBuckets = [this.audioBuckets.draft, this.audioBuckets.dev];
+                for (const bucket of candidateBuckets) {
+                    try {
+                        const audioPath = await this.findAudioPath(bucket, this.currentLangCode, baseId, { forceRefresh: true });
+                        if (!audioPath) continue;
+                        const params = new URLSearchParams({
+                            bucket,
+                            path: audioPath
+                        });
+                        const response = await fetch(`/api/audio-metadata?${params.toString()}`, {
+                            method: 'GET'
+                        });
+                        if (!response.ok) continue;
+                        const payload = await response.json();
+                        const voice = String(payload?.voice || '').trim();
+                        if (voice) return voice;
+                    } catch (_) {
+                        // Non-fatal: continue fallback chain
+                    }
+                }
+
+                return '';
             }
 
             getCredentials() {
@@ -4602,68 +4665,92 @@
                 }
             }
 
-            async getVoiceId(voiceName) {
-                // Try to load voices from API if available, otherwise use fallback mapping
-                try {
-                    // Try with credentials first (for users who have saved their key)
-                    const credentials = this.getCredentials();
-                    const elevenKey = credentials.elevenlabs_api_key || credentials.elevenlabsApiKey;
-                    
-                    const headers = {
-                        'Content-Type': 'application/json'
-                    };
-                    
-                    // Add API key header if available (server will use env var as fallback)
-                    if (elevenKey) {
-                        headers['X-API-KEY'] = elevenKey;
-                    }
-                    
+            async fetchAvailableVoices() {
+                const credentials = this.getCredentials();
+                const elevenKey = credentials.elevenlabs_api_key || credentials.elevenlabsApiKey;
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+                if (elevenKey) {
+                    headers['X-API-KEY'] = elevenKey;
+                }
+
+                const requestVoices = async (requestHeaders) => {
                     const response = await fetch('/api/elevenlabs-proxy', {
                         method: 'GET',
-                        headers: headers
+                        headers: requestHeaders
                     });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.voices && Array.isArray(data.voices)) {
-                            const voice = data.voices.find(v => v.name === voiceName);
-                            if (voice && voice.voice_id) {
-                                return voice.voice_id;
-                            }
-                        }
-                    } else if (response.status === 400) {
-                        // API key missing - server will use env var, so try without header
-                        const fallbackResponse = await fetch('/api/elevenlabs-proxy', {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                        
-                        if (fallbackResponse.ok) {
-                            const data = await fallbackResponse.json();
-                            if (data.voices && Array.isArray(data.voices)) {
-                                const voice = data.voices.find(v => v.name === voiceName);
-                                if (voice && voice.voice_id) {
-                                    return voice.voice_id;
-                                }
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.warn('Could not load voices from API, using fallback', error);
-                }
-                
-                // Fallback voice mapping (these are approximate - actual IDs should come from API)
-                 const voiceMap = {
-                    'Clara - Children\'s Storyteller': 'pNInz6obpgDQGcFmaJgB',
-                    'Malena Tango': 'ErXwobaYiN019PkySvjV',
-                    'Julia': 'pNInz6obpgDQGcFmaJgB',
-                    'Caroline - Top France - Narrative, warm, sweet': 'pNInz6obpgDQGcFmaJgB',
-                    'Emma - Natural conversations in Dutch': 'pNInz6obpgDQGcFmaJgB'
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    return Array.isArray(data?.voices) ? data.voices : [];
                 };
-                
-                return voiceMap[voiceName] || 'pNInz6obpgDQGcFmaJgB'; // Default voice
+
+                let voices = await requestVoices(headers);
+                if (!voices && elevenKey) {
+                    voices = await requestVoices({ 'Content-Type': 'application/json' });
+                }
+                if (!voices) {
+                    throw new Error('Could not load available ElevenLabs voices.');
+                }
+                return voices;
+            }
+
+            findVoiceByName(voices, voiceName) {
+                const desiredName = String(voiceName || '').trim();
+                if (!desiredName) return null;
+                return voices.find(v => String(v?.name || '').trim() === desiredName) || null;
+            }
+
+            async resolveVoiceForRegeneration(itemId, configuredVoiceName, configuredVoiceId = '') {
+                const configured = String(configuredVoiceName || '').trim();
+                const configuredId = String(configuredVoiceId || '').trim();
+                if (!configured && !configuredId) {
+                    throw new Error('No voice is configured for this language. Configure a voice before regenerating audio.');
+                }
+
+                const existingVoice = await this.getExistingGeneratedVoice(itemId);
+                const voices = await this.fetchAvailableVoices();
+                if (configuredId) {
+                    const configuredById = voices.find(v => String(v?.voice_id || '').trim() === configuredId);
+                    if (configuredById?.voice_id) {
+                        return {
+                            voiceName: String(configuredById?.name || configured || configuredId),
+                            voiceId: configuredById.voice_id,
+                            source: 'configured_id'
+                        };
+                    }
+                }
+                const configuredMatch = this.findVoiceByName(voices, configured);
+                if (configuredMatch?.voice_id) {
+                    return {
+                        voiceName: configured,
+                        voiceId: configuredMatch.voice_id,
+                        source: 'configured'
+                    };
+                }
+
+                if (existingVoice) {
+                    const existingMatch = this.findVoiceByName(voices, existingVoice);
+                    if (existingMatch?.voice_id) {
+                        return {
+                            voiceName: existingVoice,
+                            voiceId: existingMatch.voice_id,
+                            source: 'existing'
+                        };
+                    }
+                }
+
+                const available = voices
+                    .map(v => String(v?.name || '').trim())
+                    .filter(Boolean)
+                    .sort((a, b) => a.localeCompare(b));
+                const preview = available.slice(0, 12).join(', ');
+                const existingText = existingVoice
+                    ? ` Existing audio voice "${existingVoice}" is also unavailable.`
+                    : ' Existing audio does not contain a reusable voice tag.';
+                throw new Error(
+                    `Cannot regenerate audio: configured language voice "${configured}" is unavailable in the current ElevenLabs account.${existingText} No new audio was generated. Available voices (${available.length}): ${preview}${available.length > 12 ? ', ...' : ''}`
+                );
             }
 
             async generateElevenLabsAudio(text, voiceId) {
@@ -4850,6 +4937,7 @@
             }
 
             async saveAudio(itemId) {
+                this.setAudioActionLoading(itemId, 'save', true, 'Saving...');
                 try {
                     if (!this.latestGeneratedAudio || 
                         this.latestGeneratedAudio.itemId !== itemId ||
@@ -4946,10 +5034,14 @@
                 } catch (error) {
                     console.error('Save audio error:', error);
                     this.setStatus(`Error saving audio: ${error.message}`, 'error');
+                } finally {
+                    this.setAudioActionLoading(itemId, 'save', false);
+                    this.updateSaveButtonStates();
                 }
             }
 
             async saveAndApproveAudio(itemId) {
+                this.setAudioActionLoading(itemId, 'save-approve', true, 'Saving...');
                 try {
                     if (!this.latestGeneratedAudio || 
                         this.latestGeneratedAudio.itemId !== itemId ||
@@ -5049,6 +5141,9 @@
                 } catch (error) {
                     console.error('Save and approve audio error:', error);
                     this.setStatus(`Error saving and approving audio: ${error.message}`, 'error');
+                } finally {
+                    this.setAudioActionLoading(itemId, 'save-approve', false);
+                    this.updateSaveButtonStates();
                 }
             }
 

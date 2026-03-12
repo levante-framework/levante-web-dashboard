@@ -63,7 +63,8 @@ const CONFIG = {
         'Spanish (Argentina)': {
             lang_code: 'es-AR',
             service: 'ElevenLabs',
-            voice: 'Sophia',
+            voice: 'Melody - Ecommerce Voice',
+            voice_id: 'bN1bDXgDIGX5lw0rtY2B',
             display_name: 'Spanish (Argentina)'
         },
         'English (Ghana)': {
@@ -155,7 +156,7 @@ const CONFIG = {
                 'Nia Davis- Black Female'
             ],
             'es-AR': [
-                'Sophia',
+                'Melody - Ecommerce Voice',
                 'Claudia - Credible, Competent & Authentic'
             ],
             'en-GH': [
