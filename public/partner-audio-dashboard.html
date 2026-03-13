@@ -4578,8 +4578,10 @@
                     const configuredVoice = String(langConfig?.voice || '').trim();
                     const configuredVoiceId = String(langConfig?.voice_id || '').trim();
                     const resolvedVoice = await this.resolveVoiceForRegeneration(itemId, configuredVoice, configuredVoiceId);
+                    const existingModelId = await this.getExistingGeneratedModelId(itemId);
+                    const resolvedModelId = String(existingModelId || 'eleven_multilingual_v2').trim();
                     
-                    const audioBlob = await this.generateElevenLabsAudio(text, resolvedVoice.voiceId);
+                    const audioBlob = await this.generateElevenLabsAudio(text, resolvedVoice.voiceId, resolvedModelId);
                     const audioBase64 = await this.convertBlobToBase64(audioBlob);
                     
                     const itemLabel = item?.labels || item?.task || itemId;
@@ -4592,6 +4594,7 @@
                         service: 'ElevenLabs',
                         voiceId: resolvedVoice.voiceId,
                         voiceName: resolvedVoice.voiceName,
+                        modelId: resolvedModelId,
                         text,
                         itemLabel
                     };
@@ -4648,6 +4651,34 @@
                         const payload = await response.json();
                         const voice = String(payload?.voice || '').trim();
                         if (voice) return voice;
+                    } catch (_) {
+                        // Non-fatal: continue fallback chain
+                    }
+                }
+
+                return '';
+            }
+
+            async getExistingGeneratedModelId(itemId) {
+                const baseId = this.extractBaseId(itemId || '');
+                if (!baseId || !this.currentLangCode) return '';
+
+                const candidateBuckets = [this.audioBuckets.draft, this.audioBuckets.dev];
+                for (const bucket of candidateBuckets) {
+                    try {
+                        const audioPath = await this.findAudioPath(bucket, this.currentLangCode, baseId, { forceRefresh: true });
+                        if (!audioPath) continue;
+                        const params = new URLSearchParams({
+                            bucket,
+                            path: audioPath
+                        });
+                        const response = await fetch(`/api/audio-metadata?${params.toString()}`, {
+                            method: 'GET'
+                        });
+                        if (!response.ok) continue;
+                        const payload = await response.json();
+                        const modelId = String(payload?.model_id || '').trim();
+                        if (modelId) return modelId;
                     } catch (_) {
                         // Non-fatal: continue fallback chain
                     }
@@ -4753,7 +4784,7 @@
                 );
             }
 
-            async generateElevenLabsAudio(text, voiceId) {
+            async generateElevenLabsAudio(text, voiceId, modelId = 'eleven_multilingual_v2') {
                 // Use same approach as main dashboard: try credentials first, server env var as fallback
                 const credentials = this.getCredentials();
                 const elevenKey = credentials.elevenlabs_api_key || credentials.elevenlabsApiKey;
@@ -4770,7 +4801,7 @@
                 
                 const requestData = {
                     text: text,
-                    model_id: 'eleven_multilingual_v2',
+                    model_id: String(modelId || 'eleven_multilingual_v2'),
                     output_format: 'mp3_22050_32'
                 };
                 
@@ -4964,6 +4995,7 @@
                             comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName} - ${this.currentLangCode}`,
                             service: this.latestGeneratedAudio.service,
                             voice: this.latestGeneratedAudio.voiceName,
+                            model_id: this.latestGeneratedAudio.modelId || 'eleven_multilingual_v2',
                             lang_code: this.currentLangCode,
                             text: this.latestGeneratedAudio.text || '',
                             created: new Date().toISOString(),
@@ -5073,6 +5105,7 @@
                             comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName} - ${this.currentLangCode}`,
                             service: this.latestGeneratedAudio.service,
                             voice: this.latestGeneratedAudio.voiceName,
+                            model_id: this.latestGeneratedAudio.modelId || 'eleven_multilingual_v2',
                             lang_code: this.currentLangCode,
                             text: this.latestGeneratedAudio.text || '',
                             created: new Date().toISOString(),

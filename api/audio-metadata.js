@@ -16,16 +16,35 @@ function getStorage() {
   }
 }
 
-function extractVoiceFromTags(tags) {
-  const userDefinedText = Array.isArray(tags?.userDefinedText) ? tags.userDefinedText : [];
-  const voiceTag = userDefinedText.find((entry) => String(entry?.description || '').toLowerCase() === 'voice');
-  const voiceValue = String(voiceTag?.value || '').trim();
-  if (voiceValue) return voiceValue;
+function getUserDefinedEntries(tags) {
+  const raw = tags?.userDefinedText;
+  if (Array.isArray(raw)) return raw;
+  if (raw && typeof raw === 'object') return [raw];
+  return [];
+}
 
-  const comment = String(tags?.comment?.text || '').trim();
-  if (!comment) return '';
-  const match = comment.match(/ - ([^-]+?) - [a-z]{2}(?:-[A-Z]{2})?$/i);
+function extractUserDefinedTag(tags, description) {
+  const wanted = String(description || '').trim().toLowerCase();
+  if (!wanted) return '';
+  const entries = getUserDefinedEntries(tags);
+  const match = entries.find((entry) => String(entry?.description || '').trim().toLowerCase() === wanted);
+  return String(match?.value || '').trim();
+}
+
+function extractVoiceFromTags(tags) {
+  const voiceTag = extractUserDefinedTag(tags, 'voice');
+  if (voiceTag) return voiceTag;
+
+  const modelCommentVoice = String(tags?.comment?.text || '').trim();
+  if (!modelCommentVoice) return '';
+  const match = modelCommentVoice.match(/ - ([^-]+?) - [a-z]{2}(?:-[A-Z]{2})?$/i);
   return match ? String(match[1] || '').trim() : '';
+}
+
+function extractModelIdFromTags(tags) {
+  const modelTag = extractUserDefinedTag(tags, 'model_id');
+  if (modelTag) return modelTag;
+  return '';
 }
 
 export default async function handler(req, res) {
@@ -61,11 +80,13 @@ export default async function handler(req, res) {
     const [buffer] = await file.download();
     const tags = NodeID3.read(buffer) || {};
     const voice = extractVoiceFromTags(tags);
+    const modelId = extractModelIdFromTags(tags);
     return res.status(200).json({
       success: true,
       bucket: bucketName,
       path: objectPath,
       voice: voice || '',
+      model_id: modelId || '',
       tags: {
         artist: tags?.artist || '',
         comment: tags?.comment?.text || '',
