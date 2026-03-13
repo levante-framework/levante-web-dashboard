@@ -2570,6 +2570,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             </div>
                         </div>
                         <div class="audio-controls">
+                            <span class="edited-text-indicator" data-item-id="${escapedItemId}" title="Regen will use edited text from the text box">Edited text</span>
                             <button class="play-btn" onclick="playAudio('${escapedItemId}', '${langCode}')" title="Play existing audio">
                                 <i class="fas fa-play"></i>
                             </button>
@@ -2598,6 +2599,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         );
                         saveButton.disabled = !isPending;
                         saveButton.title = isPending ? 'Save latest generated audio to draft bucket' : 'Generate audio before saving';
+                    }
+                    const editedTextIndicator = row.querySelector('.edited-text-indicator');
+                    if (editedTextIndicator) {
+                        editedTextIndicator.style.display = this.shouldUseEditedTextForItem(itemId) ? 'inline-flex' : 'none';
                     }
                     row.addEventListener('click', () => this.selectRow(row, item));
                     return row;
@@ -2763,6 +2768,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 
                 console.log('Selected item:', { item, itemId, langCode, text: text.substring(0, 50) });
                 this.setStatus(`Selected: ${itemId} - "${text.substring(0, 50)}..."`, 'success');
+                this.updateEditedTextIndicators();
             }
 
             switchTab(language, button) {
@@ -2897,6 +2903,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 document.getElementById('populateSelected').addEventListener('click', () => {
                     this.populateSelectedText();
                 });
+
+                const textInput = document.getElementById('textInput');
+                if (textInput && !textInput.dataset.boundEditedIndicator) {
+                    textInput.addEventListener('input', () => this.updateEditedTextIndicators());
+                    textInput.dataset.boundEditedIndicator = 'true';
+                }
 
                 const viewDraftAudioBtn = document.getElementById('viewDraftAudio');
                 if (viewDraftAudioBtn) {
@@ -3497,6 +3509,42 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return text || item.en || '';
             }
 
+            getRegenerationTextForItem(item, itemId, langCode) {
+                const defaultText = this.extractTextForItem(item, langCode);
+                const selectedItemId = String(this.selectedRow?.item_id || '').trim();
+                const requestedItemId = String(itemId || '').trim();
+                const textInput = document.getElementById('textInput');
+
+                // If the currently selected row matches this item, allow the edited text box
+                // to override the translation text for regeneration.
+                if (textInput && selectedItemId && requestedItemId && selectedItemId === requestedItemId) {
+                    const editedText = String(textInput.value || '').trim();
+                    if (editedText) {
+                        return { text: editedText, source: 'editor' };
+                    }
+                }
+
+                return { text: defaultText, source: 'translation' };
+            }
+
+            shouldUseEditedTextForItem(itemId) {
+                const selectedItemId = String(this.selectedRow?.item_id || '').trim();
+                const requestedItemId = String(itemId || '').trim();
+                if (!selectedItemId || !requestedItemId || selectedItemId !== requestedItemId) return false;
+                const textInput = document.getElementById('textInput');
+                return Boolean(textInput && String(textInput.value || '').trim());
+            }
+
+            updateEditedTextIndicators() {
+                const indicators = document.querySelectorAll('.edited-text-indicator[data-item-id]');
+                indicators.forEach((indicator) => {
+                    const itemId = String(indicator.getAttribute('data-item-id') || '').trim();
+                    if (!itemId) return;
+                    const active = this.shouldUseEditedTextForItem(itemId);
+                    indicator.style.display = active ? 'inline-flex' : 'none';
+                });
+            }
+
             async regenerateAudioForItem(itemId, langCode) {
                 const item = this.data.find(entry => entry.item_id === itemId);
                 if (!item) {
@@ -3506,7 +3554,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     return;
                 }
 
-                const text = this.extractTextForItem(item, langCode);
+                const { text, source: textSource } = this.getRegenerationTextForItem(item, itemId, langCode);
                 if (!text) {
                     const message = `No translation text available for ${itemId} (${langCode})`;
                     this.setStatus(`❌ ${message}`, 'error');
@@ -3524,7 +3572,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
                 try {
                     const originLabel = source === 'metadata' ? 'existing audio' : 'selection';
-                    this.setStatus(`Generating ${itemId} with ${service} (${originLabel})...`, 'loading');
+                    const textLabel = textSource === 'editor' ? 'edited text' : 'translation text';
+                    this.setStatus(`Generating ${itemId} with ${service} (${originLabel}, ${textLabel})...`, 'loading');
                     const options = {
                         itemId,
                         langCode,
@@ -3876,6 +3925,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 
                 document.getElementById('textInput').value = text;
                 this.setStatus(`Text populated from selected item: ${this.selectedRow.item_id}`, 'success');
+                this.updateEditedTextIndicators();
             }
 
             setStatus(message, type = 'success') {

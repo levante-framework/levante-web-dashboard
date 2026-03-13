@@ -19,9 +19,9 @@
         // ULTRA-EARLY VERSION CHECK - Runs before ANY other scripts
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
         console.log('%c  DASHBOARD VERSION CHECK', 'color: green; font-size: 18px; font-weight: bold;');
-        console.log('%c  VERSION: 2026-01-27-approver-userid-login-v1', 'color: blue; font-size: 16px; font-weight: bold;');
+        console.log('%c  VERSION: 2026-03-13-audio-tips-v1', 'color: blue; font-size: 16px; font-weight: bold;');
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
-        window.DASHBOARD_VERSION = '2026-01-27-approver-userid-login-v1';
+        window.DASHBOARD_VERSION = '2026-03-13-audio-tips-v1';
         window.DASHBOARD_LOADED_AT = new Date().toISOString();
         console.log('Check window.DASHBOARD_VERSION in console:', window.DASHBOARD_VERSION);
     </script>
@@ -1002,6 +1002,43 @@
             letter-spacing: 0.5px;
         }
 
+        .text-label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .audio-tips-trigger {
+            border: 1px solid #fca5a5;
+            background: #fff1f2;
+            color: #9f1239;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            line-height: 1;
+            transition: all 0.2s ease;
+        }
+
+        .audio-tips-trigger:hover {
+            background: #ffe4e6;
+            border-color: #fb7185;
+            color: #881337;
+            transform: translateY(-1px);
+        }
+
+        .audio-tips-trigger:focus-visible {
+            outline: 2px solid rgba(218, 61, 22, 0.35);
+            outline-offset: 2px;
+        }
+
         .audio-enhanced-meta {
             font-size: 11px;
             color: #71717a;
@@ -1454,10 +1491,10 @@
         // IMMEDIATE VERSION CHECK - Runs before anything else
         (function() {
             console.log('%c=== PARTNER AUDIO DASHBOARD LOADED ===', 'color: green; font-size: 16px; font-weight: bold;');
-            console.log('%cVERSION: 2026-01-27-approver-userid-login-v1', 'color: blue; font-size: 14px; font-weight: bold;');
+            console.log('%cVERSION: 2026-03-13-audio-tips-v1', 'color: blue; font-size: 14px; font-weight: bold;');
             console.log('TIMESTAMP:', new Date().toISOString());
             console.warn('If you see old line numbers in errors, clear your browser cache!');
-            window.DASHBOARD_VERSION = '2026-01-27-approver-userid-login-v1';
+            window.DASHBOARD_VERSION = '2026-03-13-audio-tips-v1';
             window.DASHBOARD_LOADED = true;
         })();
         
@@ -1519,6 +1556,11 @@
                 this.enhancedTextSyncQueue = new Map();
                 this.enhancedTextSyncTimer = null;
                 this.missingEnhancedKeyLogs = new Set();
+                this.debugEnhancedKeyMisses = false;
+                try {
+                    const debugParam = new URLSearchParams(window.location.search).get('debugEnhancedKeyMisses');
+                    this.debugEnhancedKeyMisses = debugParam === '1' || String(debugParam || '').toLowerCase() === 'true';
+                } catch (_) {}
                 
                 this.init();
             }
@@ -1764,6 +1806,16 @@
                 this.queueEnhancedTextServerSync(itemId, value);
             }
 
+            openAudioTipsWindow() {
+                const popupUrl = '/docs/elevenlabs-v3-audio-tags.html';
+                const popup = window.open(popupUrl, 'elevenlabsAudioTips', 'width=760,height=860,scrollbars=yes,resizable=yes');
+                if (!popup) {
+                    alert('Popup blocked. Please allow popups for this site to view audio tips.');
+                    return;
+                }
+                popup.focus();
+            }
+
             mergeEnhancedTextEntries(langCode, entries) {
                 const state = { ...this.getEnhancedTextState(langCode) };
                 if (entries && typeof entries === 'object' && !Array.isArray(entries)) {
@@ -1879,7 +1931,7 @@
                 }
                 if (keys.length === 1) {
                     const logKey = `${String(this.currentLangCode)}::${keys[0]}`;
-                    if (!this.missingEnhancedKeyLogs.has(logKey)) {
+                    if (this.debugEnhancedKeyMisses && !this.missingEnhancedKeyLogs.has(logKey)) {
                         this.missingEnhancedKeyLogs.add(logKey);
                         const stateKeys = Object.keys(state || {});
                         console.warn('Enhanced text missing for exact key', {
@@ -2819,7 +2871,7 @@
             
             async handlePasswordLogin() {
                 console.log('=== handlePasswordLogin CALLED ===');
-                console.log('VERSION: 2026-01-27-approver-userid-login-v1');
+                console.log('VERSION: 2026-03-13-audio-tips-v1');
                 const emailInput = document.getElementById('emailInput');
                 const passwordInput = document.getElementById('passwordInput');
                 const email = emailInput?.value?.trim() || '';
@@ -4312,7 +4364,12 @@
                                         </button>
                                     </div>
                                     <div class="text-block item-audio-enhanced">
-                                        <div class="text-label">Your string enhanced for improved audio (optional)</div>
+                                        <div class="text-label text-label-row">
+                                            <span>Enhanced Audio (Optional)</span>
+                                            <button type="button" class="audio-tips-trigger" onclick="dashboard.openAudioTipsWindow()" title="Show ElevenLabs v3 audio tagging tips">
+                                                <i class="fas fa-info-circle"></i> Tips
+                                            </button>
+                                        </div>
                                         <div class="audio-enhanced-meta">${escapedEnhancedMeta}</div>
                                         <textarea class="audio-enhanced-input" id="audioEnhanced_${escapedItemId}" data-item-id="${escapedItemId}" rows="3" placeholder="Edit text for audio generation..." oninput="dashboard.handleEnhancedTextInput('${escapedItemId}', this.value)">${escapedEnhancedText || ''}</textarea>
                                     </div>
