@@ -4478,6 +4478,27 @@
                 });
             }
 
+            getAudioEnhancedInputForItem(itemId) {
+                const rawId = String(itemId ?? '');
+                if (!rawId) return null;
+
+                const directIdMatch = document.getElementById(`audioEnhanced_${rawId}`);
+                if (directIdMatch && directIdMatch.classList.contains('audio-enhanced-input')) {
+                    return directIdMatch;
+                }
+
+                const normalized = rawId.trim();
+                const candidates = Array.from(document.querySelectorAll('.audio-enhanced-input[data-item-id]'));
+                for (const input of candidates) {
+                    const candidateRaw = String(input.dataset?.itemId ?? '');
+                    if (candidateRaw === rawId || candidateRaw.trim() === normalized) {
+                        return input;
+                    }
+                }
+
+                return null;
+            }
+
             async playAudio(itemId) {
                 this.setAudioActionLoading(itemId, 'play', true, 'Loading...');
                 try {
@@ -4550,7 +4571,7 @@
                     }
                     
                     // Get audio-enhanced string from textarea, fallback to translated text
-                    const audioEnhancedInput = document.getElementById(`audioEnhanced_${itemId}`);
+                    const audioEnhancedInput = this.getAudioEnhancedInputForItem(itemId);
                     let text = '';
                     let textSource = 'translation';
                     if (audioEnhancedInput && audioEnhancedInput.value) {
