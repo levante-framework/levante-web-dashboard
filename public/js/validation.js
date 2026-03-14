@@ -967,16 +967,30 @@ async function loadValidationsFromShared() {
             // Re-render the table to show updated validation results (pre-computed in HTML)
             window.dashboard.populateDataTable();
             button.innerHTML = '<i class="fas fa-check"></i> Loaded!';
-            window.dashboard.setStatus('🌐 Successfully loaded validation results from shared session storage', 'success');
+            const source = String(window.dashboard?.sharedValidationSource || 'unknown');
+            const sourceLabel = source === 'gcs' ? 'shared bucket (GCS)' : source === 'memory' ? 'session memory fallback' : source;
+            window.dashboard.setStatus(`🌐 Successfully loaded validation results from ${sourceLabel}`, source === 'memory' ? 'warning' : 'success');
+            const nowIso = new Date().toISOString();
+            try { localStorage.setItem('validation_shared_last_sync', nowIso); } catch (_) {}
+            try { localStorage.setItem('validation_shared_last_sync_source', source); } catch (_) {}
+            if (typeof window.setValidationSharedSyncLabel === 'function') {
+                window.setValidationSharedSyncLabel(nowIso, false, source);
+            }
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
         } else {
             button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> No Data';
             window.dashboard.setStatus('⚠️ No shared validation data found', 'warning');
+            if (typeof window.setValidationSharedSyncLabel === 'function') {
+                window.setValidationSharedSyncLabel('', true);
+            }
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
         }
     } catch (error) {
         button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error!';
         window.dashboard.setStatus(`❌ Error loading shared validations: ${error.message}`, 'error');
+        if (typeof window.setValidationSharedSyncLabel === 'function') {
+            window.setValidationSharedSyncLabel('', true);
+        }
         setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 3000);
     }
 }

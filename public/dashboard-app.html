@@ -220,7 +220,7 @@
             <!-- Translation Validation Panel -->
             <div class="validation-panel">
                 <div class="validation-header" onclick="toggleValidationPanel()">
-                    <span><i class="fas fa-check-circle"></i> Translation Validation</span>
+                    <span><i class="fas fa-check-circle"></i> Translation Validation <span style="font-weight: normal; color: #6c757d; font-size: 0.9em;">(counts &amp; report inside)</span></span>
                     <span class="collapse-icon">▲</span>
                 </div>
                 <div class="validation-content expanded" id="validationContent">
@@ -241,8 +241,8 @@
                         <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
                             <i class="fas fa-save"></i> Save
                         </button>
-                        <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1; display: none;" onclick="loadValidationsFromShared()" title="Load latest validation results from shared team storage">
-                            <i class="fas fa-cloud-download-alt"></i> Load
+                        <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="loadValidationsFromShared()" title="Sync latest validation results from shared team storage">
+                            <i class="fas fa-cloud-download-alt"></i> Sync
                         </button>
                         <button id="exportValidations" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f; display: none;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
@@ -272,9 +272,12 @@
                                     <option value="tasks">Tasks</option>
                                     <option value="surveys">Surveys</option>
                                 </select>
-                                <button type="button" class="btn btn-compact" style="background: #2e7d32; color: white; border: 1px solid #1b5e20;" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Response)">
+                                <button type="button" id="validationSummaryDownloadCsv" class="btn btn-compact" style="background: #2e7d32; color: white; border: 1px solid #1b5e20;" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Back Translation, Outcome)">
                                     <i class="fas fa-download"></i> Download
                                 </button>
+                                <span id="validationSharedSyncLabel" style="color:#6c757d; font-size:0.88em; font-weight:600; white-space:nowrap; background:#f1f3f4; border:1px solid #d7dce1; border-radius:12px; padding:4px 8px;" title="Latest successful shared validation sync timestamp">
+                                    Shared sync: never
+                                </span>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-top: 12px;">
@@ -569,9 +572,53 @@
         let _reviewTableSortBy = 'score';
         let _reviewTableSortDir = 1;
 
-        function openValidationReviewTableForCurrentLanguage() {
+        function setValidationSharedSyncLabel(ts, isError, source) {
+            const el = document.getElementById('validationSharedSyncLabel');
+            if (!el) return;
+            if (!ts) {
+                el.textContent = isError ? 'Shared sync: failed' : 'Shared sync: never';
+                el.style.color = isError ? '#c62828' : '#6c757d';
+                return;
+            }
+            const d = new Date(ts);
+            if (Number.isNaN(d.getTime())) {
+                el.textContent = 'Shared sync: unknown';
+                el.style.color = '#6c757d';
+                return;
+            }
+            const dateText = d.toLocaleString();
+            const src = String(source || '').toLowerCase();
+            const srcLabel = src === 'gcs' ? 'GCS' : src === 'memory' ? 'memory fallback' : (source ? String(source) : '');
+            el.textContent = 'Shared sync: ' + dateText + (srcLabel ? ' (' + srcLabel + ')' : '');
+            el.style.color = src === 'memory' ? '#ef6c00' : '#2e7d32';
+            el.title = 'Latest successful shared sync: ' + dateText + (srcLabel ? ' via ' + srcLabel : '');
+        }
+
+        async function syncValidationStateFromShared() {
+            const dash = window.dashboard;
+            if (!dash || typeof dash.loadFromSharedStorage !== 'function') return false;
+            try {
+                const loaded = await dash.loadFromSharedStorage();
+                if (loaded) {
+                    if (typeof dash.populateDataTable === 'function') dash.populateDataTable();
+                    if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    const nowIso = new Date().toISOString();
+                    try { localStorage.setItem('validation_shared_last_sync', nowIso); } catch (_) {}
+                    const source = String(dash.sharedValidationSource || 'unknown');
+                    try { localStorage.setItem('validation_shared_last_sync_source', source); } catch (_) {}
+                    setValidationSharedSyncLabel(nowIso, false, source);
+                }
+                return !!loaded;
+            } catch (_) {
+                setValidationSharedSyncLabel('', true);
+                return false;
+            }
+        }
+
+        async function openValidationReviewTableForCurrentLanguage() {
             const dash = window.dashboard;
             if (!dash || !dash.currentLanguage) return;
+            await syncValidationStateFromShared();
             const langCode = dash.languages[dash.currentLanguage].lang_code;
             openValidationReviewTableModal(langCode);
         }
@@ -594,6 +641,15 @@
                 if (paths.some(function(p) { return String(p).replace(/\\/g, '/').toLowerCase().indexOf(needle) !== -1; })) { const id = toId(item); if (id) allowed.add(id); }
             });
             return allowed;
+        }
+
+        function getValidationEntryForLang(dash, itemId, langCode) {
+            const byItem = dash?.validation_results?.[itemId];
+            if (!byItem) return null;
+            const preferred = (typeof dash.resolvePreferredLangCode === 'function')
+                ? dash.resolvePreferredLangCode(langCode)
+                : langCode;
+            return byItem[preferred] || byItem[langCode] || null;
         }
 
         function pathMatchesLanguage(path, langCode) {
@@ -675,7 +731,7 @@
             const rows = [];
             Object.keys(results).forEach(itemId => {
                 if (allowedIds && !allowedIds.has(String(itemId))) return;
-                const r = results[itemId][langCode];
+                const r = getValidationEntryForLang(dash, itemId, langCode);
                 if (!r || r.needsReview !== true) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
@@ -706,7 +762,7 @@
             const rows = [];
             Object.keys(results).forEach(itemId => {
                 if (allowedIds && !allowedIds.has(String(itemId))) return;
-                const r = results[itemId][_reviewTableLangCode];
+                const r = getValidationEntryForLang(dash, itemId, _reviewTableLangCode);
                 if (!r || r.needsReview !== true) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
@@ -778,8 +834,14 @@
                 check.checked = row.needsReview;
                 check.dataset.itemId = row.itemId;
                 check.addEventListener('change', function() {
-                    if (!dash.validation_results[row.itemId] || !dash.validation_results[row.itemId][langCode]) return;
-                    dash.validation_results[row.itemId][langCode].needsReview = check.checked;
+                    const preferred = (typeof dash.resolvePreferredLangCode === 'function')
+                        ? dash.resolvePreferredLangCode(langCode)
+                        : langCode;
+                    if (!dash.validation_results[row.itemId]) return;
+                    if (!dash.validation_results[row.itemId][preferred]) {
+                        dash.validation_results[row.itemId][preferred] = {};
+                    }
+                    dash.validation_results[row.itemId][preferred].needsReview = check.checked;
                 });
                 tdCheck.appendChild(check);
                 tr.appendChild(tdCheck);
@@ -791,8 +853,14 @@
                 input.placeholder = 'Reason';
                 input.dataset.itemId = row.itemId;
                 input.addEventListener('input', function() {
-                    if (!dash.validation_results[row.itemId] || !dash.validation_results[row.itemId][langCode]) return;
-                    dash.validation_results[row.itemId][langCode].reason = input.value;
+                    const preferred = (typeof dash.resolvePreferredLangCode === 'function')
+                        ? dash.resolvePreferredLangCode(langCode)
+                        : langCode;
+                    if (!dash.validation_results[row.itemId]) return;
+                    if (!dash.validation_results[row.itemId][preferred]) {
+                        dash.validation_results[row.itemId][preferred] = {};
+                    }
+                    dash.validation_results[row.itemId][preferred].reason = input.value;
                 });
                 tdReason.appendChild(input);
                 tr.appendChild(tdReason);
@@ -814,21 +882,31 @@
             document.getElementById('validationReviewTableModal').style.display = 'none';
         }
 
-        function downloadNeedsReviewCSVFromModal() {
-            if (_reviewTableLangCode) downloadNeedsReviewCSV(_reviewTableLangCode);
+        async function downloadNeedsReviewCSVFromModal() {
+            setDownloadButtonBusy('validationReviewTableDownloadCsv', true);
+            try {
+                await syncValidationStateFromShared();
+                if (!ensureDownloadAllowedBySyncSource()) return;
+                if (_reviewTableLangCode) downloadNeedsReviewCSV(_reviewTableLangCode);
+            } finally {
+                setTimeout(function () { setDownloadButtonBusy('validationReviewTableDownloadCsv', false); }, 300);
+            }
         }
 
-        function downloadNeedsReviewCSVForCurrentLanguage() {
+        async function downloadNeedsReviewCSVForCurrentLanguage() {
             const dash = window.dashboard;
             if (!dash || !dash.currentLanguage) return;
-            const langCode = dash.languages[dash.currentLanguage].lang_code;
-            downloadNeedsReviewCSVWithTranslations(langCode);
+            setDownloadButtonBusy('validationSummaryDownloadCsv', true);
+            try {
+                await syncValidationStateFromShared();
+                if (!ensureDownloadAllowedBySyncSource()) return;
+                const langCode = dash.languages[dash.currentLanguage].lang_code;
+                downloadNeedsReviewCSVWithTranslations(langCode);
+            } finally {
+                setTimeout(function () { setDownloadButtonBusy('validationSummaryDownloadCsv', false); }, 300);
+            }
         }
 
-        function htmlEscape(s) {
-            const t = String(s ?? '');
-            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        }
         function csvEscape(s) {
             const t = String(s ?? '');
             if (t.includes(',') || t.includes('"') || t.includes('\n') || t.includes('\r')) return '"' + t.replace(/"/g, '""') + '"';
@@ -842,6 +920,49 @@
             a.click();
             URL.revokeObjectURL(url);
         }
+
+        function setDownloadButtonBusy(buttonId, busy) {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            if (busy) {
+                if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+                button.disabled = true;
+                return;
+            }
+            button.innerHTML = button.dataset.originalHtml || button.innerHTML;
+            button.disabled = false;
+        }
+
+        function getLastSharedSyncSource() {
+            const dashSource = String(window.dashboard?.sharedValidationSource || '').trim().toLowerCase();
+            if (dashSource) return dashSource;
+            return String(localStorage.getItem('validation_shared_last_sync_source') || '').trim().toLowerCase();
+        }
+
+        function ensureDownloadAllowedBySyncSource() {
+            const source = getLastSharedSyncSource();
+            if (source === 'gcs') return true;
+            const message = source === 'memory'
+                ? 'Download blocked: latest sync is memory fallback, not shared bucket (GCS). Click Sync and retry.'
+                : 'Download blocked: no verified shared bucket (GCS) sync yet. Click Sync and retry.';
+            if (window.dashboard && typeof window.dashboard.setStatus === 'function') {
+                window.dashboard.setStatus(`⚠️ ${message}`, 'warning');
+            }
+            alert(message);
+            return false;
+        }
+
+        if (typeof window !== 'undefined') {
+            window.setValidationSharedSyncLabel = setValidationSharedSyncLabel;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const last = localStorage.getItem('validation_shared_last_sync') || '';
+            const source = localStorage.getItem('validation_shared_last_sync_source') || '';
+            setValidationSharedSyncLabel(last, false, source);
+        });
+
         function downloadNeedsReviewCSVWithTranslations(langCode) {
             const dash = window.dashboard;
             if (!dash) return;
@@ -851,45 +972,35 @@
             dataRows.forEach(row => { byItemId[row.item_id] = row; });
             const csvRows = [];
             Object.keys(results).forEach(itemId => {
-                const r = results[itemId][langCode];
+                const r = getValidationEntryForLang(dash, itemId, langCode);
                 if (!r || r.needsReview !== true) return;
                 const row = byItemId[itemId];
                 const sourceString = (row && (row.en || row.source || row.text)) ? String(row.en || row.source || row.text).trim() : '';
                 const currentTranslation = (row && row[langCode]) ? String(row[langCode]).trim() : '';
                 const reason = r.reason || '';
-                const response = r.backTranslation != null ? String(r.backTranslation) : (r.notes != null ? String(r.notes) : '');
+                const backTranslation = r.backTranslation != null ? String(r.backTranslation) : '';
                 csvRows.push({
                     itemId,
                     sourceString,
                     language: langCode,
                     currentTranslation,
                     reason,
-                    response
+                    backTranslation
                 });
             });
             const baseName = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10);
             // CSV (legacy)
-            const csvHeader = 'Item ID,Source String,Language,Current Translation,Reason,Response';
+            const csvHeader = 'Item ID,Source String,Language,Current Translation,Reason,Back Translation,Outcome';
             const csvLines = [csvHeader].concat(csvRows.map(r => [
                 csvEscape(r.itemId),
                 csvEscape(r.sourceString),
                 csvEscape(r.language),
                 csvEscape(r.currentTranslation),
                 csvEscape(r.reason),
-                csvEscape(r.response)
+                csvEscape(r.backTranslation),
+                ''  // Outcome - blank for user to fill
             ].join(',')));
             triggerDownload(new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), baseName + '.csv');
-            // XLS (bold headers + column widths)
-            const colWidths = [14, 42, 12, 42, 28, 32];
-            const headers = ['Item ID', 'Source String', 'Language', 'Current Translation', 'Reason', 'Response'];
-            const cols = colWidths.map(w => '<col width="' + w + '">').join('');
-            const headerRow = '<tr>' + headers.map(h => '<th>' + htmlEscape(h) + '</th>').join('') + '</tr>';
-            const dataRowsHtml = csvRows.map(r => '<tr><td>' + htmlEscape(r.itemId) + '</td><td>' + htmlEscape(r.sourceString) + '</td><td>' + htmlEscape(r.language) + '</td><td>' + htmlEscape(r.currentTranslation) + '</td><td>' + htmlEscape(r.reason) + '</td><td>' + htmlEscape(r.response) + '</td></tr>').join('');
-            const table = '<table><colgroup>' + cols + '</colgroup><thead>' + headerRow + '</thead><tbody>' + dataRowsHtml + '</tbody></table>';
-            const html = '\uFEFF<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + table + '</body></html>';
-            setTimeout(function () {
-                triggerDownload(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' }), baseName + '.xls');
-            }, 150);
         }
 
         function downloadNeedsReviewCSV(langCode) {
@@ -898,7 +1009,7 @@
             const results = dash.validation_results || {};
             const rows = [];
             Object.keys(results).forEach(itemId => {
-                const r = results[itemId][langCode];
+                const r = getValidationEntryForLang(dash, itemId, langCode);
                 if (!r || r.needsReview !== true) return;
                 const score = typeof r.score === 'number' ? (r.score <= 1 ? Math.round(r.score * 100) : Math.round(r.score)) : 0;
                 rows.push({ item_id: itemId, language: langCode, score, notes: r.notes || '', reason: r.reason || '' });
@@ -908,17 +1019,6 @@
             const csvHeader = 'item_id,language,score,notes,reason';
             const csvLines = [csvHeader].concat(rows.map(r => [r.item_id, r.language, r.score, csvEscape(r.notes), csvEscape(r.reason)].join(',')));
             triggerDownload(new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), baseName + '.csv');
-            // XLS (bold headers + column widths)
-            const colWidths = [14, 12, 8, 36, 40];
-            const headers = ['item_id', 'language', 'score', 'notes', 'reason'];
-            const cols = colWidths.map(w => '<col width="' + w + '">').join('');
-            const headerRow = '<tr>' + headers.map(h => '<th>' + htmlEscape(h) + '</th>').join('') + '</tr>';
-            const dataRowsHtml = rows.map(r => '<tr><td>' + htmlEscape(r.item_id) + '</td><td>' + htmlEscape(r.language) + '</td><td>' + htmlEscape(r.score) + '</td><td>' + htmlEscape(r.notes) + '</td><td>' + htmlEscape(r.reason) + '</td></tr>').join('');
-            const table = '<table><colgroup>' + cols + '</colgroup><thead>' + headerRow + '</thead><tbody>' + dataRowsHtml + '</tbody></table>';
-            const html = '\uFEFF<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + table + '</body></html>';
-            setTimeout(function () {
-                triggerDownload(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' }), baseName + '.xls');
-            }, 150);
         }
 
         function openAudioCoverage() {

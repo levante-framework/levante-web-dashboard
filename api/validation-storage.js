@@ -24,7 +24,16 @@ const FILE_PATH = process.env.VALIDATION_RESULTS_OBJECT || 'validations/validati
 
 function getStorageClient() {
   const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (!serviceAccountJson) return null;
+  if (!serviceAccountJson) {
+    // Fall back to Application Default Credentials when explicit JSON is not set.
+    // This supports local/dev auth flows like `gcloud auth application-default login`.
+    try {
+      return new Storage();
+    } catch (e) {
+      console.warn('Could not initialize GCS client via ADC:', e?.message || e);
+      return null;
+    }
+  }
   let credentials;
   try {
     credentials = JSON.parse(serviceAccountJson);

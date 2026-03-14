@@ -27,6 +27,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
                 this.validation_results = {};
+                this.sharedValidationSource = 'unknown';
                 this.embeddingAdvisoryEnabled = (window.CONFIG?.embeddingAdvisoryEnabled !== false);
                 this.embeddingAdvisoryMeta = null;
                 this.embeddingAdvisoryByItem = {};
@@ -2044,6 +2045,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     if (response.ok) {
                         const result = await response.json();
                         if (result.success && result.data.validation_results) {
+                            this.sharedValidationSource = String(result.source || 'unknown');
                             // Merge with local results (shared storage takes precedence for newer data)
                             const sharedResults = result.data.validation_results;
                             const localResults = this.validation_results;
@@ -2063,10 +2065,20 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         const localBack = String(localValidation?.backTranslation || '').trim();
                                         const sharedBack = String(sharedValidation?.backTranslation || '').trim();
                                         const shouldHydrateBackTranslation = !localBack && !!sharedBack;
+                                        // Shared review flags must propagate reliably across reviewers even when
+                                        // local metadata timestamps are newer.
+                                        const shouldHydrateNeedsReview =
+                                            sharedValidation?.needsReview === true
+                                            && localValidation?.needsReview !== true;
+                                        const localReason = String(localValidation?.reason || '').trim();
+                                        const sharedReason = String(sharedValidation?.reason || '').trim();
+                                        const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
                                         if (
                                             !localValidation
                                             || (sharedTs && (!localTs || sharedTs > localTs))
                                             || shouldHydrateBackTranslation
+                                            || shouldHydrateNeedsReview
+                                            || shouldHydrateReasonForReview
                                         ) {
                                             localResults[itemId][lang] = sharedValidation;
                                         }
@@ -2077,11 +2089,17 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             this.validation_results = localResults;
                             this.normalizeValidationResultsLanguageKeys();
                             console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items`);
-                            this.setStatus('🌐 Loaded validation results from shared session storage', 'success');
+                            const sourceLabel = this.sharedValidationSource === 'gcs'
+                                ? 'shared bucket (GCS)'
+                                : this.sharedValidationSource === 'memory'
+                                    ? 'session memory fallback'
+                                    : this.sharedValidationSource;
+                            this.setStatus(`🌐 Loaded validation results from ${sourceLabel}`, this.sharedValidationSource === 'memory' ? 'warning' : 'success');
                             return true;
                         }
                     }
                 } catch (error) {
+                    this.sharedValidationSource = 'unknown';
                     console.log('⚠️ Could not load from shared storage:', error.message);
                 }
                 return false;
@@ -2217,7 +2235,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 tabButtons.innerHTML = '';
                 tabContent.innerHTML = '';
                 
-                const languageNames = Object.keys(this.languages || {});
+                const languageNames = Object.keys(this.languages || {})
+                    .sort((a, b) => String(this.getDisplayName(a) || a).localeCompare(String(this.getDisplayName(b) || b)));
                 if (languageNames.length === 0) {
                     this.setStatus('No valid languages configured. Please check language settings.', 'error');
                     return;

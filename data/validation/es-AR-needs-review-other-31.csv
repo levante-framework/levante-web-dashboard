@@ -1,0 +1,32 @@
+item_id,score,reason,back_translation,updated
+main/dashboard/components/participant-sidebar-translations.csv::components/participant-sidebar.studentInfo,60,"should apply to anyone who might participate, not just students.",Student Information,2026-03-10T21:23:14.390Z
+main/itembank_by_task/math.xliff::counting-1,100,Confirm carros vs. autos. Keep consistent unless there is a reason not to.,How many cars are there?,2026-03-10T21:58:25.876Z
+main/itembank_by_task/math.xliff::ns-number-comp-2,100,Confirm carros vs. autos per other items.,Which card has more cars?,2026-03-10T21:58:24.660Z
+main/itembank_by_task/math.xliff::ns-number-identification-10,100,All other items use Eligí. Should this one use that too?,Choose the card that shows 10 apples.,2026-03-10T21:58:21.357Z
+main/itembank_by_task/math.xliff::ns-number-identification-5,100,All other items use Eligí. Should this one use that too?,Choose the card that shows 5 apples.,2026-03-10T21:58:20.526Z
+main/itembank_by_task/math.xliff::number-line-slider-prompt1,65,confirm with AR and CO that this is the best way to say this.,Place the marker on the number line to mark the number's location.,2026-03-10T21:57:21.812Z
+main/itembank_by_task/sentence-understanding.xliff::trog-item-83,100,hay sol vs. hace sol,We'll have a picnic in the park if it's sunny,2026-03-10T21:56:14.910Z
+main/itembank_by_task/sentence-understanding.xliff::trog-item-84,100,confirm almohadones vs. cojines per picture of correct answer,He found his keys under the sofa with cushions,2026-03-10T21:56:15.064Z
+main/itembank_by_task/stories.xliff::ToM-scene2-q6-reality_check,100,Should this also be podés?,Can you help Elián find his book? Is it on the shelf or under the coats?,2026-03-10T21:50:03.585Z
+main/itembank_by_task/thoughts-feelings.xliff::child-survey-intro-no-responses,55,reconcile with original introduction (and add first two are for practice),These questions ask you how you feel about school and some of the things you do there. Choose the answer that best describes your thoughts.,2026-03-10T21:43:28.143Z
+main/itembank_by_task/thoughts-feelings.xliff::Example2Neat,80,escuela vs. colegio,Are you clean and tidy at school?,2026-03-10T21:43:05.631Z
+main/itembank_by_task/thoughts-feelings.xliff::LearningGood,90,escuela vs. colegio,Do you find it easy to learn at school?,2026-03-10T21:43:19.965Z
+main/itembank_by_task/thoughts-feelings.xliff::MathEnjoy,100,escuela vs. colegio,Do you like doing math activities at school?,2026-03-10T21:43:17.083Z
+main/itembank_by_task/thoughts-feelings.xliff::SchoolEnjoy,100,escuela vs. colegio,Do you like school?,2026-03-10T21:43:09.847Z
+main/itembank_by_task/thoughts-feelings.xliff::SchoolFun,90,escuela vs. colegio,Are you having fun at school?,2026-03-10T21:43:07.907Z
+main/itembank_by_task/thoughts-feelings.xliff::SchoolHappy,100,escuela vs. colegio,Are you happy at school?,2026-03-10T21:43:07.474Z
+main/itembank_by_task/thoughts-feelings.xliff::SchoolSafe,100,escuela vs. colegio,Do you feel safe at school?,2026-03-10T21:43:07.410Z
+main/itembank_by_task/vocab.xliff::vocab-item-002,70,confirm change from es-CO,aloe,2026-03-10T21:43:28.077Z
+main/itembank_by_task/vocab.xliff::vocab-item-008,100,el soplador vs. la sopladora,the blower,2026-03-10T21:43:32.690Z
+main/itembank_by_task/vocab.xliff::vocab-item-052,10,confirm due to addition of new distractor (dog harness),the mount,2026-03-10T21:44:12.518Z
+main/itembank_by_task/vocab.xliff::vocab-item-053,100,double check per image,the sandbag,2026-03-10T21:44:08.551Z
+main/itembank_by_task/vocab.xliff::vocab-item-062,100,confirm per image (vs. oso perezoso),the sloth,2026-03-10T21:44:16.034Z
+main/itembank_by_task/vocab.xliff::vocab-item-064,20,confirm - ice cream vs. sorbet,the ice cream,2026-03-10T21:44:22.880Z
+main/itembank_by_task/vocab.xliff::vocab-item-094,20,"discuss undefinedsmoothieundefined (fruit) vs. milkshake (ice cream)",the smoothie,2026-03-10T21:44:49.328Z
+main/itembank_by_task/vocab.xliff::vocab-item-129,60,this should refer to a confectionary shop rather than the sweets themselves (CO la confitería),the sweets,2026-03-10T21:45:12.130Z
+main/itembank_by_task/vocab.xliff::vocab-item-148,100,"this is updated for CO to conservar so want to confirm best word for undefinedpreservesundefined (see picture)",preserve,2026-03-10T21:45:22.344Z
+main/itembank_by_task/vocab.xliff::vocab-item-156,0,just want to confirm based on image and difficulty level,the roundabout,2026-03-10T21:45:37.331Z
+main/itembank_by_task/vocab.xliff::vocab-item-161,100,"Discuss because of the removal and vs. item 171 in CO - which to retain for AR (same images, different target response)",the skimmer,2026-03-10T21:45:42.620Z
+main/itembank_by_task/vocab.xliff::vocab-item-171,55,"Discuss because of the removal and vs. item 171 in CO - which to retain for AR (same images, different target response)",the strainer,2026-03-10T21:45:58.866Z
+main/surveys/caregiverfamilysurvey_SHORT.xliff::page3.q.selfsupport.col.2.text,95,should the same word be used for strongly agree and strongly disagree?,Completely disagree,2026-03-10T21:38:35.078Z
+main/surveys/caregiverfamilysurvey_SHORT.xliff::page3.q.selfsupport.col.6.text,80,should the same word be used for strongly agree and strongly disagree?,Definitely agree,2026-03-10T21:38:36.816Z

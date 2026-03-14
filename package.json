@@ -34,7 +34,10 @@
     "validation:estimate": "node scripts/estimate-validation-cost.js",
     "validation:precalibrate": "python3 scripts/precalibrate_validation_without_humans.py",
     "validation:pull-shared": "node scripts/fetch-shared-validation-results.js",
-    "validation:precalibrate:shared": "npm run validation:pull-shared && npm run validation:precalibrate -- --validation-json data/validation/validation_results.shared.json"
+    "validation:precalibrate:shared": "npm run validation:pull-shared && npm run validation:precalibrate -- --validation-json data/validation/validation_results.shared.json",
+    "validation:seed-human-review": "python3 scripts/build_human_review_seed.py",
+    "validation:train-weak-review-model": "python3 scripts/train_weak_needs_review_model.py",
+    "validation:build-weak-review-policy": "python3 scripts/build_review_policy_from_weak_scores.py"
   },
   "keywords": [
     "audio",

@@ -40,11 +40,9 @@ async function main() {
   const outputPath = getArg('out', 'data/validation/validation_results.shared.json');
 
   const credentials = parseCredentials();
-  if (!credentials) {
-    throw new Error('Missing GCP credentials env (GCP_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS_JSON)');
-  }
-
-  const storage = new Storage({ credentials });
+  // Prefer explicit JSON credentials when provided, otherwise fall back to
+  // Application Default Credentials (ADC), e.g. from `gcloud auth application-default login`.
+  const storage = credentials ? new Storage({ credentials }) : new Storage();
   const file = storage.bucket(bucketName).file(objectPath);
   const [exists] = await file.exists();
   if (!exists) {
