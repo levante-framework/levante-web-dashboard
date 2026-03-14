@@ -1347,6 +1347,19 @@ function setValidationSummaryLoading(loading) {
     if (loadingLabel) loadingLabel.style.display = loading ? 'inline-block' : 'none';
 }
 
+function setValidationSummaryCounts(counts) {
+    const goodEl = document.getElementById('goodCount');
+    const warningEl = document.getElementById('warningCount');
+    const errorEl = document.getElementById('errorCount');
+    const needsReviewEl = document.getElementById('needsReviewCount');
+    const pendingEl = document.getElementById('pendingCount');
+    if (goodEl) goodEl.textContent = Number(counts?.good || 0);
+    if (warningEl) warningEl.textContent = Number(counts?.warning || 0);
+    if (errorEl) errorEl.textContent = Number(counts?.error || 0);
+    if (needsReviewEl) needsReviewEl.textContent = Number(counts?.needsReview || 0);
+    if (pendingEl) pendingEl.textContent = Number(counts?.pending || 0);
+}
+
 function updateValidationSummary() {
     const currentLanguage = window.dashboard?.currentLanguage;
     if (!currentLanguage) return;
@@ -1371,16 +1384,7 @@ function updateValidationSummary() {
         else if (indicator.classList.contains('status-error')) error++;
         else pending++;
     });
-    const goodEl = document.getElementById('goodCount');
-    const warningEl = document.getElementById('warningCount');
-    const errorEl = document.getElementById('errorCount');
-    const needsReviewEl = document.getElementById('needsReviewCount');
-    const pendingEl = document.getElementById('pendingCount');
-    if (goodEl) goodEl.textContent = good;
-    if (warningEl) warningEl.textContent = warning;
-    if (errorEl) errorEl.textContent = error;
-    if (needsReviewEl) needsReviewEl.textContent = needsReview;
-    if (pendingEl) pendingEl.textContent = pending;
+    setValidationSummaryCounts({ good, warning, error, needsReview, pending });
 }
 
 // Ensure inline HTML handlers can resolve these functions.
@@ -1389,5 +1393,6 @@ if (typeof window !== 'undefined') {
     window.showStoredValidationResult = showStoredValidationResult;
     window.validateByItemId = validateByItemId;
     window.toggleValidateAllRun = toggleValidateAllRun;
+    window.setValidationSummaryCounts = setValidationSummaryCounts;
 }
 

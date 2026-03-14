@@ -649,6 +649,31 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return this.data.filter(item => allowedIds.has(String(item.item_id || item.identifier || '')));
             }
 
+            computeValidationSummaryCountsForRows(rows, langCode) {
+                let good = 0, warning = 0, error = 0, needsReview = 0, pending = 0;
+                const normalizedLang = String(langCode || '').trim();
+                const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
+                (rows || []).forEach((item) => {
+                    const itemId = item?.item_id || item?.identifier || '';
+                    const storedResult = this.getValidationEntry(itemId, normalizedLang);
+                    if (storedResult?.needsReview === true) needsReview++;
+
+                    const translatedText = this.extractTextForItem(item || {}, normalizedLang);
+                    const hasTranslatedText = !!String(translatedText || '').trim();
+                    const canValidateTranslation = isSourceEnglishTab || hasTranslatedText;
+
+                    if (storedResult && storedResult.score !== undefined && canValidateTranslation) {
+                        const scorePercent = Number(storedResult.score) * 100;
+                        if (scorePercent >= 85) good++;
+                        else if (scorePercent >= 70) warning++;
+                        else error++;
+                    } else {
+                        pending++;
+                    }
+                });
+                return { good, warning, error, needsReview, pending };
+            }
+
             appendRenderBatch(state, batchSize) {
                 const end = Math.min(state.offset + batchSize, state.rows.length);
                 const fragment = document.createDocumentFragment();
@@ -2322,6 +2347,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const dataToShow = selectedFile === 'all'
                     ? baseRows
                     : baseRows.filter((item) => this.getItemSourcePaths(item).includes(selectedFile));
+
+                if (renderLanguage === this.currentLanguage) {
+                    const quickCounts = this.computeValidationSummaryCountsForRows(dataToShow, langCode);
+                    if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
+                    if (typeof window.setValidationSummaryCounts === 'function') {
+                        window.setValidationSummaryCounts(quickCounts);
+                    }
+                }
                 
                 const itemCountSpan = document.getElementById(`item-count-${renderLanguage}`);
                 if (itemCountSpan) {
