@@ -1334,7 +1334,7 @@ function exportValidationsToJSONFile() {
 }
 
 function setValidationSummaryLoading(loading) {
-    const ids = ['goodCount', 'warningCount', 'errorCount', 'pendingCount'];
+    const ids = ['goodCount', 'warningCount', 'errorCount', 'needsReviewCount', 'pendingCount'];
     const spinner = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
     const loadingLabel = document.getElementById('validationSummaryLoadingLabel');
     ids.forEach(id => {
@@ -1360,11 +1360,12 @@ function updateValidationSummary() {
     if (filter !== 'all' && typeof getReviewTableAllowedItemIds === 'function') {
         allowedIds = getReviewTableAllowedItemIds();
     }
-    let good = 0, warning = 0, error = 0, pending = 0;
+    let good = 0, warning = 0, error = 0, needsReview = 0, pending = 0;
     indicators.forEach(indicator => {
         const row = indicator.closest('.data-row');
         const itemId = row ? row.dataset.itemId : indicator.getAttribute('data-item-id');
         if (allowedIds && itemId != null && !allowedIds.has(String(itemId))) return;
+        if (row && row.dataset.needsReview === '1') needsReview++;
         if (indicator.classList.contains('status-good')) good++;
         else if (indicator.classList.contains('status-warning')) warning++;
         else if (indicator.classList.contains('status-error')) error++;
@@ -1373,10 +1374,12 @@ function updateValidationSummary() {
     const goodEl = document.getElementById('goodCount');
     const warningEl = document.getElementById('warningCount');
     const errorEl = document.getElementById('errorCount');
+    const needsReviewEl = document.getElementById('needsReviewCount');
     const pendingEl = document.getElementById('pendingCount');
     if (goodEl) goodEl.textContent = good;
     if (warningEl) warningEl.textContent = warning;
     if (errorEl) errorEl.textContent = error;
+    if (needsReviewEl) needsReviewEl.textContent = needsReview;
     if (pendingEl) pendingEl.textContent = pending;
 }
 
