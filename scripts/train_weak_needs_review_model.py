@@ -18,6 +18,7 @@ import math
 import random
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+EXCLUDED_VALIDATION_PREFIXES = ["main/Z_LEGACY_DO_NOT_TRANSLATE/"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -35,6 +36,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--iters", type=int, default=1200, help="Gradient descent iterations.")
     p.add_argument("--lr", type=float, default=0.08, help="Learning rate.")
     p.add_argument("--l2", type=float, default=0.001, help="L2 regularization.")
+    p.add_argument(
+        "--include-manual-approved",
+        action="store_true",
+        help="Include rows marked manualApproved=true (default excludes them).",
+    )
     p.add_argument(
         "--output-prefix",
         default="data/validation/weak-needs-review-es-AR",
@@ -98,12 +104,21 @@ def score_band(score: Optional[float]) -> str:
     return "fail_lt_70"
 
 
-def load_rows(validation_path: Path, lang_code: str, pos_w: float, neg_w: float) -> List[dict]:
+def is_excluded_item_id(item_id: str) -> bool:
+    normalized = str(item_id or "").strip().lower()
+    if not normalized:
+        return False
+    return any(normalized.startswith(p.lower()) for p in EXCLUDED_VALIDATION_PREFIXES)
+
+
+def load_rows(validation_path: Path, lang_code: str, pos_w: float, neg_w: float, include_manual_approved: bool) -> List[dict]:
     payload = json.loads(validation_path.read_text(encoding="utf-8"))
     root = payload.get("validation_results", payload)
     out: List[dict] = []
     target = canonical_lang(lang_code)
     for item_id, by_lang in (root or {}).items():
+        if is_excluded_item_id(item_id):
+            continue
         if not isinstance(by_lang, dict):
             continue
         result = None
@@ -112,6 +127,8 @@ def load_rows(validation_path: Path, lang_code: str, pos_w: float, neg_w: float)
                 result = r
                 break
         if not isinstance(result, dict):
+            continue
+        if not include_manual_approved and result.get("manualApproved") is True:
             continue
 
         final = to_pct(result.get("score"))
@@ -145,6 +162,7 @@ def load_rows(validation_path: Path, lang_code: str, pos_w: float, neg_w: float)
                 "semantic_score": sem,
                 "lexical_score": lex,
                 "score_source": str(result.get("scoreSource", "") or ""),
+                "manual_approved": bool(result.get("manualApproved") is True),
                 "updated": str(result.get("updated", result.get("timestamp", "")) or ""),
                 "score_band": score_band(final),
                 "x": [
@@ -297,6 +315,7 @@ def write_predictions_csv(path: Path, rows: List[dict], threshold: float) -> Non
         "semantic_score",
         "lexical_score",
         "score_source",
+        "manual_approved",
         "updated",
         "split",
     ]
@@ -319,6 +338,7 @@ def write_predictions_csv(path: Path, rows: List[dict], threshold: float) -> Non
                     "semantic_score": "" if r["semantic_score"] is None else round(float(r["semantic_score"]), 6),
                     "lexical_score": "" if r["lexical_score"] is None else round(float(r["lexical_score"]), 6),
                     "score_source": r["score_source"],
+                    "manual_approved": 1 if r.get("manual_approved") else 0,
                     "updated": r["updated"],
                     "split": r.get("split", ""),
                 }
@@ -332,7 +352,7 @@ def main() -> int:
     output_prefix.parent.mkdir(parents=True, exist_ok=True)
     lang_code = canonical_lang(args.lang_code)
 
-    rows = load_rows(validation_path, lang_code, args.positive_weight, args.negative_weight)
+    rows = load_rows(validation_path, lang_code, args.positive_weight, args.negative_weight, args.include_manual_approved)
     if len(rows) < 20:
         raise SystemExit("Not enough rows to train weak model. Check validation JSON/lang code.")
 
@@ -375,6 +395,7 @@ def main() -> int:
             "validation_json": str(validation_path),
             "positive_weight": args.positive_weight,
             "negative_weight": args.negative_weight,
+            "include_manual_approved": bool(args.include_manual_approved),
             "holdout_frac": args.holdout_frac,
             "seed": args.seed,
         },

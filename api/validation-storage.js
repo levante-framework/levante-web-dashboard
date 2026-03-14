@@ -21,6 +21,23 @@ let inMemoryValidationData = {
 // Validation storage should live in levante-tools (dev project).
 const BUCKET_NAME = process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools';
 const FILE_PATH = process.env.VALIDATION_RESULTS_OBJECT || 'validations/validation_results.json';
+const EXCLUDED_VALIDATION_PREFIXES = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
+
+function isExcludedValidationItemId(itemId) {
+  const normalized = String(itemId || '').trim().toLowerCase();
+  if (!normalized) return false;
+  return EXCLUDED_VALIDATION_PREFIXES.some((prefix) => normalized.startsWith(String(prefix).toLowerCase()));
+}
+
+function sanitizeValidationResultsMap(validationResults) {
+  const source = validationResults && typeof validationResults === 'object' ? validationResults : {};
+  const out = {};
+  Object.keys(source).forEach((itemId) => {
+    if (isExcludedValidationItemId(itemId)) return;
+    out[itemId] = source[itemId];
+  });
+  return out;
+}
 
 function getStorageClient() {
   const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -105,9 +122,18 @@ async function getValidationResults(_req, res) {
   try {
     let validationData = await loadFromGCS();
     if (!validationData) validationData = inMemoryValidationData;
+    const sanitizedResults = sanitizeValidationResultsMap(validationData.validation_results || {});
+    const responseData = {
+      ...validationData,
+      validation_results: sanitizedResults,
+      metadata: {
+        ...(validationData.metadata || {}),
+        item_count: Object.keys(sanitizedResults).length
+      }
+    };
     return res.status(200).json({
       success: true,
-      data: validationData,
+      data: responseData,
       source: validationData === inMemoryValidationData ? 'memory' : 'gcs',
       timestamp: new Date().toISOString()
     });
@@ -122,20 +148,21 @@ async function saveValidationResults(req, res) {
     if (!validation_results) {
       return res.status(400).json({ error: 'Missing validation_results in request body' });
     }
+    const sanitizedResults = sanitizeValidationResultsMap(validation_results);
 
     // Count total validations
     let totalValidations = 0;
-    Object.keys(validation_results).forEach(itemId => {
-      totalValidations += Object.keys(validation_results[itemId] || {}).length;
+    Object.keys(sanitizedResults).forEach(itemId => {
+      totalValidations += Object.keys(sanitizedResults[itemId] || {}).length;
     });
 
     const validationData = {
-      validation_results,
+      validation_results: sanitizedResults,
       metadata: {
         ...metadata,
         saved: new Date().toISOString(),
         version: '1.0',
-        item_count: Object.keys(validation_results).length,
+        item_count: Object.keys(sanitizedResults).length,
         validation_count: totalValidations
       }
     };
@@ -160,9 +187,13 @@ async function updateValidationResults(req, res) {
     if (!item_id || !language || !validation_data) {
       return res.status(400).json({ error: 'Missing required fields: item_id, language, validation_data' });
     }
+    if (isExcludedValidationItemId(item_id)) {
+      return res.status(400).json({ error: 'Excluded legacy item_id cannot be stored in validation results' });
+    }
 
     let currentData = await loadFromGCS();
     if (!currentData) currentData = inMemoryValidationData;
+    currentData.validation_results = sanitizeValidationResultsMap(currentData.validation_results || {});
 
     if (!currentData.validation_results[item_id]) currentData.validation_results[item_id] = {};
     currentData.validation_results[item_id][language] = {

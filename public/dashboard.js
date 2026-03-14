@@ -28,6 +28,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
                 this.validation_results = {};
                 this.sharedValidationSource = 'unknown';
+                this.excludedValidationPrefixes = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
                 this.embeddingAdvisoryEnabled = (window.CONFIG?.embeddingAdvisoryEnabled !== false);
                 this.embeddingAdvisoryMeta = null;
                 this.embeddingAdvisoryByItem = {};
@@ -86,6 +87,25 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 } catch (e) {
                     // ignore
                 }
+            }
+
+            isExcludedValidationItemId(itemId) {
+                const normalized = String(itemId || '').trim().toLowerCase();
+                if (!normalized) return false;
+                return (this.excludedValidationPrefixes || []).some((prefix) => normalized.startsWith(String(prefix).toLowerCase()));
+            }
+
+            sanitizeValidationResultsStore() {
+                const source = this.validation_results || {};
+                let removed = 0;
+                Object.keys(source).forEach((itemId) => {
+                    if (this.isExcludedValidationItemId(itemId)) {
+                        delete source[itemId];
+                        removed += 1;
+                    }
+                });
+                this.validation_results = source;
+                if (removed > 0) console.log(`🧹 Removed ${removed} excluded legacy validation items from in-memory store`);
             }
 
             setupGlobalActions() {
@@ -1885,6 +1905,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const storedResults = localStorage.getItem('validation_results');
                     if (storedResults) {
                         this.validation_results = JSON.parse(storedResults);
+                        this.sanitizeValidationResultsStore();
                         this.normalizeValidationResultsLanguageKeys();
                         console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from localStorage`);
                     }
@@ -1899,6 +1920,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 const jsonData = await jsonResponse.json();
                                 if (jsonData.validation_results) {
                                     this.validation_results = jsonData.validation_results;
+                                    this.sanitizeValidationResultsStore();
                                     this.normalizeValidationResultsLanguageKeys();
                                     console.log(`✅ Loaded ${Object.keys(this.validation_results).length} validation results from JSON file`);
                                     console.log(`📅 File exported: ${jsonData.metadata?.exported_at || 'Unknown date'}`);
@@ -1917,11 +1939,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             async saveValidationResults() {
                 try {
                     console.log('💾 Saving validation results to localStorage and shared storage...');
+                    this.sanitizeValidationResultsStore();
                     this.normalizeValidationResultsLanguageKeys();
                     
                     // Count total validation entries
                     let totalValidations = 0;
                     Object.keys(this.validation_results).forEach(itemId => {
+                        if (this.isExcludedValidationItemId(itemId)) return;
                         totalValidations += Object.keys(this.validation_results[itemId]).length;
                     });
                     
@@ -2010,6 +2034,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const source = this.validation_results || {};
                 const compact = {};
                 Object.keys(source).forEach(itemId => {
+                    if (this.isExcludedValidationItemId(itemId)) return;
                     const byLang = source[itemId] || {};
                     const compactByLang = {};
                     Object.keys(byLang).forEach(langCode => {
@@ -2052,6 +2077,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             
                             // Smart merge: keep newer validations
                             Object.keys(sharedResults).forEach(itemId => {
+                                if (this.isExcludedValidationItemId(itemId)) return;
                                 if (!localResults[itemId]) {
                                     localResults[itemId] = sharedResults[itemId];
                                 } else {
@@ -2087,6 +2113,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             });
                             
                             this.validation_results = localResults;
+                            this.sanitizeValidationResultsStore();
                             this.normalizeValidationResultsLanguageKeys();
                             console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items`);
                             const sourceLabel = this.sharedValidationSource === 'gcs'

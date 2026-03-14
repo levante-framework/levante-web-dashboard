@@ -18,6 +18,7 @@ import json
 import random
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+EXCLUDED_VALIDATION_PREFIXES = ["main/Z_LEGACY_DO_NOT_TRANSLATE/"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,6 +108,13 @@ def path_prefix(item_id: str) -> str:
     return "unknown"
 
 
+def is_excluded_item_id(item_id: str) -> bool:
+    normalized = str(item_id or "").strip().lower()
+    if not normalized:
+        return False
+    return any(normalized.startswith(p.lower()) for p in EXCLUDED_VALIDATION_PREFIXES)
+
+
 def load_validation_rows(validation_path: Path, lang_code: str) -> List[dict]:
     payload = json.loads(validation_path.read_text(encoding="utf-8"))
     root = payload.get("validation_results", payload)
@@ -114,6 +122,8 @@ def load_validation_rows(validation_path: Path, lang_code: str) -> List[dict]:
     target = canonical_lang(lang_code)
 
     for item_id, by_lang in (root or {}).items():
+        if is_excluded_item_id(item_id):
+            continue
         if not isinstance(by_lang, dict):
             continue
         result = None
@@ -149,6 +159,7 @@ def load_validation_rows(validation_path: Path, lang_code: str) -> List[dict]:
                 "lexical_score": lexical,
                 "score_source": str(result.get("scoreSource", "") or ""),
                 "scoring_version": str(result.get("scoringVersion", "") or ""),
+                "manual_approved": bool(result.get("manualApproved") is True),
                 "path_prefix": path_prefix(item_id),
                 "score_band": score_band(final_score),
             }
@@ -243,6 +254,7 @@ def enrich_row(base: dict, translations: Dict[str, dict], lang_code: str, cohort
         "reason": base["reason"],
         "back_translation": base["back_translation"],
         "notes": base["notes"],
+        "manual_approved": "1" if base.get("manual_approved") else "0",
         "updated": base["updated"],
         "source_en": str(t.get("en", "") or ""),
         "translation_current": str(t.get(lang_code, "") or ""),
@@ -291,6 +303,7 @@ def main() -> int:
         "reason",
         "back_translation",
         "notes",
+        "manual_approved",
         "updated",
         "source_en",
         "translation_current",

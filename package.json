@@ -37,7 +37,8 @@
     "validation:precalibrate:shared": "npm run validation:pull-shared && npm run validation:precalibrate -- --validation-json data/validation/validation_results.shared.json",
     "validation:seed-human-review": "python3 scripts/build_human_review_seed.py",
     "validation:train-weak-review-model": "python3 scripts/train_weak_needs_review_model.py",
-    "validation:build-weak-review-policy": "python3 scripts/build_review_policy_from_weak_scores.py"
+    "validation:build-weak-review-policy": "python3 scripts/build_review_policy_from_weak_scores.py",
+    "validation:build-augmented-review-candidates": "python3 scripts/build_rule_augmented_review_candidates.py"
   },
   "keywords": [
     "audio",

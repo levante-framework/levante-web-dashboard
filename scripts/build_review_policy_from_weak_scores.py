@@ -17,6 +17,7 @@ import csv
 import json
 from pathlib import Path
 from typing import List
+EXCLUDED_VALIDATION_PREFIXES = ["main/Z_LEGACY_DO_NOT_TRANSLATE/"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,6 +59,13 @@ def parse_float(v, default=0.0):
 
 def clamp01(v: float) -> float:
     return max(0.0, min(1.0, float(v)))
+
+
+def is_excluded_item_id(item_id: str) -> bool:
+    normalized = str(item_id or "").strip().lower()
+    if not normalized:
+        return False
+    return any(normalized.startswith(p.lower()) for p in EXCLUDED_VALIDATION_PREFIXES)
 
 
 def threshold_for_top_fraction(rows: List[dict], frac: float) -> float:
@@ -118,6 +126,8 @@ def main() -> int:
     with pred_path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         for row in reader:
+            if is_excluded_item_id(row.get("item_id", "")):
+                continue
             rows.append(
                 {
                     **row,
