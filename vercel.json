@@ -28,6 +28,9 @@
     "api/google-translate.js": {
       "maxDuration": 30
     },
+    "api/translation-semantic-score.js": {
+      "maxDuration": 30
+    },
     "api/list-validation-files.js": {
       "maxDuration": 10,
       "excludeFiles": "data/{tiger,geonames,geocoder}/**"

@@ -825,6 +825,23 @@
             downloadNeedsReviewCSVWithTranslations(langCode);
         }
 
+        function htmlEscape(s) {
+            const t = String(s ?? '');
+            return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+        function csvEscape(s) {
+            const t = String(s ?? '');
+            if (t.includes(',') || t.includes('"') || t.includes('\n') || t.includes('\r')) return '"' + t.replace(/"/g, '""') + '"';
+            return t;
+        }
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
         function downloadNeedsReviewCSVWithTranslations(langCode) {
             const dash = window.dashboard;
             if (!dash) return;
@@ -850,13 +867,10 @@
                     response
                 });
             });
-            function csvEscape(s) {
-                const t = String(s ?? '');
-                if (t.includes(',') || t.includes('"') || t.includes('\n') || t.includes('\r')) return '"' + t.replace(/"/g, '""') + '"';
-                return t;
-            }
-            const header = 'Item ID,Source String,Language,Current Translation,Reason,Response';
-            const lines = [header].concat(csvRows.map(r => [
+            const baseName = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10);
+            // CSV (legacy)
+            const csvHeader = 'Item ID,Source String,Language,Current Translation,Reason,Response';
+            const csvLines = [csvHeader].concat(csvRows.map(r => [
                 csvEscape(r.itemId),
                 csvEscape(r.sourceString),
                 csvEscape(r.language),
@@ -864,14 +878,18 @@
                 csvEscape(r.reason),
                 csvEscape(r.response)
             ].join(',')));
-            const csv = '\uFEFF' + lines.join('\r\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10) + '.csv';
-            a.click();
-            URL.revokeObjectURL(url);
+            triggerDownload(new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), baseName + '.csv');
+            // XLS (bold headers + column widths)
+            const colWidths = [14, 42, 12, 42, 28, 32];
+            const headers = ['Item ID', 'Source String', 'Language', 'Current Translation', 'Reason', 'Response'];
+            const cols = colWidths.map(w => '<col width="' + w + '">').join('');
+            const headerRow = '<tr>' + headers.map(h => '<th>' + htmlEscape(h) + '</th>').join('') + '</tr>';
+            const dataRowsHtml = csvRows.map(r => '<tr><td>' + htmlEscape(r.itemId) + '</td><td>' + htmlEscape(r.sourceString) + '</td><td>' + htmlEscape(r.language) + '</td><td>' + htmlEscape(r.currentTranslation) + '</td><td>' + htmlEscape(r.reason) + '</td><td>' + htmlEscape(r.response) + '</td></tr>').join('');
+            const table = '<table><colgroup>' + cols + '</colgroup><thead>' + headerRow + '</thead><tbody>' + dataRowsHtml + '</tbody></table>';
+            const html = '\uFEFF<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + table + '</body></html>';
+            setTimeout(function () {
+                triggerDownload(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' }), baseName + '.xls');
+            }, 150);
         }
 
         function downloadNeedsReviewCSV(langCode) {
@@ -885,21 +903,22 @@
                 const score = typeof r.score === 'number' ? (r.score <= 1 ? Math.round(r.score * 100) : Math.round(r.score)) : 0;
                 rows.push({ item_id: itemId, language: langCode, score, notes: r.notes || '', reason: r.reason || '' });
             });
-            function csvEscape(s) {
-                const t = String(s);
-                if (t.includes(',') || t.includes('"') || t.includes('\n') || t.includes('\r')) return '"' + t.replace(/"/g, '""') + '"';
-                return t;
-            }
-            const header = 'item_id,language,score,notes,reason';
-            const lines = [header].concat(rows.map(r => [r.item_id, r.language, r.score, csvEscape(r.notes), csvEscape(r.reason)].join(',')));
-            const csv = lines.join('\r\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10) + '.csv';
-            a.click();
-            URL.revokeObjectURL(url);
+            const baseName = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10);
+            // CSV (legacy)
+            const csvHeader = 'item_id,language,score,notes,reason';
+            const csvLines = [csvHeader].concat(rows.map(r => [r.item_id, r.language, r.score, csvEscape(r.notes), csvEscape(r.reason)].join(',')));
+            triggerDownload(new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), baseName + '.csv');
+            // XLS (bold headers + column widths)
+            const colWidths = [14, 12, 8, 36, 40];
+            const headers = ['item_id', 'language', 'score', 'notes', 'reason'];
+            const cols = colWidths.map(w => '<col width="' + w + '">').join('');
+            const headerRow = '<tr>' + headers.map(h => '<th>' + htmlEscape(h) + '</th>').join('') + '</tr>';
+            const dataRowsHtml = rows.map(r => '<tr><td>' + htmlEscape(r.item_id) + '</td><td>' + htmlEscape(r.language) + '</td><td>' + htmlEscape(r.score) + '</td><td>' + htmlEscape(r.notes) + '</td><td>' + htmlEscape(r.reason) + '</td></tr>').join('');
+            const table = '<table><colgroup>' + cols + '</colgroup><thead>' + headerRow + '</thead><tbody>' + dataRowsHtml + '</tbody></table>';
+            const html = '\uFEFF<!DOCTYPE html><html><head><meta charset="utf-8"></head><body>' + table + '</body></html>';
+            setTimeout(function () {
+                triggerDownload(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' }), baseName + '.xls');
+            }, 150);
         }
 
         function openAudioCoverage() {

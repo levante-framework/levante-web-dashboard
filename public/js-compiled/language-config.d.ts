@@ -11,6 +11,7 @@ interface LanguageConfig {
     lang_code: string;
     service: 'ElevenLabs' | 'PlayHT';
     voice: string;
+    voice_id?: string;
     display_name?: string;
     approver1_userid?: string;
     approver1_password?: string;

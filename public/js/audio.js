@@ -25,9 +25,9 @@ function playAudio(itemId, langCode) {
     console.log(`🎯 Attempting to play audio for: ${audioItemId} in ${canonicalLangCode}`);
     window.dashboard.setStatus(`🔄 Loading audio: ${audioItemId}...`, 'info');
 
-    function tryPlayAudio(bucketLangCode, isRetry = false) {
-        const audioUrl = `https://storage.googleapis.com/levante-assets-dev/audio/${bucketLangCode}/${audioItemId}.mp3`;
-        console.log(`🎵 ${isRetry ? 'Trying fallback' : 'Playing'} audio: ${audioUrl}`);
+    function tryPlayAudioFromBucket(bucketName, bucketLangCode, onMissing) {
+        const audioUrl = `https://storage.googleapis.com/${bucketName}/audio/${bucketLangCode}/${audioItemId}.mp3`;
+        console.log(`🎵 Playing audio: ${audioUrl}`);
         const audio = new Audio(audioUrl);
         audio.volume = 0.8;
         const timeout = setTimeout(() => {
@@ -40,7 +40,8 @@ function playAudio(itemId, langCode) {
             console.log(`🎵 Audio loaded, attempting to play: ${audioUrl}`);
             audio.play().then(() => {
                 console.log(`✅ Audio playing: ${audioItemId} in ${bucketLangCode}`);
-                window.dashboard.setStatus(`🎵 Playing audio: ${audioItemId}`, 'success');
+                const label = bucketName === 'levante-assets-draft' ? 'draft' : 'approved';
+                window.dashboard.setStatus(`🎵 Playing ${label} audio: ${audioItemId}`, 'success');
             }).catch((error) => {
                 console.error('❌ Audio play failed (likely autoplay restriction):', error);
                 if (error.name === 'NotAllowedError') {
@@ -61,28 +62,29 @@ function playAudio(itemId, langCode) {
             });
         });
 
-        audio.addEventListener('error', (e) => {
+        audio.addEventListener('error', () => {
             clearTimeout(timeout);
             console.error(`❌ Audio not found: ${audioUrl}`);
-            if (canonicalLangCode === 'es-CO' && bucketLangCode === 'es-CO' && !isRetry) {
-                console.log('🔄 Trying es fallback for es-CO...');
-                window.dashboard.setStatus('🔄 Trying es fallback for es-CO audio...', 'info');
-                tryPlayAudio('es', true);
-            } else if (canonicalLangCode === 'es-CO' && bucketLangCode === 'es' && !isRetry) {
-                console.log('🔄 Trying es-CO directly...');
-                window.dashboard.setStatus('🔄 Trying es-CO direct audio...', 'info');
-                tryPlayAudio('es-CO', true);
-            } else {
-                const message = `Audio file not found for ${audioItemId} in ${canonicalLangCode}. Please generate it first using the "Generate Audio" button.`;
-                alert(message);
-                window.dashboard.setStatus(`❌ ${message}`, 'error');
+            if (typeof onMissing === 'function') {
+                onMissing();
+                return;
             }
+            const message = `There isn't any generated audio for this translation.`;
+            alert(message);
+            window.dashboard.setStatus(`❌ ${message}`, 'error');
         });
     }
 
-    const bucketLangCodeMap = { 'en': 'en', 'es-CO': 'es-CO', 'de': 'de', 'fr-CA': 'fr-CA', 'nl': 'nl' };
-    const bucketLangCode = bucketLangCodeMap[canonicalLangCode] || canonicalLangCode;
-    tryPlayAudio(bucketLangCode);
+    const exactLangCode = String(canonicalLangCode || '').trim();
+    if (!exactLangCode) {
+        const message = `There isn't any generated audio for this translation.`;
+        window.dashboard.setStatus(`❌ ${message}`, 'error');
+        return;
+    }
+    tryPlayAudioFromBucket('levante-assets-dev', exactLangCode, () => {
+        window.dashboard.setStatus(`🔄 Approved audio missing; checking draft audio...`, 'info');
+        tryPlayAudioFromBucket('levante-assets-draft', exactLangCode);
+    });
 }
 
 async function regenerateItemAudio(itemId, langCode) {
