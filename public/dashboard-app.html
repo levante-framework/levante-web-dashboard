@@ -424,6 +424,9 @@
                     : 'Poor translation quality; review recommended.';
             const notes = [safeResult.notes || generatedNote];
             if (safeResult.aiUsed && safeResult.aiNotes) notes.push(`AI notes: ${safeResult.aiNotes}`);
+            if (safeResult.aiUsed && Number.isFinite(Number(safeResult.aiAdequacy))) notes.push(`AI adequacy: ${Number(safeResult.aiAdequacy).toFixed(2)}`);
+            if (safeResult.aiUsed && Number.isFinite(Number(safeResult.aiFluency))) notes.push(`AI fluency: ${Number(safeResult.aiFluency).toFixed(2)}`);
+            if (safeResult.aiUsed && safeResult.aiIssues) notes.push(`AI issues: ${String(safeResult.aiIssues).trim()}`);
             if (embeddingAdvisory && Number.isFinite(Number(embeddingAdvisory.score))) {
                 const embScore = (Number(embeddingAdvisory.score) * 100).toFixed(2);
                 const embStatus = String(embeddingAdvisory.status || 'unknown').toUpperCase();
@@ -1070,6 +1073,9 @@
                 const aiModel = String(r.aiModel || '').trim();
                 parts.push(`AI score: ${aiScore.toFixed(2)}%${aiModel ? ` via ${aiModel}` : ''}`);
             }
+            if (Number.isFinite(Number(r.aiAdequacy))) parts.push(`AI adequacy: ${Number(r.aiAdequacy).toFixed(2)}`);
+            if (Number.isFinite(Number(r.aiFluency))) parts.push(`AI fluency: ${Number(r.aiFluency).toFixed(2)}`);
+            if (r.aiIssues) parts.push(`AI issues: ${String(r.aiIssues).trim()}`);
             if (r.scoringVersion) parts.push(`Scoring version: ${r.scoringVersion}`);
             if (r.notes) parts.push(`Notes: ${String(r.notes).trim()}`);
             const advisory = (dashboard && typeof dashboard.getEmbeddingAdvisoryEntry === 'function')

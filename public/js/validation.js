@@ -346,7 +346,7 @@ async function runAiJudge({ originalText, translatedText, backTranslation, langC
     const mode = getAiJudgeMode();
     // Hybrid mode runs AI judge only for borderline scores.
     if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < VALIDATION_REVIEW_THRESHOLD || baseScore > VALIDATION_PASS_THRESHOLD)) {
-        return { used: false, modelUsed: null };
+        return { used: false, modelUsed: null, adequacy: null, fluency: null, issues: '' };
     }
     try {
         const resp = await fetch('/api/translation-ai-judge', {
@@ -354,23 +354,26 @@ async function runAiJudge({ originalText, translatedText, backTranslation, langC
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ originalText, translatedText, backTranslation, langCode, itemType })
         });
-        if (!resp.ok) return { used: false, modelUsed: null };
+        if (!resp.ok) return { used: false, modelUsed: null, adequacy: null, fluency: null, issues: '' };
         const data = await resp.json();
         if (!data || data.ok !== true || typeof data.ai_score !== 'number') {
             // Keep noisy warnings out of UI, but log useful reasons once we get data.
             if (data && data.reason) console.warn('AI judge skipped:', data.reason);
-            return { used: false, modelUsed: data?.modelUsed || null };
+            return { used: false, modelUsed: data?.modelUsed || null, adequacy: null, fluency: null, issues: '' };
         }
         const aiScore = Math.round(Number(data.ai_score) * 100) / 100;
+        const adequacy = Number.isFinite(Number(data?.adequacy)) ? Math.max(0, Math.min(1, Number(data.adequacy))) : null;
+        const fluency = Number.isFinite(Number(data?.fluency)) ? Math.max(0, Math.min(1, Number(data.fluency))) : null;
+        const issues = String(data?.issues || data?.notes || '').trim();
         // In AI-only mode, use direct AI score (no baseline blending).
         if (mode === 'all') {
-            return { used: true, aiScore, finalScore: aiScore, aiNotes: data.notes || '', modelUsed: data.modelUsed || null };
+            return { used: true, aiScore, finalScore: aiScore, aiNotes: data.notes || '', modelUsed: data.modelUsed || null, adequacy, fluency, issues };
         }
         // Hybrid mode blends baseline + AI score for continuity.
         const blended = Math.round((0.6 * baseScore + 0.4 * aiScore) * 100) / 100;
-        return { used: true, aiScore, finalScore: blended, aiNotes: data.notes || '', modelUsed: data.modelUsed || null };
+        return { used: true, aiScore, finalScore: blended, aiNotes: data.notes || '', modelUsed: data.modelUsed || null, adequacy, fluency, issues };
     } catch (_) {
-        return { used: false, modelUsed: null };
+        return { used: false, modelUsed: null, adequacy: null, fluency: null, issues: '' };
     }
 }
 
@@ -440,6 +443,9 @@ function buildScoreTooltip(result, scorePercent) {
         const aiModel = String(result?.aiModel || '').trim();
         parts.push(`AI score: ${aiScore.toFixed(2)}%${aiModel ? ` via ${aiModel}` : ''}`);
     }
+    if (Number.isFinite(Number(result?.aiAdequacy))) parts.push(`AI adequacy: ${Number(result.aiAdequacy).toFixed(2)}`);
+    if (Number.isFinite(Number(result?.aiFluency))) parts.push(`AI fluency: ${Number(result.aiFluency).toFixed(2)}`);
+    if (result?.aiIssues) parts.push(`AI issues: ${String(result.aiIssues).trim()}`);
     if (result?.scoringVersion) parts.push(`Scoring version: ${result.scoringVersion}`);
     return parts.join(' | ');
 }
@@ -1191,7 +1197,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         let semanticModel = '';
         let lexicalMethod = 'normalized-levenshtein';
         let isVocabLike = isVocabLikePair(normalizedOriginalText, normalizedTranslatedText);
-        let aiJudge = { used: false, aiScore: null, finalScore: null, aiNotes: '', modelUsed: null };
+        let aiJudge = { used: false, aiScore: null, finalScore: null, aiNotes: '', modelUsed: null, adequacy: null, fluency: null, issues: '' };
         const googleLangCode = mapToGoogleTranslateCode(langCode);
         console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
 
@@ -1258,6 +1264,9 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             aiUsed: aiJudge.used === true,
             aiNotes: aiJudge.used ? aiJudge.aiNotes : '',
             aiModel: aiJudge.used ? (aiJudge.modelUsed || '') : '',
+            aiAdequacy: aiJudge.used ? aiJudge.adequacy : null,
+            aiFluency: aiJudge.used ? aiJudge.fluency : null,
+            aiIssues: aiJudge.used ? aiJudge.issues : '',
             scoreSource: aiJudge.used ? 'ai' : 'calculated',
             manualApproved: false,
             needsReview: !!existingResult.needsReview,

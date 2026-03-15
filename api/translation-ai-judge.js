@@ -54,12 +54,17 @@ function buildUserPrompt(originalText, backTranslatedText, itemType) {
     '',
     `Back-translated: ${String(backTranslatedText)}`,
     '',
-    'Respond in JSON with two fields:',
+    'Respond in JSON with these fields:',
     '',
-    'score: a number from 0 to 100 (100 = perfectly equivalent meaning)',
+    'score: a number from 0 to 10 (10 = perfectly equivalent meaning)',
     '',
-    "explanation: a concise plain-English explanation of any meaning that was lost",
-    "or distorted, or 'No significant meaning loss detected.' if the score is high",
+    'adequacy: a number from 0 to 1 (meaning preserved)',
+    '',
+    'fluency: a number from 0 to 1 (naturalness/clarity for children)',
+    '',
+    "issues: concise plain-English explanation of meaning drift or risks; use 'No significant meaning loss detected.' when high-confidence",
+    '',
+    'Return JSON only.',
   ].join('\n');
 }
 
@@ -90,12 +95,21 @@ function parseJudgeResponse(rawText) {
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('Gemini response was not valid JSON');
   }
-  const score = toNumberInRange(parsed.score, 0, 100, null);
+  // Support both score scales for backward compatibility:
+  // - New: 0..10
+  // - Legacy: 0..100
+  let score = toNumberInRange(parsed.score, 0, 100, null);
   if (score == null) {
-    throw new Error('Gemini JSON missing numeric score (0-100)');
+    throw new Error('Gemini JSON missing numeric score');
   }
-  const explanation = String(parsed.explanation || '').trim() || DEFAULT_EXPLANATION;
-  return { score, explanation };
+  if (score <= 10) score = score * 10;
+  score = toNumberInRange(score, 0, 100, 0);
+
+  const adequacy = toNumberInRange(parsed.adequacy, 0, 1, null);
+  const fluency = toNumberInRange(parsed.fluency, 0, 1, null);
+  const issues = String(parsed.issues || parsed.explanation || '').trim() || DEFAULT_EXPLANATION;
+
+  return { score, adequacy, fluency, issues };
 }
 
 async function compareBackTranslation(originalText, backTranslatedText, itemType = 'survey_sentence') {
@@ -161,7 +175,10 @@ export default async function handler(req, res) {
     res.status(200).json({
       ok: true,
       ai_score: judged.score,
-      notes: judged.explanation,
+      notes: judged.issues,
+      adequacy: judged.adequacy,
+      fluency: judged.fluency,
+      issues: judged.issues,
       modelUsed: judged.modelUsed,
       itemTypeUsed: judged.itemTypeUsed,
       langCode: langCode || 'unknown',
