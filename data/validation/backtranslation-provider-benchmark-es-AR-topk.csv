@@ -1,0 +1,7 @@
+provider,k,ranked_count,human_count,human_scored_count,overlap_count,overlap_scored_count,precision,recall,recall_scored
+google,43,70,43,42,26,26,0.604651,0.604651,0.619048
+google,70,70,43,42,42,42,0.6,0.976744,1.0
+google,70,70,43,42,42,42,0.6,0.976744,1.0
+hf,43,70,43,42,24,24,0.55814,0.55814,0.571429
+hf,70,70,43,42,42,42,0.6,0.976744,1.0
+hf,70,70,43,42,42,42,0.6,0.976744,1.0

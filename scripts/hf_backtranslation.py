@@ -78,7 +78,7 @@ def ensure_model_loaded(device: str = "auto") -> None:
     if _TOKENIZER is not None and _MODEL is not None:
         return
     _DEVICE = choose_device(device)
-    _TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME)
+    _TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
     model_kwargs = {}
     if _DEVICE == "cuda":
         model_kwargs["torch_dtype"] = torch.float16
@@ -111,7 +111,12 @@ def _translate(
             max_length=max_length,
         )
         inputs = {k: v.to(_DEVICE) for k, v in inputs.items()}
-        forced_bos_token_id = _TOKENIZER.lang_code_to_id[target_nllb]
+        if hasattr(_TOKENIZER, "lang_code_to_id"):
+            forced_bos_token_id = _TOKENIZER.lang_code_to_id[target_nllb]
+        else:
+            forced_bos_token_id = _TOKENIZER.convert_tokens_to_ids(target_nllb)
+        if forced_bos_token_id is None or forced_bos_token_id < 0:
+            raise ValueError(f"Unable to resolve NLLB token id for {target_nllb}")
         with torch.no_grad():
             outputs = _MODEL.generate(
                 **inputs,
