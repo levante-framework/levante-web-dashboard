@@ -21,7 +21,7 @@ The Translation Validation System uses **back-translation** combined with **simi
 ```mermaid
 graph LR
     A[Original English] --> B[Human Translation]
-    B --> C[Google Translate API]
+    B --> C[Back-Translation Provider]
     C --> D[Back-Translated English]
     A --> E[Similarity Algorithm]
     D --> E
@@ -29,8 +29,8 @@ graph LR
 ```
 
 **Step 1:** Original English text is translated by humans into target language  
-**Step 2:** The human translation is sent to Google Translate API  
-**Step 3:** Google Translate converts it back to English  
+**Step 2:** The human translation is sent to a back-translation provider (`google` default, optional `hf`)  
+**Step 3:** The provider converts it back to English  
 **Step 4:** The original English is compared with the back-translated English  
 **Step 5:** A similarity score determines translation quality  
 
@@ -52,6 +52,9 @@ The runtime scorer uses a **deterministic composite baseline + AI adjudication**
 
 - **AI mode**: `all` (not hybrid-gated in production).
 - **Back-translation generation**: always computed for non-English rows so reviewers can inspect source/translation/back-translation together.
+- **Back-translation provider**:
+  - default: `google` (`/api/google-translate`)
+  - optional toggle path: `hf` via `/api/back-translate` (kept off by default)
 - **Semantic scorer model**: runtime endpoint uses Gemini embeddings with fallback order:
   - `GEMINI_EMBEDDING_MODEL` (if configured)
   - `gemini-embedding-001`
@@ -99,13 +102,13 @@ Implementation fields persisted per validation record:
 ## Language-Specific Handling
 
 ### Multi-Regional Languages
-The system automatically maps regional codes to base languages for Google Translate:
+The default Google provider maps regional codes to base language codes:
 
 - `es-CO` (Colombian Spanish) → `es` (Spanish)
 - `fr-CA` (Canadian French) → `fr` (French)  
 - `de-DE` (German) → `de` (German)
 
-This ensures compatibility with Google Translate's supported language codes.
+This ensures compatibility with Google Translate language codes.
 
 ### Skip Conditions
 - **English variants** (`en`, `en-US`, `en-GB`) are automatically marked as source text
@@ -115,10 +118,11 @@ This ensures compatibility with Google Translate's supported language codes.
 
 ### API Endpoint
 ```
-POST /proxy/translate
+GET /api/google-translate?text=...&from=...&to=en
 ```
 
 Additional runtime validation endpoints:
+- `POST /api/back-translate` - provider wrapper (`provider=google|hf`, default remains Google path)
 - `POST /api/translation-semantic-score` - deterministic semantic score (embedding cosine, 0-100)
 - `POST /api/translation-ai-judge` - Gemini adjudicator (used on each non-English row in current runtime mode)
 
@@ -219,6 +223,44 @@ Ensure semantic consistency across large translation datasets
 3. **Add the key** to the dashboard's Credential Manager
 4. **Test validation** on a few sample translations
 5. **Review results** and adjust workflow as needed
+
+## HF Back-Translation Benchmark (Google Baseline vs NLLB)
+
+For a full GPU-machine workflow (setup, commands, outputs, troubleshooting), see:
+- `docs/hf-backtranslation-gpu-runbook.md`
+
+Install Python dependencies in your env:
+
+```bash
+pip install transformers torch accelerate sentencepiece protobuf
+```
+
+Run benchmark against Crowdin export + human labels:
+
+```bash
+npm run validation:backtranslate:benchmark -- \
+  --translations-csv data/validation/crowdin-xliff-merged.csv \
+  --labels-csv data/validation/human-review-seed-es-AR.csv \
+  --target-col es-AR \
+  --providers google,hf \
+  --k-values 43,86,129
+```
+
+Optional quick HF smoke test:
+
+```bash
+npm run validation:backtranslate:hf
+```
+
+Outputs are written to `data/validation/backtranslation-provider-benchmark-es-AR-*.{csv,json}` and include:
+- per-row provider details (Google vs HF back-translations)
+- top-K overlap/precision/recall against human `Needs Review`
+- disagreement report with example rows and score deltas
+
+Decision guidance:
+- keep Google default unless HF shows consistent lift on human-labeled overlap/recall
+- use HF as QA-only if lift is narrow or runtime constraints are too high
+- enable HF runtime toggle only after staging validation
 
 ## Experimental: Multilingual Embedding Validation (No Back-Translation)
 

@@ -22,6 +22,63 @@ function mapToGoogleTranslateCode(langCode) {
     return langMapping[langCode] || langCode.split('-')[0]; // Fallback: use base language code
 }
 
+function getBackTranslationProvider() {
+    const configured = String(window.CONFIG?.validationBacktranslationProvider || '').trim().toLowerCase();
+    let override = '';
+    try {
+        override = String(window.localStorage?.getItem('validationBacktranslationProvider') || '').trim().toLowerCase();
+    } catch (_) {
+        override = '';
+    }
+    const chosen = override || configured || 'google';
+    return chosen === 'hf' ? 'hf' : 'google';
+}
+
+async function runBackTranslationProvider({ text, fromLang, toLang, userKey }) {
+    const provider = getBackTranslationProvider();
+    if (provider === 'google') {
+        const headers = {};
+        if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
+        const response = await fetch(`/api/google-translate?text=${encodeURIComponent(text)}&from=${encodeURIComponent(fromLang)}&to=${encodeURIComponent(toLang)}`, {
+            method: 'GET',
+            headers
+        });
+        if (!response.ok) {
+            let errorDetails = `Translation API error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
+            } catch (_) {}
+            throw new Error(errorDetails);
+        }
+        const data = await response.json();
+        return { translatedText: String(data?.translatedText || ''), provider: 'google' };
+    }
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
+    const response = await fetch('/api/back-translate', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+            provider,
+            text,
+            fromLang,
+            toLang
+        })
+    });
+    if (!response.ok) {
+        let errorDetails = `Back-translation API error: ${response.status}`;
+        try {
+            const errorData = await response.json();
+            errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
+        } catch (_) {}
+        throw new Error(errorDetails);
+    }
+    const data = await response.json();
+    return { translatedText: String(data?.translatedText || ''), provider: provider };
+}
+
 function resolveValidationLangCode(dashboard, langCode) {
     if (dashboard && typeof dashboard.resolvePreferredLangCode === 'function') {
         return dashboard.resolvePreferredLangCode(langCode);
@@ -1139,27 +1196,13 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         console.log('🌍 Language mapping:', { original: langCode, mapped: googleLangCode });
 
         // Always compute back-translation for explainability/UI context.
-        const headers = {};
-        if (userKey) headers['Authorization'] = `Bearer ${userKey}`;
-        const response = await fetch(`/api/google-translate?text=${encodeURIComponent(normalizedTranslatedText)}&from=${encodeURIComponent(googleLangCode)}&to=en`, {
-            method: 'GET',
-            headers
+        const backTranslationResult = await runBackTranslationProvider({
+            text: normalizedTranslatedText,
+            fromLang: googleLangCode,
+            toLang: 'en',
+            userKey
         });
-
-        if (!response.ok) {
-            let errorDetails = `Translation API error: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                console.error('🚨 Translation API error details:', errorData);
-                errorDetails += ` - ${errorData.details || errorData.error || 'Unknown error'}`;
-            } catch (e) {
-                console.error('🚨 Could not parse error response');
-            }
-            throw new Error(errorDetails);
-        }
-
-        const data = await response.json();
-        backTranslation = toPlainValidationText(data.translatedText);
+        backTranslation = toPlainValidationText(backTranslationResult.translatedText);
 
         // Deterministic scoring layer: semantic + lexical -> composite baseline
         lexicalScore = computeLexicalScore(normalizedOriginalText, backTranslation);

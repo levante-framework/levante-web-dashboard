@@ -7,6 +7,7 @@ const CONFIG = {
     // General settings
     playht_stability: 1.2,
     elevenlabs_stability: 0.65,
+    validationBacktranslationProvider: 'google',
     
     // API endpoints
     api: {

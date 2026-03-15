@@ -41,7 +41,9 @@
     "validation:build-augmented-review-candidates": "python3 scripts/build_rule_augmented_review_candidates.py",
     "validation:embedding-margin": "python3 scripts/embedding_hard_negative_margin.py",
     "validation:embedding-bakeoff": "python3 scripts/embedding_bakeoff_against_human.py",
-    "validation:embedding-add-gemini": "python3 scripts/embedding_add_gemini_details.py"
+    "validation:embedding-add-gemini": "python3 scripts/embedding_add_gemini_details.py",
+    "validation:backtranslate:benchmark": "python3 scripts/benchmark_backtranslation_providers.py",
+    "validation:backtranslate:hf": "python3 scripts/hf_backtranslation.py --mode roundtrip --text \"This is a test string.\" --source-locale en --target-locale fr-CA"
   },
   "keywords": [
     "audio",
