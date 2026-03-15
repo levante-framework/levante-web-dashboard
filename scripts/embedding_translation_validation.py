@@ -65,7 +65,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--model",
-        default="intfloat/multilingual-e5-base",
+        default="sentence-transformers/LaBSE",
         help="Hugging Face / SentenceTransformer model name.",
     )
     parser.add_argument(

@@ -24,6 +24,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Build rule-augmented review candidate list.")
     p.add_argument("--validation-json", default="data/validation/validation_results.shared.json")
     p.add_argument("--policy-csv", default="data/validation/weak-needs-review-es-AR-policy-decisions.csv")
+    p.add_argument(
+        "--margin-csv",
+        default="data/validation/embedding-hard-negative-margin-es-AR-details.csv",
+        help="Optional margin details CSV from embedding_hard_negative_margin.py",
+    )
     p.add_argument("--lang-code", default="es-AR")
     p.add_argument("--output-prefix", default="data/validation/review-augmented-es-AR")
     p.add_argument("--max-siblings-per-anchor", type=int, default=6)
@@ -38,6 +43,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=4,
         help="Cap extra propagated candidates per anchored file.",
+    )
+    p.add_argument(
+        "--margin-top-frac",
+        type=float,
+        default=0.0,
+        help="Fraction of lowest-margin items to add as margin_low rule (0 disables).",
     )
     p.add_argument(
         "--sweep",
@@ -169,6 +180,30 @@ def load_policy(policy_csv: Path) -> Dict[str, dict]:
     return out
 
 
+def load_margin_low_ids(margin_csv: Path, top_frac: float) -> Set[str]:
+    if top_frac <= 0:
+        return set()
+    if not margin_csv.exists():
+        return set()
+    rows = []
+    with margin_csv.open("r", encoding="utf-8", newline="") as f:
+        rd = csv.DictReader(f)
+        for r in rd:
+            item = str(r.get("item_id", "")).strip()
+            if not item or is_excluded_item_id(item):
+                continue
+            try:
+                margin = float(r.get("margin"))
+            except Exception:
+                continue
+            rows.append((margin, item))
+    if not rows:
+        return set()
+    rows.sort(key=lambda x: x[0])  # lowest margin first
+    k = max(1, int(round(len(rows) * max(0.0, min(1.0, top_frac)))))
+    return {item for _, item in rows[:k]}
+
+
 def overlap_stats(cands: Set[str], truth: Set[str]) -> dict:
     inter = cands & truth
     return {
@@ -183,6 +218,7 @@ def build_augmented(
     rows: List[dict],
     human: Set[str],
     policy: Dict[str, dict],
+    margin_low_ids: Set[str],
     max_siblings_per_anchor: int,
     recent_days: int,
     max_file_propagation_per_file: int,
@@ -212,6 +248,18 @@ def build_augmented(
         augmented[item] = {
             "item_id": item,
             "source_rule": "weak_auto_review",
+            "policy_tier": p.get("policy_tier", ""),
+            "p_review": p.get("p_review", 0.0),
+        }
+
+    # 2b) Add lowest-margin embedding confusion candidates
+    for item in sorted(margin_low_ids):
+        if item in augmented:
+            continue
+        p = policy.get(item, {})
+        augmented[item] = {
+            "item_id": item,
+            "source_rule": "margin_low",
             "policy_tier": p.get("policy_tier", ""),
             "p_review": p.get("p_review", 0.0),
         }
@@ -322,6 +370,7 @@ def build_augmented(
         "rule_breakdown": {
             "human_flag": sum(1 for v in augmented.values() if v.get("source_rule") == "human_flag"),
             "weak_auto_review": sum(1 for v in augmented.values() if v.get("source_rule") == "weak_auto_review"),
+            "margin_low": sum(1 for v in augmented.values() if v.get("source_rule") == "margin_low"),
             "consistency_sibling": sum(1 for v in augmented.values() if v.get("source_rule") == "consistency_sibling"),
             "file_propagation_recent": sum(1 for v in augmented.values() if v.get("source_rule") == "file_propagation_recent"),
         },
@@ -352,6 +401,7 @@ def main() -> int:
     out_prefix.parent.mkdir(parents=True, exist_ok=True)
     rows, human = load_shared_rows(Path(args.validation_json), args.lang_code)
     policy = load_policy(Path(args.policy_csv))
+    margin_low_ids = load_margin_low_ids(Path(args.margin_csv), float(args.margin_top_frac))
 
     if args.sweep:
         days_values = parse_int_list(args.sweep_recent_days)
@@ -365,6 +415,7 @@ def main() -> int:
                     rows=rows,
                     human=human,
                     policy=policy,
+                    margin_low_ids=margin_low_ids,
                     max_siblings_per_anchor=args.max_siblings_per_anchor,
                     recent_days=d,
                     max_file_propagation_per_file=m,
@@ -379,6 +430,7 @@ def main() -> int:
                         "recall_vs_human": s["augmented_overlap"]["recall_vs_human"],
                         "rule_human_flag": s["rule_breakdown"]["human_flag"],
                         "rule_weak_auto_review": s["rule_breakdown"]["weak_auto_review"],
+                        "rule_margin_low": s["rule_breakdown"]["margin_low"],
                         "rule_consistency_sibling": s["rule_breakdown"]["consistency_sibling"],
                         "rule_file_propagation_recent": s["rule_breakdown"]["file_propagation_recent"],
                     }
@@ -402,6 +454,7 @@ def main() -> int:
         rows=rows,
         human=human,
         policy=policy,
+        margin_low_ids=margin_low_ids,
         max_siblings_per_anchor=args.max_siblings_per_anchor,
         recent_days=args.recent_days,
         max_file_propagation_per_file=args.max_file_propagation_per_file,

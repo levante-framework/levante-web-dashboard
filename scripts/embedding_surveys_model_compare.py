@@ -28,8 +28,6 @@ DEFAULT_SURVEYS_URL = (
     "l10n_pending/translations/surveys.csv"
 )
 DEFAULT_MODELS = [
-    "intfloat/multilingual-e5-base",
-    "intfloat/multilingual-e5-large",
     "sentence-transformers/LaBSE",
 ]
 

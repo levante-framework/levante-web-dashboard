@@ -61,33 +61,6 @@
                 <a class="back-to-pitwall" href="./index.html" title="Back to Pitwall">
                     <i class="fas fa-arrow-left"></i> Back to Pitwall
                 </a>
-                <div class="dropdown tools-dropdown" tabindex="0">
-                    <button class="btn btn-secondary dropdown-toggle" title="Tools and reports">
-                        <i class="fas fa-tools"></i> Tools
-                    </button>
-                    <div class="dropdown-menu">
-                        <a href="#" onclick="openAudioCoverage(); return false;">
-                            <i class="fas fa-table"></i> Audio Coverage Report
-                        </a>
-                        <a href="#" onclick="openPreflightReport(); return false;">
-                            <i class="fas fa-clipboard-list"></i> Pre-Release Readiness Report
-                        </a>
-                        <a href="#" onclick="openImageGallery(); return false;">
-                            <i class="fas fa-images"></i> Image Gallery
-                        </a>
-                        <a href="#" onclick="openTaskTemplate(); return false;">
-                            <i class="fas fa-plus-circle"></i> Add Task Template
-                        </a>
-                        <a href="#" onclick="openAssetHistory(); return false;">
-                            <i class="fas fa-history"></i> Asset History
-                        </a>
-                        <!-- Bucket Info temporarily hidden until authorization is sorted out
-                        <a href="#" onclick="openBucketInfo(); return false;">
-                            <i class="fas fa-database"></i> Bucket Info
-                        </a>
-                        -->
-                    </div>
-                </div>
             </div>
             <div class="header-actions">
                 <div class="dropdown account-dropdown" id="userInfo" style="display: none;" tabindex="0">
@@ -264,7 +237,7 @@
                                 <button type="button" id="validationSummaryViewReportBtn" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
                                     <i class="fas fa-chart-bar"></i> View report
                                 </button>
-                                <button type="button" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
+                                <button type="button" id="validationSummaryReviewTableBtn" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
                                     <i class="fas fa-list-alt"></i> Review table
                                 </button>
                                 <select id="reviewTablePathFilter" title="Filter review table by filepath" onchange="if(typeof setValidationSummaryLoading==='function') setValidationSummaryLoading(true); if(window.dashboard) window.dashboard.populateDataTable(); if(document.getElementById('validationReviewTableModal').style.display==='block'){ refreshReviewTableRowsFromDashboard(); sortReviewTableRows(); renderValidationReviewTableBody(); document.getElementById('validationReviewTableEmpty').style.display=_reviewTableRows.length===0?'block':'none'; document.getElementById('validationReviewTable').style.display=_reviewTableRows.length===0?'none':'table'; }" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #37474f; background: #fff; font-size: 0.9em;">
@@ -618,9 +591,14 @@
         async function openValidationReviewTableForCurrentLanguage() {
             const dash = window.dashboard;
             if (!dash || !dash.currentLanguage) return;
-            await syncValidationStateFromShared();
-            const langCode = dash.languages[dash.currentLanguage].lang_code;
-            openValidationReviewTableModal(langCode);
+            setReviewTableButtonBusy(true);
+            try {
+                await syncValidationStateFromShared();
+                const langCode = dash.languages[dash.currentLanguage].lang_code;
+                openValidationReviewTableModal(langCode);
+            } finally {
+                setTimeout(function () { setReviewTableButtonBusy(false); }, 250);
+            }
         }
 
         function getReviewTableAllowedItemIds() {
@@ -650,6 +628,33 @@
                 ? dash.resolvePreferredLangCode(langCode)
                 : langCode;
             return byItem[preferred] || byItem[langCode] || null;
+        }
+
+        function buildReviewTableRows(langCode) {
+            const dash = window.dashboard;
+            if (!dash) return [];
+            const results = dash.validation_results || {};
+            const allowedIds = getReviewTableAllowedItemIds();
+            const preferred = (typeof dash.resolvePreferredLangCode === 'function')
+                ? dash.resolvePreferredLangCode(langCode)
+                : langCode;
+            const rows = [];
+            Object.keys(results).forEach(itemId => {
+                if (allowedIds && !allowedIds.has(String(itemId))) return;
+                const byItem = results[itemId];
+                if (!byItem || typeof byItem !== 'object') return;
+                const r = byItem[preferred] || byItem[langCode] || null;
+                if (!r || r.needsReview !== true) return;
+                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
+                rows.push({
+                    itemId,
+                    score: scoreVal,
+                    notes: r.notes || '',
+                    needsReview: r.needsReview === true,
+                    reason: r.reason || ''
+                });
+            });
+            return rows;
         }
 
         function pathMatchesLanguage(path, langCode) {
@@ -723,57 +728,32 @@
             const tableEl = document.getElementById('validationReviewTable');
             const dash = window.dashboard;
             if (!dash) return;
-            const results = dash.validation_results || {};
-            const allowedIds = getReviewTableAllowedItemIds();
             const langName = Object.keys(dash.languages || {}).find(k => dash.languages[k].lang_code === langCode) || langCode;
             titleEl.innerHTML = `<i class="fas fa-list-alt"></i> Validation review – ${langName} (${langCode})`;
             _reviewTableLangCode = langCode;
-            const rows = [];
-            Object.keys(results).forEach(itemId => {
-                if (allowedIds && !allowedIds.has(String(itemId))) return;
-                const r = getValidationEntryForLang(dash, itemId, langCode);
-                if (!r || r.needsReview !== true) return;
-                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
-                rows.push({
-                    itemId,
-                    score: scoreVal,
-                    notes: r.notes || '',
-                    needsReview: r.needsReview === true,
-                    reason: r.reason || ''
-                });
-            });
-            _reviewTableRows = rows;
-            _reviewTableSortBy = 'score';
-            _reviewTableSortDir = 1;
-            sortReviewTableRows();
-            renderValidationReviewTableBody();
-            emptyEl.style.display = rows.length === 0 ? 'block' : 'none';
-            tableEl.style.display = rows.length === 0 ? 'none' : 'table';
-            document.getElementById('validationReviewTableDownloadCsv').disabled = rows.length === 0;
+            tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#6c757d; font-style:italic;"><i class="fas fa-spinner fa-spin"></i> Processing...</td></tr>';
+            emptyEl.style.display = 'none';
+            tableEl.style.display = 'table';
+            document.getElementById('validationReviewTableDownloadCsv').disabled = true;
             modal.style.display = 'block';
+            window.requestAnimationFrame(function () {
+                const rows = buildReviewTableRows(langCode);
+                _reviewTableRows = rows;
+                _reviewTableSortBy = 'score';
+                _reviewTableSortDir = 1;
+                sortReviewTableRows();
+                renderValidationReviewTableBody();
+                emptyEl.style.display = rows.length === 0 ? 'block' : 'none';
+                tableEl.style.display = rows.length === 0 ? 'none' : 'table';
+                document.getElementById('validationReviewTableDownloadCsv').disabled = rows.length === 0;
+            });
             bindReviewTableSortOnce();
         }
 
         function refreshReviewTableRowsFromDashboard() {
             const dash = window.dashboard;
             if (!dash || !_reviewTableLangCode) return;
-            const results = dash.validation_results || {};
-            const allowedIds = getReviewTableAllowedItemIds();
-            const rows = [];
-            Object.keys(results).forEach(itemId => {
-                if (allowedIds && !allowedIds.has(String(itemId))) return;
-                const r = getValidationEntryForLang(dash, itemId, _reviewTableLangCode);
-                if (!r || r.needsReview !== true) return;
-                const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
-                rows.push({
-                    itemId,
-                    score: scoreVal,
-                    notes: r.notes || '',
-                    needsReview: r.needsReview === true,
-                    reason: r.reason || ''
-                });
-            });
-            _reviewTableRows = rows;
+            _reviewTableRows = buildReviewTableRows(_reviewTableLangCode);
         }
 
         function bindReviewTableSortOnce() {
@@ -927,6 +907,19 @@
             if (busy) {
                 if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
                 button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+                button.disabled = true;
+                return;
+            }
+            button.innerHTML = button.dataset.originalHtml || button.innerHTML;
+            button.disabled = false;
+        }
+
+        function setReviewTableButtonBusy(busy) {
+            const button = document.getElementById('validationSummaryReviewTableBtn');
+            if (!button) return;
+            if (busy) {
+                if (!button.dataset.originalHtml) button.dataset.originalHtml = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
                 button.disabled = true;
                 return;
             }

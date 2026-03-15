@@ -21,6 +21,7 @@ public/locations-map.html
 # Python virtual environment (should never be committed)
 venv/
 venv-emb/
+.venv/
 .venv-emb/
 __pycache__/
 *.pyc

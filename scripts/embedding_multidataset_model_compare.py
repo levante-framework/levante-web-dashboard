@@ -28,8 +28,6 @@ DEFAULT_SURVEYS_URL = (
 )
 DEFAULT_ITEMBANK_FILE = "public/translation_master.csv"
 DEFAULT_MODELS = [
-    "intfloat/multilingual-e5-base",
-    "intfloat/multilingual-e5-large",
     "sentence-transformers/LaBSE",
 ]
 

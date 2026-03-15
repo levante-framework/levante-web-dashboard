@@ -236,9 +236,17 @@ This avoids back-translation and compares source/target semantic alignment with 
 
 ### Recommended Models
 
-- `intfloat/multilingual-e5-base` (good default, faster)
-- `intfloat/multilingual-e5-large` (higher quality, heavier)
-- `sentence-transformers/LaBSE` (strong multilingual alignment baseline)
+- `sentence-transformers/LaBSE` (default; strongest current bake-off performance)
+- `intfloat/multilingual-e5-large` (optional secondary comparison model)
+- `intfloat/multilingual-e5-base` (supported for compatibility via `--model/--models`, not default)
+
+E5 models remain fully supported when explicitly requested:
+
+```bash
+python scripts/embedding_multidataset_model_compare.py \
+  --dataset both \
+  --models intfloat/multilingual-e5-large,sentence-transformers/LaBSE
+```
 
 ### Local Python Setup (NVIDIA GPU)
 
@@ -258,7 +266,7 @@ python scripts/embedding_translation_validation.py \
   --source-col en \
   --target-col de \
   --id-col item_id \
-  --model intfloat/multilingual-e5-large \
+  --model sentence-transformers/LaBSE \
   --device cuda \
   --batch-size 256 \
   --min-score 0.85 \
@@ -280,7 +288,7 @@ Use this script to compare multiple embedding models across surveys and item ban
 ```bash
 python scripts/embedding_multidataset_model_compare.py \
   --dataset both \
-  --models intfloat/multilingual-e5-base,intfloat/multilingual-e5-large,sentence-transformers/LaBSE \
+  --models sentence-transformers/LaBSE \
   --device cuda \
   --batch-size 256 \
   --min-score 0.85 \
@@ -309,7 +317,7 @@ python scripts/embedding_multidataset_model_compare.py \
   --surveys-input-file data/validation/crowdin-xliff-surveys.csv \
   --itembank-input-file data/validation/crowdin-xliff-itembank.csv \
   --dashboard-input-file data/validation/crowdin-xliff-dashboard.csv \
-  --models intfloat/multilingual-e5-base,intfloat/multilingual-e5-large,sentence-transformers/LaBSE \
+  --models sentence-transformers/LaBSE \
   --device cuda \
   --batch-size 256 \
   --min-score 0.85 \
