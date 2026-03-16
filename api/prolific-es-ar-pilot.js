@@ -212,12 +212,19 @@ function normalizeSubmissionBody(body) {
   const studyId = String(body.study_id || body.studyId || '').trim();
   const sessionId = String(body.session_id || body.sessionId || '').trim();
   const responses = Array.isArray(body.responses) ? body.responses : [];
+  const durationSecondsRaw = Number(body.duration_seconds);
+  const interactionEventsRaw = Number(body.interaction_events);
+  const durationSeconds = Number.isFinite(durationSecondsRaw) ? Math.max(0, Math.round(durationSecondsRaw)) : null;
+  const interactionEvents = Number.isFinite(interactionEventsRaw) ? Math.max(0, Math.round(interactionEventsRaw)) : null;
   return {
     prolific_pid: prolificPid,
     study_id: studyId,
     session_id: sessionId,
     submitted_at: new Date().toISOString(),
     completion_code: COMPLETION_CODE,
+    started_at: body.started_at ? String(body.started_at) : '',
+    duration_seconds: durationSeconds,
+    interaction_events: interactionEvents,
     user_agent: String(body.user_agent || ''),
     responses: responses.map((r) => ({
       study_item_id: String(r.study_item_id || '').trim(),
@@ -230,10 +237,59 @@ function normalizeSubmissionBody(body) {
   };
 }
 
+function evaluateSubmissionQuality(submission, allItems) {
+  const expectedCount = pickItemsForPid(allItems, submission.prolific_pid || '').length;
+  const responseCount = Array.isArray(submission.responses) ? submission.responses.length : 0;
+  const durationRaw = submission.duration_seconds;
+  const durationSeconds = Number.isFinite(Number(durationRaw))
+    ? Number(durationRaw)
+    : null;
+
+  const reasons = [];
+  const warnings = [];
+
+  if (!submission.prolific_pid || !submission.study_id || !submission.session_id) {
+    reasons.push('missing_required_ids');
+  }
+  if (responseCount !== expectedCount) {
+    reasons.push(`response_count_mismatch:${responseCount}/${expectedCount}`);
+  }
+  const uniqueIds = new Set((submission.responses || []).map((r) => r.study_item_id).filter(Boolean));
+  if (uniqueIds.size !== responseCount) {
+    reasons.push('duplicate_or_missing_study_item_ids');
+  }
+  // Treat 0/invalid duration as unknown telemetry rather than hard fraud.
+  if (durationSeconds == null || durationSeconds <= 0) {
+    warnings.push('missing_duration_seconds');
+  } else {
+    if (durationSeconds < 120) reasons.push(`too_fast_hard:${durationSeconds}s`);
+    else if (durationSeconds < 240) warnings.push(`too_fast_soft:${durationSeconds}s`);
+  }
+  const interactionRaw = submission.interaction_events;
+  const interactionEvents = Number.isFinite(Number(interactionRaw))
+    ? Number(interactionRaw)
+    : null;
+  if (interactionEvents != null && interactionEvents < 30) {
+    warnings.push(`low_interaction_events:${interactionEvents}`);
+  }
+
+  return {
+    status: reasons.length ? 'fail' : (warnings.length ? 'review' : 'pass'),
+    reasons,
+    warnings,
+    expected_item_count: expectedCount,
+    response_count: responseCount,
+    duration_seconds: durationSeconds,
+    interaction_events: interactionEvents
+  };
+}
+
 function toImporterRows(submissions) {
+  const allItems = getAllItems();
   const rows = [];
   submissions.forEach((submission) => {
     const raterId = submission.prolific_pid || 'unknown';
+    const qc = evaluateSubmissionQuality(submission, allItems);
     (submission.responses || []).forEach((entry) => {
       rows.push({
         study_item_id: entry.study_item_id,
@@ -243,10 +299,16 @@ function toImporterRows(submissions) {
         child_clarity_rating: entry.child_clarity_rating,
         issue_notes: entry.issue_notes || '',
         rater_id: raterId,
-        rater_passed_qc: '1',
+        rater_passed_qc: qc.status === 'fail' ? '0' : '1',
         study_id: submission.study_id || '',
         session_id: submission.session_id || '',
-        submitted_at: submission.submitted_at || ''
+        submitted_at: submission.submitted_at || '',
+        duration_seconds: qc.duration_seconds == null ? '' : qc.duration_seconds,
+        interaction_events: qc.interaction_events == null ? '' : qc.interaction_events,
+        expected_item_count: qc.expected_item_count,
+        response_count: qc.response_count,
+        submission_qc_status: qc.status,
+        submission_qc_reasons: [...qc.reasons, ...qc.warnings].join('|')
       });
     });
   });
@@ -265,7 +327,13 @@ function buildCsv(rows) {
     'rater_passed_qc',
     'study_id',
     'session_id',
-    'submitted_at'
+    'submitted_at',
+    'duration_seconds',
+    'interaction_events',
+    'expected_item_count',
+    'response_count',
+    'submission_qc_status',
+    'submission_qc_reasons'
   ];
   const lines = [headers.join(',')];
   rows.forEach((row) => {
@@ -274,13 +342,42 @@ function buildCsv(rows) {
   return `${lines.join('\n')}\n`;
 }
 
+function median(nums) {
+  if (!nums.length) return null;
+  const sorted = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
 function buildSummary(submissions) {
   const rows = toImporterRows(submissions);
   const uniqueRaters = new Set(rows.map((r) => r.rater_id).filter(Boolean));
+  const allItems = getAllItems();
+  const evaluations = submissions.map((s) => ({
+    rater_id: s.prolific_pid || '',
+    study_id: s.study_id || '',
+    session_id: s.session_id || '',
+    submitted_at: s.submitted_at || '',
+    ...evaluateSubmissionQuality(s, allItems)
+  }));
+  const statusCounts = evaluations.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {});
+  const durations = evaluations
+    .map((e) => e.duration_seconds)
+    .filter((d) => Number.isFinite(d) && d > 0);
   return {
     submissions: submissions.length,
     unique_raters: uniqueRaters.size,
     total_ratings: rows.length,
+    quality: {
+      pass: statusCounts.pass || 0,
+      review: statusCounts.review || 0,
+      fail: statusCounts.fail || 0,
+      median_duration_seconds: median(durations),
+      evaluations
+    },
     completion_code: COMPLETION_CODE,
     updated_at: new Date().toISOString()
   };

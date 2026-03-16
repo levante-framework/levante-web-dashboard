@@ -29,20 +29,62 @@
     </table>
   </div>
 
+  <div class="card">
+    <h3>Flagged submissions (review/fail)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Rater ID</th>
+          <th>Status</th>
+          <th>Duration (s)</th>
+          <th>Items</th>
+          <th>Signals</th>
+        </tr>
+      </thead>
+      <tbody id="flagRows"></tbody>
+    </table>
+  </div>
+
   <script>
     const statusEl = document.getElementById('status');
     const summaryRows = document.getElementById('summaryRows');
+    const flagRows = document.getElementById('flagRows');
     const refreshBtn = document.getElementById('refreshBtn');
 
     function renderSummary(summary) {
+      const quality = summary.quality || {};
       const rows = [
         ['Submissions', summary.submissions],
         ['Unique raters', summary.unique_raters],
         ['Total ratings', summary.total_ratings],
+        ['QC pass', quality.pass || 0],
+        ['QC review', quality.review || 0],
+        ['QC fail', quality.fail || 0],
+        ['Median duration (s)', quality.median_duration_seconds == null ? 'n/a' : quality.median_duration_seconds],
         ['Completion code', summary.completion_code],
         ['Updated at', summary.updated_at]
       ];
       summaryRows.innerHTML = rows.map((r) => '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>').join('');
+
+      const evaluations = Array.isArray(quality.evaluations) ? quality.evaluations : [];
+      const flagged = evaluations.filter((e) => e.status !== 'pass');
+      if (!flagged.length) {
+        flagRows.innerHTML = '<tr><td colspan="5">No flagged submissions.</td></tr>';
+        return;
+      }
+      flagRows.innerHTML = flagged.map((e) => {
+        const signals = []
+          .concat(e.reasons || [])
+          .concat(e.warnings || [])
+          .join(', ');
+        return '<tr>'
+          + '<td>' + (e.rater_id || '') + '</td>'
+          + '<td>' + e.status + '</td>'
+          + '<td>' + (e.duration_seconds == null ? 'n/a' : e.duration_seconds) + '</td>'
+          + '<td>' + e.response_count + '/' + e.expected_item_count + '</td>'
+          + '<td>' + (signals || '-') + '</td>'
+          + '</tr>';
+      }).join('');
     }
 
     async function refresh() {

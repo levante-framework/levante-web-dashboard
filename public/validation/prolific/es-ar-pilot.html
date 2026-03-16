@@ -19,7 +19,7 @@
   </style>
 </head>
 <body>
-  <h1>Translation review (English + Spanish)</h1>
+  <h1>Translation review (English + Argentinian Spanish)</h1>
   <p class="muted">Judge whether each translation preserves the same meaning for child-facing content (age 5-9).</p>
 
   <div id="gate" class="card hidden"></div>
@@ -92,6 +92,13 @@
       let items = [];
       let index = 0;
       const answers = {};
+      const startedAt = new Date().toISOString();
+      const startedAtMs = Date.now();
+      let interactionEvents = 0;
+
+      function markInteraction() {
+        interactionEvents += 1;
+      }
 
       function showGate(message, isError) {
         gate.classList.remove('hidden');
@@ -189,6 +196,9 @@
           prolific_pid: prolificPid,
           study_id: studyId,
           session_id: sessionId,
+          started_at: startedAt,
+          duration_seconds: Math.max(0, Math.round((Date.now() - startedAtMs) / 1000)),
+          interaction_events: interactionEvents,
           user_agent: navigator.userAgent,
           responses: items.map((item) => answers[item.study_item_id])
         };
@@ -214,18 +224,25 @@
       }
 
       prevBtn.addEventListener('click', () => {
+        markInteraction();
         saveCurrentDraft();
         if (index > 0) index -= 1;
         render();
       });
 
       nextBtn.addEventListener('click', () => {
+        markInteraction();
         if (!validateCurrent()) return;
         if (index < items.length - 1) index += 1;
         render();
       });
 
       submitBtn.addEventListener('click', submitAll);
+      clarity.addEventListener('change', markInteraction);
+      notes.addEventListener('input', markInteraction);
+      document.querySelectorAll('input[name="equivalence"]').forEach((el) => {
+        el.addEventListener('change', markInteraction);
+      });
 
       (async function init() {
         if (!prolificPid || !studyId || !sessionId) {
