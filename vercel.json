@@ -87,6 +87,10 @@
     "api/geoboundaries-polygon.js": {
       "maxDuration": 60,
       "excludeFiles": "data/**"
+    },
+    "api/prolific-es-ar-pilot.js": {
+      "maxDuration": 30,
+      "includeFiles": "data/validation/prolific-study-es-AR-pilot.csv"
     }
   },
   "rewrites": [
@@ -121,6 +125,14 @@
     {
       "source": "/dashboard",
       "destination": "/public/dashboard-app.html"
+    },
+    {
+      "source": "/validation/prolific/es-ar-pilot",
+      "destination": "/public/validation/prolific/es-ar-pilot.html"
+    },
+    {
+      "source": "/validation/prolific/es-ar-pilot-results",
+      "destination": "/public/validation/prolific/es-ar-pilot-results.html"
     },
     {
       "source": "/(.*)",

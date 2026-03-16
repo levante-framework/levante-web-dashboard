@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Levante Translation Review (es-AR pilot)</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 16px; line-height: 1.4; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .muted { color: #666; font-size: 14px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn { padding: 10px 14px; border: 1px solid #aaa; border-radius: 6px; background: #fafafa; cursor: pointer; }
+    .btn.primary { background: #1864ab; color: #fff; border-color: #1864ab; }
+    textarea { width: 100%; min-height: 70px; }
+    select { padding: 6px; }
+    .hidden { display: none; }
+    .error { color: #b00020; }
+    .success { color: #0a7a2f; }
+  </style>
+</head>
+<body>
+  <h1>Translation review (English + Spanish)</h1>
+  <p class="muted">Judge whether each translation preserves the same meaning for child-facing content (age 5-9).</p>
+
+  <div id="gate" class="card hidden"></div>
+
+  <div id="app" class="hidden">
+    <div class="card">
+      <div id="progress" class="muted"></div>
+      <h3 id="itemLabel"></h3>
+      <p><strong>English source:</strong></p>
+      <p id="sourceEn"></p>
+      <p><strong>Spanish translation:</strong></p>
+      <p id="targetEs"></p>
+      <p class="muted" id="pathPrefix"></p>
+    </div>
+
+    <div class="card">
+      <label><strong>Meaning equivalence</strong></label>
+      <div id="equivalenceGroup">
+        <label><input type="radio" name="equivalence" value="same_meaning"> same_meaning</label><br />
+        <label><input type="radio" name="equivalence" value="mostly_same"> mostly_same</label><br />
+        <label><input type="radio" name="equivalence" value="different_meaning"> different_meaning</label><br />
+        <label><input type="radio" name="equivalence" value="cannot_judge"> cannot_judge</label>
+      </div>
+      <p style="margin-top:12px;"><strong>Child clarity (1-5)</strong></p>
+      <select id="clarity">
+        <option value="">Select...</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+      <p style="margin-top:12px;"><strong>Issue notes (optional)</strong></p>
+      <textarea id="notes" placeholder="Optional note about issues, mistranslations, or ambiguity"></textarea>
+      <p id="validationError" class="error hidden"></p>
+    </div>
+
+    <div class="row">
+      <button id="prevBtn" class="btn">Previous</button>
+      <button id="nextBtn" class="btn">Next</button>
+      <button id="submitBtn" class="btn primary">Submit all responses</button>
+    </div>
+    <p id="submitStatus" class="muted"></p>
+  </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(window.location.search);
+      const prolificPid = params.get('PROLIFIC_PID') || params.get('prolific_pid') || '';
+      const studyId = params.get('STUDY_ID') || params.get('study_id') || '';
+      const sessionId = params.get('SESSION_ID') || params.get('session_id') || '';
+      const completionCode = params.get('cc') || 'CCW2JO16';
+      const apiBase = '/api/prolific-es-ar-pilot';
+
+      const gate = document.getElementById('gate');
+      const app = document.getElementById('app');
+      const progress = document.getElementById('progress');
+      const itemLabel = document.getElementById('itemLabel');
+      const sourceEn = document.getElementById('sourceEn');
+      const targetEs = document.getElementById('targetEs');
+      const pathPrefix = document.getElementById('pathPrefix');
+      const notes = document.getElementById('notes');
+      const clarity = document.getElementById('clarity');
+      const validationError = document.getElementById('validationError');
+      const submitStatus = document.getElementById('submitStatus');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const submitBtn = document.getElementById('submitBtn');
+
+      let items = [];
+      let index = 0;
+      const answers = {};
+
+      function showGate(message, isError) {
+        gate.classList.remove('hidden');
+        gate.innerHTML = '<p class="' + (isError ? 'error' : '') + '">' + message + '</p>';
+      }
+
+      function currentItem() {
+        return items[index];
+      }
+
+      function getEquivalenceValue() {
+        const checked = document.querySelector('input[name="equivalence"]:checked');
+        return checked ? checked.value : '';
+      }
+
+      function setEquivalenceValue(value) {
+        const radios = document.querySelectorAll('input[name="equivalence"]');
+        radios.forEach((r) => { r.checked = (r.value === value); });
+      }
+
+      function saveCurrentDraft() {
+        const item = currentItem();
+        if (!item) return;
+        answers[item.study_item_id] = {
+          study_item_id: item.study_item_id,
+          item_id: item.item_id,
+          lang_code: item.lang_code || 'es-AR',
+          equivalence_rating: getEquivalenceValue(),
+          child_clarity_rating: clarity.value,
+          issue_notes: notes.value.trim()
+        };
+      }
+
+      function loadCurrentDraft() {
+        const item = currentItem();
+        if (!item) return;
+        const draft = answers[item.study_item_id] || {};
+        setEquivalenceValue(draft.equivalence_rating || '');
+        clarity.value = draft.child_clarity_rating || '';
+        notes.value = draft.issue_notes || '';
+      }
+
+      function render() {
+        const item = currentItem();
+        progress.textContent = 'Item ' + (index + 1) + ' of ' + items.length;
+        itemLabel.textContent = item.study_item_id;
+        sourceEn.textContent = item.source_en;
+        targetEs.textContent = item.translation_target;
+        pathPrefix.textContent = 'Path: ' + (item.path_prefix || '(unknown)');
+        loadCurrentDraft();
+        validationError.classList.add('hidden');
+        prevBtn.disabled = index === 0;
+        nextBtn.disabled = index === items.length - 1;
+      }
+
+      function validateCurrent() {
+        saveCurrentDraft();
+        const item = currentItem();
+        const draft = answers[item.study_item_id];
+        if (!draft.equivalence_rating || !draft.child_clarity_rating) {
+          validationError.textContent = 'Please select both meaning equivalence and child clarity.';
+          validationError.classList.remove('hidden');
+          return false;
+        }
+        return true;
+      }
+
+      async function fetchItems() {
+        const q = new URLSearchParams({
+          mode: 'items',
+          prolific_pid: prolificPid
+        });
+        const resp = await fetch(apiBase + '?' + q.toString());
+        if (!resp.ok) throw new Error('Failed to load study items');
+        const data = await resp.json();
+        items = data.items || [];
+        if (!items.length) throw new Error('No items available');
+      }
+
+      async function submitAll() {
+        saveCurrentDraft();
+        const missing = items.filter((item) => {
+          const ans = answers[item.study_item_id];
+          return !ans || !ans.equivalence_rating || !ans.child_clarity_rating;
+        });
+        if (missing.length) {
+          submitStatus.textContent = 'Please complete all items before submitting. Missing: ' + missing.length;
+          submitStatus.className = 'error';
+          return;
+        }
+        submitBtn.disabled = true;
+        submitStatus.textContent = 'Submitting responses...';
+        submitStatus.className = 'muted';
+        const payload = {
+          prolific_pid: prolificPid,
+          study_id: studyId,
+          session_id: sessionId,
+          user_agent: navigator.userAgent,
+          responses: items.map((item) => answers[item.study_item_id])
+        };
+        try {
+          const resp = await fetch(apiBase + '?mode=submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await resp.json();
+          if (!resp.ok || !data.success) {
+            throw new Error((data && data.message) || 'Failed to submit');
+          }
+          submitStatus.textContent = 'Submission successful. Redirecting to Prolific...';
+          submitStatus.className = 'success';
+          const completionUrl = data.completion_url || ('https://app.prolific.com/submissions/complete?cc=' + encodeURIComponent(completionCode));
+          setTimeout(() => { window.location.href = completionUrl; }, 900);
+        } catch (error) {
+          submitStatus.textContent = 'Submission failed: ' + error.message;
+          submitStatus.className = 'error';
+          submitBtn.disabled = false;
+        }
+      }
+
+      prevBtn.addEventListener('click', () => {
+        saveCurrentDraft();
+        if (index > 0) index -= 1;
+        render();
+      });
+
+      nextBtn.addEventListener('click', () => {
+        if (!validateCurrent()) return;
+        if (index < items.length - 1) index += 1;
+        render();
+      });
+
+      submitBtn.addEventListener('click', submitAll);
+
+      (async function init() {
+        if (!prolificPid || !studyId || !sessionId) {
+          showGate('Missing Prolific IDs. Open this page from Prolific so PROLIFIC_PID, STUDY_ID, and SESSION_ID are included.', true);
+          return;
+        }
+        try {
+          await fetchItems();
+          app.classList.remove('hidden');
+          render();
+        } catch (error) {
+          showGate('Could not load pilot items: ' + error.message, true);
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>

@@ -43,7 +43,11 @@
     "validation:embedding-bakeoff": "python3 scripts/embedding_bakeoff_against_human.py",
     "validation:embedding-add-gemini": "python3 scripts/embedding_add_gemini_details.py",
     "validation:backtranslate:benchmark": "python3 scripts/benchmark_backtranslation_providers.py",
-    "validation:backtranslate:hf": "python3 scripts/hf_backtranslation.py --mode roundtrip --text \"This is a test string.\" --source-locale en --target-locale fr-CA"
+    "validation:backtranslate:hf": "python3 scripts/hf_backtranslation.py --mode roundtrip --text \"This is a test string.\" --source-locale en --target-locale fr-CA",
+    "validation:prolific:export": "python3 scripts/export_prolific_translation_study.py",
+    "validation:prolific:import": "python3 scripts/import_prolific_results.py",
+    "validation:prolific:export:pilot-es-ar": "python3 scripts/export_prolific_translation_study.py --translations-csv data/validation/crowdin-xliff-merged.csv --target-col es-AR --sample-size 180 --seed 42 --output-csv data/validation/prolific-study-es-AR-pilot.csv",
+    "validation:prolific:import:pilot-es-ar": "python3 scripts/import_prolific_results.py --translations-csv data/validation/crowdin-xliff-merged.csv --target-col es-AR --output-prefix data/validation/prolific-es-AR-pilot"
   },
   "keywords": [
     "audio",
