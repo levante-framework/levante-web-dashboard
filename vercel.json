@@ -90,7 +90,7 @@
     },
     "api/prolific-es-ar-pilot.js": {
       "maxDuration": 30,
-      "includeFiles": "data/validation/prolific-study-es-AR-pilot.csv"
+      "includeFiles": "data/validation/{prolific-study-es-AR-pilot.csv,prolific-study-es-AR-targeted-43-plus-20-controls.csv}"
     }
   },
   "rewrites": [

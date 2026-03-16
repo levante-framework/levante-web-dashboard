@@ -6,6 +6,7 @@ data/geonames/
 data/geocoder/
 data/validation/*
 !data/validation/prolific-study-es-AR-pilot.csv
+!data/validation/prolific-study-es-AR-targeted-43-plus-20-controls.csv
 data/geofabrik/
 node_modules/
 node_modules

@@ -4,9 +4,7 @@ import { Storage } from '@google-cloud/storage';
 
 const DATA_BUCKET = process.env.DASHBOARD_DATA_BUCKET || 'levante-dashboard-dev';
 const SUBMISSIONS_PREFIX = process.env.PROLIFIC_ES_AR_PREFIX || 'prolific/es-ar-pilot/submissions';
-const LOCAL_CSV_PATH = path.resolve(__dirname, '..', 'data', 'validation', 'prolific-study-es-AR-pilot.csv');
-const ASSIGNMENT_SLOTS = 18;
-const SLOT_OFFSETS = [0, 6, 12]; // 3 ratings/item when 18 slots are filled
+const LOCAL_CSV_PATH = path.resolve(__dirname, '..', 'data', 'validation', 'prolific-study-es-AR-targeted-43-plus-20-controls.csv');
 const COMPLETION_CODE = process.env.PROLIFIC_COMPLETION_CODE || 'CCW2JO16';
 
 let storageClient = null;
@@ -37,16 +35,6 @@ function sanitizeId(value) {
     .trim()
     .replace(/[^a-zA-Z0-9._-]/g, '_')
     .slice(0, 80) || 'unknown';
-}
-
-function hashString(input) {
-  let h = 2166136261;
-  const text = String(input || '');
-  for (let i = 0; i < text.length; i += 1) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
 }
 
 function parseCsv(text) {
@@ -139,11 +127,7 @@ function getAllItems() {
 
 function pickItemsForPid(items, prolificPid) {
   if (!prolificPid) return items;
-  const slot = hashString(prolificPid) % ASSIGNMENT_SLOTS;
-  return items.filter((_item, idx) => {
-    const base = idx % ASSIGNMENT_SLOTS;
-    return SLOT_OFFSETS.some((offset) => ((base + offset) % ASSIGNMENT_SLOTS) === slot);
-  });
+  return items;
 }
 
 async function listSubmissionObjects() {
@@ -342,6 +326,56 @@ function buildCsv(rows) {
   return `${lines.join('\n')}\n`;
 }
 
+function decisionActionForStatus(status) {
+  if (status === 'pass') return 'approve_and_pay';
+  if (status === 'fail') return 'request_return_or_reject';
+  return 'manual_review';
+}
+
+function buildDecisionRows(submissions) {
+  const allItems = getAllItems();
+  return submissions.map((submission) => {
+    const qc = evaluateSubmissionQuality(submission, allItems);
+    const signals = [...qc.reasons, ...qc.warnings].join('|');
+    return {
+      prolific_pid: submission.prolific_pid || '',
+      study_id: submission.study_id || '',
+      session_id: submission.session_id || '',
+      submitted_at: submission.submitted_at || '',
+      expected_item_count: qc.expected_item_count,
+      response_count: qc.response_count,
+      duration_seconds: qc.duration_seconds == null ? '' : qc.duration_seconds,
+      interaction_events: qc.interaction_events == null ? '' : qc.interaction_events,
+      submission_qc_status: qc.status,
+      submission_qc_reasons: signals,
+      recommended_action: decisionActionForStatus(qc.status),
+      reviewer_notes: ''
+    };
+  });
+}
+
+function buildDecisionCsv(rows) {
+  const headers = [
+    'prolific_pid',
+    'study_id',
+    'session_id',
+    'submitted_at',
+    'expected_item_count',
+    'response_count',
+    'duration_seconds',
+    'interaction_events',
+    'submission_qc_status',
+    'submission_qc_reasons',
+    'recommended_action',
+    'reviewer_notes'
+  ];
+  const lines = [headers.join(',')];
+  rows.forEach((row) => {
+    lines.push(headers.map((h) => csvEscape(row[h])).join(','));
+  });
+  return `${lines.join('\n')}\n`;
+}
+
 function median(nums) {
   if (!nums.length) return null;
   const sorted = [...nums].sort((a, b) => a - b);
@@ -397,7 +431,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
           success: true,
           completion_code: COMPLETION_CODE,
-          assignment: prolificPid ? 'deterministic_slot' : 'full_set',
+          assignment: 'full_set',
           item_count: assigned.length,
           total_items: allItems.length,
           items: assigned
@@ -413,6 +447,14 @@ export default async function handler(req, res) {
         const csv = buildCsv(rows);
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="prolific-responses-es-AR.csv"');
+        return res.status(200).send(csv);
+      }
+      if (mode === 'decision_csv') {
+        const submissions = await loadAllSubmissions();
+        const rows = buildDecisionRows(submissions);
+        const csv = buildDecisionCsv(rows);
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', 'attachment; filename="prolific-decision-queue-es-AR.csv"');
         return res.status(200).send(csv);
       }
       return res.status(400).json({ success: false, error: 'invalid_mode' });

@@ -11,7 +11,6 @@
     .row { display: flex; gap: 10px; flex-wrap: wrap; }
     .btn { padding: 10px 14px; border: 1px solid #aaa; border-radius: 6px; background: #fafafa; cursor: pointer; }
     .btn.primary { background: #1864ab; color: #fff; border-color: #1864ab; }
-    textarea { width: 100%; min-height: 70px; }
     select { padding: 6px; }
     .hidden { display: none; }
     .error { color: #b00020; }
@@ -52,8 +51,6 @@
         <option value="4">4</option>
         <option value="5">5</option>
       </select>
-      <p style="margin-top:12px;"><strong>Issue notes (optional)</strong></p>
-      <textarea id="notes" placeholder="Optional note about issues, mistranslations, or ambiguity"></textarea>
       <p id="validationError" class="error hidden"></p>
     </div>
 
@@ -81,7 +78,6 @@
       const sourceEn = document.getElementById('sourceEn');
       const targetEs = document.getElementById('targetEs');
       const pathPrefix = document.getElementById('pathPrefix');
-      const notes = document.getElementById('notes');
       const clarity = document.getElementById('clarity');
       const validationError = document.getElementById('validationError');
       const submitStatus = document.getElementById('submitStatus');
@@ -127,8 +123,7 @@
           item_id: item.item_id,
           lang_code: item.lang_code || 'es-AR',
           equivalence_rating: getEquivalenceValue(),
-          child_clarity_rating: clarity.value,
-          issue_notes: notes.value.trim()
+          child_clarity_rating: clarity.value
         };
       }
 
@@ -138,7 +133,6 @@
         const draft = answers[item.study_item_id] || {};
         setEquivalenceValue(draft.equivalence_rating || '');
         clarity.value = draft.child_clarity_rating || '';
-        notes.value = draft.issue_notes || '';
       }
 
       function render() {
@@ -239,7 +233,6 @@
 
       submitBtn.addEventListener('click', submitAll);
       clarity.addEventListener('change', markInteraction);
-      notes.addEventListener('input', markInteraction);
       document.querySelectorAll('input[name="equivalence"]').forEach((el) => {
         el.addEventListener('change', markInteraction);
       });
