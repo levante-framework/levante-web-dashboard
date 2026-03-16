@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prolific es-AR Pilot Results</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 16px; line-height: 1.4; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin: 12px 0; }
+    .btn { padding: 10px 14px; border: 1px solid #aaa; border-radius: 6px; background: #fafafa; cursor: pointer; margin-right: 8px; }
+    .muted { color: #666; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Prolific es-AR Pilot Results</h1>
+  <p class="muted">Use this page to verify responses before running the importer.</p>
+
+  <div class="card">
+    <button id="refreshBtn" class="btn">Refresh summary</button>
+    <a class="btn" href="/api/prolific-es-ar-pilot?mode=export_csv">Download responses CSV</a>
+    <p id="status" class="muted"></p>
+  </div>
+
+  <div class="card">
+    <table>
+      <tbody id="summaryRows"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const summaryRows = document.getElementById('summaryRows');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    function renderSummary(summary) {
+      const rows = [
+        ['Submissions', summary.submissions],
+        ['Unique raters', summary.unique_raters],
+        ['Total ratings', summary.total_ratings],
+        ['Completion code', summary.completion_code],
+        ['Updated at', summary.updated_at]
+      ];
+      summaryRows.innerHTML = rows.map((r) => '<tr><th>' + r[0] + '</th><td>' + r[1] + '</td></tr>').join('');
+    }
+
+    async function refresh() {
+      statusEl.textContent = 'Loading...';
+      try {
+        const resp = await fetch('/api/prolific-es-ar-pilot?mode=summary');
+        const data = await resp.json();
+        if (!resp.ok || !data.success) throw new Error((data && data.message) || 'Failed to load summary');
+        renderSummary(data.summary || {});
+        statusEl.textContent = 'Summary loaded.';
+      } catch (error) {
+        statusEl.textContent = 'Error: ' + error.message;
+      }
+    }
+
+    refreshBtn.addEventListener('click', refresh);
+    refresh();
+  </script>
+</body>
+</html>

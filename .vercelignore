@@ -4,7 +4,8 @@ data/population/worldpop/
 data/geoboundaries/
 data/geonames/
 data/geocoder/
-data/validation/
+data/validation/*
+!data/validation/prolific-study-es-AR-pilot.csv
 data/geofabrik/
 node_modules/
 node_modules

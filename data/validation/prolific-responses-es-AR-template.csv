@@ -1,0 +1,4 @@
+study_item_id,item_id,lang_code,equivalence_rating,child_clarity_rating,issue_notes,rater_id,rater_passed_qc
+es-AR-00001,main/example/path::item-1,es-AR,same_meaning,5,,worker-001,1
+es-AR-00002,main/example/path::item-2,es-AR,mostly_same,4,Minor wording shift but meaning preserved,worker-002,1
+es-AR-00003,main/example/path::item-3,es-AR,different_meaning,2,Instruction intent changed,worker-003,1
