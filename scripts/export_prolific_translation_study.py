@@ -12,6 +12,19 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
 
+CONSENT_LANGUAGE = (
+    "By answering the following questions, you are participating in a study being performed by "
+    "cognitive scientists in the Stanford Department of Psychology. If you have questions about this "
+    "research, please contact Michael C. Frank at mcfrank@stanford.edu. If you are not satisfied "
+    "with how this study is being conducted, or if you have any concerns, complaints, or general "
+    "questions about the research or your rights as a participant, please contact the Stanford "
+    "Institutional Review Board (IRB) to speak to someone independent of the research team at "
+    "irbnonmed@stanford.edu. Your participation in this research is voluntary. You may decline to "
+    "answer any or all of the following questions. You may decline further participation, at any time, "
+    "without adverse consequences. Your confidentiality is assured; the researchers who have requested "
+    "your participation will not receive any personal information about you."
+)
+
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Export Prolific translation study items.")
@@ -96,6 +109,8 @@ def main() -> int:
     sampled = stratified_sample(rows, args.sample_size, args.seed)
 
     instruction = (
+        CONSENT_LANGUAGE
+        + " "
         "Assess whether translation preserves the same meaning/intended child-facing content "
         "for children age 5-9. Rate meaning equivalence and child clarity."
     )

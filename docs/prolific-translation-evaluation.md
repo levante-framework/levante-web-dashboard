@@ -24,6 +24,8 @@ For each string pair (`en-US` source and target translation), collect bilingual 
 
 Use this text in your Prolific task:
 
+> By answering the following questions, you are participating in a study being performed by cognitive scientists in the Stanford Department of Psychology. If you have questions about this research, please contact Michael C. Frank at mcfrank@stanford.edu. If you are not satisfied with how this study is being conducted, or if you have any concerns, complaints, or general questions about the research or your rights as a participant, please contact the Stanford Institutional Review Board (IRB) to speak to someone independent of the research team at irbnonmed@stanford.edu. Your participation in this research is voluntary. You may decline to answer any or all of the following questions. You may decline further participation, at any time, without adverse consequences. Your confidentiality is assured; the researchers who have requested your participation will not receive any personal information about you.
+>
 > You will review pairs of text strings.  
 > The first is English (en-US). The second is the translated version in another language.  
 >  
