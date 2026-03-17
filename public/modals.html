@@ -429,6 +429,30 @@
     </div>
 </div>
 
+<!-- Pending Items Modal -->
+<div id="pendingItemsModal" class="modal">
+    <div class="modal-content" style="max-width: 1200px; width: 92%;">
+        <div class="modal-header">
+            <h2 id="pendingItemsModalTitle"><i class="fas fa-hourglass-half"></i> Pending items</h2>
+            <span class="close" onclick="closePendingItemsModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="max-height: 72vh; overflow-y: auto;">
+            <p id="pendingItemsMessage" style="color: #666; margin-bottom: 12px;"></p>
+            <table id="pendingItemsTable" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Item ID</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Source (English)</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Current translation</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Source file</th>
+                    </tr>
+                </thead>
+                <tbody id="pendingItemsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Help Modal -->
 <div id="helpModal" class="modal">
     <div class="modal-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">

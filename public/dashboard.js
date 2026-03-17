@@ -95,6 +95,37 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return (this.excludedValidationPrefixes || []).some((prefix) => normalized.startsWith(String(prefix).toLowerCase()));
             }
 
+            isExcludedCrowdinPath(path) {
+                const normalized = String(path || '').replace(/\\/g, '/').trim();
+                if (!normalized) return false;
+                const compact = normalized.replace(/^[a-z]{2}(?:-[A-Za-z]{2,4})?\//i, '').toLowerCase();
+                const segments = compact.split('/').filter(Boolean);
+                return segments.some((segment) => segment.startsWith('z_'));
+            }
+
+            isExcludedCrowdinItem(item) {
+                if (!item || typeof item !== 'object') return false;
+                const itemId = String(item.item_id || item.identifier || item.id || item.ID || '').trim();
+                if (itemId) {
+                    const idPath = itemId.includes('::') ? itemId.split('::')[0] : itemId;
+                    if (this.isExcludedCrowdinPath(idPath)) return true;
+                }
+                const sourcePaths = Array.isArray(item._sourcePaths) ? item._sourcePaths : [];
+                if (sourcePaths.some((p) => this.isExcludedCrowdinPath(p))) return true;
+                if (this.isExcludedCrowdinPath(item._path || '')) return true;
+                return false;
+            }
+
+            sanitizeCrowdinRows(rows) {
+                const data = Array.isArray(rows) ? rows : [];
+                const filtered = data.filter((row) => !this.isExcludedCrowdinItem(row));
+                const removed = data.length - filtered.length;
+                if (removed > 0) {
+                    console.log(`🧹 Removed ${removed} Z_ rows from imported translation data`);
+                }
+                return filtered;
+            }
+
             sanitizeValidationResultsStore() {
                 const source = this.validation_results || {};
                 let removed = 0;
@@ -335,7 +366,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             setLoadedData(rows) {
-                this.data = Array.isArray(rows) ? rows : [];
+                this.data = this.sanitizeCrowdinRows(rows);
                 this.attachDerivedDisplayFields(this.data);
                 this.dataVersion += 1;
                 this.renderSignatureByLanguage.clear();
@@ -841,9 +872,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                     });
                     this.logPerf('Crowdin zip unzip', unzipStart, `files=${Object.keys(unzipped).length}`);
-                    this.crowdinFilesUsed = Object.keys(unzipped).sort();
+                    const filteredUnzipped = {};
+                    Object.entries(unzipped).forEach(([path, fileData]) => {
+                        if (this.isExcludedCrowdinPath(path)) return;
+                        filteredUnzipped[path] = fileData;
+                    });
+                    this.crowdinFilesUsed = Object.keys(filteredUnzipped).sort();
                     const mergeStart = this.perfNow();
-                    const merged = this.parseCrowdinZipToMerged(unzipped);
+                    const merged = this.parseCrowdinZipToMerged(filteredUnzipped);
                     this.logPerf('Crowdin CSV/XLIFF merge', mergeStart, `rows=${Array.isArray(merged) ? merged.length : 0}`);
                     if (!Array.isArray(merged) || merged.length === 0) throw new Error('No CSV or XLIFF data in Crowdin export');
                     const setDataStart = this.perfNow();
@@ -1223,6 +1259,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
                 const byLang = {};
                 for (const [path, data] of Object.entries(unzipped)) {
+                    if (this.isExcludedCrowdinPath(path)) continue;
                     if (!path.toLowerCase().endsWith('.csv')) continue;
                     const text = new TextDecoder('utf-8').decode(data);
                     const rows = parseCSVSimple(text);
@@ -1278,6 +1315,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
                 let zeroUnitXliffFiles = 0;
                 for (const [path, data] of Object.entries(unzipped)) {
+                    if (this.isExcludedCrowdinPath(path)) continue;
                     const pl = path.toLowerCase();
                     if (!pl.endsWith('.xlf') && !pl.endsWith('.xliff')) continue;
                     const text = new TextDecoder('utf-8').decode(data);

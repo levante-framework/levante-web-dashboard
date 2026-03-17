@@ -272,8 +272,17 @@
                                     <span style="color: #6c757d; font-size: 0.9em;">Need Review</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 18px; font-weight: bold; color: #6c757d;" id="pendingCount">0</span>
-                                    <span style="color: #6c757d; font-size: 0.9em;">Pending</span>
+                                    <span
+                                        style="font-size: 18px; font-weight: bold; color: #6c757d; cursor: pointer; text-decoration: underline dotted;"
+                                        id="pendingCount"
+                                        onclick="openPendingItemsModalForCurrentLanguage()"
+                                        title="Show pending items for current language/filter"
+                                    >0</span>
+                                    <span
+                                        style="color: #6c757d; font-size: 0.9em; cursor: pointer;"
+                                        onclick="openPendingItemsModalForCurrentLanguage()"
+                                        title="Show pending items for current language/filter"
+                                    >Pending</span>
                                 </div>
                                 <span id="validationSummaryLoadingLabel" style="display: none; color: #6c757d; font-size: 0.85em; font-style: italic;">
                                     Rendering...
@@ -720,6 +729,97 @@
         }
         function closeItemsByFileModal() {
             const modal = document.getElementById('itemsByFileModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function getPendingRowsForCurrentLanguage() {
+            const dash = window.dashboard;
+            if (!dash || !dash.currentLanguage) return { rows: [], langName: '', langCode: '' };
+
+            const langName = dash.currentLanguage;
+            const langCode = (dash.languages && dash.languages[langName] && dash.languages[langName].lang_code)
+                ? String(dash.languages[langName].lang_code)
+                : '';
+            if (!langCode) return { rows: [], langName, langCode: '' };
+
+            const baseRows = (typeof dash.getFilteredItemsForLanguage === 'function')
+                ? dash.getFilteredItemsForLanguage(langName)
+                : (Array.isArray(dash.data) ? dash.data : []);
+            const selectedFile = (dash.fileFilterByLanguage && typeof dash.fileFilterByLanguage.get === 'function')
+                ? (dash.fileFilterByLanguage.get(langName) || 'all')
+                : 'all';
+            const rowsToShow = selectedFile === 'all'
+                ? baseRows
+                : baseRows.filter((item) => {
+                    if (typeof dash.getItemSourcePaths !== 'function') return true;
+                    return dash.getItemSourcePaths(item).includes(selectedFile);
+                });
+
+            const isSourceEnglishTab = String(langCode).split('-')[0].toLowerCase() === 'en';
+            const pendingRows = [];
+            rowsToShow.forEach((item, idx) => {
+                const itemId = String(item?.item_id || item?.identifier || `fallback_${idx}`);
+                const storedResult = (typeof dash.getValidationEntry === 'function')
+                    ? dash.getValidationEntry(itemId, langCode)
+                    : null;
+                const translatedText = (typeof dash.extractTextForItem === 'function')
+                    ? dash.extractTextForItem(item || {}, langCode)
+                    : (item?.[langCode] || item?.en || '');
+                const hasTranslatedText = !!String(translatedText || '').trim();
+                const canValidateTranslation = isSourceEnglishTab || hasTranslatedText;
+                const hasStoredScore = !!(storedResult && storedResult.score !== undefined) && canValidateTranslation;
+                if (hasStoredScore) return;
+                pendingRows.push({
+                    itemId,
+                    source: String(item?.en || item?.source || item?.source_phrase || item?.text || ''),
+                    translation: String(translatedText || ''),
+                    sourcePath: String((item?._sourcePaths && item._sourcePaths[0]) || item?._path || '')
+                });
+            });
+
+            return { rows: pendingRows, langName, langCode };
+        }
+
+        function openPendingItemsModalForCurrentLanguage() {
+            const modal = document.getElementById('pendingItemsModal');
+            const titleEl = document.getElementById('pendingItemsModalTitle');
+            const messageEl = document.getElementById('pendingItemsMessage');
+            const tbody = document.getElementById('pendingItemsBody');
+            if (!modal || !titleEl || !messageEl || !tbody) return;
+
+            const dash = window.dashboard;
+            const filterEl = document.getElementById('reviewTablePathFilter');
+            const filter = filterEl && filterEl.value ? filterEl.value : 'all';
+            const pendingData = getPendingRowsForCurrentLanguage();
+
+            const langName = pendingData.langName || (dash && dash.currentLanguage ? dash.currentLanguage : 'Current language');
+            const langCode = pendingData.langCode || '';
+            titleEl.innerHTML = `<i class="fas fa-hourglass-half"></i> Pending items - ${langName}${langCode ? ` (${langCode})` : ''}`;
+            messageEl.textContent = `Filter: ${filter}. Pending means not yet scored for this language (or missing translation text). Total pending: ${pendingData.rows.length}.`;
+
+            tbody.innerHTML = '';
+            pendingData.rows.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="padding:6px; border-bottom:1px solid #eee; font-family:monospace; font-size:0.82em; word-break:break-all;">${String(row.itemId || '').replace(/</g, '&lt;')}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee; max-width:440px; white-space:normal;">${String(row.source || '').replace(/</g, '&lt;')}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee; max-width:440px; white-space:normal;">${String(row.translation || '').replace(/</g, '&lt;')}</td>
+                    <td style="padding:6px; border-bottom:1px solid #eee; font-family:monospace; font-size:0.8em; word-break:break-all;">${String(row.sourcePath || '').replace(/</g, '&lt;')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (pendingData.rows.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="4" style="padding:12px; color:#666;">No pending items for the current language/filter.</td>';
+                tbody.appendChild(tr);
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closePendingItemsModal() {
+            const modal = document.getElementById('pendingItemsModal');
             if (modal) modal.style.display = 'none';
         }
 
