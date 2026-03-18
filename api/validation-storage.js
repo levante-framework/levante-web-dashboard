@@ -39,6 +39,44 @@ function sanitizeValidationResultsMap(validationResults) {
   return out;
 }
 
+function mergeValidationResultsWithExisting(existingResults, incomingResults) {
+  const existing = sanitizeValidationResultsMap(existingResults || {});
+  const incoming = sanitizeValidationResultsMap(incomingResults || {});
+  const merged = { ...existing };
+
+  Object.keys(incoming).forEach((itemId) => {
+    const incomingByLang = incoming[itemId] && typeof incoming[itemId] === 'object' ? incoming[itemId] : {};
+    const existingByLang = merged[itemId] && typeof merged[itemId] === 'object' ? merged[itemId] : {};
+    const outByLang = { ...existingByLang };
+
+    Object.keys(incomingByLang).forEach((langCode) => {
+      const incomingEntry = incomingByLang[langCode] && typeof incomingByLang[langCode] === 'object'
+        ? incomingByLang[langCode]
+        : {};
+      const existingEntry = existingByLang[langCode] && typeof existingByLang[langCode] === 'object'
+        ? existingByLang[langCode]
+        : {};
+      const nextEntry = { ...existingEntry, ...incomingEntry };
+
+      // Protect against accidental loss of review notes when clients send compact payloads.
+      const incomingHasNeedsReview = Object.prototype.hasOwnProperty.call(incomingEntry, 'needsReview');
+      const incomingHasReason = Object.prototype.hasOwnProperty.call(incomingEntry, 'reason');
+      if (!incomingHasNeedsReview && existingEntry.needsReview === true) {
+        nextEntry.needsReview = true;
+      }
+      if (!incomingHasReason && typeof existingEntry.reason === 'string' && existingEntry.reason) {
+        nextEntry.reason = existingEntry.reason;
+      }
+
+      outByLang[langCode] = nextEntry;
+    });
+
+    merged[itemId] = outByLang;
+  });
+
+  return merged;
+}
+
 function getStorageClient() {
   const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
   if (!serviceAccountJson) {
@@ -148,7 +186,9 @@ async function saveValidationResults(req, res) {
     if (!validation_results) {
       return res.status(400).json({ error: 'Missing validation_results in request body' });
     }
-    const sanitizedResults = sanitizeValidationResultsMap(validation_results);
+    const existingData = await loadFromGCS();
+    const existingResults = existingData?.validation_results || inMemoryValidationData.validation_results || {};
+    const sanitizedResults = mergeValidationResultsWithExisting(existingResults, validation_results);
 
     // Count total validations
     let totalValidations = 0;

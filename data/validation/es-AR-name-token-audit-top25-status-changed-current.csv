@@ -1,0 +1,26 @@
+item_id,delta,old_baseline,new_baseline,old_status,new_status,name_mask_applied,name_mask_token_count,needs_review,reason,semantic_score,lexical_old,lexical_new,source_en,translation_es_ar,back_translation
+TeacherStudentsGenderBoys,65.0,31.67,96.67,error,good,1,2,0,,90.49,0.0,100.0,Boys,Niños,Children
+navigation.previous,65.0,31.57,96.57,error,good,1,2,0,,90.2,0.0,100.0,Previous,Anterior,Former
+ChildHealth,64.99,31.82,96.81,error,good,1,2,0,,90.9,0.0,100.0,Poor,Deficiente,Deficient
+ChildTeeth,64.99,31.82,96.81,error,good,1,2,0,,90.9,0.0,100.0,Poor,Deficiente,Deficient
+SelfLifeChangesWork,39.0,59.39,98.39,error,good,1,2,0,,95.41,40.0,100.0,Work:,Trabajo:,Job:
+HomeHOME25,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME26,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME27,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME33,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME34,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME35,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME36,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME37,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+HomeHOME38,32.92,60.53,93.45,error,good,1,2,0,,95.57,41.67,92.31,Almost never,Casi nunca,Hardly ever
+feedback-good-job,30.5,53.44,83.94,error,warning,1,2,0,,96.97,30.0,76.92,Good job!,¡Bien hecho!,Well done!
+feedback-nice-work,30.5,51.92,82.42,error,warning,1,2,0,,92.63,30.0,76.92,Nice work!,¡Muy bien!,Very good!
+HomeCHAOS4,26.0,72.6,98.6,error,good,1,2,0,,96.01,60.0,100.0,Definitely True,Totalmente verdadero,Absolutely true
+TeacherCommFamily,26.0,72.74,98.74,error,good,1,2,0,,96.41,60.0,100.0,Very satisfied,Absolutamente satisfecho,Absolutely satisfied
+TeacherCommStudents,26.0,72.74,98.74,error,good,1,2,0,,96.41,60.0,100.0,Very satisfied,Absolutamente satisfecho,Absolutely satisfied
+SelfParentStressNSCHh8,12.52,78.07,90.59,error,good,1,2,0,,92.59,20.0,52.63,Not well at all,Muy mal,Very badly
+same-different-selection-both-small-heavy,8.24,88.01,96.25,warning,good,1,4,0,,98.07,47.76,61.64,Here are two pictures. Something's the same. They're both small.,Aquí hay dos imágenes. Algo es igual. Ambas son pequeñas.,Here are two images. They have something in common. Both are small.
+ToM-transition,8.02,83.09,91.11,warning,good,1,4,0,,92.5,45.45,64.71,Nice work! Here is a new story.,¡Bien hecho! Ahora vamos con una nueva historia.,Well done! Now let's move on to a new story.
+ToM-scene-18-instruct5,7.9,79.24,87.14,error,warning,1,2,0,,89.44,38.46,43.4,George is very happy to play with his new storybook.,Jorge está emocionado por leer su nuevo libro de cuentos.,Jorge is excited to read his new book of stories.
+ToM-scene-16-instruct3,7.65,85.17,92.82,warning,good,1,4,0,,95.27,44.76,46.26,"Sophie can't find her shoe because earlier in the day, when no one was looking, James played a trick on Sophie and hid her shoe in the toy box.","Sofía no encuentra su zapato porque Jaime, por hacerle una broma, se lo escondió en la caja de juguetes hace un rato cuando nadie estaba mirando.","Sofia can't find her shoe because Jaime, as a joke, hid it in the toy box a while ago when no one was looking."
+ToM-scene4-q5,7.61,83.5,91.11,warning,good,1,4,0,,91.88,50.0,76.47,Is Mother mad at Joshua now?,¿Ahora Mamá está enojada con Johan?,Is Mom angry with Johan now?

@@ -167,7 +167,7 @@ function toPlainValidationText(value) {
     }
 }
 
-const VALIDATION_SCORING_VERSION = 'composite-v1';
+const VALIDATION_SCORING_VERSION = 'composite-v3-name-token-aware';
 const VALIDATION_PASS_THRESHOLD = 90;
 const VALIDATION_REVIEW_THRESHOLD = 80;
 
@@ -178,6 +178,100 @@ function tokenizeValidationWords(text) {
         .split(/\s+/)
         .map(w => w.trim())
         .filter(Boolean);
+}
+
+const NAME_MASK_STOPWORDS = new Set([
+    'The', 'A', 'An', 'This', 'That', 'These', 'Those',
+    'Please', 'Select', 'Choose', 'Click', 'Tap', 'Press', 'Enter',
+    'Continue', 'Next', 'Back', 'Submit', 'Save', 'Cancel', 'Allow', 'Deny',
+    'Open', 'Close', 'Yes', 'No', 'True', 'False',
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    'January', 'February', 'March', 'April', 'May', 'June', 'July',
+    'August', 'September', 'October', 'November', 'December'
+]);
+
+// Lightweight bilingual given-name hints to catch cases like Bobby -> Roberto
+// even when the token appears at sentence start.
+const NAME_MASK_GIVEN_NAMES = new Set([
+    'Aaron', 'Abigail', 'Adrian', 'Agustin', 'Aitana', 'Alberto', 'Alejandro', 'Alejandra',
+    'Alicia', 'Alma', 'Andres', 'Ana', 'Angel', 'Angela', 'Antonio', 'Ariana', 'Beatriz',
+    'Benjamin', 'Bianca', 'Bobby', 'Bruno', 'Camila', 'Carlos', 'Carla', 'Carmen', 'Carolina',
+    'Catalina', 'Cecilia', 'Charlotte', 'Clara', 'Claudia', 'Daniel', 'Daniela', 'David',
+    'Diego', 'Dylan', 'Eduardo', 'Elena', 'Elias', 'Elian', 'Elisa', 'Emily', 'Emma', 'Enzo',
+    'Eric', 'Erika', 'Esteban', 'Ethan', 'Eva', 'Felipe', 'Florencia', 'Francisco', 'Gabriel',
+    'Gabriela', 'Genaro', 'Gonzalo', 'Graciela', 'Guadalupe', 'Hector', 'Hugo', 'Ignacio',
+    'Ines', 'Isabel', 'Isabella', 'Ivan', 'Joaquin', 'Jorge', 'Jose', 'Josefina', 'Juan',
+    'Juana', 'Julia', 'Julian', 'Julieta', 'Lautaro', 'Leo', 'Leon', 'Leonel', 'Leticia',
+    'Lia', 'Liam', 'Lola', 'Lucia', 'Lucas', 'Luisa', 'Manuel', 'Manuela', 'Marco', 'Marcos',
+    'Maria', 'Mariana', 'Mateo', 'Matias', 'Melina', 'Mia', 'Miguel', 'Nadia', 'Natalia',
+    'Nicolas', 'Noah', 'Olivia', 'Pablo', 'Paula', 'Pedro', 'Rafael', 'Renata', 'Ricardo',
+    'Roberto', 'Rodrigo', 'Rosa', 'Sabrina', 'Samuel', 'Sara', 'Sebastian', 'Sofia', 'Sofía',
+    'Santiago', 'Tomas', 'Tomás', 'Valentina', 'Valeria', 'Victoria', 'Ximena'
+].map((name) => name.toLowerCase()));
+
+function escapeRegexToken(token) {
+    return String(token || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function collectNameLikeTokens(text) {
+    const candidateRegex = /\b[A-Z][a-z]{2,}(?:['’.-][A-Za-z]+)?\b/g;
+    const raw = String(text || '');
+    const matches = Array.from(raw.matchAll(candidateRegex));
+    const out = [];
+    matches.forEach((match) => {
+        const token = String(match[0] || '');
+        if (!token || NAME_MASK_STOPWORDS.has(token)) return;
+        const lower = token.toLowerCase();
+        const start = Number(match.index || 0);
+        const prefix = raw.slice(0, start);
+        const prevNonSpaceMatch = prefix.match(/\S(?=\s*$)/);
+        const prevNonSpace = prevNonSpaceMatch ? prevNonSpaceMatch[0] : '';
+        const isSentenceInitial = !prevNonSpace || /[.!?]/.test(prevNonSpace);
+        // Keep sentence-initial token only when it looks like an actual given name.
+        if (isSentenceInitial && !NAME_MASK_GIVEN_NAMES.has(lower)) return;
+        if (!out.includes(token)) out.push(token);
+    });
+    return out;
+}
+
+function applyEntityMaskingForLexical(originalText, backTranslation, itemType) {
+    const src = String(originalText || '');
+    const bt = String(backTranslation || '');
+    if (!src || !bt) {
+        return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
+    }
+
+    const srcTokens = collectNameLikeTokens(src);
+    const btTokens = collectNameLikeTokens(bt);
+    if (!srcTokens.length || !btTokens.length) {
+        return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
+    }
+
+    const btLower = new Set(btTokens.map((token) => token.toLowerCase()));
+    const srcLower = new Set(srcTokens.map((token) => token.toLowerCase()));
+    // Keep this strict: only apply masking when item typing already indicates proper nouns.
+    if (String(itemType || '').toLowerCase() !== 'proper_noun') {
+        return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
+    }
+
+    const srcOnly = srcTokens.filter((token) => !btLower.has(token.toLowerCase()));
+    const btOnly = btTokens.filter((token) => !srcLower.has(token.toLowerCase()));
+    const tokensToMask = Array.from(new Set([...srcOnly, ...btOnly]));
+    const mismatchTokenCount = tokensToMask.length;
+    const bilateralMismatch = srcOnly.length > 0 && btOnly.length > 0;
+    if (!bilateralMismatch || mismatchTokenCount === 0 || mismatchTokenCount > 6) {
+        return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
+    }
+
+    let originalMasked = src;
+    let backMasked = bt;
+    tokensToMask.forEach((token) => {
+        const pattern = new RegExp(`\\b${escapeRegexToken(token)}\\b`, 'g');
+        originalMasked = originalMasked.replace(pattern, '__ENT__');
+        backMasked = backMasked.replace(pattern, '__ENT__');
+    });
+
+    return { originalMasked, backMasked, applied: true, tokenCount: mismatchTokenCount };
 }
 
 function levenshteinDistance(a, b) {
@@ -277,12 +371,14 @@ function inferAiJudgeItemType({ itemId, originalText, translatedText, taskName }
     return 'survey_sentence';
 }
 
-function computeCompositeScore(semanticScore, lexicalScore, isVocabLike) {
+function computeCompositeScore(semanticScore, lexicalScore, isVocabLike, nameMaskApplied = false) {
     const sem = Number.isFinite(Number(semanticScore)) ? Number(semanticScore) : 0;
     const lex = Number.isFinite(Number(lexicalScore)) ? Number(lexicalScore) : 0;
     const weighted = isVocabLike
         ? (0.35 * sem + 0.65 * lex)
-        : (0.80 * sem + 0.20 * lex);
+        : (nameMaskApplied
+            ? (0.95 * sem + 0.05 * lex)
+            : (0.80 * sem + 0.20 * lex));
     return Math.max(0, Math.min(100, Math.round(weighted * 100) / 100));
 }
 
@@ -342,10 +438,16 @@ async function checkAiJudgeHealth(force = false) {
     return _aiJudgeHealthCache;
 }
 
-async function runAiJudge({ originalText, translatedText, backTranslation, langCode, baseScore, itemType = 'survey_sentence' }) {
+async function runAiJudge({ originalText, translatedText, backTranslation, langCode, baseScore, itemType = 'survey_sentence', nameMaskApplied = false }) {
     const mode = getAiJudgeMode();
     // Hybrid mode runs AI judge only for borderline scores.
-    if (mode !== 'all' && (typeof baseScore !== 'number' || baseScore < VALIDATION_REVIEW_THRESHOLD || baseScore > VALIDATION_PASS_THRESHOLD)) {
+    const normalizedItemType = String(itemType || 'survey_sentence').toLowerCase();
+    const isNameSensitive = nameMaskApplied || normalizedItemType === 'proper_noun';
+    if (
+        mode !== 'all'
+        && !isNameSensitive
+        && (typeof baseScore !== 'number' || baseScore < VALIDATION_REVIEW_THRESHOLD || baseScore > VALIDATION_PASS_THRESHOLD)
+    ) {
         return { used: false, modelUsed: null, adequacy: null, fluency: null, issues: '' };
     }
     try {
@@ -370,7 +472,9 @@ async function runAiJudge({ originalText, translatedText, backTranslation, langC
             return { used: true, aiScore, finalScore: aiScore, aiNotes: data.notes || '', modelUsed: data.modelUsed || null, adequacy, fluency, issues };
         }
         // Hybrid mode blends baseline + AI score for continuity.
-        const blended = Math.round((0.6 * baseScore + 0.4 * aiScore) * 100) / 100;
+        const blended = isNameSensitive
+            ? Math.round((0.35 * baseScore + 0.65 * aiScore) * 100) / 100
+            : Math.round((0.6 * baseScore + 0.4 * aiScore) * 100) / 100;
         return { used: true, aiScore, finalScore: blended, aiNotes: data.notes || '', modelUsed: data.modelUsed || null, adequacy, fluency, issues };
     } catch (_) {
         return { used: false, modelUsed: null, adequacy: null, fluency: null, issues: '' };
@@ -427,6 +531,8 @@ function buildScoreTooltip(result, scorePercent) {
         ? Number(result.compositeScore)
         : (Number.isFinite(Number(result?.baselineScore)) ? Number(result.baselineScore) : null);
     const semanticScore = Number.isFinite(Number(result?.semanticScore)) ? Number(result.semanticScore) : null;
+    const semanticScoreRaw = Number.isFinite(Number(result?.semanticScoreRaw)) ? Number(result.semanticScoreRaw) : null;
+    const semanticScoreMasked = Number.isFinite(Number(result?.semanticScoreMasked)) ? Number(result.semanticScoreMasked) : null;
     const lexicalScore = Number.isFinite(Number(result?.lexicalScore)) ? Number(result.lexicalScore) : null;
     const aiScore = Number.isFinite(Number(result?.aiScore)) ? Number(result.aiScore) : null;
     const scoreSource = inferScoreSource(result) || 'unknown';
@@ -438,6 +544,8 @@ function buildScoreTooltip(result, scorePercent) {
     ];
     if (compositeScore != null) parts.push(`Composite: ${compositeScore.toFixed(2)}%`);
     if (semanticScore != null) parts.push(`Semantic: ${semanticScore.toFixed(2)}%`);
+    if (semanticScoreRaw != null) parts.push(`Semantic raw: ${semanticScoreRaw.toFixed(2)}%`);
+    if (semanticScoreMasked != null) parts.push(`Semantic entity-masked: ${semanticScoreMasked.toFixed(2)}%`);
     if (lexicalScore != null) parts.push(`Lexical: ${lexicalScore.toFixed(2)}%`);
     if (aiScore != null) {
         const aiModel = String(result?.aiModel || '').trim();
@@ -1192,6 +1300,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         let backTranslation = '';
         let baselineScore = null; // composite baseline score
         let semanticScore = null;
+        let semanticScoreRaw = null;
+        let semanticScoreMasked = null;
         let lexicalScore = null;
         let compositeScore = null;
         let semanticModel = '';
@@ -1211,20 +1321,41 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         backTranslation = toPlainValidationText(backTranslationResult.translatedText);
 
         // Deterministic scoring layer: semantic + lexical -> composite baseline
-        lexicalScore = computeLexicalScore(normalizedOriginalText, backTranslation);
+        const lexicalMask = applyEntityMaskingForLexical(normalizedOriginalText, backTranslation, aiItemType);
+        lexicalScore = computeLexicalScore(lexicalMask.originalMasked, lexicalMask.backMasked);
+        if (lexicalMask.applied) lexicalMethod = 'normalized-levenshtein-entity-masked';
         const semantic = await runSemanticScorer({
             originalText: normalizedOriginalText,
             backTranslation,
             langCode
         });
         if (semantic.used) {
+            semanticScoreRaw = semantic.score;
             semanticScore = semantic.score;
             semanticModel = semantic.modelUsed || '';
         } else {
-            semanticScore = computeLegacyOverlapScore(normalizedOriginalText, backTranslation);
+            semanticScoreRaw = computeLegacyOverlapScore(normalizedOriginalText, backTranslation);
+            semanticScore = semanticScoreRaw;
             semanticModel = 'word-overlap-fallback';
         }
-        compositeScore = computeCompositeScore(semanticScore, lexicalScore, isVocabLike);
+        const semanticMask = applyEntityMaskingForLexical(normalizedOriginalText, backTranslation, aiItemType);
+        const semanticMaskApplied = !!semanticMask.applied;
+        if (semanticMaskApplied) {
+            const maskedSemantic = await runSemanticScorer({
+                originalText: semanticMask.originalMasked,
+                backTranslation: semanticMask.backMasked,
+                langCode
+            });
+            semanticScoreMasked = maskedSemantic.used
+                ? maskedSemantic.score
+                : computeLegacyOverlapScore(semanticMask.originalMasked, semanticMask.backMasked);
+            // For proper nouns, keep the higher of raw/masked semantic to reduce false penalties from name localization.
+            semanticScore = Math.max(Number(semanticScore) || 0, Number(semanticScoreMasked) || 0);
+            if (semanticScoreMasked > semanticScoreRaw) {
+                semanticModel = `${semanticModel || 'semantic'}|entity-masked-max`;
+            }
+        }
+        compositeScore = computeCompositeScore(semanticScore, lexicalScore, isVocabLike, lexicalMask.applied);
         baselineScore = compositeScore;
 
         aiJudge = await runAiJudge({
@@ -1233,7 +1364,8 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             backTranslation,
             langCode,
             baseScore: baselineScore,
-            itemType: aiItemType
+            itemType: aiItemType,
+            nameMaskApplied: lexicalMask.applied
         });
         const score = aiJudge.used ? aiJudge.finalScore : baselineScore;
 
@@ -1253,10 +1385,15 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             notes: score >= VALIDATION_PASS_THRESHOLD ? 'Excellent translation' : score >= VALIDATION_REVIEW_THRESHOLD ? 'Good translation, review recommended' : 'Poor translation quality',
             baselineScore: baselineScore,
             semanticScore: semanticScore,
+            semanticScoreRaw: semanticScoreRaw,
+            semanticScoreMasked: semanticScoreMasked,
+            semanticEntityMaskApplied: semanticMaskApplied,
             lexicalScore: lexicalScore,
             compositeScore: compositeScore,
             semanticModel: semanticModel,
             lexicalMethod: lexicalMethod,
+            lexicalEntityMaskApplied: !!lexicalMask.applied,
+            lexicalEntityMaskTokenCount: lexicalMask.tokenCount || 0,
             isVocabLike: isVocabLike,
             aiItemType: aiItemType,
             scoringVersion: VALIDATION_SCORING_VERSION,
@@ -1400,7 +1537,7 @@ function exportValidationsToJSONFile() {
 }
 
 function setValidationSummaryLoading(loading) {
-    const ids = ['goodCount', 'warningCount', 'errorCount', 'needsReviewCount', 'pendingCount'];
+    const ids = ['goodCount', 'warningCount', 'errorCount', 'needsReviewCount', 'approvedCount', 'pendingCount'];
     const spinner = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
     const loadingLabel = document.getElementById('validationSummaryLoadingLabel');
     ids.forEach(id => {
@@ -1418,11 +1555,13 @@ function setValidationSummaryCounts(counts) {
     const warningEl = document.getElementById('warningCount');
     const errorEl = document.getElementById('errorCount');
     const needsReviewEl = document.getElementById('needsReviewCount');
+    const approvedEl = document.getElementById('approvedCount');
     const pendingEl = document.getElementById('pendingCount');
     if (goodEl) goodEl.textContent = Number(counts?.good || 0);
     if (warningEl) warningEl.textContent = Number(counts?.warning || 0);
     if (errorEl) errorEl.textContent = Number(counts?.error || 0);
     if (needsReviewEl) needsReviewEl.textContent = Number(counts?.needsReview || 0);
+    if (approvedEl) approvedEl.textContent = Number(counts?.approved || 0);
     if (pendingEl) pendingEl.textContent = Number(counts?.pending || 0);
 }
 
@@ -1439,18 +1578,19 @@ function updateValidationSummary() {
     if (filter !== 'all' && typeof getReviewTableAllowedItemIds === 'function') {
         allowedIds = getReviewTableAllowedItemIds();
     }
-    let good = 0, warning = 0, error = 0, needsReview = 0, pending = 0;
+    let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
     indicators.forEach(indicator => {
         const row = indicator.closest('.data-row');
         const itemId = row ? row.dataset.itemId : indicator.getAttribute('data-item-id');
         if (allowedIds && itemId != null && !allowedIds.has(String(itemId))) return;
         if (row && row.dataset.needsReview === '1') needsReview++;
+        if (row && row.dataset.approved === '1') approved++;
         if (indicator.classList.contains('status-good')) good++;
         else if (indicator.classList.contains('status-warning')) warning++;
         else if (indicator.classList.contains('status-error')) error++;
         else pending++;
     });
-    setValidationSummaryCounts({ good, warning, error, needsReview, pending });
+    setValidationSummaryCounts({ good, warning, error, needsReview, approved, pending });
 }
 
 // Ensure inline HTML handlers can resolve these functions.

@@ -702,13 +702,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             computeValidationSummaryCountsForRows(rows, langCode) {
-                let good = 0, warning = 0, error = 0, needsReview = 0, pending = 0;
+                let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
                 const normalizedLang = String(langCode || '').trim();
                 const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
                 (rows || []).forEach((item) => {
                     const itemId = item?.item_id || item?.identifier || '';
                     const storedResult = this.getValidationEntry(itemId, normalizedLang);
                     if (storedResult?.needsReview === true) needsReview++;
+                    if (storedResult?.manualApproved === true) approved++;
 
                     const translatedText = this.extractTextForItem(item || {}, normalizedLang);
                     const hasTranslatedText = !!String(translatedText || '').trim();
@@ -723,7 +724,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         pending++;
                     }
                 });
-                return { good, warning, error, needsReview, pending };
+                return { good, warning, error, needsReview, approved, pending };
             }
 
             appendRenderBatch(state, batchSize) {
@@ -2102,66 +2103,99 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             async loadFromSharedStorage() {
                 try {
                     console.log('🌐 Loading validation results from shared storage...');
-                    
-                    const response = await fetch('/api/validation-storage');
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        if (result.success && result.data.validation_results) {
-                            this.sharedValidationSource = String(result.source || 'unknown');
-                            // Merge with local results (shared storage takes precedence for newer data)
-                            const sharedResults = result.data.validation_results;
-                            const localResults = this.validation_results;
-                            
-                            // Smart merge: keep newer validations
-                            Object.keys(sharedResults).forEach(itemId => {
-                                if (this.isExcludedValidationItemId(itemId)) return;
-                                if (!localResults[itemId]) {
-                                    localResults[itemId] = sharedResults[itemId];
-                                } else {
-                                    // Merge language validations, keeping newer ones
-                                    Object.keys(sharedResults[itemId]).forEach(lang => {
-                                        const sharedValidation = sharedResults[itemId][lang];
-                                        const localValidation = localResults[itemId][lang];
-                                        
-                                        const sharedTs = sharedValidation?.updated || sharedValidation?.timestamp || '';
-                                        const localTs = localValidation?.updated || localValidation?.timestamp || '';
-                                        const localBack = String(localValidation?.backTranslation || '').trim();
-                                        const sharedBack = String(sharedValidation?.backTranslation || '').trim();
-                                        const shouldHydrateBackTranslation = !localBack && !!sharedBack;
-                                        // Shared review flags must propagate reliably across reviewers even when
-                                        // local metadata timestamps are newer.
-                                        const shouldHydrateNeedsReview =
-                                            sharedValidation?.needsReview === true
-                                            && localValidation?.needsReview !== true;
-                                        const localReason = String(localValidation?.reason || '').trim();
-                                        const sharedReason = String(sharedValidation?.reason || '').trim();
-                                        const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
-                                        if (
-                                            !localValidation
-                                            || (sharedTs && (!localTs || sharedTs > localTs))
-                                            || shouldHydrateBackTranslation
-                                            || shouldHydrateNeedsReview
-                                            || shouldHydrateReasonForReview
-                                        ) {
-                                            localResults[itemId][lang] = sharedValidation;
-                                        }
-                                    });
-                                }
+
+                    const defaultRemoteSharedEndpoint = 'https://levante-pitwall.vercel.app/api/validation-storage';
+                    const configuredRemoteSharedEndpoint = String(window.CONFIG?.sharedValidationEndpoint || '').trim();
+                    const remoteSharedEndpoint = configuredRemoteSharedEndpoint || defaultRemoteSharedEndpoint;
+                    const endpointCandidates = ['/api/validation-storage'];
+                    if (remoteSharedEndpoint && !endpointCandidates.includes(remoteSharedEndpoint)) {
+                        endpointCandidates.push(remoteSharedEndpoint);
+                    }
+
+                    const payloadCandidates = [];
+                    for (const endpoint of endpointCandidates) {
+                        try {
+                            const response = await fetch(endpoint, { cache: 'no-store' });
+                            if (!response.ok) continue;
+                            const result = await response.json();
+                            if (!result?.success) continue;
+                            const data = result?.data || {};
+                            const sharedResultsRaw =
+                                data?.validation_results
+                                || result?.validation_results
+                                || {};
+                            if (!sharedResultsRaw || typeof sharedResultsRaw !== 'object') continue;
+                            payloadCandidates.push({
+                                endpoint,
+                                source: String(result?.source || 'unknown'),
+                                sharedResults: sharedResultsRaw,
+                                itemCount: Object.keys(sharedResultsRaw).length
                             });
-                            
-                            this.validation_results = localResults;
-                            this.sanitizeValidationResultsStore();
-                            this.normalizeValidationResultsLanguageKeys();
-                            console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items`);
-                            const sourceLabel = this.sharedValidationSource === 'gcs'
-                                ? 'shared bucket (GCS)'
-                                : this.sharedValidationSource === 'memory'
-                                    ? 'session memory fallback'
-                                    : this.sharedValidationSource;
-                            this.setStatus(`🌐 Loaded validation results from ${sourceLabel}`, this.sharedValidationSource === 'memory' ? 'warning' : 'success');
-                            return true;
+                        } catch (endpointError) {
+                            console.log(`Shared validation load skipped for ${endpoint}:`, endpointError?.message || endpointError);
                         }
+                    }
+
+                    if (payloadCandidates.length > 0) {
+                        payloadCandidates.sort((a, b) => {
+                            if (b.itemCount !== a.itemCount) return b.itemCount - a.itemCount;
+                            const aIsMemory = a.source === 'memory' ? 1 : 0;
+                            const bIsMemory = b.source === 'memory' ? 1 : 0;
+                            return aIsMemory - bIsMemory;
+                        });
+                        const bestPayload = payloadCandidates[0];
+                        this.sharedValidationSource = String(bestPayload.source || 'unknown');
+                        const sharedResults = bestPayload.sharedResults;
+                        const localResults = this.validation_results;
+
+                        // Smart merge: keep newer validations
+                        Object.keys(sharedResults).forEach(itemId => {
+                            if (this.isExcludedValidationItemId(itemId)) return;
+                            if (!localResults[itemId]) {
+                                localResults[itemId] = sharedResults[itemId];
+                            } else {
+                                // Merge language validations, keeping newer ones
+                                Object.keys(sharedResults[itemId]).forEach(lang => {
+                                    const sharedValidation = sharedResults[itemId][lang];
+                                    const localValidation = localResults[itemId][lang];
+
+                                    const sharedTs = sharedValidation?.updated || sharedValidation?.timestamp || '';
+                                    const localTs = localValidation?.updated || localValidation?.timestamp || '';
+                                    const localBack = String(localValidation?.backTranslation || '').trim();
+                                    const sharedBack = String(sharedValidation?.backTranslation || '').trim();
+                                    const shouldHydrateBackTranslation = !localBack && !!sharedBack;
+                                    // Shared review flags must propagate reliably across reviewers even when
+                                    // local metadata timestamps are newer.
+                                    const shouldHydrateNeedsReview =
+                                        sharedValidation?.needsReview === true
+                                        && localValidation?.needsReview !== true;
+                                    const localReason = String(localValidation?.reason || '').trim();
+                                    const sharedReason = String(sharedValidation?.reason || '').trim();
+                                    const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
+                                    if (
+                                        !localValidation
+                                        || (sharedTs && (!localTs || sharedTs > localTs))
+                                        || shouldHydrateBackTranslation
+                                        || shouldHydrateNeedsReview
+                                        || shouldHydrateReasonForReview
+                                    ) {
+                                        localResults[itemId][lang] = sharedValidation;
+                                    }
+                                });
+                            }
+                        });
+
+                        this.validation_results = localResults;
+                        this.sanitizeValidationResultsStore();
+                        this.normalizeValidationResultsLanguageKeys();
+                        console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items from ${bestPayload.endpoint} (${bestPayload.source})`);
+                        const sourceLabel = this.sharedValidationSource === 'gcs'
+                            ? 'shared bucket (GCS)'
+                            : this.sharedValidationSource === 'memory'
+                                ? 'session memory fallback'
+                                : this.sharedValidationSource;
+                        this.setStatus(`🌐 Loaded validation results from ${sourceLabel}`, this.sharedValidationSource === 'memory' ? 'warning' : 'success');
+                        return true;
                     }
                 } catch (error) {
                     this.sharedValidationSource = 'unknown';
