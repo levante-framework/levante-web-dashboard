@@ -625,20 +625,34 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             getItemSourcePaths(item) {
+                const normalizeSourcePath = (rawPath) => {
+                    const normalized = String(rawPath || '').replace(/\\/g, '/').trim();
+                    if (!normalized) return '';
+                    const parts = normalized.split('/').filter(Boolean);
+                    if (parts.length >= 2 && /^([a-z]{2}(?:-[a-z0-9]{2,4})?)$/i.test(parts[0]) && parts[1].toLowerCase() === 'main') {
+                        return parts.slice(1).join('/');
+                    }
+                    return normalized;
+                };
                 const paths = [];
                 if (Array.isArray(item?._sourcePaths)) {
                     item._sourcePaths.forEach((p) => {
-                        if (p) paths.push(String(p));
+                        const normalizedPath = normalizeSourcePath(p);
+                        if (normalizedPath) paths.push(normalizedPath);
                     });
                 }
-                if (item?._path) paths.push(String(item._path));
+                if (item?._path) {
+                    const normalizedPath = normalizeSourcePath(item._path);
+                    if (normalizedPath) paths.push(normalizedPath);
+                }
                 // Backward compatibility for older cached Crowdin rows that only stored item_id.
                 // Crowdin merged IDs are often "path/to/file.xliff::unit-key".
                 const stableId = String(item?.item_id || item?.identifier || '');
                 if (stableId.includes('::')) {
                     const candidatePath = stableId.split('::')[0];
                     if (candidatePath && candidatePath.includes('/')) {
-                        paths.push(candidatePath);
+                        const normalizedPath = normalizeSourcePath(candidatePath);
+                        if (normalizedPath) paths.push(normalizedPath);
                     }
                 }
                 return [...new Set(paths)];
