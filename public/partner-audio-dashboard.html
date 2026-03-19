@@ -4657,7 +4657,7 @@
                     const configuredVoiceId = String(langConfig?.voice_id || '').trim();
                     const resolvedVoice = await this.resolveVoiceForRegeneration(itemId, configuredVoice, configuredVoiceId);
                     const existingModelId = await this.getExistingGeneratedModelId(itemId);
-                    const resolvedModelId = String(existingModelId || 'eleven_multilingual_v2').trim();
+                    const resolvedModelId = String(existingModelId || 'eleven_multilingual_v3').trim();
                     
                     const audioBlob = await this.generateElevenLabsAudio(text, resolvedVoice.voiceId, resolvedModelId);
                     const audioBase64 = await this.convertBlobToBase64(audioBlob);
@@ -4862,7 +4862,7 @@
                 );
             }
 
-            async generateElevenLabsAudio(text, voiceId, modelId = 'eleven_multilingual_v2') {
+            async generateElevenLabsAudio(text, voiceId, modelId = 'eleven_multilingual_v3') {
                 // Use same approach as main dashboard: try credentials first, server env var as fallback
                 const credentials = this.getCredentials();
                 const elevenKey = credentials.elevenlabs_api_key || credentials.elevenlabsApiKey;
@@ -4879,7 +4879,7 @@
                 
                 const requestData = {
                     text: text,
-                    model_id: String(modelId || 'eleven_multilingual_v2'),
+                    model_id: String(modelId || 'eleven_multilingual_v3'),
                     output_format: 'mp3_22050_32'
                 };
                 
@@ -5073,7 +5073,7 @@
                             comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName} - ${this.currentLangCode}`,
                             service: this.latestGeneratedAudio.service,
                             voice: this.latestGeneratedAudio.voiceName,
-                            model_id: this.latestGeneratedAudio.modelId || 'eleven_multilingual_v2',
+                            model_id: this.latestGeneratedAudio.modelId || 'eleven_multilingual_v3',
                             lang_code: this.currentLangCode,
                             text: this.latestGeneratedAudio.text || '',
                             created: new Date().toISOString(),
@@ -5183,7 +5183,7 @@
                             comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName} - ${this.currentLangCode}`,
                             service: this.latestGeneratedAudio.service,
                             voice: this.latestGeneratedAudio.voiceName,
-                            model_id: this.latestGeneratedAudio.modelId || 'eleven_multilingual_v2',
+                            model_id: this.latestGeneratedAudio.modelId || 'eleven_multilingual_v3',
                             lang_code: this.currentLangCode,
                             text: this.latestGeneratedAudio.text || '',
                             created: new Date().toISOString(),

@@ -154,7 +154,7 @@ The dashboard supports common SSML tags:
 ### ElevenLabs Integration
 
 - **API Version**: v1
-- **Model**: eleven_multilingual_v2
+- **Model**: eleven_multilingual_v3
 - **Features**: High-quality multilingual voices, professional voices
 - **Filtering**: Female voices only, professional category
 

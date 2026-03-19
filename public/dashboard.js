@@ -4017,7 +4017,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 
                 const requestData = {
                     text: text,
-                    model_id: "eleven_multilingual_v2",
+                    model_id: "eleven_multilingual_v3",
                     output_format: "mp3_22050_32",
                     voice_settings: {
                         stability: this.elevenLabsStability,

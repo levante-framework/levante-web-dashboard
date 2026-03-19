@@ -212,7 +212,7 @@
 		}catch{ return 0; }
 	}
 	
-	async function regenerateElevenLabs(text, preferredVoiceId, options){ const creds=getCredentials(); const key=creds.elevenlabs_api_key||creds.elevenlabsApiKey; if(!key) throw new Error('Missing ElevenLabs API key.'); let voiceId=preferredVoiceId||document.getElementById('elevenlabsVoice')?.value||''; if(!voiceId) throw new Error('No voice selected.'); const payload={ text, model_id:'eleven_multilingual_v2', output_format:'mp3_22050_32' };
+	async function regenerateElevenLabs(text, preferredVoiceId, options){ const creds=getCredentials(); const key=creds.elevenlabs_api_key||creds.elevenlabsApiKey; if(!key) throw new Error('Missing ElevenLabs API key.'); let voiceId=preferredVoiceId||document.getElementById('elevenlabsVoice')?.value||''; if(!voiceId) throw new Error('No voice selected.'); const payload={ text, model_id:'eleven_multilingual_v3', output_format:'mp3_22050_32' };
 		// Apply options
 		if(options && typeof options.audio_length==='number') payload.audio_length=options.audio_length;
 		if(options && typeof options.style==='number'){ payload.voice_settings = payload.voice_settings || {}; payload.voice_settings.style=options.style; }
