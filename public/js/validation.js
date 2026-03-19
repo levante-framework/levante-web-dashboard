@@ -195,7 +195,7 @@ const NAME_MASK_STOPWORDS = new Set([
 const NAME_MASK_GIVEN_NAMES = new Set([
     'Aaron', 'Abigail', 'Adrian', 'Agustin', 'Aitana', 'Alberto', 'Alejandro', 'Alejandra',
     'Alicia', 'Alma', 'Andres', 'Ana', 'Angel', 'Angela', 'Antonio', 'Ariana', 'Beatriz',
-    'Benjamin', 'Bianca', 'Bobby', 'Bruno', 'Camila', 'Carlos', 'Carla', 'Carmen', 'Carolina',
+    'Benjamin', 'Bianca', 'Bobbie', 'Bobby', 'Bruno', 'Camila', 'Carlos', 'Carla', 'Carmen', 'Carolina',
     'Catalina', 'Cecilia', 'Charlotte', 'Clara', 'Claudia', 'Daniel', 'Daniela', 'David',
     'Diego', 'Dylan', 'Eduardo', 'Elena', 'Elias', 'Elian', 'Elisa', 'Emily', 'Emma', 'Enzo',
     'Eric', 'Erika', 'Esteban', 'Ethan', 'Eva', 'Felipe', 'Florencia', 'Francisco', 'Gabriel',
@@ -205,7 +205,7 @@ const NAME_MASK_GIVEN_NAMES = new Set([
     'Lia', 'Liam', 'Lola', 'Lucia', 'Lucas', 'Luisa', 'Manuel', 'Manuela', 'Marco', 'Marcos',
     'Maria', 'Mariana', 'Mateo', 'Matias', 'Melina', 'Mia', 'Miguel', 'Nadia', 'Natalia',
     'Nicolas', 'Noah', 'Olivia', 'Pablo', 'Paula', 'Pedro', 'Rafael', 'Renata', 'Ricardo',
-    'Roberto', 'Rodrigo', 'Rosa', 'Sabrina', 'Samuel', 'Sara', 'Sebastian', 'Sofia', 'Sofía',
+    'Robert', 'Roberto', 'Rodrigo', 'Rosa', 'Sabrina', 'Samuel', 'Sara', 'Sebastian', 'Sofia', 'Sofía',
     'Santiago', 'Tomas', 'Tomás', 'Valentina', 'Valeria', 'Victoria', 'Ximena'
 ].map((name) => name.toLowerCase()));
 
@@ -234,44 +234,88 @@ function collectNameLikeTokens(text) {
     return out;
 }
 
-function applyEntityMaskingForLexical(originalText, backTranslation, itemType) {
+function isStoriesTaskContext({ itemId = '', taskName = '' } = {}) {
+    const id = String(itemId || '').toLowerCase();
+    const task = String(taskName || '').toLowerCase();
+    return id.includes('stories.xliff') || task.includes('stories');
+}
+
+function collectStorySourceGivenNames(text) {
+    const raw = String(text || '');
+    if (!raw) return [];
+    return collectNameLikeTokens(raw).filter((token) => NAME_MASK_GIVEN_NAMES.has(String(token || '').toLowerCase()));
+}
+
+function collectBackTranslationNameCandidates(text) {
+    const raw = String(text || '');
+    if (!raw) return [];
+    return collectNameLikeTokens(raw).filter((token) => NAME_MASK_GIVEN_NAMES.has(String(token || '').toLowerCase()));
+}
+
+function normalizeNameTokenForMatch(token) {
+    return String(token || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+}
+
+function applyStoryNamePlaceholderMask(originalText, backTranslation, context = {}) {
     const src = String(originalText || '');
     const bt = String(backTranslation || '');
     if (!src || !bt) {
         return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
     }
-
-    const srcTokens = collectNameLikeTokens(src);
-    const btTokens = collectNameLikeTokens(bt);
-    if (!srcTokens.length || !btTokens.length) {
+    if (!isStoriesTaskContext(context)) {
         return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
     }
 
-    const btLower = new Set(btTokens.map((token) => token.toLowerCase()));
-    const srcLower = new Set(srcTokens.map((token) => token.toLowerCase()));
-    // Keep this strict: only apply masking when item typing already indicates proper nouns.
-    if (String(itemType || '').toLowerCase() !== 'proper_noun') {
+    // Source-anchored masking: detect names in English source only, then align back-translation
+    // names to placeholders so localized variants (Bobby -> Roberto -> Robert) do not penalize score.
+    const srcNames = collectStorySourceGivenNames(src);
+    if (!srcNames.length) {
         return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
     }
 
-    const srcOnly = srcTokens.filter((token) => !btLower.has(token.toLowerCase()));
-    const btOnly = btTokens.filter((token) => !srcLower.has(token.toLowerCase()));
-    const tokensToMask = Array.from(new Set([...srcOnly, ...btOnly]));
-    const mismatchTokenCount = tokensToMask.length;
-    const bilateralMismatch = srcOnly.length > 0 && btOnly.length > 0;
-    if (!bilateralMismatch || mismatchTokenCount === 0 || mismatchTokenCount > 6) {
+    const btNameCandidates = collectBackTranslationNameCandidates(bt);
+    if (!btNameCandidates.length) {
         return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
     }
 
     let originalMasked = src;
     let backMasked = bt;
-    tokensToMask.forEach((token) => {
-        const pattern = new RegExp(`\\b${escapeRegexToken(token)}\\b`, 'g');
-        originalMasked = originalMasked.replace(pattern, '__ENT__');
-        backMasked = backMasked.replace(pattern, '__ENT__');
-    });
+    const uniqueSourceNames = Array.from(new Set(srcNames));
+    const uniqueBtNames = Array.from(new Set(btNameCandidates));
+    if (uniqueBtNames.length < uniqueSourceNames.length) {
+        // Avoid partial/ambiguous alignment (e.g., two source names but one back-translation name).
+        return { originalMasked: src, backMasked: bt, applied: false, tokenCount: 0 };
+    }
+    const consumedBtNames = new Set();
+    const maxNames = Math.min(uniqueSourceNames.length, 6);
 
-    return { originalMasked, backMasked, applied: true, tokenCount: mismatchTokenCount };
+    for (let i = 0; i < maxNames; i++) {
+        const sourceName = uniqueSourceNames[i];
+        const placeholder = `__NAME${i + 1}__`;
+        const sourcePattern = new RegExp(`\\b${escapeRegexToken(sourceName)}\\b`, 'g');
+        originalMasked = originalMasked.replace(sourcePattern, placeholder);
+
+        // Prefer direct same-token match in back-translation; otherwise align by order of detected names.
+        const sourceNorm = normalizeNameTokenForMatch(sourceName);
+        const directBtToken = uniqueBtNames.find((token) => normalizeNameTokenForMatch(token) === sourceNorm && !consumedBtNames.has(token));
+        const alignedBtToken = directBtToken || uniqueBtNames.find((token) => !consumedBtNames.has(token));
+        if (alignedBtToken) {
+            const btPattern = new RegExp(`\\b${escapeRegexToken(alignedBtToken)}\\b`, 'g');
+            backMasked = backMasked.replace(btPattern, placeholder);
+            consumedBtNames.add(alignedBtToken);
+        }
+    }
+
+    const applied = originalMasked !== src && backMasked !== bt;
+    const tokenCount = applied ? Math.min(uniqueSourceNames.length, 6) : 0;
+    return { originalMasked, backMasked, applied, tokenCount };
+}
+
+function applyEntityMaskingForLexical(originalText, backTranslation, itemType, context = {}) {
+    return applyStoryNamePlaceholderMask(originalText, backTranslation, context);
 }
 
 function levenshteinDistance(a, b) {
@@ -1321,7 +1365,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         backTranslation = toPlainValidationText(backTranslationResult.translatedText);
 
         // Deterministic scoring layer: semantic + lexical -> composite baseline
-        const lexicalMask = applyEntityMaskingForLexical(normalizedOriginalText, backTranslation, aiItemType);
+        const lexicalMask = applyEntityMaskingForLexical(
+            normalizedOriginalText,
+            backTranslation,
+            aiItemType,
+            { itemId, taskName }
+        );
         lexicalScore = computeLexicalScore(lexicalMask.originalMasked, lexicalMask.backMasked);
         if (lexicalMask.applied) lexicalMethod = 'normalized-levenshtein-entity-masked';
         const semantic = await runSemanticScorer({
@@ -1338,7 +1387,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             semanticScore = semanticScoreRaw;
             semanticModel = 'word-overlap-fallback';
         }
-        const semanticMask = applyEntityMaskingForLexical(normalizedOriginalText, backTranslation, aiItemType);
+        const semanticMask = applyEntityMaskingForLexical(
+            normalizedOriginalText,
+            backTranslation,
+            aiItemType,
+            { itemId, taskName }
+        );
         const semanticMaskApplied = !!semanticMask.applied;
         if (semanticMaskApplied) {
             const maskedSemantic = await runSemanticScorer({
