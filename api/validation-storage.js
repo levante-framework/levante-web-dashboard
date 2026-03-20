@@ -61,11 +61,31 @@ function mergeValidationResultsWithExisting(existingResults, incomingResults) {
       // Protect against accidental loss of review notes when clients send compact payloads.
       const incomingHasNeedsReview = Object.prototype.hasOwnProperty.call(incomingEntry, 'needsReview');
       const incomingHasReason = Object.prototype.hasOwnProperty.call(incomingEntry, 'reason');
+      const incomingHasManualApproved = Object.prototype.hasOwnProperty.call(incomingEntry, 'manualApproved');
+      const incomingHasManualApprovalUpdatedAt = Object.prototype.hasOwnProperty.call(incomingEntry, 'manualApprovalUpdatedAt');
       if (!incomingHasNeedsReview && existingEntry.needsReview === true) {
         nextEntry.needsReview = true;
       }
       if (!incomingHasReason && typeof existingEntry.reason === 'string' && existingEntry.reason) {
         nextEntry.reason = existingEntry.reason;
+      }
+      // Preserve manual approvals unless the client explicitly toggled approval state.
+      // This prevents re-validation payloads from unintentionally clearing approvals.
+      if (!incomingHasManualApproved && existingEntry.manualApproved === true) {
+        nextEntry.manualApproved = true;
+      }
+      if (
+        existingEntry.manualApproved === true
+        && incomingHasManualApproved
+        && incomingEntry.manualApproved !== true
+        && !incomingHasManualApprovalUpdatedAt
+      ) {
+        nextEntry.manualApproved = true;
+      }
+      if (nextEntry.manualApproved === true) {
+        nextEntry.score = 1;
+        nextEntry.scoreSource = 'manual';
+        if (!nextEntry.notes) nextEntry.notes = 'Manually approved';
       }
 
       outByLang[langCode] = nextEntry;

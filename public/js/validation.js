@@ -788,12 +788,14 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
         if (typeof result.score === 'number') result.manualOverridePreviousScore = result.score;
         if (priorSource) result.manualOverridePreviousSource = priorSource;
         result.manualApproved = true;
+        result.manualApprovalUpdatedAt = new Date().toISOString();
         result.score = 1.0;
         result.scoreSource = 'manual';
         result.notes = 'Manually approved';
         result.timestamp = new Date().toISOString();
     } else {
         result.manualApproved = false;
+        result.manualApprovalUpdatedAt = new Date().toISOString();
         if (typeof result.manualOverridePreviousScore === 'number') {
             result.score = result.manualOverridePreviousScore;
             delete result.manualOverridePreviousScore;
@@ -1274,6 +1276,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             const langKey = resolveValidationLangCode(window.dashboard, langCode);
             
             const existingResult = getValidationResult(window.dashboard, itemId, langCode) || {};
+            const preserveManualApproval = existingResult.manualApproved === true;
             window.dashboard.validation_results[itemId][langKey] = {
                 score: similarity,
                 originalText: normalizedOriginalText,
@@ -1282,10 +1285,22 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
                 timestamp: new Date().toISOString(),
                 notes: 'Source language - no translation validation needed',
                 scoreSource: 'calculated',
-                manualApproved: false,
+                manualApproved: preserveManualApproval,
+                manualApprovalUpdatedAt: existingResult.manualApprovalUpdatedAt || '',
                 needsReview: !!existingResult.needsReview,
                 reason: existingResult.reason || ''
             };
+            if (preserveManualApproval) {
+                window.dashboard.validation_results[itemId][langKey].score = 1.0;
+                window.dashboard.validation_results[itemId][langKey].scoreSource = 'manual';
+                window.dashboard.validation_results[itemId][langKey].notes = 'Manually approved';
+                if (typeof existingResult.manualOverridePreviousScore === 'number') {
+                    window.dashboard.validation_results[itemId][langKey].manualOverridePreviousScore = existingResult.manualOverridePreviousScore;
+                }
+                if (existingResult.manualOverridePreviousSource) {
+                    window.dashboard.validation_results[itemId][langKey].manualOverridePreviousSource = existingResult.manualOverridePreviousSource;
+                }
+            }
 
             // Update UI
             console.log('🔄 Updating English indicator:', {
@@ -1430,6 +1445,7 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         const langKey = resolveValidationLangCode(window.dashboard, langCode);
         
         const existingResult = getValidationResult(window.dashboard, itemId, langCode) || {};
+        const preserveManualApproval = existingResult.manualApproved === true;
         window.dashboard.validation_results[itemId][langKey] = {
             score: score / 100, // Store as decimal for consistency
             originalText: normalizedOriginalText,
@@ -1459,10 +1475,22 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             aiFluency: aiJudge.used ? aiJudge.fluency : null,
             aiIssues: aiJudge.used ? aiJudge.issues : '',
             scoreSource: aiJudge.used ? 'ai' : 'calculated',
-            manualApproved: false,
+            manualApproved: preserveManualApproval,
+            manualApprovalUpdatedAt: existingResult.manualApprovalUpdatedAt || '',
             needsReview: !!existingResult.needsReview,
             reason: existingResult.reason || ''
         };
+        if (preserveManualApproval) {
+            window.dashboard.validation_results[itemId][langKey].score = 1.0;
+            window.dashboard.validation_results[itemId][langKey].scoreSource = 'manual';
+            window.dashboard.validation_results[itemId][langKey].notes = 'Manually approved';
+            if (typeof existingResult.manualOverridePreviousScore === 'number') {
+                window.dashboard.validation_results[itemId][langKey].manualOverridePreviousScore = existingResult.manualOverridePreviousScore;
+            }
+            if (existingResult.manualOverridePreviousSource) {
+                window.dashboard.validation_results[itemId][langKey].manualOverridePreviousSource = existingResult.manualOverridePreviousSource;
+            }
+        }
 
         // Determine status based on score (using original dashboard-core.js logic)
         let statusClass, statusTitle, buttonText, scoreEmoji;

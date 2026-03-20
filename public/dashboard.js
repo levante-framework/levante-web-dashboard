@@ -2183,6 +2183,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                     const shouldHydrateNeedsReview =
                                         sharedValidation?.needsReview === true
                                         && localValidation?.needsReview !== true;
+                                    const shouldHydrateManualApproved =
+                                        sharedValidation?.manualApproved === true
+                                        && localValidation?.manualApproved !== true;
                                     const localReason = String(localValidation?.reason || '').trim();
                                     const sharedReason = String(sharedValidation?.reason || '').trim();
                                     const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
@@ -2191,6 +2194,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         || (sharedTs && (!localTs || sharedTs > localTs))
                                         || shouldHydrateBackTranslation
                                         || shouldHydrateNeedsReview
+                                        || shouldHydrateManualApproved
                                         || shouldHydrateReasonForReview
                                     ) {
                                         localResults[itemId][lang] = sharedValidation;
