@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pitwall Audio Approvals Report</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #1f2937; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 24px; }
+    .muted { color: #6b7280; font-size: 13px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    select, input, button { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; }
+    button { cursor: pointer; background: #0f766e; color: #fff; border-color: #0f766e; }
+    .cards { margin-top: 14px; display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 10px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+    .card .k { font-size: 12px; color: #6b7280; }
+    .card .v { margin-top: 6px; font-size: 22px; font-weight: 700; }
+    .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 14px; overflow: hidden; }
+    .panel h2 { margin: 0; padding: 12px 14px; border-bottom: 1px solid #e5e7eb; font-size: 16px; background: #fafafa; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
+    th { background: #f8fafc; font-weight: 600; color: #374151; }
+    .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid #d1d5db; background: #f8fafc; }
+    .yes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+    .no { background: #f9fafb; color: #6b7280; }
+    .changed { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+    .diff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #fff; white-space: pre-wrap; word-break: break-word; }
+    .box b { display: block; margin-bottom: 6px; font-size: 12px; color: #374151; }
+    .status { margin-top: 8px; font-size: 13px; }
+    @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .diff { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <h1>Audio Approvals Report</h1>
+        <div class="muted" id="metaLine">Loading...</div>
+      </div>
+      <div class="controls">
+        <label class="muted" for="langFilter">Language</label>
+        <select id="langFilter"><option value="__all__">All</option></select>
+        <label class="muted" for="sinceDays">Since days</label>
+        <input id="sinceDays" type="number" min="0" step="1" value="0" title="0 = all available logs" />
+        <label><input type="checkbox" id="changedOnly" /> Changed text only</label>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card"><div class="k">Approvals Total</div><div class="v" id="cApprovals">0</div></div>
+      <div class="card"><div class="k">Approved As Is</div><div class="v" id="cAsIs">0</div></div>
+      <div class="card"><div class="k">Needed Regen</div><div class="v" id="cRegen">0</div></div>
+      <div class="card"><div class="k">Used Enhanced Field</div><div class="v" id="cEnhanced">0</div></div>
+      <div class="card"><div class="k">Enhanced Changed</div><div class="v" id="cEnhancedChanged">0</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>By Language</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Language</th>
+            <th>Approvals</th>
+            <th>As Is</th>
+            <th>With Regen</th>
+            <th>With Enhanced</th>
+            <th>Enhanced Changed</th>
+            <th>Avg Regens Before Approval</th>
+          </tr>
+        </thead>
+        <tbody id="langSummaryBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Enhanced Text Inspector (per approval)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Approval Time</th>
+            <th>Language</th>
+            <th>Item</th>
+            <th>Approver</th>
+            <th>Regen</th>
+            <th>Enhanced</th>
+            <th>Changed</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+    <div class="status muted" id="statusLine"></div>
+  </div>
+
+  <script>
+    const state = { payload: null, filteredDetails: [] };
+
+    function el(id) { return document.getElementById(id); }
+    function esc(v) {
+      return String(v || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fmtDate(v) {
+      const d = new Date(v || '');
+      return Number.isNaN(d.getTime()) ? (v || '') : d.toLocaleString();
+    }
+
+    function sumRows(rows) {
+      return rows.reduce((acc, row) => {
+        acc.approvalsTotal += Number(row.approvalsTotal || 0);
+        acc.approvedAsIs += Number(row.approvedAsIs || 0);
+        acc.approvalsWithPriorRegen += Number(row.approvalsWithPriorRegen || 0);
+        acc.approvalsWithPriorEnhanced += Number(row.approvalsWithPriorEnhanced || 0);
+        acc.approvalsWithPriorEnhancedChanged += Number(row.approvalsWithPriorEnhancedChanged || 0);
+        acc.regensBeforeApprovalsTotal += Number(row.regensBeforeApprovalsTotal || 0);
+        return acc;
+      }, {
+        approvalsTotal: 0,
+        approvedAsIs: 0,
+        approvalsWithPriorRegen: 0,
+        approvalsWithPriorEnhanced: 0,
+        approvalsWithPriorEnhancedChanged: 0,
+        regensBeforeApprovalsTotal: 0
+      });
+    }
+
+    function renderSummary(rows) {
+      const body = el('langSummaryBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="muted">No data</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((r) => `
+        <tr>
+          <td>${esc(r.language)}</td>
+          <td>${Number(r.approvalsTotal || 0)}</td>
+          <td>${Number(r.approvedAsIs || 0)}</td>
+          <td>${Number(r.approvalsWithPriorRegen || 0)}</td>
+          <td>${Number(r.approvalsWithPriorEnhanced || 0)}</td>
+          <td>${Number(r.approvalsWithPriorEnhancedChanged || 0)}</td>
+          <td>${Number(r.avgRegensBeforeApproval || 0)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderCards(totals) {
+      el('cApprovals').textContent = totals.approvalsTotal;
+      el('cAsIs').textContent = totals.approvedAsIs;
+      el('cRegen').textContent = totals.approvalsWithPriorRegen;
+      el('cEnhanced').textContent = totals.approvalsWithPriorEnhanced;
+      el('cEnhancedChanged').textContent = totals.approvalsWithPriorEnhancedChanged;
+    }
+
+    function renderDetails(rows) {
+      const body = el('detailBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="8" class="muted">No approvals match current filters.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((r) => {
+        const enhanced = r.latestPriorEnhanced || null;
+        const changed = enhanced && enhanced.enhancedTextChanged === true;
+        const original = enhanced ? enhanced.originalTranslation : '';
+        const modified = enhanced ? enhanced.audioEnhancedText : '';
+        return `
+          <tr>
+            <td>${esc(fmtDate(r.approvalAt))}</td>
+            <td>${esc(r.langCode)}</td>
+            <td>${esc(r.itemId)}</td>
+            <td>${esc(r.approver)}</td>
+            <td><span class="pill ${r.hadPriorRegen ? 'yes' : 'no'}">${r.hadPriorRegen ? `Yes (${r.regensBeforeApproval})` : 'No'}</span></td>
+            <td><span class="pill ${r.hadPriorEnhancedRegen ? 'yes' : 'no'}">${r.hadPriorEnhancedRegen ? 'Yes' : 'No'}</span></td>
+            <td><span class="pill ${changed ? 'changed' : 'no'}">${changed ? 'Changed' : 'No change'}</span></td>
+            <td>
+              ${enhanced ? `
+                <div class="diff">
+                  <div class="box"><b>Original</b>${esc(original)}</div>
+                  <div class="box"><b>Audio-Enhanced</b>${esc(modified)}</div>
+                </div>
+              ` : '<span class="muted">No enhanced text logged before this approval.</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function applyFilters() {
+      if (!state.payload) return;
+      const lang = el('langFilter').value;
+      const changedOnly = el('changedOnly').checked;
+      const summary = state.payload.summaryByLanguage || [];
+      const details = state.payload.approvalDetails || [];
+
+      const filteredSummary = lang === '__all__'
+        ? summary
+        : summary.filter((row) => String(row.language) === lang);
+
+      const filteredDetails = details.filter((row) => (lang === '__all__' || String(row.langCode) === lang))
+        .filter((row) => !changedOnly || (row.latestPriorEnhanced && row.latestPriorEnhanced.enhancedTextChanged === true));
+
+      state.filteredDetails = filteredDetails;
+      const totals = sumRows(filteredSummary);
+      totals.avgRegensBeforeApproval = totals.approvalsWithPriorRegen > 0
+        ? Number((totals.regensBeforeApprovalsTotal / totals.approvalsWithPriorRegen).toFixed(2))
+        : 0;
+
+      renderCards(totals);
+      renderSummary(filteredSummary);
+      renderDetails(filteredDetails);
+      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records`;
+    }
+
+    async function loadReport() {
+      el('statusLine').textContent = 'Loading report...';
+      const sinceDays = Math.max(0, Number(el('sinceDays').value || 0));
+      const url = `/api/approver-audio-report?sinceDays=${encodeURIComponent(sinceDays)}`;
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to load report (${response.status})`);
+      const payload = await response.json();
+      if (!payload?.success) throw new Error(payload?.message || 'Report API returned error');
+      state.payload = payload;
+
+      const langs = (payload.summaryByLanguage || []).map((r) => String(r.language || '')).filter(Boolean);
+      const langSelect = el('langFilter');
+      const current = langSelect.value;
+      langSelect.innerHTML = '<option value="__all__">All</option>' + langs.map((l) => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+      if (langs.includes(current)) langSelect.value = current;
+
+      el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}`;
+      applyFilters();
+    }
+
+    async function refresh() {
+      try {
+        await loadReport();
+      } catch (error) {
+        el('statusLine').textContent = `Error: ${error.message}`;
+      }
+    }
+
+    el('refreshBtn').addEventListener('click', refresh);
+    el('langFilter').addEventListener('change', applyFilters);
+    el('changedOnly').addEventListener('change', applyFilters);
+    refresh();
+  </script>
+</body>
+</html>
+
