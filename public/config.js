@@ -47,7 +47,7 @@ const CONFIG = {
             lang_code: 'fr-CA',
             service: 'ElevenLabs',
             voice: 'Caroline - Top France - Narrative, warm, sweet',
-            display_name: 'French'
+            display_name: 'French (Canada)'
         },
         'Dutch': {
             lang_code: 'nl',

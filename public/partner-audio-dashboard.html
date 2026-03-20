@@ -1505,7 +1505,7 @@
                     'Spanish (Colombia)': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Melody - Ecommerce Voice', voice_id: 'bN1bDXgDIGX5lw0rtY2B' },
                     'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
-                    'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet' },
+                    'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet', display_name: 'French (Canada)' },
                     'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' },
                     'Portuguese': { lang_code: 'pt-PT', service: 'ElevenLabs', voice: 'Liam' }
@@ -2155,6 +2155,7 @@
                 const preferred = String(cfg.display_name || fallbackName || '').trim();
                 if (langCode === 'es-co' && (/^spanish$/i.test(preferred) || /spanish\s*\(colombia\)/i.test(preferred))) return 'Spanish (Colombia)';
                 if (langCode === 'es-ar' && /^spanish$/i.test(preferred)) return 'Spanish (Argentina)';
+                if (langCode === 'fr-ca' && (/^french$/i.test(preferred) || /french\s*\(canada\)/i.test(preferred))) return 'French (Canada)';
                 if ((langCode === 'en' || langCode === 'en-us') && (/^english$/i.test(preferred) || /english\s*\(united states\)/i.test(preferred))) return 'English (United States)';
                 if ((langCode === 'de' || langCode === 'de-de') && (/^german$/i.test(preferred) || /german\s*\(germany\)/i.test(preferred))) return 'German (Germany)';
                 return preferred || String(fallbackName || '').trim();
@@ -2579,7 +2580,7 @@
                                     'en-US': 'English (United States)',
                                     'de': 'German (Germany)',
                                     'de-DE': 'German (Germany)',
-                                    'fr-CA': 'French',
+                                    'fr-CA': 'French (Canada)',
                                     'nl': 'Dutch',
                                     'de-CH': 'German (Switzerland)',
                                     'pt-PT': 'Portuguese'
@@ -2595,7 +2596,7 @@
                                     'en-US': 'English (United States)',
                                     'de': 'German (Germany)',
                                     'de-DE': 'German (Germany)',
-                                    'fr-CA': 'French',
+                                    'fr-CA': 'French (Canada)',
                                     'nl': 'Dutch',
                                     'de-CH': 'German (Switzerland)',
                                     'pt-PT': 'Portuguese'

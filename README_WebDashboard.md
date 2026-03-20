@@ -4,7 +4,7 @@ A modern web-based dashboard for comparing and generating TTS audio across multi
 
 ## Features
 
-- **Multi-language Support**: English, Spanish, German, French, and Dutch
+- **Multi-language Support**: English, Spanish, German, French (Canada), and Dutch
 - **Dual TTS Services**: PlayHT and ElevenLabs integration
 - **Voice Comparison**: Side-by-side comparison of different voices
 - **SSML Support**: Advanced speech synthesis markup language editing
@@ -120,7 +120,7 @@ Then open `http://localhost:8000/public/dashboard.html`
 
 ### Quick Start
 
-1. **Choose a Language Tab**: Select from English, Spanish, German, French, or Dutch
+1. **Choose a Language Tab**: Select from English, Spanish, German, French (Canada), or Dutch
 2. **Search Items**: Use the search box to find specific content
 3. **Select Text**: Click on any row to select it and populate the SSML editor
 4. **Choose Voices**: Select voices from PlayHT or ElevenLabs dropdowns

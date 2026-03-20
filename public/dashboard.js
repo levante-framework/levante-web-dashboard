@@ -7,7 +7,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     'English': { lang_code: 'en', service: 'ElevenLabs', voice: 'Clara - Children\'s Storyteller' },
                     'Spanish': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
                     'German': { lang_code: 'de', service: 'ElevenLabs', voice: 'Julia' },
-                    'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet' },
+                    'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet', display_name: 'French (Canada)' },
                     'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' }
                 };
@@ -224,7 +224,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             getDisplayName(languageKey) {
                 const lang = this.languages[languageKey];
-                return (lang && lang.display_name) ? lang.display_name : languageKey;
+                if (lang && lang.display_name) return lang.display_name;
+                const langCode = String(lang?.lang_code || '').trim().toLowerCase();
+                if (langCode === 'fr-ca' && /^french$/i.test(String(languageKey || ''))) return 'French (Canada)';
+                return languageKey;
             }
 
             getCurrentLanguageCode() {
@@ -243,6 +246,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     'Spanish': '<img src="https://flagcdn.com/24x18/co.png" alt="CO" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
                     'German': '<img src="https://flagcdn.com/24x18/de.png" alt="DE" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
                     'French': '<img src="https://flagcdn.com/24x18/ca.png" alt="CA" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+                    'French (Canada)': '<img src="https://flagcdn.com/24x18/ca.png" alt="CA" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
                     'Dutch': '<img src="https://flagcdn.com/24x18/nl.png" alt="NL" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
                     // Regional variants
                     'German (Switzerland)': '<img src="https://flagcdn.com/24x18/ch.png" alt="CH" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
@@ -2364,11 +2368,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
 
                 languageNames.forEach((language, index) => {
+                    const displayLanguage = this.getDisplayName(language);
                     // Create tab button
                     const button = document.createElement('button');
                     const isActive = language === this.currentLanguage || (index === 0 && !this.languages[this.currentLanguage]);
                     button.className = `tab-button ${isActive ? 'active' : ''}`;
-                    button.textContent = this.getDisplayName(language);
+                    button.textContent = displayLanguage;
                     button.addEventListener('click', () => this.switchTab(language, button));
                     tabButtons.appendChild(button);
 
@@ -2379,7 +2384,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     
                     const langConfig = this.languages[language] || {};
                     content.innerHTML = `
-                        <h3>${this.getFlagForLanguage(language)}${language} Configuration</h3>
+                        <h3>${this.getFlagForLanguage(displayLanguage)}${displayLanguage} Configuration</h3>
                         <div class="language-info">
                             <div class="info-card">
                                 <strong>Language Code</strong>
