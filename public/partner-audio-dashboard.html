@@ -1421,7 +1421,7 @@
                     data-layout-editable="true"
                     data-layout-page="partner-audio-dashboard"
                     data-layout-region="tab-noaudio-label"
-                >No Audio</span>
+                >No Audio Yet</span>
             </button>
         </div>
         <div class="search-container">
@@ -1538,6 +1538,11 @@
                 this.audioPathCache = new Map();
                 this.noAudioDebugInfo = new Map();
                 this.noAudioScanSummary = null;
+                this.audioBehaviorByItem = new Map();
+                this.audioBehaviorSessionId = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                this.clientVersionCurrent = '';
+                this.clientVersionPollTimer = null;
+                this.clientVersionReloadTriggered = false;
                 this.lastRefreshTime = null;
                 this.refreshControlsInitialized = false;
                 this.bulkApproveInProgress = false;
@@ -1563,6 +1568,42 @@
                 } catch (_) {}
                 
                 this.init();
+            }
+
+            async fetchCurrentClientVersion() {
+                try {
+                    const response = await fetch('/api/client-version', { cache: 'no-store' });
+                    if (!response.ok) return '';
+                    const payload = await response.json().catch(() => ({}));
+                    return String(payload?.version || '').trim();
+                } catch (_error) {
+                    return '';
+                }
+            }
+
+            async checkForClientVersionUpdate() {
+                if (this.clientVersionReloadTriggered) return;
+                const latestVersion = await this.fetchCurrentClientVersion();
+                if (!latestVersion) return;
+                if (!this.clientVersionCurrent) {
+                    this.clientVersionCurrent = latestVersion;
+                    return;
+                }
+                if (latestVersion === this.clientVersionCurrent) return;
+
+                this.clientVersionReloadTriggered = true;
+                this.setStatus('A new dashboard version was deployed. Reloading to update...', 'warning');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1200);
+            }
+
+            async startClientVersionMonitor() {
+                if (this.clientVersionPollTimer) return;
+                this.clientVersionCurrent = await this.fetchCurrentClientVersion();
+                this.clientVersionPollTimer = setInterval(() => {
+                    this.checkForClientVersionUpdate();
+                }, 30000);
             }
 
             getScreenshotArtifactUrls() {
@@ -2366,6 +2407,7 @@
             async init() {
                 // Check authentication first
                 await this.checkAuth();
+                this.startClientVersionMonitor();
                 
                 // Ensure DOM is ready before populating
                 if (document.readyState === 'loading') {
@@ -3137,7 +3179,7 @@
                     };
                 });
                 return {
-                    bucketLabel: `${label} • ${bucketName}`,
+                    bucketLabel: String(label || '').trim(),
                     bucket: bucketName,
                     total: info?.ids?.size || 0,
                     folderBreakdown: breakdown
@@ -3151,8 +3193,8 @@
                     return;
                 }
                 const prefixes = this.getAudioPrefixes(this.currentLangCode);
-                const draftSummary = this.buildBucketSummary('Draft bucket', this.audioBuckets.draft, this.currentLangCode, draftInfo);
-                const devSummary = this.buildBucketSummary('Dev bucket', this.audioBuckets.dev, this.currentLangCode, devInfo);
+                const draftSummary = this.buildBucketSummary('Requiring Approval', this.audioBuckets.draft, this.currentLangCode, draftInfo);
+                const devSummary = this.buildBucketSummary('Already approved', this.audioBuckets.dev, this.currentLangCode, devInfo);
                 const bucketDetails = [draftSummary, devSummary];
                 const extraFolders = [
                     ...new Set(
@@ -3213,10 +3255,7 @@
                     container.innerHTML = '';
                     return;
                 }
-                const { prefixes = [], bucketDetails = [], extraFolders = [] } = this.noAudioScanSummary;
-                const prefixMarkup = prefixes.length
-                    ? prefixes.map(prefix => `<code>${this.escapeHtml(prefix)}</code>`).join('')
-                    : '<em>No prefixes</em>';
+                const { bucketDetails = [], extraFolders = [] } = this.noAudioScanSummary;
                 const bucketMarkup = bucketDetails.map(detail => {
                     const folderMarkup = detail.folderBreakdown.map(folder => {
                         const chipClass = folder.isTracked ? 'folder-chip folder-chip-standard' : 'folder-chip folder-chip-extra';
@@ -3233,12 +3272,8 @@
                     ? `<div class="no-audio-meta-note"><i class="fas fa-exclamation-triangle"></i> Detected additional folders: ${extraFolders.map(folder => `<code>${this.escapeHtml(folder)}</code>`).join(', ')}</div>`
                     : '';
                 container.innerHTML = `
-                    <div class="no-audio-meta-row">
-                        <span class="no-audio-meta-label">Prefixes checked:</span>
-                        <div class="no-audio-meta-value">${prefixMarkup}</div>
-                    </div>
                     <div class="no-audio-meta-row no-audio-meta-row-stack">
-                        <span class="no-audio-meta-label">Bucket coverage:</span>
+                        <span class="no-audio-meta-label">Audio Sources:</span>
                         <div class="no-audio-meta-value">${bucketMarkup}</div>
                     </div>
                     ${extraNote}
@@ -3251,6 +3286,74 @@
                 const fileName = String(pathOrId).split('/').pop() || '';
                 const normalized = fileName.replace(/\.mp3$/i, '').replace(/_v\d{3}$/i, '').trim();
                 return normalized ? normalized.toLowerCase() : null;
+            }
+
+            getAudioBehaviorKey(itemId) {
+                const lang = String(this.currentLangCode || '').trim().toLowerCase();
+                const baseId = this.extractBaseId(itemId || '');
+                if (!lang || !baseId) return '';
+                return `${lang}::${baseId}`;
+            }
+
+            getAudioBehaviorState(itemId) {
+                const key = this.getAudioBehaviorKey(itemId);
+                if (!key) {
+                    return {
+                        key: '',
+                        baseId: this.extractBaseId(itemId || '') || '',
+                        regenerationsSinceLastSave: 0,
+                        totalRegenerations: 0,
+                        totalSaves: 0
+                    };
+                }
+                if (!this.audioBehaviorByItem.has(key)) {
+                    this.audioBehaviorByItem.set(key, {
+                        key,
+                        baseId: this.extractBaseId(itemId || ''),
+                        regenerationsSinceLastSave: 0,
+                        totalRegenerations: 0,
+                        totalSaves: 0
+                    });
+                }
+                return this.audioBehaviorByItem.get(key);
+            }
+
+            async logApproverAudioEvent(eventType, itemId, extras = {}) {
+                try {
+                    const eventName = String(eventType || '').trim();
+                    const rawItemId = String(itemId || '').trim();
+                    const langCode = String(this.currentLangCode || '').trim();
+                    if (!eventName || !rawItemId || !langCode) return;
+
+                    const state = this.getAudioBehaviorState(rawItemId);
+                    const item = this.data.find((entry) => String(entry?.item_id || '') === rawItemId) || {};
+                    const task = String(item?.labels || item?.task || '').trim();
+                    const payload = {
+                        eventType: eventName,
+                        itemId: rawItemId,
+                        baseItemId: state.baseId || this.extractBaseId(rawItemId) || '',
+                        langCode,
+                        task,
+                        tab: String(this.currentTab || '').trim(),
+                        approver: String(this.currentUserEmail || '').trim(),
+                        authMethod: String(this.authMethod || '').trim(),
+                        regenerateCountSinceLastSave: Number(state.regenerationsSinceLastSave || 0),
+                        totalRegenerationsForItem: Number(state.totalRegenerations || 0),
+                        totalSavesForItem: Number(state.totalSaves || 0),
+                        sessionId: this.audioBehaviorSessionId,
+                        clientTimestamp: new Date().toISOString(),
+                        clientVersion: String(window.DASHBOARD_VERSION || ''),
+                        ...extras
+                    };
+
+                    await fetch('/api/approver-audio-log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (error) {
+                    console.warn('Failed to log approver audio event:', error?.message || error);
+                }
             }
 
             invalidateAudioCache(bucketName, langCode, baseId = null) {
@@ -4048,6 +4151,11 @@
                     );
                     if (!confirmed) return;
 
+                    await this.logApproverAudioEvent('bulk_approve_start', '__bulk__', {
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
+
                     this.bulkApproveInProgress = true;
                     if (approveAllBtn) {
                         approveAllBtn.disabled = true;
@@ -4072,6 +4180,10 @@
                             const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
                             if (!audioPath) {
                                 skipped++;
+                                await this.logApproverAudioEvent('bulk_approve_item_skipped_no_audio', itemId, {
+                                    hadPendingGeneratedAudio: false,
+                                    savedGeneratedAudio: false
+                                });
                                 continue;
                             }
 
@@ -4086,6 +4198,10 @@
 
                             if (!moveResponse.ok) {
                                 failed++;
+                                await this.logApproverAudioEvent('bulk_approve_item_failed', itemId, {
+                                    hadPendingGeneratedAudio: false,
+                                    savedGeneratedAudio: false
+                                });
                                 continue;
                             }
 
@@ -4094,11 +4210,27 @@
                             this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
                             this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
                             moved++;
+                            await this.logApproverAudioEvent('bulk_approve_item_success', itemId, {
+                                saveBucket: this.audioBuckets.dev,
+                                savePath: audioPath,
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
                         } catch (error) {
                             console.warn('Bulk approve item failed:', itemId, error);
                             failed++;
+                            await this.logApproverAudioEvent('bulk_approve_item_failed', itemId, {
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
                         }
                     }
+
+                    await this.logApproverAudioEvent('bulk_approve_summary', '__bulk__', {
+                        service: 'bulk-approval',
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
 
                     await this.loadApprovalStatus();
                     await this.refreshItemsForCurrentTab();
@@ -4476,7 +4608,7 @@
                                 <div class="item-card-compact-text">${escapedTranslated || '<em style="color: #999;">Translation not available</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
-                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate audio for this item">
+                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generation is disabled in No Audio Yet; use To Be Approved after audio exists" disabled>
                                     <i class="fas fa-microphone"></i> Generate Audio
                                 </button>
                                 <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and approve immediately' : 'Generate audio before saving and approving'}">
@@ -4620,6 +4752,10 @@
             }
 
             async regenerateAudio(itemId) {
+                if (this.currentTab === 'noaudio') {
+                    this.setStatus('Generate is disabled in the No Audio Yet tab.', 'warning');
+                    return;
+                }
                 this.setAudioActionLoading(itemId, 'regenerate', true, 'Generating...');
                 try {
                     const item = this.data.find(entry => entry.item_id === itemId);
@@ -4629,10 +4765,13 @@
                     
                     // Get audio-enhanced string from textarea, fallback to translated text
                     const audioEnhancedInput = this.getAudioEnhancedInputForItem(itemId);
+                    const originalTranslationText = String(this.getTextForItem(item, this.currentLangCode) || '').trim();
                     let text = '';
                     let textSource = 'translation';
+                    let audioEnhancedText = '';
                     if (audioEnhancedInput && audioEnhancedInput.value) {
-                        text = audioEnhancedInput.value.trim();
+                        audioEnhancedText = String(audioEnhancedInput.value || '').trim();
+                        text = audioEnhancedText;
                         if (text) {
                             textSource = 'enhanced';
                         }
@@ -4677,6 +4816,9 @@
                         itemLabel
                     };
                     this.pendingSaveKey = `${this.currentLangCode}::${itemId}`;
+                    const behaviorState = this.getAudioBehaviorState(itemId);
+                    behaviorState.regenerationsSinceLastSave += 1;
+                    behaviorState.totalRegenerations += 1;
                     
                     this.updateSaveButtonStates();
                     
@@ -4692,6 +4834,21 @@
                     } else {
                         await this.refreshItemsForCurrentTab();
                     }
+                    await this.logApproverAudioEvent('regenerate_success', itemId, {
+                        service: 'ElevenLabs',
+                        modelId: resolvedModelId,
+                        voiceId: resolvedVoice.voiceId,
+                        voiceName: resolvedVoice.voiceName,
+                        generatedTextLength: String(text || '').length,
+                        usedAudioEnhancedText: textSource === 'enhanced',
+                        originalTranslation: originalTranslationText,
+                        audioEnhancedText,
+                        enhancedTextChanged: textSource === 'enhanced' && String(originalTranslationText || '').trim() !== String(audioEnhancedText || '').trim(),
+                        enhancedTextCharDelta: textSource === 'enhanced'
+                            ? (String(audioEnhancedText || '').trim().length - String(originalTranslationText || '').trim().length)
+                            : null,
+                        hadPendingGeneratedAudio: true
+                    });
                     
                     this.setStatus(`Audio generated for ${itemId}. Click Save to store it.`, 'success');
                     
@@ -4940,6 +5097,12 @@
                         if (devPath) {
                             this.unapprovedItems.delete(baseId);
                             this.approvedItems.add(baseId);
+                            await this.logApproverAudioEvent('approve_single_already_in_dev', itemId, {
+                                saveBucket: this.audioBuckets.dev,
+                                savePath: devPath,
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
                             await this.refreshItemsForCurrentTab();
                             await this.updateApprovalStats();
                             this.setStatus(`${itemId} is already in approved bucket (${devPath}).`, 'success');
@@ -4964,6 +5127,12 @@
                         const errorText = await moveResponse.text();
                         throw new Error(errorText || 'Failed to move audio to approved bucket');
                     }
+                    await this.logApproverAudioEvent('approve_single_success', itemId, {
+                        saveBucket: this.audioBuckets.dev,
+                        savePath: audioPath,
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
                     
                     // Update state
                     this.approvedItems.add(baseId);
@@ -4984,6 +5153,10 @@
                     this.setStatus(`Approved ${itemId}. Audio moved to approved bucket.`, 'success');
                 } catch (error) {
                     console.error('Approve audio error:', error);
+                    await this.logApproverAudioEvent('approve_single_failed', itemId, {
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
                     this.setStatus(`Error approving audio: ${error.message}`, 'error');
                 }
             }
@@ -5051,6 +5224,10 @@
                     if (!this.latestGeneratedAudio || 
                         this.latestGeneratedAudio.itemId !== itemId ||
                         this.latestGeneratedAudio.langCode !== this.currentLangCode) {
+                        await this.logApproverAudioEvent('save_without_generated_audio', itemId, {
+                            hadPendingGeneratedAudio: false,
+                            savedGeneratedAudio: false
+                        });
                         throw new Error('No generated audio to save. Please regenerate audio first.');
                     }
                     
@@ -5093,6 +5270,7 @@
                         const error = await response.json();
                         throw new Error(error.message || 'Failed to save audio');
                     }
+                    const saveResult = await response.json().catch(() => ({}));
                     
                     // After saving, immediately move to dev bucket (approve)
                     const baseId = itemId.replace(/_v\d{3}$/, '');
@@ -5120,6 +5298,21 @@
                         const errorText = await moveResponse.text();
                         throw new Error(errorText || 'Failed to move audio to approved bucket');
                     }
+                    const behaviorState = this.getAudioBehaviorState(itemId);
+                    behaviorState.totalSaves += 1;
+                    await this.logApproverAudioEvent('save_success', itemId, {
+                        service: String(this.latestGeneratedAudio?.service || 'ElevenLabs'),
+                        modelId: String(this.latestGeneratedAudio?.modelId || ''),
+                        voiceId: String(this.latestGeneratedAudio?.voiceId || ''),
+                        voiceName: String(this.latestGeneratedAudio?.voiceName || ''),
+                        generatedTextLength: String(this.latestGeneratedAudio?.text || '').length,
+                        hadPendingGeneratedAudio: true,
+                        savedGeneratedAudio: true,
+                        saveBucket: String(saveResult?.bucket || this.audioBuckets.draft || ''),
+                        savePath: String(saveResult?.path || ''),
+                        saveVersion: saveResult?.version
+                    });
+                    behaviorState.regenerationsSinceLastSave = 0;
                     
                     // Update state
                     this.pendingSaveKey = null;
@@ -5156,6 +5349,10 @@
                     if (!this.latestGeneratedAudio || 
                         this.latestGeneratedAudio.itemId !== itemId ||
                         this.latestGeneratedAudio.langCode !== this.currentLangCode) {
+                        await this.logApproverAudioEvent('save_without_generated_audio', itemId, {
+                            hadPendingGeneratedAudio: false,
+                            savedGeneratedAudio: false
+                        });
                         throw new Error('No generated audio to save. Please generate audio first.');
                     }
                     
@@ -5203,6 +5400,7 @@
                         const error = await saveResponse.json();
                         throw new Error(error.message || 'Failed to save audio');
                     }
+                    const saveResult = await saveResponse.json().catch(() => ({}));
                     
                     // Step 2: Immediately move to dev bucket
                     this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
@@ -5228,6 +5426,21 @@
                         const errorText = await moveResponse.text();
                         throw new Error(errorText || 'Failed to move audio to approved bucket');
                     }
+                    const behaviorState = this.getAudioBehaviorState(itemId);
+                    behaviorState.totalSaves += 1;
+                    await this.logApproverAudioEvent('save_success', itemId, {
+                        service: String(this.latestGeneratedAudio?.service || 'ElevenLabs'),
+                        modelId: String(this.latestGeneratedAudio?.modelId || ''),
+                        voiceId: String(this.latestGeneratedAudio?.voiceId || ''),
+                        voiceName: String(this.latestGeneratedAudio?.voiceName || ''),
+                        generatedTextLength: String(this.latestGeneratedAudio?.text || '').length,
+                        hadPendingGeneratedAudio: true,
+                        savedGeneratedAudio: true,
+                        saveBucket: String(saveResult?.bucket || this.audioBuckets.draft || ''),
+                        savePath: String(saveResult?.path || ''),
+                        saveVersion: saveResult?.version
+                    });
+                    behaviorState.regenerationsSinceLastSave = 0;
                     
                     // Step 3: Update state
                     this.pendingSaveKey = null;
