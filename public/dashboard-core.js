@@ -685,7 +685,7 @@ class Dashboard {
             'en': 'English',
             'es-CO': 'Spanish', 
             'de': 'German',
-            'fr-CA': 'French',
+            'fr-CA': 'French (Canada)',
             'nl': 'Dutch'
         };
         

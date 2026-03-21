@@ -2278,7 +2278,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     'de': 'German',
                     'de-DE': 'German',
                     'de-CH': 'German (Switzerland)',
-                    'fr-CA': 'French',
+                    'fr-CA': 'French (Canada)',
                     'nl': 'Dutch'
                 };
                 
