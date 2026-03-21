@@ -108,7 +108,7 @@
   </div>
 
   <script>
-    const state = { payload: null, filteredDetails: [] };
+    const state = { payload: null, filteredDetails: [], compactionNote: '' };
 
     function el(id) { return document.getElementById(id); }
     function esc(v) {
@@ -227,18 +227,25 @@
       renderCards(totals);
       renderSummary(filteredSummary);
       renderDetails(filteredDetails);
-      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records`;
+      const suffix = state.compactionNote ? ` • ${state.compactionNote}` : '';
+      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records${suffix}`;
     }
 
     async function loadReport() {
-      el('statusLine').textContent = 'Loading report...';
+      el('metaLine').innerHTML = '<strong>Updating Log Files...</strong>';
+      el('statusLine').innerHTML = '<strong>Updating Log Files...</strong>';
       const sinceDays = Math.max(0, Number(el('sinceDays').value || 0));
-      const url = `/api/approver-audio-report?sinceDays=${encodeURIComponent(sinceDays)}`;
+      const url = `/api/approver-audio-report?sinceDays=${encodeURIComponent(sinceDays)}&compactMissing=1`;
       const response = await fetch(url, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Failed to load report (${response.status})`);
       const payload = await response.json();
       if (!payload?.success) throw new Error(payload?.message || 'Report API returned error');
       state.payload = payload;
+      const compacted = Array.isArray(payload?.compaction?.compactedDays) ? payload.compaction.compactedDays.length : 0;
+      const pending = Array.isArray(payload?.compaction?.pendingDays) ? payload.compaction.pendingDays.length : 0;
+      state.compactionNote = compacted > 0
+        ? `Updated ${compacted} day${compacted === 1 ? '' : 's'} of log files${pending > 0 ? ` (${pending} pending)` : ''}`
+        : '';
 
       const langs = (payload.summaryByLanguage || []).map((r) => String(r.language || '')).filter(Boolean);
       const langSelect = el('langFilter');
@@ -246,7 +253,10 @@
       langSelect.innerHTML = '<option value="__all__">All</option>' + langs.map((l) => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
       if (langs.includes(current)) langSelect.value = current;
 
-      el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}`;
+      const compactLabel = compacted > 0
+        ? ` • Log files updated: ${compacted}${pending > 0 ? ` (${pending} pending)` : ''}`
+        : '';
+      el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}${compactLabel}`;
       applyFilters();
     }
 
