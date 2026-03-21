@@ -5,32 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pitwall Audio Approvals Report</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link href="./styles.css" rel="stylesheet"/>
+  <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
+  <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" referrerpolicy="no-referrer" rel="stylesheet"/>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f5f7fb; color: #1f2937; }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%); color: #e2e8f0; min-height: 100vh; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 16px; }
     .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    h1 { margin: 0; font-size: 24px; }
-    .muted { color: #6b7280; font-size: 13px; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    select, input, button { padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; }
-    button { cursor: pointer; background: #0f766e; color: #fff; border-color: #0f766e; }
-    .cards { margin-top: 14px; display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 10px; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
-    .card .k { font-size: 12px; color: #6b7280; }
-    .card .v { margin-top: 6px; font-size: 22px; font-weight: 700; }
-    .panel { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; margin-top: 14px; overflow: hidden; }
-    .panel h2 { margin: 0; padding: 12px 14px; border-bottom: 1px solid #e5e7eb; font-size: 16px; background: #fafafa; }
+    h1 { margin: 0; font-size: 2rem; font-weight: 600; color: #ffb347; letter-spacing: 0.02em; display: flex; align-items: center; gap: 10px; }
+    .muted { color: rgba(203, 213, 225, 0.78); font-size: 13px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: rgba(9, 17, 31, 0.92); border: 1px solid rgba(0, 160, 222, 0.24); border-radius: 14px; padding: 8px; }
+    select, input, button { padding: 8px 10px; border: 1px solid rgba(0, 160, 222, 0.3); border-radius: 8px; background: rgba(3, 12, 28, 0.85); color: #e2e8f0; }
+    button { cursor: pointer; background: rgba(255, 123, 0, 0.92); color: #0b1220; border-color: rgba(255, 123, 0, 0.65); font-weight: 600; }
+    button:hover { background: #ff8b1f; }
+    .cards { margin-top: 8px; display: grid; grid-template-columns: repeat(5, minmax(160px, 1fr)); gap: 10px; }
+    .card { background: rgba(9, 17, 31, 0.92); border: 1px solid rgba(0, 160, 222, 0.24); border-radius: 14px; padding: 14px; box-shadow: 0 18px 36px rgba(2, 6, 23, 0.4); }
+    .card .k { font-size: 12px; color: rgba(191, 219, 254, 0.85); text-transform: uppercase; letter-spacing: 0.08em; }
+    .card .v { margin-top: 6px; font-size: 24px; font-weight: 700; color: #ffb347; }
+    .panel { background: rgba(9, 17, 31, 0.92); border: 1px solid rgba(0, 160, 222, 0.24); border-radius: 14px; margin-top: 2px; overflow: hidden; box-shadow: 0 24px 56px rgba(2, 6, 23, 0.52); }
+    .panel h2 { margin: 0; padding: 12px 14px; border-bottom: 1px solid rgba(0, 160, 222, 0.2); font-size: 16px; color: #f8fafc; background: rgba(3, 12, 28, 0.75); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
-    th { background: #f8fafc; font-weight: 600; color: #374151; }
-    .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid #d1d5db; background: #f8fafc; }
-    .yes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
-    .no { background: #f9fafb; color: #6b7280; }
-    .changed { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid rgba(0, 160, 222, 0.15); text-align: left; vertical-align: top; }
+    th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%); color: #0b1220; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+    td { color: #e2e8f0; background: rgba(9, 17, 31, 0.92); }
+    tr:hover td { background: rgba(255, 123, 0, 0.12); }
+    .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 11px; border: 1px solid rgba(148, 198, 255, 0.35); background: rgba(3, 12, 28, 0.85); color: #dbeafe; }
+    .yes { background: rgba(14, 169, 96, 0.15); color: #34d399; border-color: rgba(14, 169, 96, 0.5); }
+    .no { background: rgba(9, 17, 31, 0.72); color: rgba(203, 213, 225, 0.85); }
+    .changed { background: rgba(251, 191, 36, 0.16); color: #fcd34d; border-color: rgba(251, 191, 36, 0.5); }
     .diff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .box { border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px; background: #fff; white-space: pre-wrap; word-break: break-word; }
-    .box b { display: block; margin-bottom: 6px; font-size: 12px; color: #374151; }
-    .status { margin-top: 8px; font-size: 13px; }
+    .box { border: 1px solid rgba(0, 160, 222, 0.22); border-radius: 8px; padding: 8px; background: rgba(3, 12, 28, 0.82); white-space: pre-wrap; word-break: break-word; color: #e2e8f0; }
+    .box b { display: block; margin-bottom: 6px; font-size: 12px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.06em; }
+    .status { margin-top: 2px; font-size: 13px; }
+    .back-to-pitwall { display: inline-flex; align-items: center; gap: 8px; background: rgba(3, 12, 28, 0.85); border: 1px solid rgba(255, 123, 0, 0.65); color: #fefcf7; padding: 8px 14px; border-radius: 999px; text-decoration: none; font-weight: 600; transition: all .2s ease; }
+    .back-to-pitwall:hover { background: rgba(255, 123, 0, 0.92); color: #06141f; transform: translateY(-1px); }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .diff { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -38,7 +46,8 @@
   <div class="wrap">
     <div class="top">
       <div>
-        <h1>Audio Approvals Report</h1>
+        <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+        <h1><i class="fas fa-chart-column"></i> Audio Approvals Report</h1>
         <div class="muted" id="metaLine">Loading...</div>
       </div>
       <div class="controls">
