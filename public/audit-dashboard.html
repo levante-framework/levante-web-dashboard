@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pitwall Data Audit Dashboard</title>
+  <link href="./styles.css" rel="stylesheet"/>
+  <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
+  <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" referrerpolicy="no-referrer" rel="stylesheet"/>
   <style>
     :root {
       --bg: #0b1220;
@@ -17,24 +20,59 @@
     }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #090f1a, #111f3a);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%);
       color: var(--text);
       min-height: 100vh;
     }
     .wrap {
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 32px 16px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .back-to-pitwall {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(3, 12, 28, 0.85);
+      border: 1px solid rgba(255, 123, 0, 0.65);
+      color: #fefcf7;
+      padding: 8px 14px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all .2s ease;
+      margin-bottom: 12px;
+    }
+    .back-to-pitwall:hover {
+      background: rgba(255, 123, 0, 0.92);
+      color: #06141f;
+      transform: translateY(-1px);
     }
     h1 {
       margin: 0 0 8px;
-      font-size: 26px;
-      letter-spacing: 0.2px;
+      font-size: 2rem;
+      font-weight: 600;
+      color: #ffb347;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     .sub {
-      color: var(--muted);
+      color: rgba(203, 213, 225, 0.78);
       margin-bottom: 20px;
+      font-size: 13px;
     }
     .toolbar {
       display: flex;
@@ -43,16 +81,26 @@
       margin-bottom: 20px;
       flex-wrap: wrap;
     }
-    select, .pill, button {
-      background: var(--panel);
-      color: var(--text);
+    select, .pill, button, input {
+      background: rgba(3, 12, 28, 0.85);
+      color: #e2e8f0;
       border: 1px solid #263a63;
       border-radius: 10px;
       padding: 8px 12px;
       font-size: 14px;
     }
+    input::placeholder {
+      color: #8ea1c7;
+    }
     button {
       cursor: pointer;
+      background: rgba(255, 123, 0, 0.92);
+      color: #0b1220;
+      border-color: rgba(255, 123, 0, 0.65);
+      font-weight: 600;
+    }
+    button:hover {
+      background: #ff8b1f;
     }
     .grid {
       display: grid;
@@ -87,14 +135,16 @@
       gap: 12px;
     }
     .panel {
-      background: rgba(16, 27, 49, 0.84);
-      border: 1px solid #22355b;
+      background: rgba(9, 17, 31, 0.92);
+      border: 1px solid rgba(0, 160, 222, 0.24);
       border-radius: 14px;
       padding: 14px;
+      box-shadow: 0 24px 56px rgba(2, 6, 23, 0.52);
     }
     .panel h2 {
       margin: 0 0 10px;
       font-size: 16px;
+      color: #f8fafc;
     }
     table {
       width: 100%;
@@ -108,8 +158,12 @@
       vertical-align: top;
     }
     th {
-      color: var(--muted);
-      font-weight: 600;
+      color: #0b1220;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 11px;
+      background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%);
     }
     .small {
       font-size: 12px;
@@ -148,9 +202,13 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Pitwall Data Audit Dashboard</h1>
-    <div id="meta" class="sub">Loading latest audit snapshot...</div>
-    <div id="debugTrace" class="small">Debug: booting script...</div>
+    <div class="top">
+      <div>
+        <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+        <h1><i class="fas fa-database"></i> Pitwall Data Audit Dashboard</h1>
+        <div id="meta" class="sub">Loading latest audit snapshot...</div>
+      </div>
+    </div>
 
     <div id="dashboardRoot" class="hidden">
       <div class="toolbar">
@@ -228,10 +286,7 @@
 
   <script>
     function trace(message) {
-      const el = document.getElementById('debugTrace');
-      if (!el) return;
-      const stamp = new Date().toISOString().slice(11, 19);
-      el.textContent = `Debug ${stamp}: ${message}`;
+      void message;
     }
 
     function text(id, value) {
