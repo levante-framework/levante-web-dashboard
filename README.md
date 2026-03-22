@@ -15,6 +15,7 @@ Web dashboard application for managing Levante audio content, translations, and 
     - Checksum comparison option (MD5/CRC32C) - ignores file dates when enabled
     - Text filtering and exclude patterns
     - Automatically filters out 0-byte files and empty folders
+  - **Firestore Audit Dashboard** – View restricted audit/diff snapshots sourced from private GCS via `/api/audit-dashboard-data`
 - **Locate Me** – Dual-path location discovery:
   - `Locate Me (GPS)` for browser geolocation flow
   - `Locate Me (Choose)` for country-first manual lookup (locality/postal autocomplete without GPS consent)
@@ -182,6 +183,11 @@ Required/optional keys used by current translation and AI features:
 - `LEVANTE_TRANSLATIONS_PROJECT_ID` – optional Crowdin project ID (defaults to `756721`)
 - `OPENAI_API_KEY` – enables AI-assisted translation judging
 - `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4.1`)
+- `GCP_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` – JSON credentials for private GCS-backed APIs
+- `AUDIT_DASHBOARD_BUCKET` – optional bucket override for the audit dashboard API (defaults to `levante-tools`)
+- `AUDIT_DASHBOARD_OBJECT` – optional object path override (defaults to `pitwall/audit-mini-dashboard/dashboard-data.json`)
+- `AUDIT_DASHBOARD_REQUIRE_AUTH` – optional auth toggle (`true` by default)
+- `AUDIT_DASHBOARD_ALLOWED_ORGS` – comma-separated GitHub org allowlist for audit data access (defaults to `levante-framework`)
 
 ### Version Management
 
@@ -247,6 +253,24 @@ Compares files between `levante-assets-dev` and `levante-assets-prod` GCS bucket
 **Example:**
 ```bash
 curl "https://levante-pitwall.vercel.app/api/asset-audit?prefix=audio/&exclude=pt-PT&checksum=false"
+```
+
+### `/api/audit-dashboard-data`
+Loads private Firestore audit dashboard JSON from GCS for the Pitwall page `public/audit-dashboard.html`.
+
+**Auth behavior (default):**
+- Requires valid GitHub session cookie (`levante_auth_session`)
+- Requires membership in one of the orgs from `AUDIT_DASHBOARD_ALLOWED_ORGS`
+
+**Configuration:**
+- `AUDIT_DASHBOARD_BUCKET` (default `levante-tools`)
+- `AUDIT_DASHBOARD_OBJECT` (default `pitwall/audit-mini-dashboard/dashboard-data.json`)
+- `AUDIT_DASHBOARD_REQUIRE_AUTH` (default `true`)
+- `AUDIT_DASHBOARD_ALLOWED_ORGS` (default `levante-framework`)
+
+**Example:**
+```bash
+curl "https://levante-pitwall.vercel.app/api/audit-dashboard-data"
 ```
 
 ### `/api/adm-pack`

@@ -628,36 +628,18 @@
   })();
 
   // Tasks Comparison Modal
-  function openTasksComparison() {
+  const REQUIRED_GITHUB_ORG = 'levante-framework';
+  let comparisonGithubLogin = '';
+
+  async function openTasksComparison() {
     const modal = document.getElementById('tasksComparisonModal');
     if (!modal) return;
-    
-    // Check if Firebase is available
-    if (typeof firebase === 'undefined' || !firebase.auth) {
-      // Show sign-in modal with error message
-      showSignInModal(() => {
-        // After successful sign-in, open comparison modal
-        modal.classList.add('active');
-        loadTasksComparison();
-      });
+
+    if (!comparisonGithubLogin) {
+      showSignInModal(`Enter your GitHub username to verify membership in ${REQUIRED_GITHUB_ORG}.`);
       return;
     }
-    
-    // Check if user is authenticated
-    const auth = firebase.auth();
-    const user = auth.currentUser;
-    
-    if (!user) {
-      // Show sign-in modal first
-      showSignInModal(() => {
-        // After successful sign-in, open comparison modal
-        modal.classList.add('active');
-        loadTasksComparison();
-      });
-      return;
-    }
-    
-    // User is authenticated, proceed with loading
+
     modal.classList.add('active');
     loadTasksComparison();
   }
@@ -674,53 +656,11 @@
     container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading comparison data...</div>';
     
     try {
-      // Get user auth token (required for Firestore access)
-      let authToken = null;
-      
-      // Check Firebase availability first
-      if (typeof firebase === 'undefined' || !firebase.auth) {
-        // Close comparison modal and show sign-in modal
-        closeTasksComparison();
-        showSignInModal(() => {
-          openTasksComparison();
-        });
-        return;
-      }
-      
-      const auth = firebase.auth();
-      const user = auth.currentUser;
-      
-      if (!user) {
-        // User not authenticated - close comparison modal and show sign-in modal
-        closeTasksComparison();
-        showSignInModal(() => {
-          openTasksComparison();
-        });
-        return;
-      }
-      
-      // User is authenticated, get token
-      try {
-        authToken = await user.getIdToken();
-        console.log('Using user auth token for Firestore access');
-      } catch (authError) {
-        console.error('Auth error:', authError);
-        // Close comparison modal and show sign-in modal
-        closeTasksComparison();
-        showSignInModal(() => {
-          openTasksComparison();
-        });
-        return;
-      }
-      
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
-      };
-      
       const response = await fetch('/api/tasks-comparison', { 
         cache: 'no-cache',
-        headers: headers
+        headers: {
+          'X-Levante-GitHub-Login': comparisonGithubLogin
+        }
       });
       
       if (!response.ok) {
@@ -733,15 +673,10 @@
         }
         
         if (response.status === 401 || response.status === 403) {
-          // Clear auth state and show sign-in modal
-          if (typeof firebase !== 'undefined' && firebase.auth) {
-            await firebase.auth().signOut();
-          }
           // Close comparison modal and show sign-in modal
           closeTasksComparison();
-          showSignInModal(() => {
-            openTasksComparison();
-          });
+          comparisonGithubLogin = '';
+          showSignInModal(errorText || `GitHub org membership required: ${REQUIRED_GITHUB_ORG}`);
           return;
         }
         throw new Error(`HTTP ${response.status}: ${errorText}`);
@@ -755,9 +690,8 @@
       // If auth error, close comparison modal and show sign-in modal
       if (error.message.includes('Authentication') || error.message.includes('sign in') || error.message.includes('auth')) {
         closeTasksComparison();
-        showSignInModal(() => {
-          openTasksComparison();
-        });
+        comparisonGithubLogin = '';
+        showSignInModal(error.message || `GitHub org membership required: ${REQUIRED_GITHUB_ORG}`);
         return;
       }
       
@@ -905,19 +839,12 @@
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <p>Please sign in with your Firebase credentials to compare tasks between dev and prod environments.</p>
+    <p>Enter your GitHub username. We will verify membership in <strong>levante-framework</strong> before opening Compare Dev/Prod.</p>
     
     <div class="signin-form">
-      <input type="email" id="signInEmail" placeholder="Email address" autocomplete="email" />
-      <input type="password" id="signInPassword" placeholder="Password" autocomplete="current-password" />
-      <button id="signInSubmit" onclick="signInWithEmail()">
-        <i class="fas fa-envelope"></i> Sign In with Email
-      </button>
-      
-      <div class="signin-divider">or</div>
-      
-      <button id="signInGoogle" class="signin-google-btn" onclick="signInWithGoogle()">
-        <i class="fab fa-google"></i> Sign In with Google
+      <input type="text" id="githubUsernameInput" placeholder="GitHub username (e.g., octocat)" autocomplete="username" />
+      <button id="verifyGithubMembershipBtn" class="signin-google-btn" onclick="verifyGithubMembershipForComparison()">
+        <i class="fab fa-github"></i> Verify Membership
       </button>
       
       <div id="signInError" class="signin-error" style="display: none;"></div>
@@ -925,158 +852,78 @@
   </div>
 </div>
 
-<!-- Firebase SDK for authentication -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="./firebase-config.js"></script>
 <script>
-  // Initialize Firebase for Pitwall (using dev project config)
-  let firebaseAuthReady = false;
-  if (typeof firebase !== 'undefined' && window.FIREBASE_CONFIG) {
-    try {
-      // Check if Firebase is already initialized
-      if (!firebase.apps || firebase.apps.length === 0) {
-        firebase.initializeApp(window.FIREBASE_CONFIG);
-        console.log('Firebase initialized for Pitwall');
-      } else {
-        console.log('Firebase already initialized');
-      }
-      
-      // Check auth state
-      const auth = firebase.auth();
-      auth.onAuthStateChanged((user) => {
-        firebaseAuthReady = true;
-        if (user) {
-          console.log('User authenticated:', user.email || 'Anonymous');
-        } else {
-          console.log('No user authenticated');
-        }
-      });
-      
-      // Show error div when there's an error
-      const errorDiv = document.getElementById('signInError');
-      if (errorDiv) {
-        const checkError = () => {
-          if (errorDiv.textContent) {
-            errorDiv.style.display = 'block';
-          } else {
-            errorDiv.style.display = 'none';
-          }
-        };
-        // Use MutationObserver to watch for text changes
-        const observer = new MutationObserver(checkError);
-        observer.observe(errorDiv, { childList: true, characterData: true, subtree: true });
-        checkError();
-      }
-    } catch (error) {
-      console.warn('Firebase initialization error:', error);
-    }
-  }
-  
-  // Sign-in modal functions
-  let signInSuccessCallback = null;
-  
-  function showSignInModal(onSuccess) {
+  function showSignInModal(message) {
     const modal = document.getElementById('signInModal');
     if (!modal) return;
     
-    signInSuccessCallback = onSuccess || null;
     modal.classList.add('active');
     
-    // Clear any previous errors and form fields
     const errorDiv = document.getElementById('signInError');
-    const emailInput = document.getElementById('signInEmail');
-    const passwordInput = document.getElementById('signInPassword');
-    if (errorDiv) errorDiv.textContent = '';
-    if (emailInput) emailInput.value = '';
-    if (passwordInput) passwordInput.value = '';
+    if (errorDiv) {
+      const text = String(message || '').trim();
+      errorDiv.textContent = text;
+      errorDiv.style.display = text ? 'block' : 'none';
+    }
+
+    const usernameInput = document.getElementById('githubUsernameInput');
+    if (usernameInput && !usernameInput.value) {
+      usernameInput.value = comparisonGithubLogin || '';
+      usernameInput.focus();
+    }
+  }
+
+  async function verifyGithubMembershipForComparison() {
+    const input = document.getElementById('githubUsernameInput');
+    const errorDiv = document.getElementById('signInError');
+    const button = document.getElementById('verifyGithubMembershipBtn');
+    if (!input || !errorDiv || !button) return;
+
+    const username = String(input.value || '').trim();
+    if (!username) {
+      errorDiv.textContent = 'Please enter a GitHub username.';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    button.disabled = true;
+    errorDiv.textContent = '';
+    errorDiv.style.display = 'none';
+
+    try {
+      const response = await fetch(`/api/github-org-membership?username=${encodeURIComponent(username)}`, {
+        cache: 'no-store'
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || `Membership check failed (${response.status})`);
+      }
+      if (payload?.member !== true) {
+        throw new Error(`GitHub username "${username}" is not a member of ${REQUIRED_GITHUB_ORG}.`);
+      }
+      comparisonGithubLogin = username;
+      closeSignInModal();
+      openTasksComparison();
+    } catch (error) {
+      errorDiv.textContent = error?.message || String(error);
+      errorDiv.style.display = 'block';
+    } finally {
+      button.disabled = false;
+    }
   }
   
   function closeSignInModal() {
     const modal = document.getElementById('signInModal');
     if (modal) modal.classList.remove('active');
   }
-  
-  async function signInWithEmail() {
-    const emailInput = document.getElementById('signInEmail');
-    const passwordInput = document.getElementById('signInPassword');
-    const errorDiv = document.getElementById('signInError');
-    const submitBtn = document.getElementById('signInSubmit');
-    
-    if (!emailInput || !passwordInput || !errorDiv) return;
-    
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-    
-    if (!email || !password) {
-      errorDiv.textContent = 'Please enter both email and password.';
-      return;
-    }
-    
-    submitBtn.disabled = true;
-    errorDiv.textContent = '';
-    
-    try {
-      if (typeof firebase === 'undefined' || !firebase.auth) {
-        throw new Error('Firebase not available');
-      }
-      
-      const auth = firebase.auth();
-      await auth.signInWithEmailAndPassword(email, password);
-      
-      console.log('Signed in successfully');
-      closeSignInModal();
-      
-      // Call success callback if provided
-      if (signInSuccessCallback) {
-        signInSuccessCallback();
-      }
-    } catch (error) {
-      console.error('Sign-in error:', error);
-      errorDiv.textContent = error.message || 'Sign-in failed. Please try again.';
-      submitBtn.disabled = false;
-    }
-  }
-  
-  async function signInWithGoogle() {
-    const errorDiv = document.getElementById('signInError');
-    const googleBtn = document.getElementById('signInGoogle');
-    
-    if (!errorDiv || !googleBtn) return;
-    
-    googleBtn.disabled = true;
-    errorDiv.textContent = '';
-    
-    try {
-      if (typeof firebase === 'undefined' || !firebase.auth) {
-        throw new Error('Firebase not available');
-      }
-      
-      const auth = firebase.auth();
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithPopup(provider);
-      
-      console.log('Signed in with Google successfully');
-      closeSignInModal();
-      
-      // Call success callback if provided
-      if (signInSuccessCallback) {
-        signInSuccessCallback();
-      }
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      errorDiv.textContent = error.message || 'Google sign-in failed. Please try again.';
-      googleBtn.disabled = false;
-    }
-  }
-  
-  // Handle Enter key in password field
+
   document.addEventListener('DOMContentLoaded', () => {
-    const passwordInput = document.getElementById('signInPassword');
-    if (passwordInput) {
-      passwordInput.addEventListener('keypress', (e) => {
+    const input = document.getElementById('githubUsernameInput');
+    if (input) {
+      input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-          signInWithEmail();
+          e.preventDefault();
+          verifyGithubMembershipForComparison();
         }
       });
     }

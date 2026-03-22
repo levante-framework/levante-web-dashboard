@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pitwall Data Audit Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #101b31;
+      --muted: #8ea1c7;
+      --text: #eaf0ff;
+      --ok: #3ddc97;
+      --warn: #ffd166;
+      --bad: #ef476f;
+      --card: #12203a;
+    }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #090f1a, #111f3a);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      letter-spacing: 0.2px;
+    }
+    .sub {
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    select, .pill, button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid #263a63;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: rgba(16, 27, 49, 0.84);
+      border: 1px solid #22355b;
+      border-radius: 14px;
+      padding: 14px;
+      backdrop-filter: blur(4px);
+    }
+    .card .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+    .card .value {
+      font-size: 26px;
+      font-weight: 700;
+    }
+    .value.sm { font-size: 18px; }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .sections {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+    }
+    .panel {
+      background: rgba(16, 27, 49, 0.84);
+      border: 1px solid #22355b;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid #24385f;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .small {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .triage {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .triage .mini {
+      background: var(--card);
+      border: 1px solid #24385f;
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+    .error-panel {
+      margin-top: 24px;
+      background: rgba(35, 18, 31, 0.92);
+      border: 1px solid #73344f;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .error-panel h2 {
+      margin-top: 0;
+      color: #ff8fab;
+    }
+    @media (max-width: 960px) {
+      .sections { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Pitwall Data Audit Dashboard</h1>
+    <div id="meta" class="sub">Loading latest audit snapshot...</div>
+
+    <div id="dashboardRoot" class="hidden">
+      <div class="toolbar">
+        <label for="env">Environment:</label>
+        <select id="env">
+          <option value="dev">dev</option>
+          <option value="prod">prod</option>
+        </select>
+        <span id="regressionPill" class="pill">status</span>
+      </div>
+
+      <div class="grid">
+        <div class="card"><div class="label">Total Issues</div><div id="totalIssues" class="value">-</div></div>
+        <div class="card"><div class="label">Errors</div><div id="errors" class="value bad">-</div></div>
+        <div class="card"><div class="label">Warnings</div><div id="warnings" class="value warn">-</div></div>
+        <div class="card"><div class="label">Issue Codes</div><div id="codes" class="value sm">-</div></div>
+        <div class="card"><div class="label">Survey Issues</div><div id="surveyIssues" class="value sm">-</div></div>
+        <div class="card"><div class="label">Regression Delta</div><div id="delta" class="value sm">-</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>Triage Breakdown</h2>
+        <div class="triage">
+          <div class="mini"><div class="small">likely_corruption</div><div id="triageCorruption" class="value sm">-</div></div>
+          <div class="mini"><div class="small">likely_legacy</div><div id="triageLegacy" class="value sm">-</div></div>
+          <div class="mini"><div class="small">needs_review</div><div id="triageNeeds" class="value sm">-</div></div>
+        </div>
+      </div>
+
+      <div class="sections" style="margin-top:12px">
+        <div class="panel">
+          <h2>Top Audit Issue Codes</h2>
+          <table>
+            <thead><tr><th>Code</th><th>Count</th></tr></thead>
+            <tbody id="topIssuesBody"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2>Top Survey Integrity Codes</h2>
+          <table>
+            <thead><tr><th>Code</th><th>Count</th></tr></thead>
+            <tbody id="surveyIssuesBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h2>Diff / Regression Details</h2>
+        <table>
+          <thead><tr><th>Code</th><th>Delta</th><th>Category</th></tr></thead>
+          <tbody id="regressionBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="errorRoot" class="error-panel hidden">
+      <h2>Unable to load restricted audit data</h2>
+      <p id="errorText"></p>
+      <button id="loginButton" class="hidden" type="button">Sign in with GitHub</button>
+    </div>
+  </div>
+
+  <script>
+    function text(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function fillTable(id, rows, fallback) {
+      const body = document.getElementById(id);
+      body.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="3">' + (fallback || 'None') + '</td>';
+        body.appendChild(tr);
+        return;
+      }
+      for (const row of rows) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = row;
+        body.appendChild(tr);
+      }
+    }
+
+    function render(env, payload, source) {
+      const data = payload?.envs?.[env];
+      if (!data) {
+        throw new Error('Missing env data for "' + env + '".');
+      }
+      const totals = data.totals || {};
+      const triage = data.triageByCategory || {};
+      text('meta', 'Generated ' + (payload.generatedAt || '-') + ' | source: gs://' + source.bucket + '/' + source.object);
+      text('totalIssues', totals.issues ?? '-');
+      text('errors', totals.errors ?? '-');
+      text('warnings', totals.warnings ?? '-');
+      text('codes', totals.issueCodes ?? '-');
+      text('surveyIssues', data.survey?.totals?.issues ?? 0);
+      text('delta', (data.diff?.deltaIssues >= 0 ? '+' : '') + (data.diff?.deltaIssues ?? 0));
+      text('triageCorruption', triage.likely_corruption?.issues ?? 0);
+      text('triageLegacy', triage.likely_legacy?.issues ?? 0);
+      text('triageNeeds', triage.needs_review?.issues ?? 0);
+
+      const pill = document.getElementById('regressionPill');
+      if (data.diff?.hasRegression) {
+        pill.textContent = 'REGRESSION';
+        pill.style.color = '#ef476f';
+      } else {
+        pill.textContent = 'NO REGRESSION';
+        pill.style.color = '#3ddc97';
+      }
+
+      fillTable(
+        'topIssuesBody',
+        (data.topIssues || []).map((x) => '<tr><td><code>' + x.code + '</code></td><td>' + x.count + '</td></tr>'),
+        'No issues'
+      );
+      fillTable(
+        'surveyIssuesBody',
+        (data.survey?.topIssues || []).map((x) => '<tr><td><code>' + x.code + '</code></td><td>' + x.count + '</td></tr>'),
+        'No survey issues'
+      );
+
+      const changed = [...(data.diff?.newIssueCodes || []), ...(data.diff?.increased || [])];
+      fillTable(
+        'regressionBody',
+        changed.map(
+          (x) =>
+            '<tr><td><code>' + x.code + '</code></td><td>'
+            + (x.delta >= 0 ? '+' : '')
+            + x.delta
+            + '</td><td>'
+            + (x.category || '-')
+            + '</td></tr>'
+        ),
+        'No increased issue codes'
+      );
+    }
+
+    function showError(message, loginUrl) {
+      document.getElementById('dashboardRoot').classList.add('hidden');
+      const errorRoot = document.getElementById('errorRoot');
+      errorRoot.classList.remove('hidden');
+      text('meta', 'Audit data unavailable');
+      text('errorText', message || 'Unknown error');
+      const loginButton = document.getElementById('loginButton');
+      if (loginUrl) {
+        loginButton.classList.remove('hidden');
+        loginButton.onclick = () => {
+          window.location.assign(loginUrl);
+        };
+      } else {
+        loginButton.classList.add('hidden');
+      }
+    }
+
+    async function loadDashboardData() {
+      const response = await fetch('/api/audit-dashboard-data', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = new Error(payload?.message || 'Failed to load audit dashboard data.');
+        err.status = response.status;
+        err.loginUrl = payload?.loginUrl || null;
+        throw err;
+      }
+      return payload;
+    }
+
+    (async () => {
+      try {
+        const apiPayload = await loadDashboardData();
+        const payload = apiPayload?.data || {};
+        const source = apiPayload?.source || { bucket: '-', object: '-' };
+        const select = document.getElementById('env');
+        document.getElementById('dashboardRoot').classList.remove('hidden');
+        select.addEventListener('change', () => render(select.value, payload, source));
+        render(select.value, payload, source);
+      } catch (error) {
+        showError(error.message, error.loginUrl);
+      }
+    })();
+  </script>
+</body>
+</html>

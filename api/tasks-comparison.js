@@ -2,6 +2,7 @@
  * API endpoint to compare tasks and variants between dev and prod Firestore projects
  * Uses Firestore REST API :runQuery endpoint
  */
+import { checkGithubOrgMembershipByLogin, normalizeGithubLogin } from '../lib/server/github-org-check.js';
 
 // Firebase Admin project configurations
 const FIREBASE_CONFIGS = {
@@ -198,7 +199,7 @@ async function fetchTasksAndVariants(projectId, apiKey, authToken = null) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Levante-GitHub-Login');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -211,6 +212,38 @@ export default async function handler(req, res) {
   }
 
   try {
+    const requiredOrg = String(process.env.GITHUB_REQUIRED_ORG || 'levante-framework').trim().toLowerCase();
+    const loginFromHeader = req.headers['x-levante-github-login'] || req.headers['X-Levante-GitHub-Login'];
+    const loginFromQuery = req.query?.githubLogin;
+    const githubLogin = normalizeGithubLogin(loginFromHeader || loginFromQuery || '');
+
+    if (!githubLogin) {
+      return res.status(401).json({
+        error: 'GitHub membership required',
+        message: `Enter your GitHub username to verify membership in ${requiredOrg}.`
+      });
+    }
+
+    const orgCheck = await checkGithubOrgMembershipByLogin(githubLogin, requiredOrg);
+    if (!orgCheck.success) {
+      if (orgCheck.error === 'missing_github_token') {
+        return res.status(500).json({
+          error: 'Server configuration error',
+          message: 'Missing GITHUB_TOKEN for org membership checks.'
+        });
+      }
+      return res.status(502).json({
+        error: 'GitHub membership check failed',
+        message: orgCheck.message || orgCheck.error || 'Unable to verify GitHub org membership.'
+      });
+    }
+    if (!orgCheck.allowed) {
+      return res.status(403).json({
+        error: 'Forbidden',
+        message: `Access denied. GitHub username "${githubLogin}" is not a member of ${requiredOrg}.`
+      });
+    }
+
     // Try to use service account credentials first (preferred - no user login required)
     let authToken = await getServiceAccountAccessToken();
     
@@ -222,10 +255,10 @@ export default async function handler(req, res) {
       if (!authToken) {
         return res.status(401).json({ 
           error: 'Authentication required', 
-          message: 'Service account credentials (GCP_SERVICE_ACCOUNT_JSON) not configured. Please configure in Vercel project settings or sign in with Firebase.' 
+          message: 'Service account credentials (GCP_SERVICE_ACCOUNT_JSON) not configured.' 
         });
       }
-      console.log('Tasks comparison request - using user auth token (fallback)');
+      console.log('Tasks comparison request - using bearer auth token (fallback)');
     } else {
       console.log('Tasks comparison request - using service account token');
     }
