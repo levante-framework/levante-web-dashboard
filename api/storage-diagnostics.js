@@ -25,6 +25,9 @@ export default async function handler(req, res) {
   const validationBucket = String(
     process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools'
   ).trim();
+  const auditObject = String(
+    process.env.AUDIT_DASHBOARD_OBJECT || 'pitwall/audit-mini-dashboard/dashboard-data.json'
+  ).trim().replace(/^\/+/, '');
 
   const diagnostics = {
     success: true,
@@ -32,12 +35,16 @@ export default async function handler(req, res) {
     buckets: {
       validationBucketResolved: validationBucket,
       assetsDevBucketResolved: String(process.env.ASSETS_DEV_BUCKET || process.env.AUDIO_DEV_BUCKET || 'levante-assets-dev').trim(),
-      assetsDraftBucketResolved: String(process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft').trim()
+      assetsDraftBucketResolved: String(process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft').trim(),
+      auditDashboardObjectResolved: auditObject
     },
     gcs: {
       clientInitialized: false,
       validationBucketAccessible: false,
-      validationBucketError: null
+      validationBucketError: null,
+      auditDashboardObjectExists: false,
+      auditDashboardObjectReadable: false,
+      auditDashboardObjectError: null
     }
   };
 
@@ -54,6 +61,18 @@ export default async function handler(req, res) {
       diagnostics.gcs.validationBucketAccessible = true;
     } catch (error) {
       diagnostics.gcs.validationBucketError = error?.message || String(error);
+    }
+
+    try {
+      const file = storage.bucket(validationBucket).file(auditObject);
+      const [exists] = await file.exists();
+      diagnostics.gcs.auditDashboardObjectExists = exists === true;
+      if (exists) {
+        await file.download({ start: 0, end: 1024 });
+        diagnostics.gcs.auditDashboardObjectReadable = true;
+      }
+    } catch (error) {
+      diagnostics.gcs.auditDashboardObjectError = error?.message || String(error);
     }
 
     return res.status(200).json(diagnostics);

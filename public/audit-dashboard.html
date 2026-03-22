@@ -150,6 +150,7 @@
   <div class="wrap">
     <h1>Pitwall Data Audit Dashboard</h1>
     <div id="meta" class="sub">Loading latest audit snapshot...</div>
+    <div id="debugTrace" class="small">Debug: booting script...</div>
 
     <div id="dashboardRoot" class="hidden">
       <div class="toolbar">
@@ -226,6 +227,13 @@
   </div>
 
   <script>
+    function trace(message) {
+      const el = document.getElementById('debugTrace');
+      if (!el) return;
+      const stamp = new Date().toISOString().slice(11, 19);
+      el.textContent = `Debug ${stamp}: ${message}`;
+    }
+
     function text(id, value) {
       document.getElementById(id).textContent = value;
     }
@@ -375,10 +383,12 @@
     }
 
     async function loadDashboardData() {
+      trace('requesting /api/audit-dashboard-data');
       const response = await fetch('/api/audit-dashboard-data', {
         cache: 'no-store',
         credentials: 'include',
       });
+      trace(`audit data response: ${response.status}`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const err = new Error(payload?.message || 'Failed to load audit dashboard data.');
@@ -392,10 +402,12 @@
     }
 
     async function loadDownloadableFiles() {
+      trace('requesting /api/audit-dashboard-files?action=list');
       const response = await fetch('/api/audit-dashboard-files?action=list', {
         cache: 'no-store',
         credentials: 'include',
       });
+      trace(`download files response: ${response.status}`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const err = new Error(payload?.message || 'Failed to load downloadable files.');
@@ -454,8 +466,10 @@
     }
 
     (async () => {
+      trace('init started');
       const authState = readAuthStateFromUrl();
       if (authState.authError) {
+        trace('authError found in URL; showing access panel');
         showError(authState.authError, getLoginUrl(), {
           hint: 'If this keeps repeating, your org may require GitHub SSO authorization for this OAuth app.',
           actionUrl: authState.authSsoUrl || authState.authHelpUrl || '',
@@ -465,6 +479,7 @@
         return;
       }
       try {
+        trace('loading restricted audit data');
         const apiPayload = await loadDashboardData();
         const payload = apiPayload?.data || {};
         const source = apiPayload?.source || { bucket: '-', object: '-' };
@@ -494,8 +509,10 @@
           select.dataset.bound = 'true';
         }
         render(select.value, payload, source);
+        trace('dashboard rendered successfully');
         cleanupAuthParamsFromUrl();
       } catch (error) {
+        trace(`load failed: ${error?.message || 'unknown error'}`);
         const requiredOrgHint = error.status === 403 && error.requiredOrgs.length > 0
           ? `This dashboard requires membership in: ${error.requiredOrgs.join(', ')}.`
           : '';
@@ -509,6 +526,14 @@
         );
       }
     })();
+
+    window.addEventListener('error', (event) => {
+      trace(`window error: ${event?.message || 'unknown'}`);
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event?.reason?.message || event?.reason || 'unknown';
+      trace(`unhandled rejection: ${String(reason)}`);
+    });
   </script>
 </body>
 </html>

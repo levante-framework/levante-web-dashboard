@@ -5,6 +5,7 @@ import {
   parseSessionCookieValue,
   SESSION_COOKIE_NAME,
 } from '../lib/server/github-auth.js';
+import { checkGithubOrgMembershipByLogin } from '../lib/server/github-org-check.js';
 
 let storageClient = null;
 
@@ -26,12 +27,28 @@ function normalizeCredentialJson(raw) {
   return normalized.replace(/\\n/g, '\n');
 }
 
+function tryParseServiceAccountJson(raw) {
+  const base = String(raw || '').trim();
+  if (!base) return null;
+  try {
+    return JSON.parse(base);
+  } catch (_) {}
+  try {
+    return JSON.parse(normalizeCredentialJson(base));
+  } catch (_) {}
+  return null;
+}
+
 function getStorage() {
   if (storageClient) return storageClient;
   try {
     const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     if (raw) {
-      const credentials = JSON.parse(normalizeCredentialJson(raw));
+      const credentials = tryParseServiceAccountJson(raw);
+      if (!credentials) {
+        console.warn('audit-dashboard-files: service account JSON parse failed');
+        return null;
+      }
       storageClient = new Storage({ credentials, projectId: credentials.project_id });
       return storageClient;
     }
@@ -108,16 +125,39 @@ export default async function handler(req, res) {
       });
     }
     if (allowedOrgs.length > 0) {
-      const sessionOrgs = Array.isArray(session.orgs)
-        ? session.orgs.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
-        : [];
-      const allowed = sessionOrgs.some((org) => allowedOrgs.includes(org));
+      const login = String(session.login || '').trim();
+      if (!login) {
+        return res.status(403).json({
+          success: false,
+          error: 'forbidden',
+          message: 'Authenticated session missing GitHub login for org membership verification.',
+          requiredOrgs: allowedOrgs,
+        });
+      }
+      let allowed = false;
+      let lastCheckError = null;
+      for (const org of allowedOrgs) {
+        try {
+          const check = await checkGithubOrgMembershipByLogin(login, org);
+          if (check.success && check.allowed) {
+            allowed = true;
+            break;
+          }
+          if (!check.success) {
+            lastCheckError = check.message || check.error || 'membership_check_failed';
+          }
+        } catch (error) {
+          lastCheckError = error?.message || String(error);
+        }
+      }
       if (!allowed) {
         return res.status(403).json({
           success: false,
           error: 'forbidden',
           message: `This endpoint requires membership in one of: ${allowedOrgs.join(', ')}`,
           requiredOrgs: allowedOrgs,
+          memberLogin: login,
+          membershipCheckError: lastCheckError || null,
         });
       }
     }

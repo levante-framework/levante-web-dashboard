@@ -1,6 +1,5 @@
 import {
   appendQueryParam,
-  checkGithubOrgMembership,
   createSessionCookieValue,
   exchangeGithubCodeForAccessToken,
   fetchGithubProfile,
@@ -70,38 +69,6 @@ export default async function handler(req, res) {
     const profile = await fetchGithubProfile(accessToken);
     if (!profile.login) {
       return redirectWithError(res, returnTo, 'github_profile_missing_login');
-    }
-
-    const requiredOrg = String(process.env.GITHUB_REQUIRED_ORG || 'levante-framework').trim().toLowerCase();
-    const orgCheck = await checkGithubOrgMembership(accessToken, requiredOrg);
-    if (!orgCheck.allowed) {
-      if (orgCheck.reason === 'github_sso_required') {
-        return redirectWithError(
-          res,
-          returnTo,
-          `GitHub SSO authorization required for ${requiredOrg}. Authorize this app in your org SSO settings and try again.`,
-          { ssoUrl: orgCheck.ssoUrl || '', actionLabel: 'Authorize GitHub SSO Access' }
-        );
-      }
-      if (orgCheck.reason === 'github_oauth_app_restricted') {
-        return redirectWithError(
-          res,
-          returnTo,
-          `GitHub OAuth app access is restricted by organization policy for ${requiredOrg}. An org owner must allow this OAuth app (or grant your account access) before login can succeed.`,
-          {
-            helpUrl: orgCheck.helpUrl || 'https://docs.github.com/articles/restricting-access-to-your-organization-s-data/',
-            actionLabel: 'Open GitHub Org Access Help'
-          }
-        );
-      }
-      if (orgCheck.reason === 'org_membership_not_found' || orgCheck.reason === 'org_membership_not_active') {
-        return redirectWithError(
-          res,
-          returnTo,
-          `Access denied. You must be an active member of GitHub organization: ${requiredOrg}.`
-        );
-      }
-      return redirectWithError(res, returnTo, `GitHub org check failed: ${orgCheck.reason}`);
     }
 
     const sessionValue = createSessionCookieValue({

@@ -121,6 +121,7 @@
 <a href="./audio-approvals-report.html"><i class="fas fa-chart-column"></i> Audio Approvals Report</a>
 <button class="pitwall-action-btn" onclick="openTasksComparison()" style="background: rgba(3, 12, 28, 0.78); border: 1px solid rgba(255, 123, 0, 0.65); color: #fefcf7; padding: 12px 22px; border-radius: 999px; font-weight: 600; letter-spacing: 0.01em; cursor: pointer; display: inline-flex; gap: 10px; align-items: center; transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease; box-shadow: 0 12px 30px rgba(2, 6, 23, 0.45); font-family: inherit; font-size: inherit;"><i class="fas fa-code-branch"></i> Compare Dev/Prod</button>
 <a href="./asset-audit.html"><i class="fas fa-clipboard-check"></i> Audit Asset Files</a>
+<a href="./audit-dashboard.html"><i class="fas fa-database"></i> Firestore Audit Dashboard</a>
 </div>
 </header>
 <section>
@@ -302,6 +303,17 @@
 <p>Track Git activity, compare deploy snapshots, and spot gaps between localization branches.</p>
 <div class="card-footer">
 <span>Review history</span>
+<i class="fas fa-arrow-right"></i>
+</div>
+</a>
+</article>
+<article class="card">
+<a href="./audit-dashboard.html">
+<i class="fas fa-database"></i>
+<h3>Firestore Audit Dashboard</h3>
+<p>Inspect restricted dev/prod Firestore audit snapshots, triage counts, and regression deltas from the secure API proxy.</p>
+<div class="card-footer">
+<span>Open audit dashboard</span>
 <i class="fas fa-arrow-right"></i>
 </div>
 </a>
@@ -629,14 +641,32 @@
 
   // Tasks Comparison Modal
   const REQUIRED_GITHUB_ORG = 'levante-framework';
-  let comparisonGithubLogin = '';
+
+  async function getGithubAuthStatus() {
+    const response = await fetch('/api/auth-me', { cache: 'no-store', credentials: 'include' });
+    if (!response.ok) throw new Error(`Auth check failed (${response.status})`);
+    const payload = await response.json();
+    return payload || {};
+  }
+
+  function startGithubSignInForComparison() {
+    const returnTo = `${window.location.pathname}?openComparison=1`;
+    const url = `/api/auth-github-start?returnTo=${encodeURIComponent(returnTo)}`;
+    window.location.assign(url);
+  }
 
   async function openTasksComparison() {
     const modal = document.getElementById('tasksComparisonModal');
     if (!modal) return;
 
-    if (!comparisonGithubLogin) {
-      showSignInModal(`Enter your GitHub username to verify membership in ${REQUIRED_GITHUB_ORG}.`);
+    try {
+      const auth = await getGithubAuthStatus();
+      if (!auth?.authenticated || !auth?.user?.login) {
+        showSignInModal('Please sign in with GitHub to access compare dev/prod.');
+        return;
+      }
+    } catch (error) {
+      showSignInModal(`GitHub auth check failed: ${error?.message || error}`);
       return;
     }
 
@@ -658,28 +688,27 @@
     try {
       const response = await fetch('/api/tasks-comparison', { 
         cache: 'no-cache',
-        headers: {
-          'X-Levante-GitHub-Login': comparisonGithubLogin
-        }
+        credentials: 'include'
       });
       
       if (!response.ok) {
         let errorText = await response.text();
+        let errorMessageText = errorText;
         try {
           const errorJson = JSON.parse(errorText);
-          errorText = errorJson.message || errorJson.error || errorText;
+          errorMessageText = errorJson.message || errorJson.error || errorText;
         } catch {
           // Keep original error text
         }
         
-        if (response.status === 401 || response.status === 403) {
+        const membershipOrAuthFailure = /GitHub organization membership required|Please sign in with GitHub|Authentication required/i.test(errorMessageText);
+        if (response.status === 401 || (response.status === 403 && membershipOrAuthFailure)) {
           // Close comparison modal and show sign-in modal
           closeTasksComparison();
-          comparisonGithubLogin = '';
-          showSignInModal(errorText || `GitHub org membership required: ${REQUIRED_GITHUB_ORG}`);
+          showSignInModal(errorMessageText || `GitHub org membership required: ${REQUIRED_GITHUB_ORG}`);
           return;
         }
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${errorMessageText}`);
       }
       
       const data = await response.json();
@@ -690,7 +719,6 @@
       // If auth error, close comparison modal and show sign-in modal
       if (error.message.includes('Authentication') || error.message.includes('sign in') || error.message.includes('auth')) {
         closeTasksComparison();
-        comparisonGithubLogin = '';
         showSignInModal(error.message || `GitHub org membership required: ${REQUIRED_GITHUB_ORG}`);
         return;
       }
@@ -839,12 +867,11 @@
         <i class="fas fa-times"></i>
       </button>
     </div>
-    <p>Enter your GitHub username. We will verify membership in <strong>levante-framework</strong> before opening Compare Dev/Prod.</p>
+    <p>Please sign in with GitHub and be a member of <strong>levante-framework</strong> to compare tasks between dev and prod environments.</p>
     
     <div class="signin-form">
-      <input type="text" id="githubUsernameInput" placeholder="GitHub username (e.g., octocat)" autocomplete="username" />
-      <button id="verifyGithubMembershipBtn" class="signin-google-btn" onclick="verifyGithubMembershipForComparison()">
-        <i class="fab fa-github"></i> Verify Membership
+      <button id="signInGithub" class="signin-google-btn" onclick="startGithubSignInForComparison()">
+        <i class="fab fa-github"></i> Sign In with GitHub
       </button>
       
       <div id="signInError" class="signin-error" style="display: none;"></div>
@@ -865,51 +892,6 @@
       errorDiv.textContent = text;
       errorDiv.style.display = text ? 'block' : 'none';
     }
-
-    const usernameInput = document.getElementById('githubUsernameInput');
-    if (usernameInput && !usernameInput.value) {
-      usernameInput.value = comparisonGithubLogin || '';
-      usernameInput.focus();
-    }
-  }
-
-  async function verifyGithubMembershipForComparison() {
-    const input = document.getElementById('githubUsernameInput');
-    const errorDiv = document.getElementById('signInError');
-    const button = document.getElementById('verifyGithubMembershipBtn');
-    if (!input || !errorDiv || !button) return;
-
-    const username = String(input.value || '').trim();
-    if (!username) {
-      errorDiv.textContent = 'Please enter a GitHub username.';
-      errorDiv.style.display = 'block';
-      return;
-    }
-
-    button.disabled = true;
-    errorDiv.textContent = '';
-    errorDiv.style.display = 'none';
-
-    try {
-      const response = await fetch(`/api/github-org-membership?username=${encodeURIComponent(username)}`, {
-        cache: 'no-store'
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(payload?.message || `Membership check failed (${response.status})`);
-      }
-      if (payload?.member !== true) {
-        throw new Error(`GitHub username "${username}" is not a member of ${REQUIRED_GITHUB_ORG}.`);
-      }
-      comparisonGithubLogin = username;
-      closeSignInModal();
-      openTasksComparison();
-    } catch (error) {
-      errorDiv.textContent = error?.message || String(error);
-      errorDiv.style.display = 'block';
-    } finally {
-      button.disabled = false;
-    }
   }
   
   function closeSignInModal() {
@@ -917,15 +899,27 @@
     if (modal) modal.classList.remove('active');
   }
 
+  // Auto-open comparison after successful GitHub callback.
   document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('githubUsernameInput');
-    if (input) {
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          verifyGithubMembershipForComparison();
-        }
-      });
+    const params = new URLSearchParams(window.location.search);
+    const auth = params.get('auth');
+    const authError = params.get('authError');
+    const openComparison = params.get('openComparison');
+
+    if (authError) {
+      showSignInModal(authError);
+    }
+    if (auth === 'success' && openComparison === '1') {
+      openTasksComparison();
+    }
+
+    if (auth || authError || openComparison) {
+      params.delete('auth');
+      params.delete('authError');
+      params.delete('openComparison');
+      const next = params.toString();
+      const clean = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash || ''}`;
+      window.history.replaceState({}, document.title, clean);
     }
   });
 </script>

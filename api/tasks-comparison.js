@@ -2,7 +2,13 @@
  * API endpoint to compare tasks and variants between dev and prod Firestore projects
  * Uses Firestore REST API :runQuery endpoint
  */
-import { checkGithubOrgMembershipByLogin, normalizeGithubLogin } from '../lib/server/github-org-check.js';
+import {
+  getSessionSecret,
+  parseCookies,
+  parseSessionCookieValue,
+  SESSION_COOKIE_NAME
+} from '../lib/server/github-auth.js';
+import { checkGithubOrgMembershipByLogin } from '../lib/server/github-org-check.js';
 
 // Firebase Admin project configurations
 const FIREBASE_CONFIGS = {
@@ -199,7 +205,7 @@ async function fetchTasksAndVariants(projectId, apiKey, authToken = null) {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Levante-GitHub-Login');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -213,14 +219,21 @@ export default async function handler(req, res) {
 
   try {
     const requiredOrg = String(process.env.GITHUB_REQUIRED_ORG || 'levante-framework').trim().toLowerCase();
-    const loginFromHeader = req.headers['x-levante-github-login'] || req.headers['X-Levante-GitHub-Login'];
-    const loginFromQuery = req.query?.githubLogin;
-    const githubLogin = normalizeGithubLogin(loginFromHeader || loginFromQuery || '');
-
-    if (!githubLogin) {
+    const secret = getSessionSecret();
+    if (!secret) {
+      return res.status(500).json({
+        error: 'Server auth misconfiguration',
+        message: 'Missing AUTH_SESSION_SECRET (or GITHUB_AUTH_SESSION_SECRET).'
+      });
+    }
+    const cookies = parseCookies(req);
+    const sessionRaw = cookies[SESSION_COOKIE_NAME];
+    const session = parseSessionCookieValue(sessionRaw, secret);
+    const githubLogin = String(session?.login || '').trim();
+    if (!session || !githubLogin) {
       return res.status(401).json({
-        error: 'GitHub membership required',
-        message: `Enter your GitHub username to verify membership in ${requiredOrg}.`
+        error: 'Authentication required',
+        message: 'Please sign in with GitHub to access tasks comparison.'
       });
     }
 
@@ -322,11 +335,15 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('tasks-comparison error:', error);
-    const statusCode = error.message.includes('401') || error.message.includes('403') ? 403 : 500;
+    const message = String(error?.message || '');
+    const isFirestorePermissionDenied = /PERMISSION_DENIED|Missing or insufficient permissions|Firestore API error \(403\)/i.test(message);
+    const statusCode = isFirestorePermissionDenied ? 500 : 500;
     res.status(statusCode).json({ 
       error: 'Failed to fetch tasks comparison', 
-      message: error.message,
-      details: error.message.includes('Firestore API error') ? 'Check that service account has Firestore access' : undefined,
+      message,
+      details: isFirestorePermissionDenied
+        ? 'Service account is authenticated but lacks Firestore read access in one or more target projects.'
+        : (message.includes('Firestore API error') ? 'Check that service account has Firestore access' : undefined),
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
