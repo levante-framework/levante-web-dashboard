@@ -5,6 +5,7 @@ import {
   parseSessionCookieValue,
   SESSION_COOKIE_NAME,
 } from '../lib/server/github-auth.js';
+import { checkGithubOrgMembershipByLogin } from '../lib/server/github-org-check.js';
 
 let storageClient = null;
 
@@ -26,12 +27,30 @@ function normalizeCredentialJson(raw) {
   return normalized.replace(/\\n/g, '\n');
 }
 
+function tryParseServiceAccountJson(raw) {
+  const base = String(raw || '').trim();
+  if (!base) return null;
+  // Try as-is first (matches how Vercel env values are typically stored).
+  try {
+    return JSON.parse(base);
+  } catch (_) {}
+  // Fallback for values wrapped in quotes or with escaped newlines.
+  try {
+    return JSON.parse(normalizeCredentialJson(base));
+  } catch (_) {}
+  return null;
+}
+
 function getStorage() {
   if (storageClient) return storageClient;
   try {
     const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
     if (raw) {
-      const credentials = JSON.parse(normalizeCredentialJson(raw));
+      const credentials = tryParseServiceAccountJson(raw);
+      if (!credentials) {
+        console.warn('audit-dashboard-data: service account JSON parse failed');
+        return null;
+      }
       storageClient = new Storage({ credentials, projectId: credentials.project_id });
       return storageClient;
     }
@@ -43,29 +62,6 @@ function getStorage() {
   }
 }
 
-function parseAllowedOrgs() {
-  return String(process.env.AUDIT_DASHBOARD_ALLOWED_ORGS || 'levante-framework')
-    .split(',')
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function getSession(req) {
-  const secret = getSessionSecret();
-  if (!secret) {
-    return { session: null, hasSecret: false };
-  }
-  const cookies = parseCookies(req);
-  const rawSession = cookies[SESSION_COOKIE_NAME];
-  const session = parseSessionCookieValue(rawSession, secret);
-  return { session, hasSecret: true };
-}
-
-function getLoginUrl(req) {
-  const currentPath = String(req?.url || '/audit-dashboard.html').split('?')[0] || '/audit-dashboard.html';
-  return `/api/auth-github-start?returnTo=${encodeURIComponent(currentPath)}`;
-}
-
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   if (req.method !== 'GET') {
@@ -73,35 +69,77 @@ export default async function handler(req, res) {
   }
 
   const requiresAuth = parseBoolean(process.env.AUDIT_DASHBOARD_REQUIRE_AUTH, true);
+  const allowedOrgs = String(process.env.AUDIT_DASHBOARD_ALLOWED_ORGS || 'levante-framework')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  let session = null;
   if (requiresAuth) {
-    const { session, hasSecret } = getSession(req);
-    if (!hasSecret) {
+    const secret = getSessionSecret();
+    if (!secret) {
       return res.status(500).json({
         success: false,
         error: 'missing_session_secret',
         message: 'Missing AUTH_SESSION_SECRET (or GITHUB_AUTH_SESSION_SECRET).',
       });
     }
+
+    const cookies = parseCookies(req);
+    const rawSession = cookies[SESSION_COOKIE_NAME];
+    session = parseSessionCookieValue(rawSession, secret);
     if (!session) {
+      const fallback = '/audit-dashboard.html';
+      let loginReturnTo = fallback;
+      const referer = String(req?.headers?.referer || '').trim();
+      if (referer) {
+        try {
+          const parsed = new URL(referer);
+          if (parsed.pathname && parsed.pathname.startsWith('/')) loginReturnTo = parsed.pathname;
+        } catch (_) {}
+      }
       return res.status(401).json({
         success: false,
         error: 'unauthorized',
         message: 'Authentication is required to access audit dashboard data.',
-        loginUrl: getLoginUrl(req),
+        loginUrl: `/api/auth-github-start?returnTo=${encodeURIComponent(loginReturnTo)}`,
       });
     }
 
-    const allowedOrgs = parseAllowedOrgs();
     if (allowedOrgs.length > 0) {
-      const sessionOrgs = Array.isArray(session.orgs)
-        ? session.orgs.map((value) => String(value || '').trim().toLowerCase()).filter(Boolean)
-        : [];
-      const allowed = sessionOrgs.some((org) => allowedOrgs.includes(org));
+      const login = String(session.login || '').trim();
+      if (!login) {
+        return res.status(403).json({
+          success: false,
+          error: 'forbidden',
+          message: 'Authenticated session missing GitHub login for org membership verification.',
+          requiredOrgs: allowedOrgs,
+        });
+      }
+      let allowed = false;
+      let lastCheckError = null;
+      for (const org of allowedOrgs) {
+        try {
+          const check = await checkGithubOrgMembershipByLogin(login, org);
+          if (check.success && check.allowed) {
+            allowed = true;
+            break;
+          }
+          if (!check.success) {
+            lastCheckError = check.message || check.error || 'membership_check_failed';
+          }
+        } catch (error) {
+          lastCheckError = error?.message || String(error);
+        }
+      }
       if (!allowed) {
         return res.status(403).json({
           success: false,
           error: 'forbidden',
           message: `This endpoint requires membership in one of: ${allowedOrgs.join(', ')}`,
+          requiredOrgs: allowedOrgs,
+          memberLogin: login,
+          membershipCheckError: lastCheckError || null,
         });
       }
     }
@@ -148,6 +186,12 @@ export default async function handler(req, res) {
     const parsed = JSON.parse(String(buffer || '{}'));
     return res.status(200).json({
       success: true,
+      viewer: session
+        ? {
+            login: String(session.login || ''),
+            orgs: Array.isArray(session.orgs) ? session.orgs : [],
+          }
+        : null,
       source: {
         bucket: bucketName,
         object: objectName,

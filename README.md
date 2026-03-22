@@ -186,6 +186,7 @@ Required/optional keys used by current translation and AI features:
 - `GCP_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` – JSON credentials for private GCS-backed APIs
 - `AUDIT_DASHBOARD_BUCKET` – optional bucket override for the audit dashboard API (defaults to `levante-tools`)
 - `AUDIT_DASHBOARD_OBJECT` – optional object path override (defaults to `pitwall/audit-mini-dashboard/dashboard-data.json`)
+- `AUDIT_DASHBOARD_DOWNLOAD_PREFIX` – optional prefix for JSON download listing (defaults to `pitwall/audit-mini-dashboard/`)
 - `AUDIT_DASHBOARD_REQUIRE_AUTH` – optional auth toggle (`true` by default)
 - `AUDIT_DASHBOARD_ALLOWED_ORGS` – comma-separated GitHub org allowlist for audit data access (defaults to `levante-framework`)
 
@@ -265,12 +266,26 @@ Loads private Firestore audit dashboard JSON from GCS for the Pitwall page `publ
 **Configuration:**
 - `AUDIT_DASHBOARD_BUCKET` (default `levante-tools`)
 - `AUDIT_DASHBOARD_OBJECT` (default `pitwall/audit-mini-dashboard/dashboard-data.json`)
+- `AUDIT_DASHBOARD_DOWNLOAD_PREFIX` (default `pitwall/audit-mini-dashboard/`)
 - `AUDIT_DASHBOARD_REQUIRE_AUTH` (default `true`)
 - `AUDIT_DASHBOARD_ALLOWED_ORGS` (default `levante-framework`)
 
 **Example:**
 ```bash
 curl "https://levante-pitwall.vercel.app/api/audit-dashboard-data"
+```
+
+### `/api/audit-dashboard-files`
+Lists/downloads JSON report files for the audit dashboard download menu (OAuth + org gated, same as `/api/audit-dashboard-data`).
+
+**Query params:**
+- `action=list` – list JSON files under `AUDIT_DASHBOARD_DOWNLOAD_PREFIX`
+- `action=download&path=<object-path>` – download one JSON object
+
+**Examples:**
+```bash
+curl "https://levante-pitwall.vercel.app/api/audit-dashboard-files?action=list"
+curl "https://levante-pitwall.vercel.app/api/audit-dashboard-files?action=download&path=pitwall/audit-mini-dashboard/dashboard-data.json"
 ```
 
 ### `/api/adm-pack`

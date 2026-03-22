@@ -203,11 +203,24 @@
           <tbody id="regressionBody"></tbody>
         </table>
       </div>
+
+      <div class="panel" style="margin-top:12px">
+        <h2>Download JSON Reports</h2>
+        <div class="toolbar" style="margin-bottom:10px;">
+          <select id="downloadFileSelect" style="min-width: 420px;">
+            <option value="">Loading available JSON files...</option>
+          </select>
+          <button id="downloadFileButton" type="button">Download selected JSON</button>
+        </div>
+        <p id="downloadMeta" class="small">Preparing file list...</p>
+      </div>
     </div>
 
     <div id="errorRoot" class="error-panel hidden">
       <h2>Unable to load restricted audit data</h2>
       <p id="errorText"></p>
+      <p id="errorHint" class="small hidden"></p>
+      <button id="actionButton" class="hidden" type="button">Open access help</button>
       <button id="loginButton" class="hidden" type="button">Sign in with GitHub</button>
     </div>
   </div>
@@ -231,6 +244,42 @@
         tr.innerHTML = row;
         body.appendChild(tr);
       }
+    }
+
+    function getReturnToPath() {
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
+      params.delete('auth');
+      params.delete('authError');
+      params.delete('authSsoUrl');
+      params.delete('authHelpUrl');
+      params.delete('authActionLabel');
+      const query = params.toString();
+      return query ? `${url.pathname}?${query}` : url.pathname;
+    }
+
+    function getLoginUrl() {
+      return '/api/auth-github-start?returnTo=' + encodeURIComponent(getReturnToPath());
+    }
+
+    function readAuthStateFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        auth: params.get('auth'),
+        authError: params.get('authError'),
+        authSsoUrl: params.get('authSsoUrl'),
+        authHelpUrl: params.get('authHelpUrl'),
+        authActionLabel: params.get('authActionLabel'),
+      };
+    }
+
+    function cleanupAuthParamsFromUrl() {
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
+      ['auth', 'authError', 'authSsoUrl', 'authHelpUrl', 'authActionLabel'].forEach((key) => params.delete(key));
+      const query = params.toString();
+      const nextUrl = query ? `${url.pathname}?${query}` : url.pathname;
+      window.history.replaceState({}, '', nextUrl);
     }
 
     function render(env, payload, source) {
@@ -287,17 +336,38 @@
       );
     }
 
-    function showError(message, loginUrl) {
+    function showError(message, loginUrl, options = {}) {
       document.getElementById('dashboardRoot').classList.add('hidden');
       const errorRoot = document.getElementById('errorRoot');
       errorRoot.classList.remove('hidden');
       text('meta', 'Audit data unavailable');
       text('errorText', message || 'Unknown error');
+
+      const errorHint = document.getElementById('errorHint');
+      if (options.hint) {
+        errorHint.classList.remove('hidden');
+        errorHint.textContent = options.hint;
+      } else {
+        errorHint.classList.add('hidden');
+        errorHint.textContent = '';
+      }
+
+      const actionButton = document.getElementById('actionButton');
+      if (options.actionUrl) {
+        actionButton.classList.remove('hidden');
+        actionButton.textContent = options.actionLabel || 'Open access help';
+        actionButton.onclick = () => {
+          window.location.assign(options.actionUrl);
+        };
+      } else {
+        actionButton.classList.add('hidden');
+      }
+
       const loginButton = document.getElementById('loginButton');
-      if (loginUrl) {
+      if (options.showLogin !== false) {
         loginButton.classList.remove('hidden');
         loginButton.onclick = () => {
-          window.location.assign(loginUrl);
+          window.location.assign(loginUrl || getLoginUrl());
         };
       } else {
         loginButton.classList.add('hidden');
@@ -313,23 +383,130 @@
       if (!response.ok) {
         const err = new Error(payload?.message || 'Failed to load audit dashboard data.');
         err.status = response.status;
+        err.code = payload?.error || '';
+        err.loginUrl = payload?.loginUrl || null;
+        err.requiredOrgs = Array.isArray(payload?.requiredOrgs) ? payload.requiredOrgs : [];
+        throw err;
+      }
+      return payload;
+    }
+
+    async function loadDownloadableFiles() {
+      const response = await fetch('/api/audit-dashboard-files?action=list', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = new Error(payload?.message || 'Failed to load downloadable files.');
+        err.status = response.status;
         err.loginUrl = payload?.loginUrl || null;
         throw err;
       }
       return payload;
     }
 
+    function formatBytes(bytes) {
+      const value = Number(bytes || 0);
+      if (!Number.isFinite(value) || value <= 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let unit = 0;
+      let current = value;
+      while (current >= 1024 && unit < units.length - 1) {
+        current /= 1024;
+        unit += 1;
+      }
+      return `${current.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+    }
+
+    function wireDownloadMenu(filePayload) {
+      const select = document.getElementById('downloadFileSelect');
+      const button = document.getElementById('downloadFileButton');
+      const meta = document.getElementById('downloadMeta');
+      const files = Array.isArray(filePayload?.files) ? filePayload.files : [];
+      select.innerHTML = '';
+      if (files.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No JSON files found in configured prefix';
+        select.appendChild(option);
+        select.disabled = true;
+        button.disabled = true;
+        meta.textContent = `No JSON files found in gs://${filePayload?.bucket || '-'}/${filePayload?.prefix || ''}`;
+        return;
+      }
+
+      for (const file of files) {
+        const option = document.createElement('option');
+        option.value = file.path;
+        option.textContent = `${file.path} (${formatBytes(file.size)})`;
+        select.appendChild(option);
+      }
+      select.disabled = false;
+      button.disabled = false;
+      meta.textContent = `${files.length} JSON file(s) available in gs://${filePayload?.bucket || '-'}/${filePayload?.prefix || ''}`;
+      button.onclick = () => {
+        const selected = String(select.value || '').trim();
+        if (!selected) return;
+        const url = `/api/audit-dashboard-files?action=download&path=${encodeURIComponent(selected)}`;
+        window.location.assign(url);
+      };
+    }
+
     (async () => {
+      const authState = readAuthStateFromUrl();
+      if (authState.authError) {
+        showError(authState.authError, getLoginUrl(), {
+          hint: 'If this keeps repeating, your org may require GitHub SSO authorization for this OAuth app.',
+          actionUrl: authState.authSsoUrl || authState.authHelpUrl || '',
+          actionLabel: authState.authActionLabel || 'Open access help',
+        });
+        cleanupAuthParamsFromUrl();
+        return;
+      }
       try {
         const apiPayload = await loadDashboardData();
         const payload = apiPayload?.data || {};
         const source = apiPayload?.source || { bucket: '-', object: '-' };
+        const viewerLogin = String(apiPayload?.viewer?.login || '').trim();
         const select = document.getElementById('env');
+        document.getElementById('errorRoot').classList.add('hidden');
         document.getElementById('dashboardRoot').classList.remove('hidden');
-        select.addEventListener('change', () => render(select.value, payload, source));
+        try {
+          const filePayload = await loadDownloadableFiles();
+          wireDownloadMenu(filePayload);
+        } catch (fileError) {
+          const fileSelect = document.getElementById('downloadFileSelect');
+          const fileButton = document.getElementById('downloadFileButton');
+          const fileMeta = document.getElementById('downloadMeta');
+          fileSelect.innerHTML = '<option value="">Unable to load file list</option>';
+          fileSelect.disabled = true;
+          fileButton.disabled = true;
+          fileMeta.textContent = fileError?.status === 404
+            ? 'Download API route not found on this deployment. Redeploy levante-web-dashboard to include /api/audit-dashboard-files.'
+            : (fileError?.message || 'Failed to load downloadable file list.');
+        }
+        if (viewerLogin) {
+          text('meta', 'Access verified for @' + viewerLogin + ' | source: gs://' + source.bucket + '/' + source.object);
+        }
+        if (!select.dataset.bound) {
+          select.addEventListener('change', () => render(select.value, payload, source));
+          select.dataset.bound = 'true';
+        }
         render(select.value, payload, source);
+        cleanupAuthParamsFromUrl();
       } catch (error) {
-        showError(error.message, error.loginUrl);
+        const requiredOrgHint = error.status === 403 && error.requiredOrgs.length > 0
+          ? `This dashboard requires membership in: ${error.requiredOrgs.join(', ')}.`
+          : '';
+        const cookieHint = authState.auth === 'success' && error.status === 401
+          ? 'Sign-in completed but no session cookie was found. Use the same Pitwall domain for login and dashboard, then try again.'
+          : '';
+        showError(
+          error.message,
+          error.loginUrl || getLoginUrl(),
+          { hint: requiredOrgHint || cookieHint },
+        );
       }
     })();
   </script>
