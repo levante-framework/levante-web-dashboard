@@ -785,17 +785,21 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
     const priorSource = inferScoreSource(result);
 
     if (approved) {
+        const nowIso = new Date().toISOString();
         if (typeof result.score === 'number') result.manualOverridePreviousScore = result.score;
         if (priorSource) result.manualOverridePreviousSource = priorSource;
         result.manualApproved = true;
-        result.manualApprovalUpdatedAt = new Date().toISOString();
+        result.manualApprovalUpdatedAt = nowIso;
+        result.updated = nowIso;
         result.score = 1.0;
         result.scoreSource = 'manual';
         result.notes = 'Manually approved';
-        result.timestamp = new Date().toISOString();
+        result.timestamp = nowIso;
     } else {
+        const nowIso = new Date().toISOString();
         result.manualApproved = false;
-        result.manualApprovalUpdatedAt = new Date().toISOString();
+        result.manualApprovalUpdatedAt = nowIso;
+        result.updated = nowIso;
         if (typeof result.manualOverridePreviousScore === 'number') {
             result.score = result.manualOverridePreviousScore;
             delete result.manualOverridePreviousScore;
@@ -814,7 +818,7 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
                 delete result.scoreSource;
             }
         }
-        result.timestamp = new Date().toISOString();
+        result.timestamp = nowIso;
     }
     dashboard.validation_results[itemId][langKey] = result;
     applyValidationUiFromResult(itemId, langCode, rowEl);

@@ -2177,8 +2177,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                     const sharedValidation = sharedResults[itemId][lang];
                                     const localValidation = localResults[itemId][lang];
 
-                                    const sharedTs = sharedValidation?.updated || sharedValidation?.timestamp || '';
-                                    const localTs = localValidation?.updated || localValidation?.timestamp || '';
+                                    const sharedTs = [sharedValidation?.updated, sharedValidation?.timestamp]
+                                        .map((value) => String(value || '').trim())
+                                        .filter(Boolean)
+                                        .sort()
+                                        .pop() || '';
+                                    const localTs = [localValidation?.updated, localValidation?.timestamp]
+                                        .map((value) => String(value || '').trim())
+                                        .filter(Boolean)
+                                        .sort()
+                                        .pop() || '';
                                     const localBack = String(localValidation?.backTranslation || '').trim();
                                     const sharedBack = String(sharedValidation?.backTranslation || '').trim();
                                     const shouldHydrateBackTranslation = !localBack && !!sharedBack;
@@ -2187,9 +2195,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                     const shouldHydrateNeedsReview =
                                         sharedValidation?.needsReview === true
                                         && localValidation?.needsReview !== true;
-                                    const shouldHydrateManualApproved =
-                                        sharedValidation?.manualApproved === true
-                                        && localValidation?.manualApproved !== true;
                                     const localReason = String(localValidation?.reason || '').trim();
                                     const sharedReason = String(sharedValidation?.reason || '').trim();
                                     const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
@@ -2198,7 +2203,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         || (sharedTs && (!localTs || sharedTs > localTs))
                                         || shouldHydrateBackTranslation
                                         || shouldHydrateNeedsReview
-                                        || shouldHydrateManualApproved
                                         || shouldHydrateReasonForReview
                                     ) {
                                         localResults[itemId][lang] = sharedValidation;

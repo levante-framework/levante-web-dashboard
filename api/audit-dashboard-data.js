@@ -8,6 +8,7 @@ import {
 import { checkGithubOrgMembershipByLogin } from '../lib/server/github-org-check.js';
 
 let storageClient = null;
+let firestoreAccessTokenCache = { token: null, expiresAt: 0 };
 
 function parseBoolean(value, fallback) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -60,6 +61,274 @@ function getStorage() {
     console.warn('audit-dashboard-data: failed to initialize storage', error?.message || error);
     return null;
   }
+}
+
+function inferEntityFromPath(path) {
+  const normalized = String(path || '').trim().replace(/^\/+/, '');
+  if (!normalized) return null;
+  const match = normalized.match(/(?:^|\/)(sites|schools|districts|organizations|orgs|admins|users)\/([^/]+)/i);
+  if (match) {
+    return {
+      kind: String(match[1]).toLowerCase(),
+      id: String(match[2] || '').trim(),
+      path: normalized,
+    };
+  }
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length >= 2) {
+    return {
+      kind: String(parts[0]).toLowerCase(),
+      id: String(parts[1]).trim(),
+      path: normalized,
+    };
+  }
+  return {
+    kind: 'unscoped',
+    id: parts[0] || normalized,
+    path: normalized,
+  };
+}
+
+function parseServiceAccountCredentials() {
+  const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  const credentials = tryParseServiceAccountJson(raw);
+  return credentials || null;
+}
+
+async function getFirestoreAccessToken() {
+  const now = Date.now();
+  if (firestoreAccessTokenCache.token && firestoreAccessTokenCache.expiresAt > now + 60_000) {
+    return firestoreAccessTokenCache.token;
+  }
+  try {
+    const credentials = parseServiceAccountCredentials();
+    const { GoogleAuth } = await import('google-auth-library');
+    const auth = credentials
+      ? new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/datastore'] })
+      : new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/datastore'] });
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    const token = tokenResponse?.token || tokenResponse || null;
+    if (!token) return null;
+    firestoreAccessTokenCache = {
+      token: String(token),
+      expiresAt: now + (50 * 60 * 1000),
+    };
+    return firestoreAccessTokenCache.token;
+  } catch (error) {
+    console.warn('audit-dashboard-data: unable to get Firestore access token', error?.message || error);
+    return null;
+  }
+}
+
+function decodeFirestoreValue(value) {
+  if (!value || typeof value !== 'object') return value;
+  if (value.stringValue !== undefined) return value.stringValue;
+  if (value.integerValue !== undefined) return Number(value.integerValue);
+  if (value.doubleValue !== undefined) return Number(value.doubleValue);
+  if (value.booleanValue !== undefined) return value.booleanValue;
+  if (value.timestampValue !== undefined) return value.timestampValue;
+  if (value.nullValue !== undefined) return null;
+  if (value.arrayValue) return (value.arrayValue.values || []).map(decodeFirestoreValue);
+  if (value.mapValue) {
+    const out = {};
+    const fields = value.mapValue.fields || {};
+    for (const [key, nested] of Object.entries(fields)) out[key] = decodeFirestoreValue(nested);
+    return out;
+  }
+  return value;
+}
+
+function normalizeSiteScope(candidate) {
+  if (!candidate || typeof candidate !== 'object') return null;
+  const id = String(candidate.id || candidate.siteId || '').trim();
+  const name = String(candidate.name || candidate.siteName || '').trim();
+  if (!id && !name) return null;
+  return {
+    kind: 'site',
+    id: id || name,
+    name: name || '',
+    label: name && id ? `${name} (${id})` : (name || id),
+  };
+}
+
+function pickUserSiteScope(userDoc) {
+  const roles = Array.isArray(userDoc?.roles) ? userDoc.roles : [];
+  for (const role of roles) {
+    const scoped = normalizeSiteScope(role);
+    if (scoped) return scoped;
+  }
+  const districtCurrent = Array.isArray(userDoc?.districts?.current) ? userDoc.districts.current : [];
+  if (districtCurrent[0]) {
+    return { kind: 'district', id: String(districtCurrent[0]), name: '', label: String(districtCurrent[0]) };
+  }
+  const schoolCurrent = Array.isArray(userDoc?.schools?.current) ? userDoc.schools.current : [];
+  if (schoolCurrent[0]) {
+    return { kind: 'school', id: String(schoolCurrent[0]), name: '', label: String(schoolCurrent[0]) };
+  }
+  const groupCurrent = Array.isArray(userDoc?.groups?.current) ? userDoc.groups.current : [];
+  if (groupCurrent[0]) {
+    return { kind: 'group', id: String(groupCurrent[0]), name: '', label: String(groupCurrent[0]) };
+  }
+  return null;
+}
+
+async function fetchUserScopeMap(projectId, userIds) {
+  const ids = Array.from(new Set((userIds || []).map((id) => String(id || '').trim()).filter(Boolean)));
+  const map = new Map();
+  if (!projectId || ids.length === 0) return map;
+  const token = await getFirestoreAccessToken();
+  if (!token) return map;
+
+  const concurrency = 8;
+  for (let i = 0; i < ids.length; i += concurrency) {
+    const slice = ids.slice(i, i + concurrency);
+    await Promise.all(slice.map(async (userId) => {
+      try {
+        const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${encodeURIComponent(userId)}`;
+        const response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const doc = await response.json().catch(() => ({}));
+        const fields = doc?.fields && typeof doc.fields === 'object' ? doc.fields : {};
+        const decoded = {};
+        for (const [fieldName, fieldValue] of Object.entries(fields)) {
+          decoded[fieldName] = decodeFirestoreValue(fieldValue);
+        }
+        const scope = pickUserSiteScope(decoded);
+        if (scope) map.set(userId, scope);
+      } catch (_) {
+        // Best-effort enrichment only.
+      }
+    }));
+  }
+  return map;
+}
+
+async function buildSiteRegressions(diff, { projectId } = {}) {
+  const changed = [
+    ...(Array.isArray(diff?.newIssueCodes) ? diff.newIssueCodes : []),
+    ...(Array.isArray(diff?.increased) ? diff.increased : []),
+  ];
+
+  const userIdsToResolve = new Set();
+  for (const issue of changed) {
+    const samplePaths = Array.isArray(issue?.newSampleDocPaths)
+      ? issue.newSampleDocPaths
+      : (Array.isArray(issue?.sampleDocPaths) ? issue.sampleDocPaths : []);
+    for (const path of samplePaths) {
+      const entity = inferEntityFromPath(path);
+      if (entity?.kind === 'users' && entity?.id) userIdsToResolve.add(entity.id);
+    }
+  }
+  const userScopeMap = await fetchUserScopeMap(projectId, Array.from(userIdsToResolve));
+
+  const groups = new Map();
+  for (const issue of changed) {
+    const code = String(issue?.code || 'UNKNOWN').trim();
+    const delta = Number(issue?.delta || 0);
+    const category = String(issue?.category || '').trim() || 'uncategorized';
+    const samplePaths = Array.isArray(issue?.newSampleDocPaths)
+      ? issue.newSampleDocPaths
+      : (Array.isArray(issue?.sampleDocPaths) ? issue.sampleDocPaths : []);
+    const normalizedPaths = Array.from(new Set(samplePaths.map((p) => String(p || '').trim()).filter(Boolean)));
+    const entities = normalizedPaths.map((p) => inferEntityFromPath(p)).filter(Boolean);
+    const resolvedScopes = entities.map((entity) => {
+      if (entity.kind === 'users' && entity.id) {
+        const scope = userScopeMap.get(entity.id);
+        if (scope) return scope;
+      }
+      const kindMap = {
+        users: 'user',
+        admins: 'admin',
+        schools: 'school',
+        sites: 'site',
+        districts: 'district',
+        organizations: 'organization',
+        orgs: 'organization',
+      };
+      return {
+        kind: kindMap[entity.kind] || 'entity',
+        id: entity.id || entity.path || 'unknown',
+        name: '',
+        label: entity.id || entity.path || 'unknown',
+      };
+    });
+    const uniqueScopes = Array.from(new Map(
+      resolvedScopes
+        .filter(Boolean)
+        .map((scope) => [`${scope.kind}/${scope.id}`, scope]),
+    ).values());
+    const targetScopes = uniqueScopes.length > 0
+      ? uniqueScopes
+      : [{ kind: 'unscoped', id: 'N/A', name: '', label: 'N/A' }];
+
+    for (const scope of targetScopes) {
+      const groupKey = `${scope.kind}/${scope.id}`;
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          groupKey,
+          scopeKind: scope.kind,
+          scopeId: scope.id,
+          scopeName: scope.name || '',
+          scopeLabel: scope.label || scope.id,
+          issueCount: 0,
+          totalDelta: 0,
+          categories: new Set(),
+          regressions: [],
+        });
+      }
+      const group = groups.get(groupKey);
+      group.issueCount += 1;
+      group.totalDelta += Number.isFinite(delta) ? delta : 0;
+      group.categories.add(category);
+      group.regressions.push({
+        code,
+        delta,
+        category,
+        baseline: Number.isFinite(Number(issue?.baseline)) ? Number(issue.baseline) : null,
+        current: Number.isFinite(Number(issue?.current)) ? Number(issue.current) : null,
+        samplePaths: normalizedPaths,
+      });
+    }
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      groupKey: group.groupKey,
+      scopeKind: group.scopeKind,
+      scopeId: group.scopeId,
+      scopeName: group.scopeName,
+      scopeLabel: group.scopeLabel,
+      issueCount: group.issueCount,
+      totalDelta: group.totalDelta,
+      categories: Array.from(group.categories).sort(),
+      regressions: group.regressions,
+    }))
+    .sort((a, b) => {
+      if (b.totalDelta !== a.totalDelta) return b.totalDelta - a.totalDelta;
+      if (b.issueCount !== a.issueCount) return b.issueCount - a.issueCount;
+      return String(a.scopeLabel || a.scopeId || '').localeCompare(String(b.scopeLabel || b.scopeId || ''));
+    });
+}
+
+async function addCanonicalSiteRegressions(payload) {
+  const envs = payload?.envs && typeof payload.envs === 'object' ? payload.envs : null;
+  if (!envs) return payload;
+  for (const envName of Object.keys(envs)) {
+    const envData = envs[envName];
+    if (!envData || typeof envData !== 'object') continue;
+    const diff = envData.diff && typeof envData.diff === 'object' ? envData.diff : null;
+    if (!diff) continue;
+    diff.siteRegressions = await buildSiteRegressions(diff, { projectId: envData.projectId });
+    diff.siteRegressionMetadata = {
+      source: 'api-derived',
+      derivedAt: new Date().toISOString(),
+      groupingKey: 'site_scope_resolved',
+    };
+  }
+  return payload;
 }
 
 export default async function handler(req, res) {
@@ -183,7 +452,7 @@ export default async function handler(req, res) {
       file.getMetadata().then(([info]) => info).catch(() => null),
     ]);
 
-    const parsed = JSON.parse(String(buffer || '{}'));
+    const parsed = await addCanonicalSiteRegressions(JSON.parse(String(buffer || '{}')));
     return res.status(200).json({
       success: true,
       viewer: session

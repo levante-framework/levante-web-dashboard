@@ -184,6 +184,123 @@
     .hidden {
       display: none;
     }
+    .site-regression-grid {
+      display: grid;
+      gap: 10px;
+    }
+    .site-row {
+      border: 1px solid #24385f;
+      border-radius: 12px;
+      background: rgba(16, 27, 49, 0.72);
+      overflow: hidden;
+    }
+    .site-row-main {
+      width: 100%;
+      display: grid;
+      grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(90px, auto)) 24px;
+      gap: 8px;
+      align-items: center;
+      text-align: left;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: #eaf0ff;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .site-row-main:hover {
+      background: rgba(255, 179, 71, 0.08);
+    }
+    .site-cell-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: #ffd166;
+      word-break: break-word;
+    }
+    .site-cell-scope {
+      font-size: 11px;
+      color: #8ea1c7;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 6px;
+    }
+    .site-cell-value {
+      font-size: 12px;
+      color: #cbd5e1;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .site-cell-value.bad {
+      color: #ff8fab;
+      font-weight: 700;
+    }
+    .site-expand-icon {
+      justify-self: end;
+      color: #8ea1c7;
+      transition: transform 0.2s ease;
+    }
+    .site-row.expanded .site-expand-icon {
+      transform: rotate(180deg);
+    }
+    .site-row-details {
+      padding: 0 12px 12px;
+    }
+    .site-row-title {
+      margin: 2px 0 8px;
+      font-size: 13px;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: rgba(9, 17, 31, 0.98);
+      padding: 6px 8px;
+      border: 1px solid rgba(255, 179, 71, 0.24);
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+    }
+    .site-row-title code {
+      color: #ffd166;
+      background: rgba(255, 179, 71, 0.12);
+      border: 1px solid rgba(255, 179, 71, 0.35);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+    .site-row-details .small {
+      margin: 2px 0 8px;
+    }
+    .site-path-list {
+      margin: 0;
+      padding-left: 16px;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    .site-path-list li {
+      margin: 2px 0;
+      word-break: break-all;
+    }
+    .site-details-table-wrap {
+      max-height: 320px;
+      overflow: auto;
+      border: 1px solid #24385f;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .site-details-table-wrap table {
+      margin: 0;
+    }
+    .site-grid-empty {
+      border: 1px dashed #35527e;
+      border-radius: 12px;
+      padding: 12px;
+      color: #94a3b8;
+      font-size: 13px;
+      background: rgba(15, 23, 42, 0.4);
+    }
     .error-panel {
       margin-top: 24px;
       background: rgba(35, 18, 31, 0.92);
@@ -197,6 +314,12 @@
     }
     @media (max-width: 960px) {
       .sections { grid-template-columns: 1fr; }
+      .site-row-main {
+        grid-template-columns: minmax(150px, 1fr) repeat(2, minmax(80px, auto)) 24px;
+      }
+      .site-row-main .site-hide-mobile {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -256,6 +379,11 @@
       </div>
 
       <div class="panel" style="margin-top:12px">
+        <h2>Regressions by Site / Scope</h2>
+        <div id="siteRegressionGrid" class="site-regression-grid"></div>
+      </div>
+
+      <div class="panel" style="margin-top:12px">
         <h2>Diff / Regression Details</h2>
         <table>
           <thead><tr><th>Code</th><th>Delta</th><th>Category</th></tr></thead>
@@ -285,10 +413,6 @@
   </div>
 
   <script>
-    function trace(message) {
-      void message;
-    }
-
     function text(id, value) {
       document.getElementById(id).textContent = value;
     }
@@ -307,6 +431,192 @@
         tr.innerHTML = row;
         body.appendChild(tr);
       }
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function inferSiteLabelFromPath(path) {
+      const normalized = String(path || '').trim().replace(/^\/+/, '');
+      if (!normalized) return '';
+      const match = normalized.match(/(?:^|\/)(sites|schools|districts|organizations|orgs|admins|users)\/([^/]+)/i);
+      if (match) return `${String(match[1]).toLowerCase()}/${match[2]}`;
+      const parts = normalized.split('/').filter(Boolean);
+      if (parts.length >= 2) return `${parts[0]}/${parts[1]}`;
+      return parts[0] || '';
+    }
+
+    function groupRegressionsBySite(diff) {
+      if (Array.isArray(diff?.siteRegressions) && diff.siteRegressions.length > 0) {
+        return diff.siteRegressions;
+      }
+      const changed = [...(diff?.newIssueCodes || []), ...(diff?.increased || [])];
+      const groups = new Map();
+
+      for (const issue of changed) {
+        const code = String(issue?.code || 'UNKNOWN');
+        const delta = Number(issue?.delta || 0);
+        const category = String(issue?.category || '-');
+        const samplePaths = Array.isArray(issue?.newSampleDocPaths)
+          ? issue.newSampleDocPaths
+          : (Array.isArray(issue?.sampleDocPaths) ? issue.sampleDocPaths : []);
+        const normalizedPaths = Array.from(new Set(samplePaths.map((path) => String(path || '').trim()).filter(Boolean)));
+        const inferredSites = Array.from(new Set(
+          normalizedPaths
+            .map((path) => inferSiteLabelFromPath(path))
+            .filter(Boolean)
+        ));
+        const targetSites = inferredSites.length > 0 ? inferredSites : ['unscoped'];
+
+        for (const site of targetSites) {
+          if (!groups.has(site)) {
+            groups.set(site, {
+              site,
+              issueCount: 0,
+              totalDelta: 0,
+              categories: new Set(),
+              regressions: [],
+            });
+          }
+          const group = groups.get(site);
+          group.issueCount += 1;
+          group.totalDelta += Number.isFinite(delta) ? delta : 0;
+          if (category && category !== '-') group.categories.add(category);
+          group.regressions.push({
+            code,
+            delta,
+            category,
+            baseline: Number.isFinite(Number(issue?.baseline)) ? Number(issue.baseline) : null,
+            current: Number.isFinite(Number(issue?.current)) ? Number(issue.current) : null,
+            samplePaths: normalizedPaths,
+          });
+        }
+      }
+
+      return Array.from(groups.values()).sort((a, b) => {
+        if (b.totalDelta !== a.totalDelta) return b.totalDelta - a.totalDelta;
+        if (b.issueCount !== a.issueCount) return b.issueCount - a.issueCount;
+        return a.site.localeCompare(b.site);
+      });
+    }
+
+    function renderSiteRegressionGrid(diff) {
+      const root = document.getElementById('siteRegressionGrid');
+      if (!root) return;
+      const grouped = groupRegressionsBySite(diff);
+      if (!grouped.length) {
+        root.innerHTML = '<div class="site-grid-empty">No site-level regressions detected in this snapshot.</div>';
+        return;
+      }
+      root.innerHTML = grouped.map((group, idx) => {
+        const parseScope = (raw) => {
+          const value = String(raw || '').trim();
+          if (!value || value === 'unscoped') return { kind: 'Unscoped', id: 'N/A' };
+          const parts = value.split('/');
+          const head = String(parts[0] || '').toLowerCase();
+          const tail = String(parts[1] || '').trim() || value;
+          const kindMap = {
+            sites: 'Site',
+            schools: 'School',
+            districts: 'District',
+            organizations: 'Organization',
+            orgs: 'Organization',
+            users: 'User',
+            admins: 'Admin',
+          };
+          return { kind: kindMap[head] || 'Entity', id: tail };
+        };
+        const detailsId = `site-regression-details-${idx}`;
+        const scopeFromApi = {
+          kind: String(group.scopeKind || '').trim(),
+          id: String(group.scopeId || '').trim(),
+          name: String(group.scopeName || '').trim(),
+          label: String(group.scopeLabel || '').trim(),
+        };
+        const parsedFallback = parseScope(group.site || group.groupKey || '');
+        const scope = {
+          kind: scopeFromApi.kind ? (scopeFromApi.kind.charAt(0).toUpperCase() + scopeFromApi.kind.slice(1)) : parsedFallback.kind,
+          id: scopeFromApi.id || parsedFallback.id,
+          name: scopeFromApi.name || '',
+          label: scopeFromApi.label || '',
+        };
+        const categories = Array.from(group.categories);
+        const categoryLabel = categories.length ? categories.join(', ') : 'uncategorized';
+        const rows = group.regressions.map((entry) => {
+          const pathItems = entry.samplePaths.length
+            ? `<ul class="site-path-list">${entry.samplePaths.map((path) => `<li><code>${escapeHtml(path)}</code></li>`).join('')}</ul>`
+            : '<span class="small">No sample doc paths provided.</span>';
+          const baselineCurrent = (entry.baseline !== null || entry.current !== null)
+            ? `${entry.baseline ?? '-'} -> ${entry.current ?? '-'}`
+            : '-';
+          return `
+            <tr>
+              <td><code>${escapeHtml(entry.code)}</code></td>
+              <td>${entry.delta >= 0 ? '+' : ''}${entry.delta}</td>
+              <td>${escapeHtml(baselineCurrent)}</td>
+              <td>${escapeHtml(entry.category || '-')}</td>
+              <td>${pathItems}</td>
+            </tr>
+          `;
+        }).join('');
+        return `
+          <div class="site-row" data-site-row="${idx}">
+            <button class="site-row-main" type="button" data-toggle-details="${detailsId}" aria-expanded="false">
+              <span class="site-cell-label"><span class="site-cell-scope">${escapeHtml(scope.kind)}</span>${escapeHtml(scope.label || scope.name || scope.id)}</span>
+              <span class="site-cell-value">${group.issueCount} regressions</span>
+              <span class="site-cell-value bad">Δ ${group.totalDelta >= 0 ? '+' : ''}${group.totalDelta}</span>
+              <span class="site-cell-value site-hide-mobile">${escapeHtml(categoryLabel)}</span>
+              <i class="fas fa-chevron-down site-expand-icon" aria-hidden="true"></i>
+            </button>
+            <div id="${detailsId}" class="site-row-details hidden">
+              <div class="site-row-title">
+                <span>${escapeHtml(scope.kind)}</span>
+                <code>${escapeHtml(scope.label || scope.name || scope.id)}</code>
+              </div>
+              <p class="small">Expanded regressions for this ${escapeHtml(scope.kind.toLowerCase())}</p>
+              <div class="site-details-table-wrap">
+                <table>
+                  <thead><tr><th>Code</th><th>Delta</th><th>Baseline -> Current</th><th>Category</th><th>Sample Docs</th></tr></thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      root.querySelectorAll('[data-toggle-details]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const detailsId = btn.getAttribute('data-toggle-details');
+          if (!detailsId) return;
+          const details = document.getElementById(detailsId);
+          if (!details) return;
+          const row = btn.closest('.site-row');
+          const opening = details.classList.contains('hidden');
+          details.classList.toggle('hidden', !opening);
+          btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+          if (row) row.classList.toggle('expanded', opening);
+        });
+      });
+    }
+
+    function pickInitialEnv(payload, currentEnv) {
+      const envs = payload?.envs || {};
+      const preferred = Object.keys(envs).find((envName) => {
+        const diff = envs?.[envName]?.diff || {};
+        const hasCanonical = Array.isArray(diff.siteRegressions) && diff.siteRegressions.length > 0;
+        const hasChanged = (Array.isArray(diff.increased) && diff.increased.length > 0)
+          || (Array.isArray(diff.newIssueCodes) && diff.newIssueCodes.length > 0);
+        return hasCanonical || hasChanged || diff.hasRegression === true;
+      });
+      if (preferred) return preferred;
+      return currentEnv;
     }
 
     function getReturnToPath() {
@@ -384,6 +694,7 @@
       );
 
       const changed = [...(data.diff?.newIssueCodes || []), ...(data.diff?.increased || [])];
+      renderSiteRegressionGrid(data.diff || {});
       fillTable(
         'regressionBody',
         changed.map(
@@ -438,12 +749,10 @@
     }
 
     async function loadDashboardData() {
-      trace('requesting /api/audit-dashboard-data');
       const response = await fetch('/api/audit-dashboard-data', {
         cache: 'no-store',
         credentials: 'include',
       });
-      trace(`audit data response: ${response.status}`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const err = new Error(payload?.message || 'Failed to load audit dashboard data.');
@@ -457,12 +766,10 @@
     }
 
     async function loadDownloadableFiles() {
-      trace('requesting /api/audit-dashboard-files?action=list');
       const response = await fetch('/api/audit-dashboard-files?action=list', {
         cache: 'no-store',
         credentials: 'include',
       });
-      trace(`download files response: ${response.status}`);
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
         const err = new Error(payload?.message || 'Failed to load downloadable files.');
@@ -521,10 +828,8 @@
     }
 
     (async () => {
-      trace('init started');
       const authState = readAuthStateFromUrl();
       if (authState.authError) {
-        trace('authError found in URL; showing access panel');
         showError(authState.authError, getLoginUrl(), {
           hint: 'If this keeps repeating, your org may require GitHub SSO authorization for this OAuth app.',
           actionUrl: authState.authSsoUrl || authState.authHelpUrl || '',
@@ -534,7 +839,6 @@
         return;
       }
       try {
-        trace('loading restricted audit data');
         const apiPayload = await loadDashboardData();
         const payload = apiPayload?.data || {};
         const source = apiPayload?.source || { bucket: '-', object: '-' };
@@ -559,15 +863,17 @@
         if (viewerLogin) {
           text('meta', 'Access verified for @' + viewerLogin + ' | source: gs://' + source.bucket + '/' + source.object);
         }
+        const initialEnv = pickInitialEnv(payload, select.value);
+        if (initialEnv && initialEnv !== select.value) {
+          select.value = initialEnv;
+        }
         if (!select.dataset.bound) {
           select.addEventListener('change', () => render(select.value, payload, source));
           select.dataset.bound = 'true';
         }
         render(select.value, payload, source);
-        trace('dashboard rendered successfully');
         cleanupAuthParamsFromUrl();
       } catch (error) {
-        trace(`load failed: ${error?.message || 'unknown error'}`);
         const requiredOrgHint = error.status === 403 && error.requiredOrgs.length > 0
           ? `This dashboard requires membership in: ${error.requiredOrgs.join(', ')}.`
           : '';
@@ -581,14 +887,6 @@
         );
       }
     })();
-
-    window.addEventListener('error', (event) => {
-      trace(`window error: ${event?.message || 'unknown'}`);
-    });
-    window.addEventListener('unhandledrejection', (event) => {
-      const reason = event?.reason?.message || event?.reason || 'unknown';
-      trace(`unhandled rejection: ${String(reason)}`);
-    });
   </script>
 </body>
 </html>
