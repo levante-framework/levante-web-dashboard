@@ -816,6 +816,35 @@
             box-shadow: 0 0 0 3px rgba(218, 61, 22, 0.1);
         }
 
+        .password-input-wrap {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .password-input-wrap .auth-input {
+            margin-bottom: 0;
+            padding-right: 44px;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #71717a;
+            cursor: pointer;
+        }
+
+        .password-toggle-btn:hover {
+            background: #f4f4f5;
+            color: #27272a;
+        }
+
         .auth-button {
             width: 100%;
             padding: 12px;
@@ -1290,7 +1319,19 @@
             <!-- Password Login Form -->
             <form class="auth-form" id="passwordAuthForm" style="display: block;" novalidate>
                 <input type="text" id="emailInput" class="auth-input" placeholder="User ID" autocomplete="username" required>
-                <input type="password" id="passwordInput" class="auth-input" placeholder="Password (optional for SuperAdmin)" autocomplete="current-password">
+                <div class="password-input-wrap">
+                    <input type="password" id="passwordInput" class="auth-input" placeholder="Password (optional for SuperAdmin)" autocomplete="current-password">
+                    <button
+                        type="button"
+                        class="password-toggle-btn"
+                        id="passwordToggleBtn"
+                        aria-label="Show password"
+                        title="Show password"
+                        onclick="dashboard.togglePasswordVisibility('passwordInput', this)"
+                    >
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                    </button>
+                </div>
                 <p class="auth-hint" style="font-size: 12px; color: #71717a; margin-top: -8px; margin-bottom: 12px;">
                     Use approver User ID + password, or superadmin email without a password
                 </p>
@@ -2898,6 +2939,21 @@
                 return payload;
             }
 
+            togglePasswordVisibility(inputId, triggerBtn) {
+                const input = document.getElementById(String(inputId || ''));
+                if (!input) return;
+                const button = triggerBtn || document.getElementById('passwordToggleBtn');
+                const shouldShow = input.type === 'password';
+                input.type = shouldShow ? 'text' : 'password';
+                if (button) {
+                    button.setAttribute('aria-label', shouldShow ? 'Hide password' : 'Show password');
+                    button.setAttribute('title', shouldShow ? 'Hide password' : 'Show password');
+                    button.innerHTML = shouldShow
+                        ? '<i class="fas fa-eye-slash" aria-hidden="true"></i>'
+                        : '<i class="fas fa-eye" aria-hidden="true"></i>';
+                }
+            }
+
             async performApproverConfigLogin(userId, approverMatch) {
                 const resolvedLanguage =
                     this.resolveLanguageKey(approverMatch?.languageName) ||
@@ -3034,32 +3090,32 @@
                     errorEl.style.display = 'none';
                 }
 
-                // Verify approver credentials on the server first.
-                // Password hashes are stored server-side and never sent to the browser.
                 try {
-                    const approverMatch = await this.verifyApproverCredentials(email, password);
-                    await this.performApproverConfigLogin(email, approverMatch);
-                    return;
-                } catch (error) {
-                    // Continue to Firebase only when input looks like an email;
-                    // non-email IDs should never hit Firebase email auth.
-                }
-
-                // If user ID is not email-shaped and no server approver match, avoid Firebase email auth.
-                const looksLikeEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '').trim());
-                if (!looksLikeEmail) {
-                    if (errorEl) {
-                        errorEl.textContent = 'Invalid user ID or password.';
-                        errorEl.style.display = 'block';
+                    // Verify approver credentials on the server first.
+                    // Password hashes are stored server-side and never sent to the browser.
+                    try {
+                        const approverMatch = await this.verifyApproverCredentials(email, password);
+                        await this.performApproverConfigLogin(email, approverMatch);
+                        return;
+                    } catch (error) {
+                        // Continue to Firebase only when input looks like an email;
+                        // non-email IDs should never hit Firebase email auth.
                     }
-                    return;
-                }
-                
-                try {
+
+                    // If user ID is not email-shaped and no server approver match, avoid Firebase email auth.
+                    const looksLikeEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '').trim());
+                    if (!looksLikeEmail) {
+                        if (errorEl) {
+                            errorEl.textContent = 'Invalid user ID or password.';
+                            errorEl.style.display = 'block';
+                        }
+                        return;
+                    }
+
                     if (typeof firebase === 'undefined' || !firebase.apps || firebase.apps.length === 0) {
                         throw new Error('Firebase not initialized. Please configure Firebase authentication.');
                     }
-                    
+
                     const auth = firebase.auth();
                     console.log('*** Attempting Firebase login with email:', email, '(should NOT happen for SuperAdmin) ***');
                     const userCredential = await auth.signInWithEmailAndPassword(email, password);
