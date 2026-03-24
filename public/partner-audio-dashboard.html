@@ -447,6 +447,8 @@
             border: 2px solid #e4e4e7;
             border-radius: 8px;
             padding: 10px 12px;
+            visibility: visible;
+            opacity: 1;
         }
 
         .task-filter label {
@@ -464,6 +466,7 @@
             color: #27272a;
             min-width: 220px;
             font-family: inherit;
+            display: block;
         }
 
         .task-filter:focus-within {
@@ -2090,8 +2093,47 @@
                 return list.filter((item) => this.extractTaskName(item) === this.currentTaskFilter);
             }
 
+            ensureTaskFilterUI() {
+                const searchContainer = document.querySelector('.search-container');
+                if (!searchContainer) return null;
+
+                let taskFilter = searchContainer.querySelector('.task-filter');
+                if (!taskFilter) {
+                    taskFilter = document.createElement('div');
+                    taskFilter.className = 'task-filter';
+                    searchContainer.appendChild(taskFilter);
+                }
+
+                let label = taskFilter.querySelector('label[for="taskFilterSelect"]');
+                if (!label) {
+                    label = document.createElement('label');
+                    label.setAttribute('for', 'taskFilterSelect');
+                    label.innerHTML = '<i class="fas fa-filter"></i> Task';
+                    taskFilter.appendChild(label);
+                }
+
+                let select = document.getElementById('taskFilterSelect');
+                if (!select) {
+                    select = document.createElement('select');
+                    select.id = 'taskFilterSelect';
+                    select.innerHTML = '<option value="__all__">All tasks</option>';
+                    select.addEventListener('change', (event) => this.handleTaskFilterChange(event.target.value));
+                    taskFilter.appendChild(select);
+                } else if (!taskFilter.contains(select)) {
+                    taskFilter.appendChild(select);
+                }
+
+                // Defensive visibility reset in case external overrides hide controls.
+                taskFilter.style.display = 'inline-flex';
+                taskFilter.style.visibility = 'visible';
+                taskFilter.style.opacity = '1';
+                select.style.display = 'block';
+
+                return select;
+            }
+
             populateTaskFilter(items) {
-                const select = document.getElementById('taskFilterSelect');
+                const select = this.ensureTaskFilterUI();
                 if (!select) return;
 
                 const options = this.getTaskFilterOptions(items);
@@ -2344,6 +2386,9 @@
 
                 try {
                     this.setStatus(`Refreshing ${this.currentLanguage}...`, 'loading');
+                    this.audioListCache.clear();
+                    this.audioPathCache.clear();
+                    await this.loadData();
                     await this.selectLanguage(this.currentLanguage);
                 } catch (error) {
                     console.error('Manual refresh failed:', error);
@@ -2424,6 +2469,7 @@
                 // Small delay to ensure select element is rendered
                 await new Promise(resolve => setTimeout(resolve, 50));
 
+                this.ensureTaskFilterUI();
                 this.setupRefreshControls();
                 await this.loadLanguagesFromConfig();
                 
@@ -3582,7 +3628,9 @@
                     
                     for (const url of urls) {
                         try {
-                            csvResponse = await fetch(url);
+                            const separator = url.includes('?') ? '&' : '?';
+                            const cacheBypassUrl = `${url}${separator}ts=${Date.now()}`;
+                            csvResponse = await fetch(cacheBypassUrl, { cache: 'no-store' });
                             if (csvResponse.ok) {
                                 successfulUrl = url;
                                 console.log(`Successfully loaded CSV from: ${url}`);
@@ -3622,21 +3670,64 @@
             }
 
             parseCSV(csvText) {
-                const lines = csvText.split('\n').filter(line => line.trim());
-                if (lines.length === 0) return [];
-                
-                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                if (!csvText || !String(csvText).trim()) return [];
+
+                // Parse full CSV content so quoted newlines do not break row alignment.
+                const rows = [];
+                let row = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let i = 0; i < csvText.length; i++) {
+                    const char = csvText[i];
+                    const nextChar = i + 1 < csvText.length ? csvText[i + 1] : null;
+
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        row.push(current);
+                        current = '';
+                    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                        if (char === '\r' && nextChar === '\n') {
+                            i++;
+                        }
+                        row.push(current);
+                        current = '';
+                        if (row.some(cell => String(cell || '').trim() !== '')) {
+                            rows.push(row.map(cell => String(cell || '').trim()));
+                        }
+                        row = [];
+                    } else {
+                        current += char;
+                    }
+                }
+
+                if (current.length > 0 || row.length > 0) {
+                    row.push(current);
+                    if (row.some(cell => String(cell || '').trim() !== '')) {
+                        rows.push(row.map(cell => String(cell || '').trim()));
+                    }
+                }
+
+                if (rows.length === 0) return [];
+
+                const headers = rows[0].map(h => String(h || '').trim().replace(/^\uFEFF/, '').replace(/^"|"$/g, ''));
                 const data = [];
-                
-                for (let i = 1; i < lines.length; i++) {
-                    const values = this.parseCSVLine(lines[i]);
-                    if (values.length !== headers.length) continue;
-                    
+
+                for (let i = 1; i < rows.length; i++) {
+                    const values = rows[i];
+                    if (!values || values.length === 0) continue;
+
                     const item = {};
                     headers.forEach((header, index) => {
-                        item[header] = values[index] || '';
+                        item[header] = values[index] !== undefined ? values[index] : '';
                     });
-                    
+
                     const itemId = item.identifier || item.item_id || item.id || item.ID || item.Item_ID || null;
                     if (itemId) {
                         item.item_id = itemId;
@@ -4534,7 +4625,6 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
                     const sourceText = item.en || item.english || '';
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
                     const escapedItemId = this.escapeHtml(itemId);
@@ -4697,7 +4787,10 @@
                     // Enforce strict source routing:
                     // - Approved tab -> dev bucket only
                     // - Pending / No Audio tabs -> draft bucket only
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     let audioPath = null;
                     const audioBucket = this.currentTab === 'approved'
                         ? this.audioBuckets.dev
@@ -5274,7 +5367,10 @@
                     const saveResult = await response.json().catch(() => ({}));
                     
                     // After saving, immediately move to dev bucket (approve)
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     
                     this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
                     
@@ -5474,7 +5570,10 @@
 
             async unapproveAudio(itemId) {
                 try {
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     
                     // Check if already unapproved
                     if (!this.approvedItems.has(baseId)) {
@@ -5512,7 +5611,10 @@
                 try {
                     this.setStatus(`Unapproving audio for ${itemId}...`, 'loading');
                     
-                    const baseId = itemId.replace(/_v\d{3}$/, '');
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     
                     // Remove from approved items set
                     this.approvedItems.delete(baseId);
