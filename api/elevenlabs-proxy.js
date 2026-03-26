@@ -11,35 +11,84 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Allow API key from header (for authenticated users) or environment variable (for public partner dashboard)
-        const apiKey = req.headers['x-api-key'] || process.env.ELEVENLABS_API_KEY;
-        
-        if (!apiKey) {
+        // Allow API key from header (for authenticated users) or environment variable (for public partner dashboard).
+        // If client key is stale/invalid and returns 401, we retry with server env key.
+        const clientApiKey = String(req.headers['x-api-key'] || '').trim();
+        const serverApiKey = String(
+            process.env.ELEVENLABS_API_KEY || process.env.ELEVEN_LABS_API_KEY || ''
+        ).trim();
+        const preferredApiKey = clientApiKey || serverApiKey;
+
+        if (!preferredApiKey) {
             return res.status(400).json({ error: 'Missing ElevenLabs API key' });
         }
 
+        const requestWithKey = async (url, method, apiKey, body = null, accept = 'application/json') => {
+            const headers = {
+                'xi-api-key': apiKey,
+                'Accept': accept,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1'
+            };
+            if (body !== null) {
+                headers['Content-Type'] = 'application/json';
+            }
+            return fetch(url, {
+                method,
+                headers,
+                body: body !== null ? JSON.stringify(body) : undefined
+            });
+        };
+
+        const fetchWithFallback = async (url, method, body = null, accept = 'application/json') => {
+            let response = await requestWithKey(url, method, preferredApiKey, body, accept);
+            const canRetryWithServerKey = (
+                response.status === 401 &&
+                Boolean(serverApiKey) &&
+                preferredApiKey !== serverApiKey
+            );
+            if (canRetryWithServerKey) {
+                console.warn('elevenlabs-proxy: client key unauthorized, retrying with server key');
+                response = await requestWithKey(url, method, serverApiKey, body, accept);
+            }
+            return response;
+        };
+
+        const formatElevenLabsError = (status, rawText) => {
+            const text = String(rawText || '').trim();
+            let parsed = null;
+            try {
+                parsed = JSON.parse(text);
+            } catch (_error) {
+                parsed = null;
+            }
+            const detail = parsed?.detail || null;
+            const detailStatus = String(detail?.status || '').trim();
+            const detailMessage = String(detail?.message || parsed?.message || '').trim();
+            const pretty = detailMessage || text || `ElevenLabs API error: ${status}`;
+            return {
+                error: detailStatus ? `ElevenLabs ${detailStatus}: ${pretty}` : `ElevenLabs API error: ${status}`,
+                details: text || null,
+                elevenlabs_status: detailStatus || null
+            };
+        };
+
         if (req.method === 'GET') {
             // Handle voices list endpoint
-            const response = await fetch('https://api.elevenlabs.io/v1/voices', {
-                method: 'GET',
-                headers: {
-                    'xi-api-key': apiKey,
-                    'Accept': 'application/json',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1'
-                }
-            });
+            const response = await fetchWithFallback(
+                'https://api.elevenlabs.io/v1/voices',
+                'GET',
+                null,
+                'application/json'
+            );
 
             if (!response.ok) {
                 const errorText = await response.text();
-                return res.status(response.status).json({ 
-                    error: `ElevenLabs API error: ${response.status}`,
-                    details: errorText 
-                });
+                return res.status(response.status).json(formatElevenLabsError(response.status, errorText));
             }
 
             const data = await response.json();
@@ -54,28 +103,16 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Missing voice_id in path' });
             }
 
-            const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
-                method: 'POST',
-                headers: {
-                    'xi-api-key': apiKey,
-                    'Content-Type': 'application/json',
-                    'Accept': 'audio/mpeg',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1'
-                },
-                body: JSON.stringify(req.body)
-            });
+            const response = await fetchWithFallback(
+                `https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`,
+                'POST',
+                req.body,
+                'audio/mpeg'
+            );
 
             if (!response.ok) {
                 const errorText = await response.text();
-                return res.status(response.status).json({ 
-                    error: `ElevenLabs API error: ${response.status}`,
-                    details: errorText 
-                });
+                return res.status(response.status).json(formatElevenLabsError(response.status, errorText));
             }
 
             // Get the audio data as array buffer

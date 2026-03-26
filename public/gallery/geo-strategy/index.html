@@ -66,6 +66,10 @@
         color: #0b1220;
         font-weight: 600;
       }
+      .stat.overlay {
+        background: rgba(251, 191, 36, 0.9);
+        color: #111827;
+      }
       .filters {
         max-width: 1400px;
         margin: 0 auto 18px;
@@ -100,6 +104,10 @@
         padding: 16px;
         border: 1px solid rgba(56, 189, 248, 0.2);
         box-shadow: 0 18px 36px rgba(2, 6, 23, 0.45);
+      }
+      .card.changed {
+        border-color: rgba(251, 191, 36, 0.9);
+        box-shadow: 0 18px 36px rgba(2, 6, 23, 0.45), 0 0 0 1px rgba(251, 191, 36, 0.35);
       }
       .card h3 {
         margin: 0 0 8px;
@@ -172,6 +180,7 @@
       <div class="header-actions">
         <a href="/"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
         <a href="/gallery/locate-me/"><i class="fas fa-map"></i> Locate-Me Gallery</a>
+        <a href="/gallery/geo-strategy/?overlay=20000"><i class="fas fa-layer-group"></i> Compare 50k vs 20k</a>
       </div>
       <h1>Geo Strategy Gallery</h1>
       <p>De-identified location strategy preview for the 46 demo sites. All raw GPS usage remains on-device; this gallery only uses curated seed points.</p>
@@ -275,16 +284,22 @@
         return `https://tile.openstreetmap.org/${t.z}/${t.x}/${t.y}.png`;
       }
 
-      function renderHexPreview(point) {
+      function renderHexPreview(point, compare = null) {
         const baseFeature = point?.h3?.base?.outline || null;
         const effFeature = point?.h3?.effective?.outline || null;
+        const overlayPoint = point?.__overlay || null;
+        const overlayEffFeature = overlayPoint?.h3?.effective?.outline || null;
+        const baseThreshold = Number(compare?.baseThreshold || point?.adm?.populationThreshold || 50000);
+        const overlayThreshold = Number(compare?.overlayThreshold || 0);
         const baseRing = getRingFromFeature(baseFeature);
         const effRing = getRingFromFeature(effFeature);
+        const overlayEffRing = getRingFromFeature(overlayEffFeature);
         if (!baseRing.length) {
           return '<div class="note">No H3 outline data available.</div>';
         }
         // Fit view to base (resolution 5) so it is always visible.
-        const bounds = expandBounds(computeBounds(baseRing), 0.25);
+        const combinedBounds = computeBounds(baseRing.concat(overlayEffRing));
+        const bounds = expandBounds(combinedBounds || computeBounds(baseRing), 0.25);
         const width = 520;
         const height = 180;
         const centerLat = Number(point?.fauxLocation?.lat);
@@ -295,6 +310,7 @@
           : '';
         const basePath = ringToSvgPath(baseRing, bounds, width, height);
         const effPath = effRing.length ? ringToSvgPath(effRing, bounds, width, height) : '';
+        const overlayEffPath = overlayEffRing.length ? ringToSvgPath(overlayEffRing, bounds, width, height) : '';
         const [fx, fy] = projectPoint(point?.fauxLocation?.lon, point?.fauxLocation?.lat, bounds, width, height);
 
         return `
@@ -302,25 +318,36 @@
             <svg class="hex-preview-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="H3 hexagon preview">
               <rect x="0" y="0" width="${width}" height="${height}" fill="rgba(15,23,42,0.9)"></rect>
               ${bgMapUrl ? `<image href="${bgMapUrl}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="none" opacity="0.5"></image>` : ''}
-              ${effPath ? `<path d="${effPath}" fill="rgba(244, 114, 182, 0.22)" stroke="#f472b6" stroke-width="2"></path>` : ''}
+              ${effPath ? `<path d="${effPath}" fill="rgba(244, 114, 182, 0.18)" stroke="#f472b6" stroke-width="${overlayEffPath ? 1.25 : 2}"></path>` : ''}
+              ${overlayEffPath ? `<path d="${overlayEffPath}" fill="none" stroke="#ffffff" stroke-width="5" opacity="0.35"></path>` : ''}
+              ${overlayEffPath ? `<path d="${overlayEffPath}" fill="rgba(251, 191, 36, 0.08)" stroke="#f59e0b" stroke-width="3.4" stroke-dasharray="9 5"></path>` : ''}
               <path d="${basePath}" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="6 4"></path>
               <circle cx="${fx.toFixed(2)}" cy="${fy.toFixed(2)}" r="4" fill="#22c55e" stroke="#052e16" stroke-width="1.2"></circle>
             </svg>
             <div class="hex-preview-legend">
               <span class="sw"><i style="color:#38bdf8">■</i> H3 Base (res 5)</span>
-              <span class="sw"><i style="color:#f472b6">■</i> H3 Effective (adaptive)</span>
+              <span class="sw"><i style="color:#f472b6">■</i> H3 Effective (${formatNumber(baseThreshold)})</span>
+              ${overlayEffPath ? `<span class="sw"><i style="color:#f59e0b">■</i> H3 Effective (${formatNumber(overlayThreshold)})</span>` : ''}
               <span class="sw"><i style="color:#22c55e">●</i> Faux location</span>
             </div>
           </div>
         `;
       }
 
-      function renderStats(data) {
+      function renderStats(data, overlayData, overlayThreshold, diffSummary = null) {
+        const overlayStat = overlayData
+          ? `<div class="stat overlay">Overlay threshold: ${formatNumber(overlayThreshold)}</div>`
+          : '';
+        const diffStat = diffSummary
+          ? `<div class="stat overlay">Overlay deltas: H3 ${formatNumber(diffSummary.h3Changed)} · Tiles ${formatNumber(diffSummary.tileChanged)} · ADM2 ${formatNumber(diffSummary.adm2Changed)}</div>`
+          : '';
         statsEl.innerHTML = `
           <div class="stat">Sites: ${data.points.length}</div>
           <div class="stat">Shift: ${data.shiftKm} km</div>
           <div class="stat">Pop threshold: ${formatNumber(data.populationThreshold)}</div>
           <div class="stat">Tile grid: ${data.tiles.gridSize}x${data.tiles.gridSize}</div>
+          ${overlayStat}
+          ${diffStat}
         `;
       }
 
@@ -341,18 +368,35 @@
         });
       }
 
-      function renderCards(points) {
+      function renderCards(points, overlayById = null, overlayThreshold = null, baseThreshold = null) {
         gridEl.innerHTML = '';
         points.forEach((p) => {
+          const overlayPoint = overlayById ? overlayById.get(p.id) : null;
+          if (overlayPoint) {
+            p.__overlay = overlayPoint;
+          }
           const card = document.createElement('div');
           card.className = 'card';
           const adm2 = p.adm?.adm2;
           const adm3 = p.adm?.adm3;
           const school = p.nearestSchool;
+          const tileDiff = overlayPoint ? `${p.tileGrid?.sizeSelected || 'N/A'} -> ${overlayPoint.tileGrid?.sizeSelected || 'N/A'}` : null;
+          const h3Diff = overlayPoint ? `r${p.h3?.effective?.resolution ?? 'N/A'} -> r${overlayPoint.h3?.effective?.resolution ?? 'N/A'}` : null;
+          const adm2Diff = overlayPoint ? `${adm2 ? 'yes' : 'no'} -> ${overlayPoint?.adm?.adm2 ? 'yes' : 'no'}` : null;
+          const h3Changed = overlayPoint ? (p.h3?.effective?.resolution !== overlayPoint?.h3?.effective?.resolution) : false;
+          const tileChanged = overlayPoint ? (p.tileGrid?.sizeSelected !== overlayPoint?.tileGrid?.sizeSelected) : false;
+          const adm2Changed = overlayPoint ? (Boolean(adm2) !== Boolean(overlayPoint?.adm?.adm2)) : false;
+          const hasAnyOverlayChange = h3Changed || tileChanged || adm2Changed;
+          const baseR8 = p?.h3?.candidates?.['8']?.population;
+          const baseR9 = p?.h3?.candidates?.['9']?.population;
+          const baseR7 = p?.h3?.candidates?.['7']?.population;
+          const overlayR8 = overlayPoint?.h3?.candidates?.['8']?.population;
+          const overlayR9 = overlayPoint?.h3?.candidates?.['9']?.population;
+          const overlayR7 = overlayPoint?.h3?.candidates?.['7']?.population;
           card.innerHTML = `
             <h3>${p.label}</h3>
             <div class="meta">${p.country} - ${p.id}</div>
-            ${renderHexPreview(p)}
+            ${renderHexPreview(p, { baseThreshold, overlayThreshold })}
             <div class="row">
               <div class="pill"><span class="label">GPS</span> ${formatCoord(p.gps?.lat)}, ${formatCoord(p.gps?.lon)}</div>
               <div class="pill"><span class="label">Faux</span> ${formatCoord(p.fauxLocation?.lat)}, ${formatCoord(p.fauxLocation?.lon)} (${p.fauxLocation?.direction})</div>
@@ -388,23 +432,63 @@
                 school ? `${school.name} - ${school.distanceKm.toFixed(1)} km` : '<span class="empty">N/A</span>'
               }</div>
             </div>
+            ${overlayPoint ? `
+            <div class="row">
+              <div class="pill"><span class="label">Overlay (${formatNumber(overlayThreshold)}) Tile size</span> ${tileDiff}</div>
+              <div class="pill"><span class="label">Overlay H3 effective</span> ${h3Diff}</div>
+              <div class="pill"><span class="label">Overlay ADM2 present</span> ${adm2Diff}</div>
+            </div>` : ''}
+            <div class="row">
+              <div class="pill"><span class="label">r7/r8/r9 pop</span> ${formatNumber(baseR7)} / ${formatNumber(baseR8)} / ${formatNumber(baseR9)}</div>
+              ${overlayPoint ? `<div class="pill"><span class="label">overlay r7/r8/r9 pop</span> ${formatNumber(overlayR7)} / ${formatNumber(overlayR8)} / ${formatNumber(overlayR9)}</div>` : ''}
+            </div>
+            ${overlayPoint ? `<div class="note">Overlay loaded: yes · change status: Tile ${tileChanged ? 'changed' : 'same'} · H3 ${h3Changed ? 'changed' : 'same'}</div>` : ''}
             <div class="note">Raw GPS is used on-device only; all remote lookups use de-identified coordinates.</div>
           `;
+          if (hasAnyOverlayChange) {
+            card.classList.add('changed');
+          }
           gridEl.appendChild(card);
         });
       }
 
-      const baseUrl = window.location.href.endsWith('/') ? window.location.href : `${window.location.href}/`;
+      const pageUrl = new URL(window.location.href);
+      const basePath = pageUrl.pathname.endsWith('/') ? pageUrl.pathname : `${pageUrl.pathname}/`;
+      const baseUrl = `${pageUrl.origin}${basePath}`;
+      const params = new URLSearchParams(window.location.search);
+      const overlayThresholdRaw = Number(params.get('overlay') || 0);
+      const hasOverlay = Number.isInteger(overlayThresholdRaw) && overlayThresholdRaw > 0;
       const galleryDataUrl = new URL('gallery-data.json', baseUrl).toString();
-      fetch(galleryDataUrl)
-        .then((res) => res.json())
-        .then((data) => {
-          renderStats(data);
+      const overlayDataUrl = hasOverlay
+        ? new URL(`gallery-data-${overlayThresholdRaw}.json`, baseUrl).toString()
+        : null;
+
+      Promise.all([
+        fetch(galleryDataUrl).then((res) => res.json()),
+        overlayDataUrl
+          ? fetch(overlayDataUrl).then((res) => (res.ok ? res.json() : null)).catch(() => null)
+          : Promise.resolve(null)
+      ])
+        .then(([data, overlayData]) => {
+          const overlayById = overlayData
+            ? new Map((overlayData.points || []).map((p) => [p.id, p]))
+            : null;
+          const diffSummary = overlayById
+            ? data.points.reduce((acc, p) => {
+                const o = overlayById.get(p.id);
+                if (!o) return acc;
+                if (p.h3?.effective?.resolution !== o.h3?.effective?.resolution) acc.h3Changed += 1;
+                if (p.tileGrid?.sizeSelected !== o.tileGrid?.sizeSelected) acc.tileChanged += 1;
+                if (Boolean(p?.adm?.adm2) !== Boolean(o?.adm?.adm2)) acc.adm2Changed += 1;
+                return acc;
+              }, { h3Changed: 0, tileChanged: 0, adm2Changed: 0 })
+            : null;
+          renderStats(data, overlayData, overlayThresholdRaw, diffSummary);
           renderFilters(data.points, (country) => {
             const filtered = country ? data.points.filter((p) => p.country === country) : data.points;
-            renderCards(filtered);
+            renderCards(filtered, overlayById, overlayThresholdRaw, data.populationThreshold);
           });
-          renderCards(data.points);
+          renderCards(data.points, overlayById, overlayThresholdRaw, data.populationThreshold);
         })
         .catch((err) => {
           gridEl.innerHTML = `<div class="card">Failed to load gallery data: ${err.message}</div>`;

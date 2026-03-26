@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-03-26T01:12:25.140Z",
+  "generatedAt": "2026-03-26T01:13:31.631Z",
   "sourceSeedFile": "public/gallery/locate-me/seed-points.json",
-  "populationThreshold": 50000,
+  "populationThreshold": 20000,
   "shiftKm": 1,
   "tiles": {
     "tileKm": 1,
@@ -48,7 +48,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283083fffffff",
           "resolution": 5,
@@ -322,7 +322,7 @@
           "population": 821551
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 16.5,
@@ -359,9 +359,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 60689,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 44253,
+        "areaKm2": 9,
         "totals": {
           "1": 4113,
           "3": 44253,
@@ -371,7 +371,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8528f003fffffff",
           "resolution": 5,
@@ -426,18 +426,18 @@
           }
         },
         "effective": {
-          "id": "8628f0007ffffff",
-          "resolution": 6,
-          "population": 99361,
+          "id": "8728f0023ffffff",
+          "resolution": 7,
+          "population": 22176,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8628f0007ffffff",
-              "resolution": 6,
-              "population": 99361,
+              "id": "8728f0023ffffff",
+              "resolution": 7,
+              "population": 22176,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -446,32 +446,32 @@
               "coordinates": [
                 [
                   [
-                    -122.657513,
-                    45.515818
+                    -122.683246,
+                    45.503176
                   ],
                   [
-                    -122.623676,
-                    45.539512
+                    -122.675165,
+                    45.514239
                   ],
                   [
-                    -122.634722,
-                    45.569529
-                  ],
-                  [
-                    -122.679625,
-                    45.575843
-                  ],
-                  [
-                    -122.71345,
-                    45.552144
+                    -122.684734,
+                    45.523719
                   ],
                   [
                     -122.702384,
                     45.522135
                   ],
                   [
-                    -122.657513,
-                    45.515818
+                    -122.710461,
+                    45.511072
+                  ],
+                  [
+                    -122.700892,
+                    45.501593
+                  ],
+                  [
+                    -122.683246,
+                    45.503176
                   ]
                 ]
               ]
@@ -525,7 +525,7 @@
             "id": "8728f0023ffffff",
             "population": 22176,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8828f00237fffff",
@@ -593,9 +593,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8628f0007ffffff",
-                "resolution": 6,
-                "population": 99361,
+                "id": "8728f0023ffffff",
+                "resolution": 7,
+                "population": 22176,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -604,32 +604,32 @@
                 "coordinates": [
                   [
                     [
-                      -122.657513,
-                      45.515818
+                      -122.683246,
+                      45.503176
                     ],
                     [
-                      -122.623676,
-                      45.539512
+                      -122.675165,
+                      45.514239
                     ],
                     [
-                      -122.634722,
-                      45.569529
-                    ],
-                    [
-                      -122.679625,
-                      45.575843
-                    ],
-                    [
-                      -122.71345,
-                      45.552144
+                      -122.684734,
+                      45.523719
                     ],
                     [
                       -122.702384,
                       45.522135
                     ],
                     [
-                      -122.657513,
-                      45.515818
+                      -122.710461,
+                      45.511072
+                    ],
+                    [
+                      -122.700892,
+                      45.501593
+                    ],
+                    [
+                      -122.683246,
+                      45.503176
                     ]
                   ]
                 ]
@@ -645,7 +645,7 @@
           "population": 810958
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 9.7,
@@ -682,9 +682,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 68129,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 29668,
+        "areaKm2": 9,
         "totals": {
           "1": 799,
           "3": 29668,
@@ -694,7 +694,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8544a113fffffff",
           "resolution": 5,
@@ -749,18 +749,18 @@
           }
         },
         "effective": {
-          "id": "8644a112fffffff",
-          "resolution": 6,
-          "population": 121780,
+          "id": "8744a1128ffffff",
+          "resolution": 7,
+          "population": 27764,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8644a112fffffff",
-              "resolution": 6,
-              "population": 121780,
+              "id": "8744a1128ffffff",
+              "resolution": 7,
+              "population": 27764,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -769,32 +769,32 @@
               "coordinates": [
                 [
                   [
-                    -80.201915,
-                    25.725635
+                    -80.195977,
+                    25.746669
                   ],
                   [
-                    -80.171679,
-                    25.740116
+                    -80.186932,
+                    25.755547
                   ],
                   [
-                    -80.16884,
-                    25.773297
+                    -80.190037,
+                    25.767701
                   ],
                   [
-                    -80.196251,
-                    25.792012
+                    -80.202192,
+                    25.770979
                   ],
                   [
-                    -80.226509,
-                    25.777533
+                    -80.211239,
+                    25.7621
                   ],
                   [
-                    -80.229334,
-                    25.744337
+                    -80.208131,
+                    25.749944
                   ],
                   [
-                    -80.201915,
-                    25.725635
+                    -80.195977,
+                    25.746669
                   ]
                 ]
               ]
@@ -848,7 +848,7 @@
             "id": "8744a1128ffffff",
             "population": 27764,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8844a1128dfffff",
@@ -916,9 +916,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8644a112fffffff",
-                "resolution": 6,
-                "population": 121780,
+                "id": "8744a1128ffffff",
+                "resolution": 7,
+                "population": 27764,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -927,32 +927,32 @@
                 "coordinates": [
                   [
                     [
-                      -80.201915,
-                      25.725635
+                      -80.195977,
+                      25.746669
                     ],
                     [
-                      -80.171679,
-                      25.740116
+                      -80.186932,
+                      25.755547
                     ],
                     [
-                      -80.16884,
-                      25.773297
+                      -80.190037,
+                      25.767701
                     ],
                     [
-                      -80.196251,
-                      25.792012
+                      -80.202192,
+                      25.770979
                     ],
                     [
-                      -80.226509,
-                      25.777533
+                      -80.211239,
+                      25.7621
                     ],
                     [
-                      -80.229334,
-                      25.744337
+                      -80.208131,
+                      25.749944
                     ],
                     [
-                      -80.201915,
-                      25.725635
+                      -80.195977,
+                      25.746669
                     ]
                   ]
                 ]
@@ -968,7 +968,7 @@
           "population": 2723567
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 21.5,
@@ -1017,7 +1017,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8528de8ffffffff",
           "resolution": 5,
@@ -1072,18 +1072,18 @@
           }
         },
         "effective": {
-          "id": "8628de8dfffffff",
-          "resolution": 6,
-          "population": 174101,
+          "id": "8728de8deffffff",
+          "resolution": 7,
+          "population": 35989,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8628de8dfffffff",
-              "resolution": 6,
-              "population": 174101,
+              "id": "8728de8deffffff",
+              "resolution": 7,
+              "population": 35989,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -1092,32 +1092,32 @@
               "coordinates": [
                 [
                   [
-                    -123.114228,
-                    49.259426
+                    -123.087457,
+                    49.271779
                   ],
                   [
                     -123.07908,
                     49.28237
                   ],
                   [
-                    -123.090758,
-                    49.310619
+                    -123.089107,
+                    49.291202
                   ],
                   [
-                    -123.137605,
-                    49.315917
+                    -123.107511,
+                    49.289442
                   ],
                   [
-                    -123.172739,
-                    49.292967
+                    -123.115884,
+                    49.278851
                   ],
                   [
-                    -123.161041,
-                    49.264725
+                    -123.105857,
+                    49.27002
                   ],
                   [
-                    -123.114228,
-                    49.259426
+                    -123.087457,
+                    49.271779
                   ]
                 ]
               ]
@@ -1171,7 +1171,7 @@
             "id": "8728de8deffffff",
             "population": 35989,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8828de8de3fffff",
@@ -1239,9 +1239,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8628de8dfffffff",
-                "resolution": 6,
-                "population": 174101,
+                "id": "8728de8deffffff",
+                "resolution": 7,
+                "population": 35989,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -1250,32 +1250,32 @@
                 "coordinates": [
                   [
                     [
-                      -123.114228,
-                      49.259426
+                      -123.087457,
+                      49.271779
                     ],
                     [
                       -123.07908,
                       49.28237
                     ],
                     [
-                      -123.090758,
-                      49.310619
+                      -123.089107,
+                      49.291202
                     ],
                     [
-                      -123.137605,
-                      49.315917
+                      -123.107511,
+                      49.289442
                     ],
                     [
-                      -123.172739,
-                      49.292967
+                      -123.115884,
+                      49.278851
                     ],
                     [
-                      -123.161041,
-                      49.264725
+                      -123.105857,
+                      49.27002
                     ],
                     [
-                      -123.114228,
-                      49.259426
+                      -123.087457,
+                      49.271779
                     ]
                   ]
                 ]
@@ -1295,7 +1295,7 @@
           "name": "Vancouver",
           "population": 687459
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 6,
@@ -1344,7 +1344,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852b9bc7fffffff",
           "resolution": 5,
@@ -1622,7 +1622,7 @@
           "name": "Toronto",
           "population": 2895364
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 1.9,
@@ -1671,7 +1671,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8566e42bfffffff",
           "resolution": 5,
@@ -1945,7 +1945,7 @@
           "population": 8360100
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 13.3,
@@ -1994,7 +1994,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "856619dbfffffff",
           "resolution": 5,
@@ -2268,7 +2268,7 @@
           "population": 2536337
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 19.1,
@@ -2317,7 +2317,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8566313bfffffff",
           "resolution": 5,
@@ -2372,18 +2372,18 @@
           }
         },
         "effective": {
-          "id": "86663138fffffff",
-          "resolution": 6,
-          "population": 239661,
+          "id": "8766313abffffff",
+          "resolution": 7,
+          "population": 49059,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "86663138fffffff",
-              "resolution": 6,
-              "population": 239661,
+              "id": "8766313abffffff",
+              "resolution": 7,
+              "population": 49059,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -2392,32 +2392,32 @@
               "coordinates": [
                 [
                   [
-                    -75.491527,
-                    10.397274
+                    -75.471102,
+                    10.405069
                   ],
                   [
-                    -75.51944,
-                    10.379947
+                    -75.478584,
+                    10.395544
                   ],
                   [
-                    -75.516005,
-                    10.347893
-                  ],
-                  [
-                    -75.484651,
-                    10.333171
-                  ],
-                  [
-                    -75.45674,
-                    10.350507
+                    -75.473123,
+                    10.384287
                   ],
                   [
                     -75.460181,
                     10.382556
                   ],
                   [
-                    -75.491527,
-                    10.397274
+                    -75.4527,
+                    10.392082
+                  ],
+                  [
+                    -75.45816,
+                    10.403338
+                  ],
+                  [
+                    -75.471102,
+                    10.405069
                   ]
                 ]
               ]
@@ -2471,7 +2471,7 @@
             "id": "8766313abffffff",
             "population": 49059,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8866313ab7fffff",
@@ -2539,9 +2539,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "86663138fffffff",
-                "resolution": 6,
-                "population": 239661,
+                "id": "8766313abffffff",
+                "resolution": 7,
+                "population": 49059,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -2550,32 +2550,32 @@
                 "coordinates": [
                   [
                     [
-                      -75.491527,
-                      10.397274
+                      -75.471102,
+                      10.405069
                     ],
                     [
-                      -75.51944,
-                      10.379947
+                      -75.478584,
+                      10.395544
                     ],
                     [
-                      -75.516005,
-                      10.347893
-                    ],
-                    [
-                      -75.484651,
-                      10.333171
-                    ],
-                    [
-                      -75.45674,
-                      10.350507
+                      -75.473123,
+                      10.384287
                     ],
                     [
                       -75.460181,
                       10.382556
                     ],
                     [
-                      -75.491527,
-                      10.397274
+                      -75.4527,
+                      10.392082
+                    ],
+                    [
+                      -75.45816,
+                      10.403338
+                    ],
+                    [
+                      -75.471102,
+                      10.405069
                     ]
                   ]
                 ]
@@ -2591,12 +2591,12 @@
           "population": 990552
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 27.5,
+        "temperatureC": 27.4,
         "description": "Partly cloudy",
-        "observedAt": "2026-03-25T19:30",
+        "observedAt": "2026-03-25T20:00",
         "query": {
           "lat": 10.391,
           "lon": -75.4794,
@@ -2640,7 +2640,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f1d4ffffffff",
           "resolution": 5,
@@ -2695,18 +2695,18 @@
           }
         },
         "effective": {
-          "id": "861f1d48fffffff",
-          "resolution": 6,
-          "population": 183423,
+          "id": "871f1d489ffffff",
+          "resolution": 7,
+          "population": 24594,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f1d48fffffff",
-              "resolution": 6,
-              "population": 183423,
+              "id": "871f1d489ffffff",
+              "resolution": 7,
+              "population": 24594,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -2715,32 +2715,32 @@
               "coordinates": [
                 [
                   [
-                    13.336528,
-                    52.544308
+                    13.39093,
+                    52.530394
                   ],
                   [
-                    13.321054,
-                    52.514606
+                    13.391806,
+                    52.518946
                   ],
                   [
-                    13.358188,
-                    52.493881
+                    13.409934,
+                    52.514299
                   ],
                   [
-                    13.410806,
-                    52.502848
+                    13.427192,
+                    52.5211
                   ],
                   [
                     13.426322,
                     52.532548
                   ],
                   [
-                    13.389179,
-                    52.553283
+                    13.408189,
+                    52.537195
                   ],
                   [
-                    13.336528,
-                    52.544308
+                    13.39093,
+                    52.530394
                   ]
                 ]
               ]
@@ -2794,7 +2794,7 @@
             "id": "871f1d489ffffff",
             "population": 24594,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881f1d4891fffff",
@@ -2862,9 +2862,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f1d48fffffff",
-                "resolution": 6,
-                "population": 183423,
+                "id": "871f1d489ffffff",
+                "resolution": 7,
+                "population": 24594,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -2873,32 +2873,32 @@
                 "coordinates": [
                   [
                     [
-                      13.336528,
-                      52.544308
+                      13.39093,
+                      52.530394
                     ],
                     [
-                      13.321054,
-                      52.514606
+                      13.391806,
+                      52.518946
                     ],
                     [
-                      13.358188,
-                      52.493881
+                      13.409934,
+                      52.514299
                     ],
                     [
-                      13.410806,
-                      52.502848
+                      13.427192,
+                      52.5211
                     ],
                     [
                       13.426322,
                       52.532548
                     ],
                     [
-                      13.389179,
-                      52.553283
+                      13.408189,
+                      52.537195
                     ],
                     [
-                      13.336528,
-                      52.544308
+                      13.39093,
+                      52.530394
                     ]
                   ]
                 ]
@@ -2918,12 +2918,12 @@
           "name": "Berlin",
           "population": 3439121
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 4.2,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 4,
+        "description": "Mostly clear",
+        "observedAt": "2026-03-26T02:00",
         "query": {
           "lat": 52.52,
           "lon": 13.405,
@@ -2967,7 +2967,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f8d47fffffff",
           "resolution": 5,
@@ -3022,18 +3022,18 @@
           }
         },
         "effective": {
-          "id": "861f8d7a7ffffff",
-          "resolution": 6,
-          "population": 220849,
+          "id": "871f8d7a4ffffff",
+          "resolution": 7,
+          "population": 38478,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f8d7a7ffffff",
-              "resolution": 6,
-              "population": 220849,
+              "id": "871f8d7a4ffffff",
+              "resolution": 7,
+              "population": 38478,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -3046,24 +3046,24 @@
                     48.134881
                   ],
                   [
-                    11.551016,
-                    48.103309
+                    11.565826,
+                    48.122761
                   ],
                   [
-                    11.586181,
-                    48.08159
+                    11.582861,
+                    48.117966
                   ],
                   [
-                    11.635058,
-                    48.091435
+                    11.598789,
+                    48.12529
                   ],
                   [
-                    11.648796,
-                    48.123006
+                    11.597684,
+                    48.137411
                   ],
                   [
-                    11.61362,
-                    48.144733
+                    11.580645,
+                    48.142206
                   ],
                   [
                     11.564716,
@@ -3121,7 +3121,7 @@
             "id": "871f8d7a4ffffff",
             "population": 38478,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881f8d7a4bfffff",
@@ -3189,9 +3189,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f8d7a7ffffff",
-                "resolution": 6,
-                "population": 220849,
+                "id": "871f8d7a4ffffff",
+                "resolution": 7,
+                "population": 38478,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -3204,24 +3204,24 @@
                       48.134881
                     ],
                     [
-                      11.551016,
-                      48.103309
+                      11.565826,
+                      48.122761
                     ],
                     [
-                      11.586181,
-                      48.08159
+                      11.582861,
+                      48.117966
                     ],
                     [
-                      11.635058,
-                      48.091435
+                      11.598789,
+                      48.12529
                     ],
                     [
-                      11.648796,
-                      48.123006
+                      11.597684,
+                      48.137411
                     ],
                     [
-                      11.61362,
-                      48.144733
+                      11.580645,
+                      48.142206
                     ],
                     [
                       11.564716,
@@ -3245,12 +3245,12 @@
           "name": "München, Kreisfreie Stadt",
           "population": 1597569
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2,
-        "description": "Overcast",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 1.9,
+        "description": "Light rain",
+        "observedAt": "2026-03-26T02:00",
         "query": {
           "lat": 48.1374,
           "lon": 11.5755,
@@ -3282,9 +3282,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 106521,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 37275,
+        "areaKm2": 9,
         "totals": {
           "1": 5175,
           "3": 37275,
@@ -3294,7 +3294,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851fa19bfffffff",
           "resolution": 5,
@@ -3349,18 +3349,18 @@
           }
         },
         "effective": {
-          "id": "861fa199fffffff",
-          "resolution": 6,
-          "population": 143298,
+          "id": "871fa1998ffffff",
+          "resolution": 7,
+          "population": 22007,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861fa199fffffff",
-              "resolution": 6,
-              "population": 143298,
+              "id": "871fa1998ffffff",
+              "resolution": 7,
+              "population": 22007,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -3369,32 +3369,32 @@
               "coordinates": [
                 [
                   [
-                    6.894187,
-                    50.956898
+                    6.913654,
+                    50.94167
                   ],
                   [
-                    6.882314,
-                    50.926252
+                    6.915549,
+                    50.930199
                   ],
                   [
-                    6.919336,
-                    50.907252
+                    6.933116,
+                    50.926433
                   ],
                   [
-                    6.96825,
-                    50.918892
+                    6.948794,
+                    50.934138
                   ],
                   [
-                    6.980165,
-                    50.94954
+                    6.946905,
+                    50.945609
                   ],
                   [
-                    6.943124,
-                    50.968547
+                    6.929332,
+                    50.949376
                   ],
                   [
-                    6.894187,
-                    50.956898
+                    6.913654,
+                    50.94167
                   ]
                 ]
               ]
@@ -3448,7 +3448,7 @@
             "id": "871fa1998ffffff",
             "population": 22007,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881fa19983fffff",
@@ -3516,9 +3516,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861fa199fffffff",
-                "resolution": 6,
-                "population": 143298,
+                "id": "871fa1998ffffff",
+                "resolution": 7,
+                "population": 22007,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -3527,32 +3527,32 @@
                 "coordinates": [
                   [
                     [
-                      6.894187,
-                      50.956898
+                      6.913654,
+                      50.94167
                     ],
                     [
-                      6.882314,
-                      50.926252
+                      6.915549,
+                      50.930199
                     ],
                     [
-                      6.919336,
-                      50.907252
+                      6.933116,
+                      50.926433
                     ],
                     [
-                      6.96825,
-                      50.918892
+                      6.948794,
+                      50.934138
                     ],
                     [
-                      6.980165,
-                      50.94954
+                      6.946905,
+                      50.945609
                     ],
                     [
-                      6.943124,
-                      50.968547
+                      6.929332,
+                      50.949376
                     ],
                     [
-                      6.894187,
-                      50.956898
+                      6.913654,
+                      50.94167
                     ]
                   ]
                 ]
@@ -3572,12 +3572,12 @@
           "name": "Köln, Kreisfreie Stadt",
           "population": 1119971
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 4.4,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 4.2,
+        "description": "Overcast",
+        "observedAt": "2026-03-26T02:00",
         "query": {
           "lat": 50.9375,
           "lon": 6.9603,
@@ -3609,9 +3609,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 7,
-        "populationSelected": 63061,
-        "areaKm2": 49,
+        "sizeSelected": 5,
+        "populationSelected": 36391,
+        "areaKm2": 25,
         "totals": {
           "1": 2552,
           "3": 15040,
@@ -3621,7 +3621,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851fa303fffffff",
           "resolution": 5,
@@ -3676,18 +3676,18 @@
           }
         },
         "effective": {
-          "id": "851fa303fffffff",
-          "resolution": 5,
-          "population": 143910,
+          "id": "861fa3027ffffff",
+          "resolution": 6,
+          "population": 34006,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "851fa303fffffff",
-              "resolution": 5,
-              "population": 143910,
+              "id": "861fa3027ffffff",
+              "resolution": 6,
+              "population": 34006,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -3696,32 +3696,32 @@
               "coordinates": [
                 [
                   [
-                    6.523793,
-                    49.745388
+                    6.583237,
+                    49.788285
                   ],
                   [
-                    6.537231,
-                    49.663836
+                    6.57172,
+                    49.75719
                   ],
                   [
-                    6.657861,
-                    49.636909
+                    6.608144,
+                    49.737873
                   ],
                   [
-                    6.765318,
-                    49.691526
+                    6.656104,
+                    49.749644
                   ],
                   [
-                    6.752117,
-                    49.773131
+                    6.667664,
+                    49.780741
                   ],
                   [
                     6.631221,
                     49.800065
                   ],
                   [
-                    6.523793,
-                    49.745388
+                    6.583237,
+                    49.788285
                   ]
                 ]
               ]
@@ -3769,7 +3769,7 @@
             "id": "861fa3027ffffff",
             "population": 34006,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "7": {
             "id": "871fa3020ffffff",
@@ -3843,9 +3843,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "851fa303fffffff",
-                "resolution": 5,
-                "population": 143910,
+                "id": "861fa3027ffffff",
+                "resolution": 6,
+                "population": 34006,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -3854,32 +3854,32 @@
                 "coordinates": [
                   [
                     [
-                      6.523793,
-                      49.745388
+                      6.583237,
+                      49.788285
                     ],
                     [
-                      6.537231,
-                      49.663836
+                      6.57172,
+                      49.75719
                     ],
                     [
-                      6.657861,
-                      49.636909
+                      6.608144,
+                      49.737873
                     ],
                     [
-                      6.765318,
-                      49.691526
+                      6.656104,
+                      49.749644
                     ],
                     [
-                      6.752117,
-                      49.773131
+                      6.667664,
+                      49.780741
                     ],
                     [
                       6.631221,
                       49.800065
                     ],
                     [
-                      6.523793,
-                      49.745388
+                      6.583237,
+                      49.788285
                     ]
                   ]
                 ]
@@ -3899,12 +3899,12 @@
           "name": "Trier, Kreisfreie Stadt",
           "population": 117436
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 3.2,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 2.9,
+        "description": "Clear",
+        "observedAt": "2026-03-26T02:00",
         "query": {
           "lat": 49.7557,
           "lon": 6.6394,
@@ -3948,7 +3948,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852a1073fffffff",
           "resolution": 5,
@@ -4003,18 +4003,18 @@
           }
         },
         "effective": {
-          "id": "862a1072fffffff",
-          "resolution": 6,
-          "population": 328798,
+          "id": "872a10728ffffff",
+          "resolution": 7,
+          "population": 44189,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "862a1072fffffff",
-              "resolution": 6,
-              "population": 328798,
+              "id": "872a10728ffffff",
+              "resolution": 7,
+              "population": 44189,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -4023,32 +4023,32 @@
               "coordinates": [
                 [
                   [
-                    -74.002274,
-                    40.735376
+                    -74.016499,
+                    40.716487
                   ],
                   [
-                    -74.046908,
-                    40.727986
+                    -74.031207,
+                    40.709918
                   ],
                   [
-                    -74.060611,
-                    40.696775
+                    -74.030712,
+                    40.6976
                   ],
                   [
-                    -74.029724,
-                    40.67297
+                    -74.015518,
+                    40.691851
                   ],
                   [
-                    -73.985141,
-                    40.680349
+                    -74.000814,
+                    40.698417
                   ],
                   [
-                    -73.971394,
-                    40.711544
+                    -74.001301,
+                    40.710735
                   ],
                   [
-                    -74.002274,
-                    40.735376
+                    -74.016499,
+                    40.716487
                   ]
                 ]
               ]
@@ -4102,7 +4102,7 @@
             "id": "872a10728ffffff",
             "population": 44189,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "882a10728bfffff",
@@ -4170,9 +4170,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "862a1072fffffff",
-                "resolution": 6,
-                "population": 328798,
+                "id": "872a10728ffffff",
+                "resolution": 7,
+                "population": 44189,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -4181,32 +4181,32 @@
                 "coordinates": [
                   [
                     [
-                      -74.002274,
-                      40.735376
+                      -74.016499,
+                      40.716487
                     ],
                     [
-                      -74.046908,
-                      40.727986
+                      -74.031207,
+                      40.709918
                     ],
                     [
-                      -74.060611,
-                      40.696775
+                      -74.030712,
+                      40.6976
                     ],
                     [
-                      -74.029724,
-                      40.67297
+                      -74.015518,
+                      40.691851
                     ],
                     [
-                      -73.985141,
-                      40.680349
+                      -74.000814,
+                      40.698417
                     ],
                     [
-                      -73.971394,
-                      40.711544
+                      -74.001301,
+                      40.710735
                     ],
                     [
-                      -74.002274,
-                      40.735376
+                      -74.016499,
+                      40.716487
                     ]
                   ]
                 ]
@@ -4222,7 +4222,7 @@
           "population": 1617704
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 7.5,
@@ -4271,7 +4271,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852664c3fffffff",
           "resolution": 5,
@@ -4326,18 +4326,18 @@
           }
         },
         "effective": {
-          "id": "862664c1fffffff",
-          "resolution": 6,
-          "population": 95782,
+          "id": "872664c1affffff",
+          "resolution": 7,
+          "population": 27266,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "862664c1fffffff",
-              "resolution": 6,
-              "population": 95782,
+              "id": "872664c1affffff",
+              "resolution": 7,
+              "population": 27266,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -4346,32 +4346,32 @@
               "coordinates": [
                 [
                   [
-                    -87.600918,
-                    41.911925
+                    -87.639124,
+                    41.887138
                   ],
                   [
-                    -87.643222,
-                    41.899289
+                    -87.65185,
+                    41.878875
                   ],
                   [
                     -87.647752,
                     41.866726
                   ],
                   [
-                    -87.610033,
-                    41.846803
+                    -87.630935,
+                    41.862839
                   ],
                   [
-                    -87.567765,
-                    41.859416
+                    -87.618209,
+                    41.871098
                   ],
                   [
-                    -87.563179,
-                    41.891976
+                    -87.622301,
+                    41.883249
                   ],
                   [
-                    -87.600918,
-                    41.911925
+                    -87.639124,
+                    41.887138
                   ]
                 ]
               ]
@@ -4425,7 +4425,7 @@
             "id": "872664c1affffff",
             "population": 27266,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "882664c1adfffff",
@@ -4493,9 +4493,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "862664c1fffffff",
-                "resolution": 6,
-                "population": 95782,
+                "id": "872664c1affffff",
+                "resolution": 7,
+                "population": 27266,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -4504,32 +4504,32 @@
                 "coordinates": [
                   [
                     [
-                      -87.600918,
-                      41.911925
+                      -87.639124,
+                      41.887138
                     ],
                     [
-                      -87.643222,
-                      41.899289
+                      -87.65185,
+                      41.878875
                     ],
                     [
                       -87.647752,
                       41.866726
                     ],
                     [
-                      -87.610033,
-                      41.846803
+                      -87.630935,
+                      41.862839
                     ],
                     [
-                      -87.567765,
-                      41.859416
+                      -87.618209,
+                      41.871098
                     ],
                     [
-                      -87.563179,
-                      41.891976
+                      -87.622301,
+                      41.883249
                     ],
                     [
-                      -87.600918,
-                      41.911925
+                      -87.639124,
+                      41.887138
                     ]
                   ]
                 ]
@@ -4545,7 +4545,7 @@
           "population": 4895364
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 17.1,
@@ -4594,7 +4594,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "850c5557fffffff",
           "resolution": 5,
@@ -4649,18 +4649,18 @@
           }
         },
         "effective": {
-          "id": "820c57fffffffff",
-          "resolution": 2,
-          "population": 55572,
+          "id": "840c555ffffffff",
+          "resolution": 4,
+          "population": 26732,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "820c57fffffffff",
-              "resolution": 2,
-              "population": 55572,
+              "id": "840c555ffffffff",
+              "resolution": 4,
+              "population": 26732,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -4669,32 +4669,32 @@
               "coordinates": [
                 [
                   [
-                    -152.502076,
-                    61.583335
+                    -151.355626,
+                    60.641338
                   ],
                   [
-                    -155.360739,
-                    60.701203
+                    -151.762122,
+                    60.523614
                   ],
                   [
-                    -155.276716,
-                    59.19796
+                    -151.778802,
+                    60.309138
                   ],
                   [
-                    -152.642874,
-                    58.589483
+                    -151.395375,
+                    60.212808
                   ],
                   [
-                    -149.957133,
-                    59.39833
+                    -150.992709,
+                    60.329081
                   ],
                   [
-                    -149.734494,
-                    60.884637
+                    -150.96965,
+                    60.543123
                   ],
                   [
-                    -152.502076,
-                    61.583335
+                    -151.355626,
+                    60.641338
                   ]
                 ]
               ]
@@ -4706,7 +4706,7 @@
             "id": "800dfffffffffff",
             "population": 39555,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "1": {
             "id": "810c7ffffffffff",
@@ -4724,13 +4724,13 @@
             "id": "830c55fffffffff",
             "population": 39367,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "4": {
             "id": "840c555ffffffff",
             "population": 26732,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "5": {
             "id": "850c5557fffffff",
@@ -4816,9 +4816,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "820c57fffffffff",
-                "resolution": 2,
-                "population": 55572,
+                "id": "840c555ffffffff",
+                "resolution": 4,
+                "population": 26732,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -4827,32 +4827,32 @@
                 "coordinates": [
                   [
                     [
-                      -152.502076,
-                      61.583335
+                      -151.355626,
+                      60.641338
                     ],
                     [
-                      -155.360739,
-                      60.701203
+                      -151.762122,
+                      60.523614
                     ],
                     [
-                      -155.276716,
-                      59.19796
+                      -151.778802,
+                      60.309138
                     ],
                     [
-                      -152.642874,
-                      58.589483
+                      -151.395375,
+                      60.212808
                     ],
                     [
-                      -149.957133,
-                      59.39833
+                      -150.992709,
+                      60.329081
                     ],
                     [
-                      -149.734494,
-                      60.884637
+                      -150.96965,
+                      60.543123
                     ],
                     [
-                      -152.502076,
-                      61.583335
+                      -151.355626,
+                      60.641338
                     ]
                   ]
                 ]
@@ -4868,7 +4868,7 @@
           "population": 59914
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": -2.6,
@@ -4905,9 +4905,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 7,
-        "populationSelected": 30765,
-        "areaKm2": 49,
+        "sizeSelected": 5,
+        "populationSelected": 20013,
+        "areaKm2": 25,
         "totals": {
           "1": 686,
           "3": 5858,
@@ -4917,7 +4917,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852798dbfffffff",
           "resolution": 5,
@@ -5191,7 +5191,7 @@
           "population": 166713
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 21.8,
@@ -5240,7 +5240,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8548ab27fffffff",
           "resolution": 5,
@@ -5510,7 +5510,7 @@
       "adm": {
         "adm2": null,
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 33.9,
@@ -5541,9 +5541,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 71912,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 26933,
+        "areaKm2": 9,
         "totals": {
           "1": 2097,
           "3": 26933,
@@ -5553,7 +5553,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85489e37fffffff",
           "resolution": 5,
@@ -5827,7 +5827,7 @@
           "population": 1273864
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 28.1,
@@ -5876,7 +5876,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852759affffffff",
           "resolution": 5,
@@ -5931,18 +5931,18 @@
           }
         },
         "effective": {
-          "id": "852759affffffff",
-          "resolution": 5,
-          "population": 229452,
+          "id": "862759aefffffff",
+          "resolution": 6,
+          "population": 20104,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "852759affffffff",
-              "resolution": 5,
-              "population": 229452,
+              "id": "862759aefffffff",
+              "resolution": 6,
+              "population": 20104,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -5951,32 +5951,32 @@
               "coordinates": [
                 [
                   [
-                    -87.881991,
-                    42.234517
+                    -87.76778,
+                    42.174755
                   ],
                   [
-                    -87.971277,
-                    42.176219
+                    -87.810263,
+                    42.162006
                   ],
                   [
-                    -87.941882,
-                    42.091037
+                    -87.814698,
+                    42.129341
                   ],
                   [
-                    -87.823549,
-                    42.064047
+                    -87.776708,
+                    42.109426
                   ],
                   [
                     -87.734261,
                     42.122151
                   ],
                   [
-                    -87.763307,
-                    42.207438
+                    -87.729769,
+                    42.154814
                   ],
                   [
-                    -87.881991,
-                    42.234517
+                    -87.76778,
+                    42.174755
                   ]
                 ]
               ]
@@ -6024,7 +6024,7 @@
             "id": "862759aefffffff",
             "population": 20104,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "7": {
             "id": "872759ae9ffffff",
@@ -6098,9 +6098,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "852759affffffff",
-                "resolution": 5,
-                "population": 229452,
+                "id": "862759aefffffff",
+                "resolution": 6,
+                "population": 20104,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -6109,32 +6109,32 @@
                 "coordinates": [
                   [
                     [
-                      -87.881991,
-                      42.234517
+                      -87.76778,
+                      42.174755
                     ],
                     [
-                      -87.971277,
-                      42.176219
+                      -87.810263,
+                      42.162006
                     ],
                     [
-                      -87.941882,
-                      42.091037
+                      -87.814698,
+                      42.129341
                     ],
                     [
-                      -87.823549,
-                      42.064047
+                      -87.776708,
+                      42.109426
                     ],
                     [
                       -87.734261,
                       42.122151
                     ],
                     [
-                      -87.763307,
-                      42.207438
+                      -87.729769,
+                      42.154814
                     ],
                     [
-                      -87.881991,
-                      42.234517
+                      -87.76778,
+                      42.174755
                     ]
                   ]
                 ]
@@ -6150,7 +6150,7 @@
           "population": 4895364
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 16.9,
@@ -6199,7 +6199,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852745affffffff",
           "resolution": 5,
@@ -6254,18 +6254,18 @@
           }
         },
         "effective": {
-          "id": "832745fffffffff",
-          "resolution": 3,
-          "population": 75255,
+          "id": "842745bffffffff",
+          "resolution": 4,
+          "population": 32633,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "832745fffffffff",
-              "resolution": 3,
-              "population": 75255,
+              "id": "842745bffffffff",
+              "resolution": 4,
+              "population": 32633,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -6274,32 +6274,32 @@
               "coordinates": [
                 [
                   [
-                    -85.647567,
-                    46.249725
+                    -84.798984,
+                    45.797487
                   ],
                   [
-                    -86.349386,
-                    45.832558
+                    -85.128524,
+                    45.711218
                   ],
                   [
-                    -86.150668,
-                    45.210899
+                    -85.176476,
+                    45.474167
                   ],
                   [
-                    -85.270853,
-                    45.001664
+                    -84.898111,
+                    45.323668
                   ],
                   [
                     -84.570871,
                     45.408877
                   ],
                   [
-                    -84.748614,
-                    46.035179
+                    -84.519705,
+                    45.645637
                   ],
                   [
-                    -85.647567,
-                    46.249725
+                    -84.798984,
+                    45.797487
                   ]
                 ]
               ]
@@ -6335,7 +6335,7 @@
             "id": "842745bffffffff",
             "population": 32633,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "5": {
             "id": "852745affffffff",
@@ -6421,9 +6421,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "832745fffffffff",
-                "resolution": 3,
-                "population": 75255,
+                "id": "842745bffffffff",
+                "resolution": 4,
+                "population": 32633,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -6432,32 +6432,32 @@
                 "coordinates": [
                   [
                     [
-                      -85.647567,
-                      46.249725
+                      -84.798984,
+                      45.797487
                     ],
                     [
-                      -86.349386,
-                      45.832558
+                      -85.128524,
+                      45.711218
                     ],
                     [
-                      -86.150668,
-                      45.210899
+                      -85.176476,
+                      45.474167
                     ],
                     [
-                      -85.270853,
-                      45.001664
+                      -84.898111,
+                      45.323668
                     ],
                     [
                       -84.570871,
                       45.408877
                     ],
                     [
-                      -84.748614,
-                      46.035179
+                      -84.519705,
+                      45.645637
                     ],
                     [
-                      -85.647567,
-                      46.249725
+                      -84.798984,
+                      45.797487
                     ]
                   ]
                 ]
@@ -6467,9 +6467,13 @@
         }
       },
       "adm": {
-        "adm2": null,
+        "adm2": {
+          "level": "adm2",
+          "name": "Emmet",
+          "population": 32406
+        },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 2,
@@ -6518,7 +6522,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85262cd3fffffff",
           "resolution": 5,
@@ -6792,7 +6796,7 @@
           "population": 1169544
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 16.8,
@@ -6829,9 +6833,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 58438,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 26029,
+        "areaKm2": 9,
         "totals": {
           "1": 41,
           "3": 26029,
@@ -6841,7 +6845,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283477fffffff",
           "resolution": 5,
@@ -7115,7 +7119,7 @@
           "population": 1860458
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 20.3,
@@ -7152,9 +7156,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 71755,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 21847,
+        "areaKm2": 9,
         "totals": {
           "1": 5083,
           "3": 21847,
@@ -7164,7 +7168,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283477fffffff",
           "resolution": 5,
@@ -7438,7 +7442,7 @@
           "population": 1860458
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 20.4,
@@ -7487,7 +7491,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283477fffffff",
           "resolution": 5,
@@ -7761,7 +7765,7 @@
           "population": 710699
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 20.6,
@@ -7810,7 +7814,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852baa47fffffff",
           "resolution": 5,
@@ -7865,18 +7869,18 @@
           }
         },
         "effective": {
-          "id": "862baa44fffffff",
-          "resolution": 6,
-          "population": 236835,
+          "id": "872baa44cffffff",
+          "resolution": 7,
+          "population": 42638,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "862baa44fffffff",
-              "resolution": 6,
-              "population": 236835,
+              "id": "872baa44cffffff",
+              "resolution": 7,
+              "population": 42638,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -7889,24 +7893,24 @@
                     45.497897
                   ],
                   [
-                    -73.623859,
-                    45.490382
+                    -73.590669,
+                    45.491068
                   ],
                   [
-                    -73.639367,
-                    45.457591
+                    -73.590248,
+                    45.478089
                   ],
                   [
-                    -73.605352,
-                    45.432332
+                    -73.57345,
+                    45.471939
                   ],
                   [
-                    -73.555837,
-                    45.439837
+                    -73.557067,
+                    45.478765
                   ],
                   [
-                    -73.540274,
-                    45.47261
+                    -73.557478,
+                    45.491744
                   ],
                   [
                     -73.574281,
@@ -7964,7 +7968,7 @@
             "id": "872baa44cffffff",
             "population": 42638,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "882baa44cdfffff",
@@ -8032,9 +8036,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "862baa44fffffff",
-                "resolution": 6,
-                "population": 236835,
+                "id": "872baa44cffffff",
+                "resolution": 7,
+                "population": 42638,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -8047,24 +8051,24 @@
                       45.497897
                     ],
                     [
-                      -73.623859,
-                      45.490382
+                      -73.590669,
+                      45.491068
                     ],
                     [
-                      -73.639367,
-                      45.457591
+                      -73.590248,
+                      45.478089
                     ],
                     [
-                      -73.605352,
-                      45.432332
+                      -73.57345,
+                      45.471939
                     ],
                     [
-                      -73.555837,
-                      45.439837
+                      -73.557067,
+                      45.478765
                     ],
                     [
-                      -73.540274,
-                      45.47261
+                      -73.557478,
+                      45.491744
                     ],
                     [
                       -73.574281,
@@ -8088,7 +8092,7 @@
           "name": "MontrÃ©al",
           "population": 1722957
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": -2.4,
@@ -8125,9 +8129,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 123221,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 40228,
+        "areaKm2": 9,
         "totals": {
           "1": 5760,
           "3": 40228,
@@ -8137,7 +8141,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8512ccd7fffffff",
           "resolution": 5,
@@ -8192,18 +8196,18 @@
           }
         },
         "effective": {
-          "id": "8612ccd77ffffff",
-          "resolution": 6,
-          "population": 105178,
+          "id": "8712ccd74ffffff",
+          "resolution": 7,
+          "population": 26782,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8612ccd77ffffff",
-              "resolution": 6,
-              "population": 105178,
+              "id": "8712ccd74ffffff",
+              "resolution": 7,
+              "population": 26782,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -8216,24 +8220,24 @@
                     51.063674
                   ],
                   [
-                    -114.10825,
-                    51.040691
+                    -114.081391,
+                    51.052525
                   ],
                   [
-                    -114.091896,
-                    51.008623
+                    -114.069479,
+                    51.042059
                   ],
                   [
-                    -114.04126,
-                    50.999513
+                    -114.050089,
+                    51.042738
                   ],
                   [
-                    -114.006902,
-                    51.022468
+                    -114.0426,
+                    51.053886
                   ],
                   [
-                    -114.0232,
-                    51.054561
+                    -114.054511,
+                    51.064356
                   ],
                   [
                     -114.073911,
@@ -8291,7 +8295,7 @@
             "id": "8712ccd74ffffff",
             "population": 26782,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8812ccd741fffff",
@@ -8359,9 +8363,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8612ccd77ffffff",
-                "resolution": 6,
-                "population": 105178,
+                "id": "8712ccd74ffffff",
+                "resolution": 7,
+                "population": 26782,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -8374,24 +8378,24 @@
                       51.063674
                     ],
                     [
-                      -114.10825,
-                      51.040691
+                      -114.081391,
+                      51.052525
                     ],
                     [
-                      -114.091896,
-                      51.008623
+                      -114.069479,
+                      51.042059
                     ],
                     [
-                      -114.04126,
-                      50.999513
+                      -114.050089,
+                      51.042738
                     ],
                     [
-                      -114.006902,
-                      51.022468
+                      -114.0426,
+                      51.053886
                     ],
                     [
-                      -114.0232,
-                      51.054561
+                      -114.054511,
+                      51.064356
                     ],
                     [
                       -114.073911,
@@ -8415,7 +8419,7 @@
           "name": "Calgary",
           "population": 1408748
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": -6.8,
@@ -8464,7 +8468,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8566f1c7fffffff",
           "resolution": 5,
@@ -8738,7 +8742,7 @@
           "population": 2314621
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 18.3,
@@ -8775,9 +8779,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 80315,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 32453,
+        "areaKm2": 9,
         "totals": {
           "1": 3813,
           "3": 32453,
@@ -8787,7 +8791,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f15affffffff",
           "resolution": 5,
@@ -9065,7 +9069,7 @@
           "name": "Hamburg",
           "population": 1804812
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 3.3,
@@ -9114,7 +9118,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85197277fffffff",
           "resolution": 5,
@@ -9169,18 +9173,18 @@
           }
         },
         "effective": {
-          "id": "861972767ffffff",
-          "resolution": 6,
-          "population": 179468,
+          "id": "871972765ffffff",
+          "resolution": 7,
+          "population": 28420,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861972767ffffff",
-              "resolution": 6,
-              "population": 179468,
+              "id": "871972765ffffff",
+              "resolution": 7,
+              "population": 28420,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -9189,32 +9193,32 @@
               "coordinates": [
                 [
                   [
-                    -3.223109,
-                    55.983393
+                    -3.199026,
+                    55.966591
                   ],
                   [
-                    -3.274857,
-                    55.974906
+                    -3.2149,
+                    55.959841
                   ],
                   [
-                    -3.282491,
-                    55.944589
+                    -3.210799,
+                    55.948063
                   ],
                   [
-                    -3.238427,
-                    55.922769
+                    -3.190833,
+                    55.943035
                   ],
                   [
-                    -3.186739,
-                    55.931254
+                    -3.174963,
+                    55.949783
                   ],
                   [
                     -3.179055,
                     55.961561
                   ],
                   [
-                    -3.223109,
-                    55.983393
+                    -3.199026,
+                    55.966591
                   ]
                 ]
               ]
@@ -9268,7 +9272,7 @@
             "id": "871972765ffffff",
             "population": 28420,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881972765dfffff",
@@ -9336,9 +9340,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861972767ffffff",
-                "resolution": 6,
-                "population": 179468,
+                "id": "871972765ffffff",
+                "resolution": 7,
+                "population": 28420,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -9347,32 +9351,32 @@
                 "coordinates": [
                   [
                     [
-                      -3.223109,
-                      55.983393
+                      -3.199026,
+                      55.966591
                     ],
                     [
-                      -3.274857,
-                      55.974906
+                      -3.2149,
+                      55.959841
                     ],
                     [
-                      -3.282491,
-                      55.944589
+                      -3.210799,
+                      55.948063
                     ],
                     [
-                      -3.238427,
-                      55.922769
+                      -3.190833,
+                      55.943035
                     ],
                     [
-                      -3.186739,
-                      55.931254
+                      -3.174963,
+                      55.949783
                     ],
                     [
                       -3.179055,
                       55.961561
                     ],
                     [
-                      -3.223109,
-                      55.983393
+                      -3.199026,
+                      55.966591
                     ]
                   ]
                 ]
@@ -9392,7 +9396,7 @@
           "name": "City of Edinburgh",
           "population": 500349
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 2.6,
@@ -9429,9 +9433,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 133779,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 47563,
+        "areaKm2": 9,
         "totals": {
           "1": 5985,
           "3": 47563,
@@ -9441,7 +9445,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851909affffffff",
           "resolution": 5,
@@ -9496,18 +9500,18 @@
           }
         },
         "effective": {
-          "id": "861909ac7ffffff",
-          "resolution": 6,
-          "population": 156526,
+          "id": "871909ac5ffffff",
+          "resolution": 7,
+          "population": 25753,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861909ac7ffffff",
-              "resolution": 6,
-              "population": 156526,
+              "id": "871909ac5ffffff",
+              "resolution": 7,
+              "population": 25753,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -9516,32 +9520,32 @@
               "coordinates": [
                 [
                   [
-                    -4.288774,
-                    55.891367
+                    -4.26421,
+                    55.874703
                   ],
                   [
-                    -4.340618,
-                    55.882376
+                    -4.280027,
+                    55.867779
                   ],
                   [
-                    -4.347656,
-                    55.851849
+                    -4.275657,
+                    55.855983
                   ],
                   [
-                    -4.302901,
-                    55.830324
+                    -4.255478,
+                    55.851111
                   ],
                   [
-                    -4.251116,
-                    55.839313
+                    -4.239666,
+                    55.858034
                   ],
                   [
                     -4.244027,
                     55.869829
                   ],
                   [
-                    -4.288774,
-                    55.891367
+                    -4.26421,
+                    55.874703
                   ]
                 ]
               ]
@@ -9595,7 +9599,7 @@
             "id": "871909ac5ffffff",
             "population": 25753,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881909ac57fffff",
@@ -9663,9 +9667,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861909ac7ffffff",
-                "resolution": 6,
-                "population": 156526,
+                "id": "871909ac5ffffff",
+                "resolution": 7,
+                "population": 25753,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -9674,32 +9678,32 @@
                 "coordinates": [
                   [
                     [
-                      -4.288774,
-                      55.891367
+                      -4.26421,
+                      55.874703
                     ],
                     [
-                      -4.340618,
-                      55.882376
+                      -4.280027,
+                      55.867779
                     ],
                     [
-                      -4.347656,
-                      55.851849
+                      -4.275657,
+                      55.855983
                     ],
                     [
-                      -4.302901,
-                      55.830324
+                      -4.255478,
+                      55.851111
                     ],
                     [
-                      -4.251116,
-                      55.839313
+                      -4.239666,
+                      55.858034
                     ],
                     [
                       -4.244027,
                       55.869829
                     ],
                     [
-                      -4.288774,
-                      55.891367
+                      -4.26421,
+                      55.874703
                     ]
                   ]
                 ]
@@ -9719,7 +9723,7 @@
           "name": "Glasgow City",
           "population": 602099
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 2.5,
@@ -9768,7 +9772,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8519768ffffffff",
           "resolution": 5,
@@ -9823,18 +9827,18 @@
           }
         },
         "effective": {
-          "id": "8619768cfffffff",
-          "resolution": 6,
-          "population": 93323,
+          "id": "8719768cdffffff",
+          "resolution": 7,
+          "population": 27200,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8619768cfffffff",
-              "resolution": 6,
-              "population": 93323,
+              "id": "8719768cdffffff",
+              "resolution": 7,
+              "population": 27200,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -9843,32 +9847,32 @@
               "coordinates": [
                 [
                   [
-                    -2.149112,
-                    57.183063
+                    -2.124992,
+                    57.166269
                   ],
                   [
-                    -2.201904,
-                    57.175398
+                    -2.141275,
+                    57.15985
                   ],
                   [
-                    -2.210319,
-                    57.145752
+                    -2.13736,
+                    57.148242
                   ],
                   [
-                    -2.165992,
-                    57.12378
+                    -2.117171,
+                    57.143053
                   ],
                   [
-                    -2.113263,
-                    57.131443
+                    -2.100892,
+                    57.149471
                   ],
                   [
                     -2.104798,
                     57.161079
                   ],
                   [
-                    -2.149112,
-                    57.183063
+                    -2.124992,
+                    57.166269
                   ]
                 ]
               ]
@@ -9922,7 +9926,7 @@
             "id": "8719768cdffffff",
             "population": 27200,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8819768cdbfffff",
@@ -9990,9 +9994,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8619768cfffffff",
-                "resolution": 6,
-                "population": 93323,
+                "id": "8719768cdffffff",
+                "resolution": 7,
+                "population": 27200,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -10001,32 +10005,32 @@
                 "coordinates": [
                   [
                     [
-                      -2.149112,
-                      57.183063
+                      -2.124992,
+                      57.166269
                     ],
                     [
-                      -2.201904,
-                      57.175398
+                      -2.141275,
+                      57.15985
                     ],
                     [
-                      -2.210319,
-                      57.145752
+                      -2.13736,
+                      57.148242
                     ],
                     [
-                      -2.165992,
-                      57.12378
+                      -2.117171,
+                      57.143053
                     ],
                     [
-                      -2.113263,
-                      57.131443
+                      -2.100892,
+                      57.149471
                     ],
                     [
                       -2.104798,
                       57.161079
                     ],
                     [
-                      -2.149112,
-                      57.183063
+                      -2.124992,
+                      57.166269
                     ]
                   ]
                 ]
@@ -10046,7 +10050,7 @@
           "name": "Aberdeen City",
           "population": 232059
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 1.1,
@@ -10083,9 +10087,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 162780,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 32967,
+        "areaKm2": 9,
         "totals": {
           "1": 3135,
           "3": 32967,
@@ -10095,7 +10099,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "853da117fffffff",
           "resolution": 5,
@@ -10373,7 +10377,7 @@
           "name": "Chanakya Puri",
           "population": 171732
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 20.9,
@@ -10410,9 +10414,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 3,
-        "populationSelected": 369308,
-        "areaKm2": 9,
+        "sizeSelected": 1,
+        "populationSelected": 40532,
+        "areaKm2": 1,
         "totals": {
           "1": 40532,
           "3": 369308,
@@ -10422,7 +10426,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85608b0bfffffff",
           "resolution": 5,
@@ -10477,18 +10481,18 @@
           }
         },
         "effective": {
-          "id": "87608b0b6ffffff",
-          "resolution": 7,
-          "population": 169257,
+          "id": "88608b0b6bfffff",
+          "resolution": 8,
+          "population": 40532,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "87608b0b6ffffff",
-              "resolution": 7,
-              "population": 169257,
+              "id": "88608b0b6bfffff",
+              "resolution": 8,
+              "population": 40532,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -10497,32 +10501,32 @@
               "coordinates": [
                 [
                   [
-                    72.887618,
-                    19.072787
+                    72.875464,
+                    19.06498
                   ],
                   [
-                    72.883582,
-                    19.084424
+                    72.875469,
+                    19.069726
                   ],
                   [
-                    72.871439,
-                    19.086108
+                    72.871424,
+                    19.07187
                   ],
                   [
-                    72.863333,
-                    19.076156
+                    72.867373,
+                    19.069267
                   ],
                   [
                     72.867368,
                     19.064521
                   ],
                   [
-                    72.87951,
-                    19.062836
+                    72.871414,
+                    19.062377
                   ],
                   [
-                    72.887618,
-                    19.072787
+                    72.875464,
+                    19.06498
                   ]
                 ]
               ]
@@ -10582,7 +10586,7 @@
             "id": "88608b0b6bfffff",
             "population": 40532,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "9": {
             "id": "89608b0b6abffff",
@@ -10644,9 +10648,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "87608b0b6ffffff",
-                "resolution": 7,
-                "population": 169257,
+                "id": "88608b0b6bfffff",
+                "resolution": 8,
+                "population": 40532,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -10655,32 +10659,32 @@
                 "coordinates": [
                   [
                     [
-                      72.887618,
-                      19.072787
+                      72.875464,
+                      19.06498
                     ],
                     [
-                      72.883582,
-                      19.084424
+                      72.875469,
+                      19.069726
                     ],
                     [
-                      72.871439,
-                      19.086108
+                      72.871424,
+                      19.07187
                     ],
                     [
-                      72.863333,
-                      19.076156
+                      72.867373,
+                      19.069267
                     ],
                     [
                       72.867368,
                       19.064521
                     ],
                     [
-                      72.87951,
-                      19.062836
+                      72.871414,
+                      19.062377
                     ],
                     [
-                      72.887618,
-                      19.072787
+                      72.875464,
+                      19.06498
                     ]
                   ]
                 ]
@@ -10700,7 +10704,7 @@
           "name": "Mumbai Suburban",
           "population": 10838698
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 27.9,
@@ -10737,9 +10741,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 3,
-        "populationSelected": 346208,
-        "areaKm2": 9,
+        "sizeSelected": 1,
+        "populationSelected": 36783,
+        "areaKm2": 1,
         "totals": {
           "1": 36783,
           "3": 346208,
@@ -10749,7 +10753,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8560145bfffffff",
           "resolution": 5,
@@ -10804,18 +10808,18 @@
           }
         },
         "effective": {
-          "id": "8760145b4ffffff",
-          "resolution": 7,
-          "population": 187944,
+          "id": "8960145b4a3ffff",
+          "resolution": 9,
+          "population": 36783,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8760145b4ffffff",
-              "resolution": 7,
-              "population": 187944,
+              "id": "8960145b4a3ffff",
+              "resolution": 9,
+              "population": 36783,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -10824,32 +10828,32 @@
               "coordinates": [
                 [
                   [
-                    77.602993,
-                    12.975962
+                    77.587859,
+                    12.970669
                   ],
                   [
-                    77.59899,
-                    12.988446
+                    77.587287,
+                    12.972452
                   ],
                   [
-                    77.586395,
-                    12.990981
+                    77.585488,
+                    12.972814
                   ],
                   [
-                    77.577803,
-                    12.981034
+                    77.58426,
+                    12.971393
                   ],
                   [
-                    77.581806,
-                    12.968552
+                    77.584832,
+                    12.96961
                   ],
                   [
-                    77.5944,
-                    12.966015
+                    77.586631,
+                    12.969248
                   ],
                   [
-                    77.602993,
-                    12.975962
+                    77.587859,
+                    12.970669
                   ]
                 ]
               ]
@@ -10909,13 +10913,13 @@
             "id": "8860145b4bfffff",
             "population": 36783,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "9": {
             "id": "8960145b4a3ffff",
             "population": 36783,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -10971,9 +10975,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8760145b4ffffff",
-                "resolution": 7,
-                "population": 187944,
+                "id": "8960145b4a3ffff",
+                "resolution": 9,
+                "population": 36783,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -10982,32 +10986,32 @@
                 "coordinates": [
                   [
                     [
-                      77.602993,
-                      12.975962
+                      77.587859,
+                      12.970669
                     ],
                     [
-                      77.59899,
-                      12.988446
+                      77.587287,
+                      12.972452
                     ],
                     [
-                      77.586395,
-                      12.990981
+                      77.585488,
+                      12.972814
                     ],
                     [
-                      77.577803,
-                      12.981034
+                      77.58426,
+                      12.971393
                     ],
                     [
-                      77.581806,
-                      12.968552
+                      77.584832,
+                      12.96961
                     ],
                     [
-                      77.5944,
-                      12.966015
+                      77.586631,
+                      12.969248
                     ],
                     [
-                      77.602993,
-                      12.975962
+                      77.587859,
+                      12.970669
                     ]
                   ]
                 ]
@@ -11027,7 +11031,7 @@
           "name": "Bengaluru North",
           "population": 10550672
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 20.1,
@@ -11076,7 +11080,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85c2e313fffffff",
           "resolution": 5,
@@ -11131,18 +11135,18 @@
           }
         },
         "effective": {
-          "id": "86c2e3117ffffff",
-          "resolution": 6,
-          "population": 351105,
+          "id": "87c2e3113ffffff",
+          "resolution": 7,
+          "population": 42758,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "86c2e3117ffffff",
-              "resolution": 6,
-              "population": 351105,
+              "id": "87c2e3113ffffff",
+              "resolution": 7,
+              "population": 42758,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -11151,32 +11155,32 @@
               "coordinates": [
                 [
                   [
-                    -58.373772,
-                    -34.654221
+                    -58.371788,
+                    -34.619712
                   ],
                   [
-                    -58.345776,
-                    -34.641057
+                    -58.364542,
+                    -34.612103
                   ],
                   [
-                    -58.35104,
-                    -34.614146
+                    -58.370796,
+                    -34.602448
                   ],
                   [
                     -58.384295,
                     -34.600403
                   ],
                   [
-                    -58.41228,
-                    -34.613571
+                    -58.39154,
+                    -34.608012
                   ],
                   [
-                    -58.407022,
-                    -34.640478
+                    -58.385287,
+                    -34.617666
                   ],
                   [
-                    -58.373772,
-                    -34.654221
+                    -58.371788,
+                    -34.619712
                   ]
                 ]
               ]
@@ -11230,7 +11234,7 @@
             "id": "87c2e3113ffffff",
             "population": 42758,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "88c2e3113bfffff",
@@ -11298,9 +11302,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "86c2e3117ffffff",
-                "resolution": 6,
-                "population": 351105,
+                "id": "87c2e3113ffffff",
+                "resolution": 7,
+                "population": 42758,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -11309,32 +11313,32 @@
                 "coordinates": [
                   [
                     [
-                      -58.373772,
-                      -34.654221
+                      -58.371788,
+                      -34.619712
                     ],
                     [
-                      -58.345776,
-                      -34.641057
+                      -58.364542,
+                      -34.612103
                     ],
                     [
-                      -58.35104,
-                      -34.614146
+                      -58.370796,
+                      -34.602448
                     ],
                     [
                       -58.384295,
                       -34.600403
                     ],
                     [
-                      -58.41228,
-                      -34.613571
+                      -58.39154,
+                      -34.608012
                     ],
                     [
-                      -58.407022,
-                      -34.640478
+                      -58.385287,
+                      -34.617666
                     ],
                     [
-                      -58.373772,
-                      -34.654221
+                      -58.371788,
+                      -34.619712
                     ]
                   ]
                 ]
@@ -11350,7 +11354,7 @@
           "population": 230557
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 17.6,
@@ -11399,7 +11403,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85b24373fffffff",
           "resolution": 5,
@@ -11454,18 +11458,18 @@
           }
         },
         "effective": {
-          "id": "86b243707ffffff",
-          "resolution": 6,
-          "population": 172183,
+          "id": "87b243704ffffff",
+          "resolution": 7,
+          "population": 36407,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "86b243707ffffff",
-              "resolution": 6,
-              "population": 172183,
+              "id": "87b243704ffffff",
+              "resolution": 7,
+              "population": 36407,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -11478,24 +11482,24 @@
                     -31.403028
                   ],
                   [
-                    -64.227655,
-                    -31.42465
+                    -64.206695,
+                    -31.413425
                   ],
                   [
-                    -64.222783,
-                    -31.454169
+                    -64.200555,
+                    -31.422989
                   ],
                   [
-                    -64.18954,
-                    -31.462061
+                    -64.187008,
+                    -31.422157
                   ],
                   [
-                    -64.161184,
-                    -31.44044
+                    -64.179602,
+                    -31.411761
                   ],
                   [
-                    -64.166059,
-                    -31.410927
+                    -64.185742,
+                    -31.402197
                   ],
                   [
                     -64.199288,
@@ -11553,7 +11557,7 @@
             "id": "87b243704ffffff",
             "population": 36407,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "88b243705dfffff",
@@ -11621,9 +11625,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "86b243707ffffff",
-                "resolution": 6,
-                "population": 172183,
+                "id": "87b243704ffffff",
+                "resolution": 7,
+                "population": 36407,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -11636,24 +11640,24 @@
                       -31.403028
                     ],
                     [
-                      -64.227655,
-                      -31.42465
+                      -64.206695,
+                      -31.413425
                     ],
                     [
-                      -64.222783,
-                      -31.454169
+                      -64.200555,
+                      -31.422989
                     ],
                     [
-                      -64.18954,
-                      -31.462061
+                      -64.187008,
+                      -31.422157
                     ],
                     [
-                      -64.161184,
-                      -31.44044
+                      -64.179602,
+                      -31.411761
                     ],
                     [
-                      -64.166059,
-                      -31.410927
+                      -64.185742,
+                      -31.402197
                     ],
                     [
                       -64.199288,
@@ -11673,7 +11677,7 @@
           "population": 1381228
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 17.3,
@@ -11710,9 +11714,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 115474,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 48323,
+        "areaKm2": 9,
         "totals": {
           "1": 4111,
           "3": 48323,
@@ -11722,7 +11726,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85c2eba3fffffff",
           "resolution": 5,
@@ -11996,7 +12000,7 @@
           "population": 1284411
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 16.1,
@@ -12045,7 +12049,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85196953fffffff",
           "resolution": 5,
@@ -12100,18 +12104,18 @@
           }
         },
         "effective": {
-          "id": "861969c9fffffff",
-          "resolution": 6,
-          "population": 140661,
+          "id": "871969c9bffffff",
+          "resolution": 7,
+          "population": 30395,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861969c9fffffff",
-              "resolution": 6,
-              "population": 140661,
+              "id": "871969c9bffffff",
+              "resolution": 7,
+              "population": 30395,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -12120,32 +12124,32 @@
               "coordinates": [
                 [
                   [
-                    4.868846,
-                    52.414316
+                    4.875615,
+                    52.380971
                   ],
                   [
-                    4.857786,
-                    52.38425
+                    4.87787,
+                    52.369852
                   ],
                   [
                     4.895695,
                     52.366568
                   ],
                   [
-                    4.944688,
-                    52.378945
+                    4.911273,
+                    52.374403
                   ],
                   [
-                    4.955793,
-                    52.409014
+                    4.909023,
+                    52.385523
                   ],
                   [
-                    4.917861,
-                    52.426702
+                    4.891191,
+                    52.388807
                   ],
                   [
-                    4.868846,
-                    52.414316
+                    4.875615,
+                    52.380971
                   ]
                 ]
               ]
@@ -12199,7 +12203,7 @@
             "id": "871969c9bffffff",
             "population": 30395,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881969c9b1fffff",
@@ -12267,9 +12271,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861969c9fffffff",
-                "resolution": 6,
-                "population": 140661,
+                "id": "871969c9bffffff",
+                "resolution": 7,
+                "population": 30395,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -12278,32 +12282,32 @@
                 "coordinates": [
                   [
                     [
-                      4.868846,
-                      52.414316
+                      4.875615,
+                      52.380971
                     ],
                     [
-                      4.857786,
-                      52.38425
+                      4.87787,
+                      52.369852
                     ],
                     [
                       4.895695,
                       52.366568
                     ],
                     [
-                      4.944688,
-                      52.378945
+                      4.911273,
+                      52.374403
                     ],
                     [
-                      4.955793,
-                      52.409014
+                      4.909023,
+                      52.385523
                     ],
                     [
-                      4.917861,
-                      52.426702
+                      4.891191,
+                      52.388807
                     ],
                     [
-                      4.868846,
-                      52.414316
+                      4.875615,
+                      52.380971
                     ]
                   ]
                 ]
@@ -12319,7 +12323,7 @@
           "population": 838669
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 6.4,
@@ -12356,9 +12360,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 106261,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 40919,
+        "areaKm2": 9,
         "totals": {
           "1": 2406,
           "3": 40919,
@@ -12368,7 +12372,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85196bb7fffffff",
           "resolution": 5,
@@ -12642,7 +12646,7 @@
           "population": 626284
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 5.9,
@@ -12691,7 +12695,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8519690bfffffff",
           "resolution": 5,
@@ -12746,18 +12750,18 @@
           }
         },
         "effective": {
-          "id": "861969087ffffff",
-          "resolution": 6,
-          "population": 103206,
+          "id": "87196909cffffff",
+          "resolution": 7,
+          "population": 33455,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861969087ffffff",
-              "resolution": 6,
-              "population": 103206,
+              "id": "87196909cffffff",
+              "resolution": 7,
+              "population": 33455,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -12766,32 +12770,32 @@
               "coordinates": [
                 [
                   [
-                    5.116073,
-                    52.121574
+                    5.089378,
+                    52.083556
+                  ],
+                  [
+                    5.09159,
+                    52.072374
+                  ],
+                  [
+                    5.10935,
+                    52.069023
+                  ],
+                  [
+                    5.124904,
+                    52.076855
+                  ],
+                  [
+                    5.122698,
+                    52.088038
                   ],
                   [
                     5.104932,
                     52.091388
                   ],
                   [
-                    5.142667,
-                    52.073499
-                  ],
-                  [
-                    5.191568,
-                    52.08579
-                  ],
-                  [
-                    5.202754,
-                    52.115979
-                  ],
-                  [
-                    5.164996,
-                    52.133874
-                  ],
-                  [
-                    5.116073,
-                    52.121574
+                    5.089378,
+                    52.083556
                   ]
                 ]
               ]
@@ -12845,7 +12849,7 @@
             "id": "87196909cffffff",
             "population": 33455,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "8819690827fffff",
@@ -12913,9 +12917,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861969087ffffff",
-                "resolution": 6,
-                "population": 103206,
+                "id": "87196909cffffff",
+                "resolution": 7,
+                "population": 33455,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -12924,32 +12928,32 @@
                 "coordinates": [
                   [
                     [
-                      5.116073,
-                      52.121574
+                      5.089378,
+                      52.083556
+                    ],
+                    [
+                      5.09159,
+                      52.072374
+                    ],
+                    [
+                      5.10935,
+                      52.069023
+                    ],
+                    [
+                      5.124904,
+                      52.076855
+                    ],
+                    [
+                      5.122698,
+                      52.088038
                     ],
                     [
                       5.104932,
                       52.091388
                     ],
                     [
-                      5.142667,
-                      52.073499
-                    ],
-                    [
-                      5.191568,
-                      52.08579
-                    ],
-                    [
-                      5.202754,
-                      52.115979
-                    ],
-                    [
-                      5.164996,
-                      52.133874
-                    ],
-                    [
-                      5.116073,
-                      52.121574
+                      5.089378,
+                      52.083556
                     ]
                   ]
                 ]
@@ -12965,7 +12969,7 @@
           "population": 367316
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 4.2,
@@ -13014,7 +13018,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85757697fffffff",
           "resolution": 5,
@@ -13288,7 +13292,7 @@
           "population": 121178
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 27,
@@ -13337,7 +13341,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85752a33fffffff",
           "resolution": 5,
@@ -13611,7 +13615,7 @@
           "population": 411196
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 25.9,
@@ -13648,9 +13652,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 102117,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 43444,
+        "areaKm2": 9,
         "totals": {
           "1": 5631,
           "3": 43444,
@@ -13660,7 +13664,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "857509d7fffffff",
           "resolution": 5,
@@ -13715,18 +13719,18 @@
           }
         },
         "effective": {
-          "id": "867509d67ffffff",
-          "resolution": 6,
-          "population": 134954,
+          "id": "877509d63ffffff",
+          "resolution": 7,
+          "population": 20600,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "867509d67ffffff",
-              "resolution": 6,
-              "population": 134954,
+              "id": "877509d63ffffff",
+              "resolution": 7,
+              "population": 20600,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -13735,32 +13739,32 @@
               "coordinates": [
                 [
                   [
-                    -1.76367,
-                    4.923146
+                    -1.757907,
+                    4.891106
                   ],
                   [
-                    -1.768139,
-                    4.896427
+                    -1.755987,
+                    4.880429
                   ],
                   [
                     -1.745757,
                     4.875107
                   ],
                   [
-                    -1.718895,
-                    4.880493
+                    -1.737444,
+                    4.880461
                   ],
                   [
-                    -1.71441,
-                    4.907214
+                    -1.739362,
+                    4.89114
                   ],
                   [
-                    -1.736804,
-                    4.928547
+                    -1.749595,
+                    4.896462
                   ],
                   [
-                    -1.76367,
-                    4.923146
+                    -1.757907,
+                    4.891106
                   ]
                 ]
               ]
@@ -13814,7 +13818,7 @@
             "id": "877509d63ffffff",
             "population": 20600,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "887509d631fffff",
@@ -13882,9 +13886,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "867509d67ffffff",
-                "resolution": 6,
-                "population": 134954,
+                "id": "877509d63ffffff",
+                "resolution": 7,
+                "population": 20600,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -13893,32 +13897,32 @@
                 "coordinates": [
                   [
                     [
-                      -1.76367,
-                      4.923146
+                      -1.757907,
+                      4.891106
                     ],
                     [
-                      -1.768139,
-                      4.896427
+                      -1.755987,
+                      4.880429
                     ],
                     [
                       -1.745757,
                       4.875107
                     ],
                     [
-                      -1.718895,
-                      4.880493
+                      -1.737444,
+                      4.880461
                     ],
                     [
-                      -1.71441,
-                      4.907214
+                      -1.739362,
+                      4.89114
                     ],
                     [
-                      -1.736804,
-                      4.928547
+                      -1.749595,
+                      4.896462
                     ],
                     [
-                      -1.76367,
-                      4.923146
+                      -1.757907,
+                      4.891106
                     ]
                   ]
                 ]
@@ -13934,7 +13938,7 @@
           "population": 490400
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 25.6,
@@ -13983,7 +13987,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f8edbfffffff",
           "resolution": 5,
@@ -14038,18 +14042,18 @@
           }
         },
         "effective": {
-          "id": "861f8ed97ffffff",
-          "resolution": 6,
-          "population": 165324,
+          "id": "871f8ed95ffffff",
+          "resolution": 7,
+          "population": 42602,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f8ed97ffffff",
-              "resolution": 6,
-              "population": 165324,
+              "id": "871f8ed95ffffff",
+              "resolution": 7,
+              "population": 42602,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -14058,32 +14062,32 @@
               "coordinates": [
                 [
                   [
-                    8.496673,
-                    47.379713
+                    8.528697,
+                    47.383052
                   ],
                   [
-                    8.484587,
-                    47.34778
+                    8.53026,
+                    47.370948
                   ],
                   [
-                    8.519723,
-                    47.326903
+                    8.547053,
+                    47.366561
                   ],
                   [
-                    8.566959,
-                    47.337951
+                    8.562288,
+                    47.374278
                   ],
                   [
-                    8.579083,
-                    47.369886
+                    8.56073,
+                    47.386383
                   ],
                   [
                     8.543932,
                     47.39077
                   ],
                   [
-                    8.496673,
-                    47.379713
+                    8.528697,
+                    47.383052
                   ]
                 ]
               ]
@@ -14137,7 +14141,7 @@
             "id": "871f8ed95ffffff",
             "population": 42602,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881f8ed95bfffff",
@@ -14205,9 +14209,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f8ed97ffffff",
-                "resolution": 6,
-                "population": 165324,
+                "id": "871f8ed95ffffff",
+                "resolution": 7,
+                "population": 42602,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -14216,32 +14220,32 @@
                 "coordinates": [
                   [
                     [
-                      8.496673,
-                      47.379713
+                      8.528697,
+                      47.383052
                     ],
                     [
-                      8.484587,
-                      47.34778
+                      8.53026,
+                      47.370948
                     ],
                     [
-                      8.519723,
-                      47.326903
+                      8.547053,
+                      47.366561
                     ],
                     [
-                      8.566959,
-                      47.337951
+                      8.562288,
+                      47.374278
                     ],
                     [
-                      8.579083,
-                      47.369886
+                      8.56073,
+                      47.386383
                     ],
                     [
                       8.543932,
                       47.39077
                     ],
                     [
-                      8.496673,
-                      47.379713
+                      8.528697,
+                      47.383052
                     ]
                   ]
                 ]
@@ -14261,7 +14265,7 @@
           "name": "Zürich",
           "population": 404448
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 1.9,
@@ -14310,7 +14314,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f91affffffff",
           "resolution": 5,
@@ -14588,7 +14592,7 @@
           "name": "Genève",
           "population": 208747
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 2.3,
@@ -14637,7 +14641,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f8383fffffff",
           "resolution": 5,
@@ -14692,18 +14696,18 @@
           }
         },
         "effective": {
-          "id": "861f83837ffffff",
-          "resolution": 6,
-          "population": 174922,
+          "id": "871f83833ffffff",
+          "resolution": 7,
+          "population": 36986,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f83837ffffff",
-              "resolution": 6,
-              "population": 174922,
+              "id": "871f83833ffffff",
+              "resolution": 7,
+              "population": 36986,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -14712,32 +14716,32 @@
               "coordinates": [
                 [
                   [
-                    7.544097,
-                    47.588253
+                    7.581117,
+                    47.555772
                   ],
                   [
-                    7.532446,
-                    47.556381
+                    7.582825,
+                    47.54374
                   ],
                   [
-                    7.567743,
-                    47.535924
+                    7.599618,
+                    47.53952
                   ],
                   [
                     7.614707,
                     47.547333
                   ],
                   [
-                    7.626397,
-                    47.579207
+                    7.613004,
+                    47.559366
                   ],
                   [
-                    7.591084,
-                    47.599671
+                    7.596206,
+                    47.563586
                   ],
                   [
-                    7.544097,
-                    47.588253
+                    7.581117,
+                    47.555772
                   ]
                 ]
               ]
@@ -14791,7 +14795,7 @@
             "id": "871f83833ffffff",
             "population": 36986,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "8": {
             "id": "881f83833bfffff",
@@ -14859,9 +14863,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f83837ffffff",
-                "resolution": 6,
-                "population": 174922,
+                "id": "871f83833ffffff",
+                "resolution": 7,
+                "population": 36986,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -14870,32 +14874,32 @@
                 "coordinates": [
                   [
                     [
-                      7.544097,
-                      47.588253
+                      7.581117,
+                      47.555772
                     ],
                     [
-                      7.532446,
-                      47.556381
+                      7.582825,
+                      47.54374
                     ],
                     [
-                      7.567743,
-                      47.535924
+                      7.599618,
+                      47.53952
                     ],
                     [
                       7.614707,
                       47.547333
                     ],
                     [
-                      7.626397,
-                      47.579207
+                      7.613004,
+                      47.559366
                     ],
                     [
-                      7.591084,
-                      47.599671
+                      7.596206,
+                      47.563586
                     ],
                     [
-                      7.544097,
-                      47.588253
+                      7.581117,
+                      47.555772
                     ]
                   ]
                 ]
@@ -14915,7 +14919,7 @@
           "name": "Basel",
           "population": 156813
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
         "temperatureC": 2.9,

@@ -68,6 +68,23 @@ function shellEscape(value) {
         fs.rmSync(targetPath, { force: true });
       }
     });
+
+    // Include generated geo-strategy overlay datasets even when untracked.
+    // These are static public assets required by runtime URL params (e.g. ?overlay=20000).
+    const geoStrategyDir = path.join(process.cwd(), 'public', 'gallery', 'geo-strategy');
+    if (fs.existsSync(geoStrategyDir)) {
+      const generatedOverlayFiles = fs
+        .readdirSync(geoStrategyDir)
+        .filter((name) => /^gallery-data-\d+\.json$/i.test(String(name || '').trim()));
+      generatedOverlayFiles.forEach((fileName) => {
+        const relPath = path.join('public', 'gallery', 'geo-strategy', fileName);
+        const sourcePath = path.join(process.cwd(), relPath);
+        const targetPath = path.join(tempDeployDir, relPath);
+        if (!fs.existsSync(sourcePath)) return;
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.copyFileSync(sourcePath, targetPath);
+      });
+    }
     deployCwd = tempDeployDir;
 
     const localProjectJson = path.join(process.cwd(), '.vercel', 'project.json');

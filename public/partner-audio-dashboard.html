@@ -1590,6 +1590,8 @@
                 this.lastRefreshTime = null;
                 this.refreshControlsInitialized = false;
                 this.bulkApproveInProgress = false;
+                this.toolbarWatchdogTimer = null;
+                this.toolbarWatchdogObserver = null;
                 
                 // User info for permission checks
                 this.currentUserEmail = null;
@@ -2134,8 +2136,56 @@
                 return list.filter((item) => this.extractTaskName(item) === this.currentTaskFilter);
             }
 
+            ensureSearchContainerUI() {
+                const root = document.querySelector('.container');
+                if (!root) return null;
+
+                let searchContainer = root.querySelector('.search-container');
+                if (!searchContainer) {
+                    searchContainer = document.createElement('div');
+                    searchContainer.className = 'search-container';
+                    const tabs = root.querySelector('.tabs-container');
+                    const firstTabContent = root.querySelector('.tab-content');
+                    if (tabs && tabs.parentNode) {
+                        tabs.insertAdjacentElement('afterend', searchContainer);
+                    } else if (firstTabContent && firstTabContent.parentNode) {
+                        firstTabContent.insertAdjacentElement('beforebegin', searchContainer);
+                    } else {
+                        root.appendChild(searchContainer);
+                    }
+                }
+
+                let searchBox = searchContainer.querySelector('.search-box');
+                if (!searchBox) {
+                    searchBox = document.createElement('div');
+                    searchBox.className = 'search-box';
+                    searchBox.innerHTML = `
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search by item ID or text...">
+                        <button class="search-clear" id="searchClear" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    searchContainer.insertBefore(searchBox, searchContainer.firstChild);
+                }
+
+                const searchInput = searchBox.querySelector('#searchInput');
+                if (searchInput && !searchInput.dataset.boundSearchHandler) {
+                    searchInput.addEventListener('input', (event) => this.handleSearch(event.target.value));
+                    searchInput.dataset.boundSearchHandler = '1';
+                }
+
+                const searchClear = searchBox.querySelector('#searchClear');
+                if (searchClear && !searchClear.dataset.boundClearHandler) {
+                    searchClear.addEventListener('click', () => this.clearSearch());
+                    searchClear.dataset.boundClearHandler = '1';
+                }
+
+                return searchContainer;
+            }
+
             ensureTaskFilterUI() {
-                const searchContainer = document.querySelector('.search-container');
+                const searchContainer = this.ensureSearchContainerUI();
                 if (!searchContainer) return null;
 
                 let taskFilter = searchContainer.querySelector('.task-filter');
@@ -2171,6 +2221,24 @@
                 select.style.display = 'block';
 
                 return select;
+            }
+
+            startToolbarWatchdog() {
+                if (this.toolbarWatchdogTimer) return;
+                const heal = () => {
+                    this.ensureSearchContainerUI();
+                    this.ensureTaskFilterUI();
+                };
+                heal();
+                this.toolbarWatchdogTimer = setInterval(heal, 2000);
+
+                if (!this.toolbarWatchdogObserver) {
+                    const root = document.querySelector('.container');
+                    if (root && typeof MutationObserver !== 'undefined') {
+                        this.toolbarWatchdogObserver = new MutationObserver(() => heal());
+                        this.toolbarWatchdogObserver.observe(root, { childList: true, subtree: true });
+                    }
+                }
             }
 
             populateTaskFilter(items) {
@@ -2511,6 +2579,7 @@
                 await new Promise(resolve => setTimeout(resolve, 50));
 
                 this.ensureTaskFilterUI();
+                this.startToolbarWatchdog();
                 this.setupRefreshControls();
                 await this.loadLanguagesFromConfig();
                 

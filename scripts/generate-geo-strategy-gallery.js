@@ -508,11 +508,21 @@ class Location {
       candidates.push(await buildH3ResolutionInfo(faux.lat, faux.lon, countryCode, res, threshold));
     }
     const effective = candidates.find((c) => c.privacyMet) || candidates[candidates.length - 1];
+    const candidateByResolution = {};
+    candidates.forEach((candidate) => {
+      candidateByResolution[String(candidate.resolution)] = {
+        id: candidate.id,
+        population: candidate.population,
+        populationSource: candidate.populationSource || null,
+        privacyMet: candidate.privacyMet === true
+      };
+    });
     return {
       scheme: 'h3_v1',
       threshold,
       base,
       effective,
+      candidates: candidateByResolution,
       outlines: {
         type: 'FeatureCollection',
         features: [base.outline, effective.outline].filter(Boolean)
