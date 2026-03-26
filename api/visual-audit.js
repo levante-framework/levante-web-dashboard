@@ -63,6 +63,10 @@ export default async function handler(req, res) {
     }
 
     const pngs = names.filter(n => n.toLowerCase().endsWith('.png'));
+    const jpgs = names.filter((n) => {
+      const lower = n.toLowerCase();
+      return lower.endsWith('.jpg') || lower.endsWith('.jpeg');
+    });
     const webps = names.filter(n => n.toLowerCase().endsWith('.webp'));
     const gifs = names.filter(n => n.toLowerCase().endsWith('.gif'));
 
@@ -93,22 +97,37 @@ export default async function handler(req, res) {
     }
     const gifSavingsBytes = Math.max(0, gifSizeBytes - gifWebpSizeBytes);
 
-    const missing = [];
+    const missingPng = [];
     for (const p of pngs) {
       const webpCandidate = p.replace(/\.png$/i, '.webp').toLowerCase();
       if (!nameSet.has(webpCandidate)) {
-        missing.push(p);
+        missingPng.push(p);
       }
     }
+
+    const missingJpg = [];
+    for (const j of jpgs) {
+      const webpCandidate = j.replace(/\.(jpe?g)$/i, '.webp').toLowerCase();
+      if (!nameSet.has(webpCandidate)) {
+        missingJpg.push(j);
+      }
+    }
+
+    const missingCombined = missingPng.concat(missingJpg);
 
     return res.status(200).json({
       success: true,
       bucket: bucketName,
       prefix,
       pngCount: pngs.length,
+      jpgCount: jpgs.length,
       webpCount: webps.length,
-      missingCount: missing.length,
-      missing,
+      missingCount: missingCombined.length,
+      missing: missingCombined,
+      missingPngCount: missingPng.length,
+      missingPng,
+      missingJpgCount: missingJpg.length,
+      missingJpg,
       gifCount: gifs.length,
       gifSizeBytes,
       gifWebpCount,

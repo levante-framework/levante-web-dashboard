@@ -1656,15 +1656,20 @@
 				document.getElementById('visualBucket').textContent = data.bucket || '';
 				const missing = Array.isArray(data.missing) ? data.missing : [];
 				const pngCount = data.pngCount || 0;
+				const jpgCount = data.jpgCount || 0;
 				const webpCount = data.webpCount || 0;
 				const missingCount = data.missingCount || missing.length;
+				const missingPng = Array.isArray(data.missingPng) ? data.missingPng : [];
+				const missingPngCount = data.missingPngCount || missingPng.length;
+				const missingJpg = Array.isArray(data.missingJpg) ? data.missingJpg : [];
+				const missingJpgCount = data.missingJpgCount || missingJpg.length;
 				const gifCount = data.gifCount || 0;
 				const gifWebpCount = data.gifWebpCount || 0;
 				const gifSizeBytes = data.gifSizeBytes || 0;
 				const gifSavingsBytes = data.gifSavingsBytes || 0;
 				const gifMissingCount = data.gifMissingCount || 0;
 				const summary = document.getElementById('visualSummary');
-				summary.innerHTML = `PNGs: <span class="code">${pngCount}</span> · WEBPs: <span class="code">${webpCount}</span> · Missing WEBP: <span class="badge ${missingCount===0?'ok':'err'}">${missingCount}</span>`;
+				summary.innerHTML = `PNGs: <span class="code">${pngCount}</span> · JPGs: <span class="code">${jpgCount}</span> · WEBPs: <span class="code">${webpCount}</span> · Missing WEBP: <span class="badge ${missingCount===0?'ok':'err'}">${missingCount}</span> <span class="small">(PNG ${missingPngCount}, JPG ${missingJpgCount})</span>`;
 				const gifSummaryEl = document.getElementById('visualGifSummary');
 				if (gifSummaryEl) {
 					const gifMissingBadge = gifMissingCount > 0 ? ` · Missing WEBP: <span class="badge err">${gifMissingCount}</span>` : '';
@@ -1674,8 +1679,12 @@
 				const fixBtn = document.getElementById('visualFixBtn');
 				if (missingCount > 0) {
 					detailsLink.style.display = '';
-					fixBtn.style.display = '';
-					detailsLink.onclick = () => { alert('PNGs without WEBP (first 200 shown):\n- ' + missing.slice(0,200).join('\n- ')); };
+					fixBtn.style.display = missingPngCount > 0 ? '' : 'none';
+					detailsLink.onclick = () => { 
+						const pngPart = missingPngCount > 0 ? `PNGs without WEBP (first 200 shown):\n- ${missingPng.slice(0,200).join('\n- ')}` : 'PNGs without WEBP: none';
+						const jpgPart = missingJpgCount > 0 ? `\n\nJPG/JPEG without WEBP (first 200 shown):\n- ${missingJpg.slice(0,200).join('\n- ')}` : '\n\nJPG/JPEG without WEBP: none';
+						alert(pngPart + jpgPart);
+					};
 					fixBtn.onclick = () => fixVisualAssets('dev', 'visual/');
 				} else {
 					detailsLink.style.display = 'none';
@@ -1701,15 +1710,20 @@
 				const bucketEl = document.getElementById('visualBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || '';
 				const missing = Array.isArray(data.missing) ? data.missing : [];
 				const pngCount = data.pngCount || 0;
+				const jpgCount = data.jpgCount || 0;
 				const webpCount = data.webpCount || 0;
 				const missingCount = data.missingCount || missing.length;
+				const missingPng = Array.isArray(data.missingPng) ? data.missingPng : [];
+				const missingPngCount = data.missingPngCount || missingPng.length;
+				const missingJpg = Array.isArray(data.missingJpg) ? data.missingJpg : [];
+				const missingJpgCount = data.missingJpgCount || missingJpg.length;
 				const gifCount = data.gifCount || 0;
 				const gifWebpCount = data.gifWebpCount || 0;
 				const gifSizeBytes = data.gifSizeBytes || 0;
 				const gifSavingsBytes = data.gifSavingsBytes || 0;
 				const gifMissingCount = data.gifMissingCount || 0;
 				const summary = document.getElementById('visualSummaryProd');
-				if (summary) summary.innerHTML = `PNGs: <span class=\"code\">${pngCount}</span> · WEBPs: <span class=\"code\">${webpCount}</span> · Missing WEBP: <span class=\"badge ${missingCount===0?'ok':'err'}\">${missingCount}</span>`;
+				if (summary) summary.innerHTML = `PNGs: <span class=\"code\">${pngCount}</span> · JPGs: <span class=\"code\">${jpgCount}</span> · WEBPs: <span class=\"code\">${webpCount}</span> · Missing WEBP: <span class=\"badge ${missingCount===0?'ok':'err'}\">${missingCount}</span> <span class=\"small\">(PNG ${missingPngCount}, JPG ${missingJpgCount})</span>`;
 				const gifSummaryProd = document.getElementById('visualGifSummaryProd');
 				if (gifSummaryProd) {
 					const gifMissingBadge = gifMissingCount > 0 ? ` · Missing WEBP: <span class=\"badge err\">${gifMissingCount}</span>` : '';
@@ -1719,8 +1733,12 @@
 				const fixBtn = document.getElementById('visualFixBtnProd');
 				if (missingCount > 0) {
 					if (detailsLink) detailsLink.style.display = '';
-					if (fixBtn) fixBtn.style.display = '';
-					if (detailsLink) detailsLink.onclick = () => { alert('PNGs without WEBP (first 200 shown):\n- ' + missing.slice(0,200).join('\n- ')); };
+					if (fixBtn) fixBtn.style.display = missingPngCount > 0 ? '' : 'none';
+					if (detailsLink) detailsLink.onclick = () => { 
+						const pngPart = missingPngCount > 0 ? `PNGs without WEBP (first 200 shown):\n- ${missingPng.slice(0,200).join('\n- ')}` : 'PNGs without WEBP: none';
+						const jpgPart = missingJpgCount > 0 ? `\n\nJPG/JPEG without WEBP (first 200 shown):\n- ${missingJpg.slice(0,200).join('\n- ')}` : '\n\nJPG/JPEG without WEBP: none';
+						alert(pngPart + jpgPart);
+					};
 					if (fixBtn) fixBtn.onclick = () => fixVisualAssets('prod', 'visual/');
 				} else {
 					if (detailsLink) detailsLink.style.display = 'none';
