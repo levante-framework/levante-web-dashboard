@@ -374,6 +374,15 @@
                         if (!dash.validation_results[itemId]) dash.validation_results[itemId] = {};
                         if (!dash.validation_results[itemId][langKey]) dash.validation_results[itemId][langKey] = {};
                         dash.validation_results[itemId][langKey].backTranslation = backTranslation || '';
+                        // Keep table row in sync without requiring a full table refresh.
+                        try {
+                            const escapedItemId = String(itemId || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                            const row = document.querySelector(`.data-row[data-item-id="${escapedItemId}"]`);
+                            if (row && typeof upsertBackTranslationInRow === 'function') {
+                                upsertBackTranslationInRow(row, backTranslation || '');
+                            }
+                        } catch (_) {}
+                        if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
                     }
                 } catch (_) {}
             } catch (_) {

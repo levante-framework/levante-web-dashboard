@@ -2584,8 +2584,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
                     const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    const backTranslationHtml = backTranslation
-                        ? `<div class="item-backtranslation" title="Back-translation">${escapeHtml(backTranslation)}</div>`
+                    const hasBackTranslation = !!String(backTranslation).trim();
+                    const backTranslationDisplayText = hasBackTranslation
+                        ? String(backTranslation).trim()
+                        : 'Back-translation unavailable (click View Results to generate)';
+                    const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined);
+                    const backTranslationHtml = hasAnyStoredScore
+                        ? `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`
                         : '';
                     const displayItemIdText = String(displayItemId || '');
                     const compactItemId = displayMeta.compactItemId || (displayItemIdText.length > 36 ? `${displayItemIdText.slice(0, 33)}...` : displayItemIdText);

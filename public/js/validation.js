@@ -1159,10 +1159,33 @@ async function saveValidationsManually() {
             button.innerHTML = '<i class="fas fa-check"></i> Saved!';
             const localMode = result.localStorageMode || 'full';
             const sharedLabel = result.sharedSaved ? 'shared bucket' : 'no shared bucket';
-            window.dashboard.setStatus(
-                `💾 Saved ${result.itemCount} items (${result.validationCount} validations) [local: ${localMode}, shared: ${sharedLabel}]`,
-                result.sharedSaved ? 'success' : 'warning'
-            );
+            let statusMessage = `💾 Saved ${result.itemCount} items (${result.validationCount} validations) [local: ${localMode}, shared: ${sharedLabel}]`;
+            let statusLevel = result.sharedSaved ? 'success' : 'warning';
+
+            // Auto-sync immediately after a successful shared save so users only need one click.
+            if (result.sharedSaved) {
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saved, syncing...';
+                const syncSuccess = await window.dashboard.loadFromSharedStorage();
+                if (syncSuccess) {
+                    window.dashboard.populateDataTable();
+                    const source = String(window.dashboard?.sharedValidationSource || 'unknown');
+                    const sourceLabel = source === 'gcs' ? 'shared bucket (GCS)' : source === 'memory' ? 'session memory fallback' : source;
+                    const nowIso = new Date().toISOString();
+                    try { localStorage.setItem('validation_shared_last_sync', nowIso); } catch (_) {}
+                    try { localStorage.setItem('validation_shared_last_sync_source', source); } catch (_) {}
+                    if (typeof window.setValidationSharedSyncLabel === 'function') {
+                        window.setValidationSharedSyncLabel(nowIso, false, source);
+                    }
+                    statusMessage += ` · Auto-synced from ${sourceLabel}`;
+                    statusLevel = source === 'memory' ? 'warning' : 'success';
+                } else {
+                    statusMessage += ' · Auto-sync failed (click Sync)';
+                    statusLevel = 'warning';
+                }
+                button.innerHTML = '<i class="fas fa-check"></i> Saved + Synced!';
+            }
+
+            window.dashboard.setStatus(statusMessage, statusLevel);
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
         } else {
             const errMsg = (result && result.error) ? result.error : 'Unknown error';

@@ -136,6 +136,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .item-english { color: rgba(148, 163, 184, 0.8); font-size: 0.8em; line-height: 1.4; overflow-wrap: break-word; word-break: break-word; min-height: 1.4em; overflow: visible !important; }
 .item-english-source { font-style: normal; font-weight: 700; color: #f8fafc; }
 .item-backtranslation { margin-top: 6px; padding: 6px 8px; background: rgba(8, 25, 43, 0.6); border-left: 3px solid rgba(56, 189, 248, 0.5); font-size: 0.75em; color: rgba(226, 232, 240, 0.95); font-style: normal; font-weight: 700; border-radius: 4px; }
+.item-backtranslation-missing { color: rgba(148, 163, 184, 0.95); border-left-color: rgba(148, 163, 184, 0.45); font-style: italic; }
 .item-task { background: rgba(0, 160, 222, 0.18); padding: 2px 6px; border-radius: 999px; font-size: 0.7em; color: #f8fafc; white-space: nowrap; letter-spacing: 0.05em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 /* Audio Controls */
