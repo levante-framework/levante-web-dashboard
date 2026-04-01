@@ -75,8 +75,9 @@ export default async function handler(req, res) {
     // Get source file metadata
     const [metadata] = await sourceFile.getMetadata();
     
-    // Determine target path (keep same structure)
-    const targetPath = sanitizedPath;
+    // Promote latest approved version to canonical unsuffixed filename in dev.
+    // Example: audio/es-AR/item_v001.mp3 -> audio/es-AR/item.mp3
+    const targetPath = sanitizedPath.replace(/_v\d{3}(?=\.mp3$)/i, '');
     const targetBucket = storage.bucket(TARGET_BUCKET);
     const targetFile = targetBucket.file(targetPath);
 
@@ -96,7 +97,8 @@ export default async function handler(req, res) {
       message: `Moved ${sanitizedPath} from ${sourceBucketName} to ${TARGET_BUCKET}`,
       sourceBucket: sourceBucketName,
       targetBucket: TARGET_BUCKET,
-      path: targetPath
+      path: targetPath,
+      promotedFromVersionedPath: sanitizedPath !== targetPath
     });
   } catch (error) {
     console.error('Error moving audio file:', error);
