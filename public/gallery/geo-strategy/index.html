@@ -298,7 +298,35 @@
             });
           }
         }
-        return tiles;
+        return {
+          z: t.z,
+          n,
+          originX: x0,
+          originY: yStart,
+          tiles
+        };
+      }
+
+      function lonLatToQuadPixel(lon, lat, quad) {
+        if (!quad || !Number.isFinite(Number(lon)) || !Number.isFinite(Number(lat))) return [NaN, NaN];
+        const t = lonLatToOsmTileFractional(Number(lon), Number(lat), quad.z);
+        const n = Math.max(1, Number(quad.n || 1));
+        let dxTiles = t.x - Number(quad.originX || 0);
+        // Use shortest wrapped delta so overlays align around the chosen tile window.
+        if (dxTiles > n / 2) dxTiles -= n;
+        if (dxTiles < -n / 2) dxTiles += n;
+        const dyTiles = t.y - Number(quad.originY || 0);
+        return [dxTiles * 256, dyTiles * 256];
+      }
+
+      function ringToSvgPathInQuad(ring, quad) {
+        if (!Array.isArray(ring) || !ring.length) return '';
+        const points = ring
+          .map(([lon, lat]) => lonLatToQuadPixel(lon, lat, quad))
+          .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y));
+        if (!points.length) return '';
+        const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(' ');
+        return `${d} Z`;
       }
 
       function renderHexPreview(point, compare = null) {
@@ -322,16 +350,22 @@
         const centerLat = Number(point?.fauxLocation?.lat);
         const centerLon = Number(point?.fauxLocation?.lon);
         const zoom = estimateZoomForBounds(bounds, width, height);
-        const bgMapTiles = (Number.isFinite(centerLat) && Number.isFinite(centerLon))
+        const bgMapQuad = (Number.isFinite(centerLat) && Number.isFinite(centerLon))
           ? buildStaticMapTileQuad(centerLat, centerLon, zoom)
+          : null;
+        const bgMapMarkup = Array.isArray(bgMapQuad?.tiles)
+          ? bgMapQuad.tiles.map((tile) => `<image href="${tile.href}" x="${tile.x}" y="${tile.y}" width="256" height="256" preserveAspectRatio="none" opacity="0.6"></image>`).join('')
           : '';
-        const bgMapMarkup = Array.isArray(bgMapTiles)
-          ? bgMapTiles.map((tile) => `<image href="${tile.href}" x="${tile.x}" y="${tile.y}" width="256" height="256" preserveAspectRatio="none" opacity="0.6"></image>`).join('')
+        const basePath = bgMapQuad ? ringToSvgPathInQuad(baseRing, bgMapQuad) : ringToSvgPath(baseRing, bounds, width, height);
+        const effPath = effRing.length
+          ? (bgMapQuad ? ringToSvgPathInQuad(effRing, bgMapQuad) : ringToSvgPath(effRing, bounds, width, height))
           : '';
-        const basePath = ringToSvgPath(baseRing, bounds, width, height);
-        const effPath = effRing.length ? ringToSvgPath(effRing, bounds, width, height) : '';
-        const overlayEffPath = overlayEffRing.length ? ringToSvgPath(overlayEffRing, bounds, width, height) : '';
-        const [fx, fy] = projectPoint(point?.fauxLocation?.lon, point?.fauxLocation?.lat, bounds, width, height);
+        const overlayEffPath = overlayEffRing.length
+          ? (bgMapQuad ? ringToSvgPathInQuad(overlayEffRing, bgMapQuad) : ringToSvgPath(overlayEffRing, bounds, width, height))
+          : '';
+        const [fx, fy] = bgMapQuad
+          ? lonLatToQuadPixel(point?.fauxLocation?.lon, point?.fauxLocation?.lat, bgMapQuad)
+          : projectPoint(point?.fauxLocation?.lon, point?.fauxLocation?.lat, bounds, width, height);
 
         return `
           <div class="hex-preview-wrap">
