@@ -344,7 +344,15 @@
 		
 		// Reset all stoplight buttons to loading state
 		function resetStoplights() {
-			const stoplights = ['visualStoplight', 'audioStoplight', 'coreTasksStoplight', 'githubIssuesStoplight', 'bucketInfoStoplight'];
+			const stoplights = [
+				'visualStoplight',
+				'audioStoplight',
+				'coreTasksStoplight',
+				'translationCompletenessStoplight',
+				'assetIntegrityStoplight',
+				'configValidationStoplight',
+				'githubIssuesStoplight'
+			];
 			stoplights.forEach(id => {
 				const btn = document.getElementById(id);
 				if (btn) {
@@ -353,6 +361,22 @@
 					btn.className = 'stoplight loading';
 				}
 			});
+
+			// Reset cached metrics so badges don't reuse stale values.
+			window.visualDevMissing = undefined;
+			window.visualProdMissing = undefined;
+			window.audioDevLanguages = undefined;
+			window.audioProdLanguages = undefined;
+			window.coreTasksDevCsvs = undefined;
+			window.coreTasksProdCsvs = undefined;
+			window.translationCompletenessDevMissing = undefined;
+			window.translationCompletenessProdMissing = undefined;
+			window.assetIntegrityDevIssues = undefined;
+			window.assetIntegrityProdIssues = undefined;
+			window.configValidationDevIssues = undefined;
+			window.configValidationProdIssues = undefined;
+			window.githubIssuesP0 = undefined;
+			window.githubIssuesP1 = undefined;
 		}
 
 		// Language selection state for translations table
@@ -535,6 +559,35 @@
 			if (!btn) return;
 			
 			btn.style.display = 'inline-block';
+
+			if (buttonId === 'githubIssuesStoplight') {
+				if (devValue === undefined) {
+					btn.textContent = 'Loading...';
+					btn.className = 'stoplight loading';
+					btn.onclick = null;
+					return;
+				}
+				const status = String(devValue || '').toLowerCase();
+				if (status === 'ok') {
+					btn.textContent = 'Ready to go';
+					btn.className = 'stoplight go';
+				} else if (status === 'warn') {
+					btn.textContent = 'Needs fixing';
+					btn.className = 'stoplight diff';
+				} else {
+					btn.textContent = 'Fail';
+					btn.className = 'stoplight fail';
+				}
+				btn.onclick = null;
+				return;
+			}
+
+			if (devValue === undefined || prodValue === undefined) {
+				btn.textContent = 'Loading...';
+				btn.className = 'stoplight loading';
+				btn.onclick = null;
+				return;
+			}
 			const devNum = typeof devValue === 'string' ? Number(devValue) : devValue;
 			const prodNum = typeof prodValue === 'string' ? Number(prodValue) : prodValue;
 
@@ -1285,6 +1338,9 @@
 		
 		// Main data loading function
 		async function loadReportData() {
+		// Ensure stoplight badges are visibly loading on every load path,
+		// including the initial page load (not only manual refresh).
+		resetStoplights();
 
 		// Load dashboard config and CSV data
 		const cfg = await fetch('./config.js').then(r => r.text()).then(js => { const m = {}; const f = new Function('module', js + '; return module.exports;'); return f(m); }).catch(() => ({}));
@@ -2407,27 +2463,35 @@
 			const summaryEl = document.getElementById('assetIntegritySummary');
 			const detailsEl = document.getElementById('assetIntegrityDetails');
 			const validateBtn = document.getElementById('assetIntegrityValidateBtn');
+			const scopeEl = document.getElementById('assetIntegrityScope');
 			
 			try {
 				summaryEl.textContent = 'Checking asset integrity...';
+				if (scopeEl) scopeEl.textContent = 'visual/';
 				
-				// Check for actual asset integrity issues in dev bucket
+				// Check visual assets integrity in dev bucket.
 				const bucket = 'levante-assets-dev';
 				const issues = [];
 				
-				// Get all files from the bucket
-				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&files=1&meta=1&bucket=${bucket}`, `Read tags for ${bucket}`);
+				// Use a scoped prefix to avoid heavy full-bucket reads.
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&files=1&meta=1&bucket=${bucket}&prefix=visual/`, `Read tags for ${bucket}`);
 				const fileEntries = Array.isArray(data.files) ? data.files : [];
 				const files = fileEntries.map(f => typeof f === 'string' ? f : f?.name).filter(Boolean);
 				
-				// Check for PNG files that should be WEBP
-				const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
-				if (pngFiles.length > 0) {
+				// Check for PNG files missing a matching WEBP (same base path).
+				const fileSet = new Set(files.map(f => String(f || '').toLowerCase()));
+				const pngFilesMissingWebp = files.filter((f) => {
+					const lower = String(f || '').toLowerCase();
+					if (!lower.endsWith('.png')) return false;
+					const webpPath = lower.replace(/\.png$/i, '.webp');
+					return !fileSet.has(webpPath);
+				});
+				if (pngFilesMissingWebp.length > 0) {
 					issues.push({
 						type: 'PNG Files',
-						count: pngFiles.length,
-						description: 'PNG files that should be converted to WEBP for better performance',
-						files: pngFiles.slice(0, 10) // Show first 10 files
+						count: pngFilesMissingWebp.length,
+						description: 'PNG files missing matching WEBP versions',
+						files: pngFilesMissingWebp.slice(0, 10) // Show first 10 files
 					});
 				}
 				
@@ -2438,6 +2502,7 @@
 				const smallFiles = fileEntries
 					.filter((entry) => entry && typeof entry === 'object')
 					.filter((entry) => Number.isFinite(Number(entry.size)) && Number(entry.size) > 0 && Number(entry.size) < 100)
+					.filter((entry) => String(entry.name || '').toLowerCase().split('/').pop() !== 'blank.webp')
 					.map((entry) => entry.name)
 					.filter(Boolean);
 				
@@ -2468,6 +2533,7 @@
 				
 			} catch (error) {
 				summaryEl.textContent = `❌ Error: ${error.message}`;
+				window.assetIntegrityDevIssues = null;
 			}
 		}
 
@@ -2475,27 +2541,35 @@
 			const summaryEl = document.getElementById('assetIntegritySummaryProd');
 			const detailsEl = document.getElementById('assetIntegrityDetailsProd');
 			const validateBtn = document.getElementById('assetIntegrityValidateBtnProd');
+			const scopeEl = document.getElementById('assetIntegrityScopeProd');
 			
 			try {
 				summaryEl.textContent = 'Checking asset integrity...';
+				if (scopeEl) scopeEl.textContent = 'visual/';
 				
-				// Check for actual asset integrity issues in prod bucket
+				// Check visual assets integrity in prod bucket.
 				const bucket = 'levante-assets-prod';
 				const issues = [];
 				
-				// Get all files from the bucket
-				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&files=1&meta=1&bucket=${bucket}`, `Read tags for ${bucket}`);
+				// Use a scoped prefix to avoid heavy full-bucket reads.
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&files=1&meta=1&bucket=${bucket}&prefix=visual/`, `Read tags for ${bucket}`);
 				const fileEntries = Array.isArray(data.files) ? data.files : [];
 				const files = fileEntries.map(f => typeof f === 'string' ? f : f?.name).filter(Boolean);
 				
-				// Check for PNG files that should be WEBP
-				const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
-				if (pngFiles.length > 0) {
+				// Check for PNG files missing a matching WEBP (same base path).
+				const fileSet = new Set(files.map(f => String(f || '').toLowerCase()));
+				const pngFilesMissingWebp = files.filter((f) => {
+					const lower = String(f || '').toLowerCase();
+					if (!lower.endsWith('.png')) return false;
+					const webpPath = lower.replace(/\.png$/i, '.webp');
+					return !fileSet.has(webpPath);
+				});
+				if (pngFilesMissingWebp.length > 0) {
 					issues.push({
 						type: 'PNG Files',
-						count: pngFiles.length,
-						description: 'PNG files that should be converted to WEBP for better performance',
-						files: pngFiles.slice(0, 10) // Show first 10 files
+						count: pngFilesMissingWebp.length,
+						description: 'PNG files missing matching WEBP versions',
+						files: pngFilesMissingWebp.slice(0, 10) // Show first 10 files
 					});
 				}
 				
@@ -2506,6 +2580,7 @@
 				const smallFiles = fileEntries
 					.filter((entry) => entry && typeof entry === 'object')
 					.filter((entry) => Number.isFinite(Number(entry.size)) && Number(entry.size) > 0 && Number(entry.size) < 100)
+					.filter((entry) => String(entry.name || '').toLowerCase().split('/').pop() !== 'blank.webp')
 					.map((entry) => entry.name)
 					.filter(Boolean);
 				
@@ -2536,6 +2611,7 @@
 				
 			} catch (error) {
 				summaryEl.textContent = `❌ Error: ${error.message}`;
+				window.assetIntegrityProdIssues = null;
 			}
 		}
 

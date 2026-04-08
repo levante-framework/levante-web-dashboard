@@ -95,6 +95,19 @@
         .status-pill span.label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; color: #00c8ff; font-weight: 700; }
         .status-pill strong { font-size: 1.4rem; color: #ffb347; text-shadow: 0 10px 20px rgba(255, 123, 0, 0.35); }
         .status-pill em { font-size: 0.84rem; color: rgba(203, 213, 225, 0.72); font-style: normal; }
+        .deployment-checklist { background: linear-gradient(140deg, rgba(255, 123, 0, 0.18), rgba(0, 160, 222, 0.12)); border: 1px solid rgba(255, 179, 71, 0.45); border-radius: 18px; padding: 22px; box-shadow: 0 20px 44px rgba(2, 6, 23, 0.45); }
+        .deployment-checklist-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+        .deployment-checklist-title { margin: 0; font-size: 1.18rem; color: #ffe7c2; letter-spacing: 0.02em; display: flex; align-items: center; gap: 10px; }
+        .deployment-checklist-note { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.11em; color: #fed7aa; background: rgba(124, 45, 18, 0.4); border: 1px solid rgba(251, 146, 60, 0.45); border-radius: 999px; padding: 6px 10px; font-weight: 700; }
+        .deployment-checklist-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+        .deployment-check-item { background: rgba(8, 13, 24, 0.9); border: 1px solid rgba(255, 179, 71, 0.35); border-radius: 14px; padding: 16px; text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; display: flex; flex-direction: column; gap: 10px; }
+        .deployment-check-item:hover { transform: translateY(-3px); border-color: rgba(255, 179, 71, 0.75); box-shadow: 0 18px 34px rgba(255, 123, 0, 0.25); }
+        .deployment-check-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .deployment-check-step { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 999px; background: rgba(255, 123, 0, 0.24); color: #ffddb8; border: 1px solid rgba(255, 179, 71, 0.65); font-size: 0.78rem; font-weight: 700; }
+        .deployment-check-item h3 { margin: 0; font-size: 1rem; color: #f8fafc; }
+        .deployment-check-item p { margin: 0; font-size: 0.88rem; color: rgba(203, 213, 225, 0.84); line-height: 1.55; }
+        .deployment-required-tag { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #fde68a; border: 1px solid rgba(250, 204, 21, 0.45); background: rgba(113, 63, 18, 0.34); border-radius: 999px; padding: 4px 8px; font-weight: 700; }
+        .deployment-check-cta { margin-top: auto; font-size: 0.82rem; color: #67e8f9; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
         @media (max-width: 720px) {
             .pitwall-header { padding: 28px; }
             .pitwall-header h1 { font-size: 2.2rem; }
@@ -124,6 +137,41 @@
 <a href="./audit-dashboard.html"><i class="fas fa-database"></i> Firestore Audit Dashboard</a>
 </div>
 </header>
+<section class="deployment-checklist">
+<div class="deployment-checklist-header">
+<h2 class="deployment-checklist-title"><i class="fas fa-flag-checkered"></i> Pre-Deployment Checklist</h2>
+<span class="deployment-checklist-note">Run these before every deployment</span>
+</div>
+<div class="deployment-checklist-grid">
+<a class="deployment-check-item" href="./preflight-report.html">
+<div class="deployment-check-top">
+<span class="deployment-check-step">1</span>
+<span class="deployment-required-tag">Required</span>
+</div>
+<h3>Pre-Release Readiness Report</h3>
+<p>Review translation, audio, visual, and config stoplights for dev/prod parity before release.</p>
+<span class="deployment-check-cta">Open report <i class="fas fa-arrow-right"></i></span>
+</a>
+<a class="deployment-check-item" href="./audio-coverage.html">
+<div class="deployment-check-top">
+<span class="deployment-check-step">2</span>
+<span class="deployment-required-tag">Required</span>
+</div>
+<h3>Audio Coverage</h3>
+<p>Confirm missing tags, language gaps, and missing audio are resolved for deployment targets.</p>
+<span class="deployment-check-cta">Run coverage <i class="fas fa-arrow-right"></i></span>
+</a>
+<a class="deployment-check-item" href="./asset-audit.html?prefix=audio/">
+<div class="deployment-check-top">
+<span class="deployment-check-step">3</span>
+<span class="deployment-required-tag">Required</span>
+</div>
+<h3>Asset Audit</h3>
+<p>Compare dev vs prod assets and verify only intended differences remain before pushing changes.</p>
+<span class="deployment-check-cta">Open asset audit <i class="fas fa-arrow-right"></i></span>
+</a>
+</div>
+</section>
 <section>
 <div class="section-title">
 <h2>
