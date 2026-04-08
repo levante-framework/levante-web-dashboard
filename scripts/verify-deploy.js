@@ -24,8 +24,17 @@ function fetchText(url) {
 async function verifyHost(host) {
   const baseUrl = host.startsWith('http') ? host : `https://${host}`;
   const html = await fetchText(`${baseUrl}/preflight-report.html`);
-  if (!html.includes('visualGifSummary') || !html.includes('visualGifSummaryProd')) {
-    throw new Error(`preflight-report.html on ${baseUrl} missing GIF summary markup`);
+  if (html.includes('id="crowdinAuditSection"')) {
+    throw new Error(`preflight-report.html on ${baseUrl} still contains Crowdin section`);
+  }
+  if (html.includes('id="bucketInfoSection"')) {
+    throw new Error(`preflight-report.html on ${baseUrl} still contains Bucket Info section`);
+  }
+  if (html.includes('visualGifSummary') || html.includes('visualGifSummaryProd')) {
+    throw new Error(`preflight-report.html on ${baseUrl} still contains GIF summary markup`);
+  }
+  if (!html.includes('configValidationInlineIssues') || !html.includes('configValidationInlineIssuesProd')) {
+    throw new Error(`preflight-report.html on ${baseUrl} missing inline config validation issue containers`);
   }
 
   const apiJson = await fetchText(`${baseUrl}/api/visual-audit?env=dev&prefix=visual/`);

@@ -303,14 +303,25 @@ async function listRepoLanguages() {
 }
 
 // List files with a specific prefix in the bucket
-async function listFilesWithPrefix(bucketName, prefix) {
+async function listFilesWithPrefix(bucketName, prefix, includeMetadata = false) {
     try {
         const storage = await initializeGCS();
         const bucket = storage.bucket(bucketName);
         
         // List all files with the given prefix
         const [files] = await bucket.getFiles({ prefix: prefix });
-        
+        if (includeMetadata) {
+            // Return lightweight metadata for faster downstream auditing
+            return files.map(file => {
+                const metadata = file.metadata || {};
+                return {
+                    name: file.name,
+                    size: Number(metadata.size || file.size || 0),
+                    updated: metadata.updated || metadata.timeCreated || null
+                };
+            });
+        }
+
         // Return just the file paths
         return files.map(file => file.name);
     } catch (err) {
@@ -352,10 +363,15 @@ export default async function handler(req, res) {
                 return;
             }
             const bucketName = bucketOverride || ASSETS_BUCKET;
+            const includeFiles = ((req.method === 'GET' ? req.query.files : req.body?.files) || '').toString().trim().toLowerCase();
+            const includeMetadata = ((req.method === 'GET' ? req.query.meta : req.body?.meta) || '').toString().trim().toLowerCase();
+            const listFilesRequested = includeFiles === '1' || includeFiles === 'true' || includeFiles === 'yes';
+            const listMetadataRequested = includeMetadata === '1' || includeMetadata === 'true' || includeMetadata === 'yes';
             
-            // Handle prefix parameter for listing files
-            if (prefix) {
-                const files = await listFilesWithPrefix(bucketName, prefix);
+            // Handle file listing (explicit files=1, optionally with prefix)
+            if (listFilesRequested || prefix) {
+                const listPrefix = typeof prefix === 'string' ? prefix : '';
+                const files = await listFilesWithPrefix(bucketName, listPrefix, listMetadataRequested);
                 res.status(200).json({ bucket: bucketName, prefix: prefix, files: files });
                 return;
             }

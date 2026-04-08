@@ -240,8 +240,17 @@ export default async function handler(req, res) {
   const exclude = (req.query.exclude || '').toString();
   const excludePatterns = exclude ? exclude.split(',').map(p => p.trim()).filter(p => p) : [];
   const useChecksum = req.query.checksum === 'true' || req.query.checksum === '1';
+  const allowFullScan = req.query.full === 'true' || req.query.full === '1';
 
   try {
+    if (!prefix && !allowFullScan) {
+      return res.status(400).json({
+        success: false,
+        error: 'Prefix required for audit',
+        message: 'Provide a folder prefix (for example: audio/, visual/, corpus/) to avoid server timeout. Add full=1 to force a full-bucket scan.'
+      });
+    }
+
     const storage = getStorageClient();
     if (!storage) {
       return res.status(500).json({ 

@@ -143,14 +143,12 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Bucket: <span class="code" id="visualBucket"></span> · Prefix: <span class="code" id="visualPrefix">visual/</span></p>
 <p class="small" id="visualSummary">Loading…</p>
-<p class="small" id="visualGifSummary">Loading…</p>
 <p class="small"><span class="link" id="visualDetails" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
 </div>
 <div id="visualAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Bucket: <span class="code" id="visualBucketProd"></span> · Prefix: <span class="code" id="visualPrefixProd">visual/</span></p>
 <p class="small" id="visualSummaryProd">Loading…</p>
-<p class="small" id="visualGifSummaryProd">Loading…</p>
 <p class="small"><span class="link" id="visualDetailsProd" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
 </div>
 </div>
@@ -245,12 +243,14 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Scope: <span class="code" id="configValidationScope">Environment &amp; API configs</span></p>
 <p class="small" id="configValidationSummary">Loading…</p>
+<div class="small" id="configValidationInlineIssues" style="display:none; margin:6px 0 10px 0; padding:8px; border-radius:6px; background:rgba(255, 183, 77, 0.12); border:1px solid rgba(255, 183, 77, 0.35); color:#ffedd5;"></div>
 <p class="small"><span class="link" id="configValidationDetails" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
 </div>
 <div id="configValidationAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Scope: <span class="code" id="configValidationScopeProd">Environment &amp; API configs</span></p>
 <p class="small" id="configValidationSummaryProd">Loading…</p>
+<div class="small" id="configValidationInlineIssuesProd" style="display:none; margin:6px 0 10px 0; padding:8px; border-radius:6px; background:rgba(255, 183, 77, 0.12); border:1px solid rgba(255, 183, 77, 0.35); color:#ffedd5;"></div>
 <p class="small"><span class="link" id="configValidationDetailsProd" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
 </div>
 </div>
@@ -283,60 +283,8 @@
 </div>
 </div>
 </div>
-<div class="section" id="crowdinAuditSection">
-<h2 style="font-size:16px; margin:0 0 8px 0;">Crowdin</h2>
-<table aria-label="Crowdin Translation Status table" class="table" id="crowdinTable">
-<thead>
-<tr>
-<th>Language</th>
-<th>Code</th>
-<th>From Crowdin</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-</div>
-<div class="section" id="bucketInfoSection">
-<div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-<h2 style="font-size:16px; margin:0;">Bucket Info</h2>
-<button class="stoplight" id="bucketInfoStoplight" style="display:none; padding:4px 8px; border:1px solid #d1d5db; border-radius:4px; font-size:12px; font-weight:600; cursor:default;">Loading...</button>
-</div>
-<div id="bucketInfoContent" style="display:none;">
-<div style="margin-bottom: 16px;">
-<p class="small">Source: <span class="code">GCS Buckets</span></p>
-<p class="small" id="bucketInfoSummary">Loading…</p>
-<div id="bucketInfoProgress" style="display:none; margin: 8px 0;">
-<div style="background: #e5e7eb; border-radius: 4px; height: 8px; overflow: hidden;">
-<div id="bucketInfoProgressBar" style="background: #0d6efd; height: 100%; width: 0%; transition: width 0.3s ease;"></div>
-</div>
-<p class="small" id="bucketInfoProgressText" style="margin: 4px 0 0 0; color: #6b7280;">Scanning GCS buckets...</p>
-</div>
-<p class="small"><button id="bucketInfoRefreshBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Refresh</button></p>
-</div>
-<div id="bucketInfoTable" style="overflow-x: auto;">
-<table class="table" style="width: 100%; border-collapse: collapse;">
-<thead>
-<tr>
-<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Bucket Name</th>
-<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Stat Name</th>
-<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Language</th>
-<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: right;">Number</th>
-<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: left;">Unit</th>
-<th style="background: #f8fafc; padding: 8px 10px; border: 1px solid #e5e7eb; font-size: 13px; text-align: right;">Files</th>
-</tr>
-</thead>
-<tbody id="bucketInfoTableBody">
-<!-- Bucket info rows will be populated here -->
-</tbody>
-</table>
-</div>
-</div>
-</div>
 <div class="footer" style="margin: 16px 0;">
 <div class="small" style="margin-top:6px;">
-			- From Crowdin: coverage of Item Bank CSV translations from Crowdin API
-			- A: Approved translations
-			- UA: Unapproved (translated but not approved)
 			- NT: Not Translated
 		</div>
 </div>
@@ -564,6 +512,23 @@
 			return `./audio-coverage.html?env=${env}&langs=${encodeURIComponent(langList.join(','))}`;
 		}
 
+		async function fetchJsonOrThrow(url, contextLabel, init = {}) {
+			const res = await fetch(url, { cache: 'no-cache', ...(init || {}) });
+			const raw = await res.text();
+			let data = null;
+			try {
+				data = raw ? JSON.parse(raw) : null;
+			} catch (_) {
+				const snippet = String(raw || '').trim().slice(0, 180) || 'empty response';
+				throw new Error(`${contextLabel} returned non-JSON (${res.status}): ${snippet}`);
+			}
+			if (!res.ok) {
+				const message = data?.message || data?.error || 'request failed';
+				throw new Error(`${contextLabel} failed (${res.status}): ${message}`);
+			}
+			return data || {};
+		}
+
 		// Update stoplight button based on comparison
 		function updateStoplight(buttonId, devValue, prodValue) {
 			const btn = document.getElementById(buttonId);
@@ -572,6 +537,18 @@
 			btn.style.display = 'inline-block';
 			const devNum = typeof devValue === 'string' ? Number(devValue) : devValue;
 			const prodNum = typeof prodValue === 'string' ? Number(prodValue) : prodValue;
+
+			// Translation Completeness special case:
+			// if Dev completeness is below 99%, force a yellow "Review" badge.
+			if (buttonId === 'translationCompletenessStoplight') {
+				const devCompleteness = Number(window.translationCompletenessDevPercent);
+				if (Number.isFinite(devCompleteness) && devCompleteness < 99) {
+					btn.textContent = 'Review';
+					btn.className = 'stoplight diff';
+					btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+					return;
+				}
+			}
 			
 			// Check if either value is empty/null/undefined
 			if (devNum === null || devNum === undefined || devNum === '' || Number.isNaN(devNum) ||
@@ -754,13 +731,10 @@
 		// Get detailed visual differences
 		async function getVisualDifferences() {
 			try {
-				const [devRes, prodRes] = await Promise.all([
-					fetch('/api/visual-audit?env=dev&prefix=visual/', { cache: 'no-cache' }),
-					fetch('/api/visual-audit?env=prod&prefix=visual/', { cache: 'no-cache' })
+				const [devData, prodData] = await Promise.all([
+					fetchJsonOrThrow('/api/visual-audit?env=dev&prefix=visual/', 'Visual differences (dev)'),
+					fetchJsonOrThrow('/api/visual-audit?env=prod&prefix=visual/', 'Visual differences (prod)')
 				]);
-				
-				const devData = await devRes.json();
-				const prodData = await prodRes.json();
 				
 				const devMissing = devData.missing || [];
 				const prodMissing = prodData.missing || [];
@@ -816,13 +790,10 @@
 		// Get detailed audio differences
 		async function getAudioDifferences() {
 			try {
-				const [devRes, prodRes] = await Promise.all([
-					fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { cache: 'no-cache' }),
-					fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { cache: 'no-cache' })
+				const [devData, prodData] = await Promise.all([
+					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev', 'Audio differences (dev)'),
+					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod', 'Audio differences (prod)')
 				]);
-				
-				const devData = await devRes.json();
-				const prodData = await prodRes.json();
 				
 				const devLangs = devData.languages || [];
 				const prodLangs = prodData.languages || [];
@@ -876,13 +847,10 @@
 		// Get detailed core tasks differences
 		async function getCoreTasksDifferences() {
 			try {
-				const [devRes, prodRes] = await Promise.all([
-					fetch('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', { cache: 'no-cache' }),
-					fetch('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', { cache: 'no-cache' })
+				const [devData, prodData] = await Promise.all([
+					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', 'Core tasks differences (dev)'),
+					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', 'Core tasks differences (prod)')
 				]);
-				
-				const devData = await devRes.json();
-				const prodData = await prodRes.json();
 				
 				const devFiles = (devData.files || []).filter(f => f.toLowerCase().endsWith('.csv'));
 				const prodFiles = (prodData.files || []).filter(f => f.toLowerCase().endsWith('.csv'));
@@ -1639,9 +1607,7 @@
 		async function audioStats(lang, environment = 'dev') {
 			try {
 				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
-				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}`, { cache: 'no-cache' });
-				if (!res.ok) return { present: false };
-				const data = await res.json();
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&bucket=${bucket}`, `Read tags for ${bucket}`);
 				const present = Array.isArray(data.languages) && data.languages.includes(lang);
 				return { present };
 			} catch { return { present: false }; }
@@ -1650,9 +1616,7 @@
 		// Visual assets audit (dev) + Fix It
 		async function refreshVisualAudit() {
 			try {
-				const res = await fetch(`/api/visual-audit?env=dev&prefix=visual/`, { cache: 'no-cache' });
-				if (!res.ok) { document.getElementById('visualSummary').textContent = 'Visual audit unavailable (API error)'; return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow(`/api/visual-audit?env=dev&prefix=visual/`, 'Visual audit (dev)');
 				document.getElementById('visualBucket').textContent = data.bucket || '';
 				const missing = Array.isArray(data.missing) ? data.missing : [];
 				const pngCount = data.pngCount || 0;
@@ -1663,18 +1627,8 @@
 				const missingPngCount = data.missingPngCount || missingPng.length;
 				const missingJpg = Array.isArray(data.missingJpg) ? data.missingJpg : [];
 				const missingJpgCount = data.missingJpgCount || missingJpg.length;
-				const gifCount = data.gifCount || 0;
-				const gifWebpCount = data.gifWebpCount || 0;
-				const gifSizeBytes = data.gifSizeBytes || 0;
-				const gifSavingsBytes = data.gifSavingsBytes || 0;
-				const gifMissingCount = data.gifMissingCount || 0;
 				const summary = document.getElementById('visualSummary');
 				summary.innerHTML = `PNGs: <span class="code">${pngCount}</span> · JPGs: <span class="code">${jpgCount}</span> · WEBPs: <span class="code">${webpCount}</span> · Missing WEBP: <span class="badge ${missingCount===0?'ok':'err'}">${missingCount}</span> <span class="small">(PNG ${missingPngCount}, JPG ${missingJpgCount})</span>`;
-				const gifSummaryEl = document.getElementById('visualGifSummary');
-				if (gifSummaryEl) {
-					const gifMissingBadge = gifMissingCount > 0 ? ` · Missing WEBP: <span class="badge err">${gifMissingCount}</span>` : '';
-					gifSummaryEl.innerHTML = `GIFs: <span class="code">${gifCount}</span> · WebP matches: <span class="code">${gifWebpCount}</span> · Current: <span class="code">${formatBytes(gifSizeBytes)}</span> · Savings: <span class="code">${formatBytes(gifSavingsBytes)}</span>${gifMissingBadge}`;
-				}
 				const detailsLink = document.getElementById('visualDetails');
 				const fixBtn = document.getElementById('visualFixBtn');
 				if (missingCount > 0) {
@@ -1695,8 +1649,6 @@
 				window.visualDevMissing = missingCount;
 			} catch (e) {
 				document.getElementById('visualSummary').textContent = 'Visual audit unavailable';
-				const gifEl = document.getElementById('visualGifSummary');
-				if (gifEl) gifEl.textContent = 'Visual audit unavailable';
 				window.visualDevMissing = null;
 			}
 		}
@@ -1704,9 +1656,7 @@
 		// Visual assets audit (prod) + Fix It
 		async function refreshVisualAuditProd() {
 			try {
-				const res = await fetch(`/api/visual-audit?env=prod&prefix=visual/`, { cache: 'no-cache' });
-				if (!res.ok) { const el = document.getElementById('visualSummaryProd'); if (el) el.textContent = 'Visual audit (prod) unavailable (API error)'; return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow(`/api/visual-audit?env=prod&prefix=visual/`, 'Visual audit (prod)');
 				const bucketEl = document.getElementById('visualBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || '';
 				const missing = Array.isArray(data.missing) ? data.missing : [];
 				const pngCount = data.pngCount || 0;
@@ -1717,18 +1667,8 @@
 				const missingPngCount = data.missingPngCount || missingPng.length;
 				const missingJpg = Array.isArray(data.missingJpg) ? data.missingJpg : [];
 				const missingJpgCount = data.missingJpgCount || missingJpg.length;
-				const gifCount = data.gifCount || 0;
-				const gifWebpCount = data.gifWebpCount || 0;
-				const gifSizeBytes = data.gifSizeBytes || 0;
-				const gifSavingsBytes = data.gifSavingsBytes || 0;
-				const gifMissingCount = data.gifMissingCount || 0;
 				const summary = document.getElementById('visualSummaryProd');
 				if (summary) summary.innerHTML = `PNGs: <span class=\"code\">${pngCount}</span> · JPGs: <span class=\"code\">${jpgCount}</span> · WEBPs: <span class=\"code\">${webpCount}</span> · Missing WEBP: <span class=\"badge ${missingCount===0?'ok':'err'}\">${missingCount}</span> <span class=\"small\">(PNG ${missingPngCount}, JPG ${missingJpgCount})</span>`;
-				const gifSummaryProd = document.getElementById('visualGifSummaryProd');
-				if (gifSummaryProd) {
-					const gifMissingBadge = gifMissingCount > 0 ? ` · Missing WEBP: <span class=\"badge err\">${gifMissingCount}</span>` : '';
-					gifSummaryProd.innerHTML = `GIFs: <span class=\"code\">${gifCount}</span> · WebP matches: <span class=\"code\">${gifWebpCount}</span> · Current: <span class=\"code\">${formatBytes(gifSizeBytes)}</span> · Savings: <span class=\"code\">${formatBytes(gifSavingsBytes)}</span>${gifMissingBadge}`;
-				}
 				const detailsLink = document.getElementById('visualDetailsProd');
 				const fixBtn = document.getElementById('visualFixBtnProd');
 				if (missingCount > 0) {
@@ -1749,7 +1689,6 @@
 				window.visualProdMissing = missingCount;
 			} catch (e) {
 				const el = document.getElementById('visualSummaryProd'); if (el) el.textContent = 'Visual audit (prod) unavailable';
-				const gifEl = document.getElementById('visualGifSummaryProd'); if (gifEl) gifEl.textContent = 'Visual audit (prod) unavailable';
 				window.visualProdMissing = null;
 			}
 		}
@@ -1769,18 +1708,15 @@
 			summaryEl.textContent = 'Converting PNGs to WEBP...';
 			
 			try {
-				const response = await fetch(`/api/visual-fix?env=${env}&prefix=${encodeURIComponent(prefix)}&limit=200`, {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					cache: 'no-cache'
-				});
-				
-				if (!response.ok) {
-					const errorText = await response.text();
-					throw new Error(`API error: ${response.status} - ${errorText}`);
-				}
-				
-				const result = await response.json();
+				const result = await fetchJsonOrThrow(
+					`/api/visual-fix?env=${env}&prefix=${encodeURIComponent(prefix)}&limit=200`,
+					`Visual fix (${envLabel})`,
+					{
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						cache: 'no-cache'
+					}
+				);
 				
 				if (result.success) {
 					const successMsg = `${envLabel}: Created ${result.created} WEBP files`;
@@ -1821,9 +1757,7 @@
 		async function refreshAudioAudit(activeLanguages = []) {
 			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			try {
-				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-dev`, { cache: 'no-cache' });
-				if (!res.ok) { document.getElementById('audioSummary').textContent = 'Audio audit unavailable (API error)'; return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev', 'Audio audit (dev)');
 				document.getElementById('audioBucket').textContent = data.bucket || 'levante-assets-dev';
 				const languages = Array.isArray(data.languages) ? data.languages : [];
 				const filteredLanguages = activeSet ? languages.filter(lang => activeSet.has(lang)) : languages;
@@ -1916,9 +1850,7 @@
 		async function refreshAudioAuditProd(activeLanguages = []) {
 			const activeSet = Array.isArray(activeLanguages) && activeLanguages.length ? new Set(activeLanguages) : null;
 			try {
-				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-prod`, { cache: 'no-cache' });
-				if (!res.ok) { const el = document.getElementById('audioSummaryProd'); if (el) el.textContent = 'Audio audit (prod) unavailable (API error)'; return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod', 'Audio audit (prod)');
 				const bucketEl = document.getElementById('audioBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
 				const languages = Array.isArray(data.languages) ? data.languages : [];
 				const filteredLanguages = activeSet ? languages.filter(lang => activeSet.has(lang)) : languages;
@@ -1995,9 +1927,7 @@
 		// Core Tasks audit (dev) + Validate
 		async function refreshCoreTasksAudit() {
 			try {
-				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/`, { cache: 'no-cache' });
-				if (!res.ok) { document.getElementById('coreTasksSummary').textContent = 'Core tasks audit unavailable (API error)'; return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', 'Core tasks audit (dev)');
 				document.getElementById('coreTasksBucket').textContent = data.bucket || 'levante-assets-dev';
 				const files = Array.isArray(data.files) ? data.files : [];
 				
@@ -2033,9 +1963,7 @@
 		// Core Tasks audit (prod) + Validate
 		async function refreshCoreTasksAuditProd() {
 			try {
-				const res = await fetch(`/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/`, { cache: 'no-cache' });
-				if (!res.ok) { const el = document.getElementById('coreTasksSummaryProd'); if (el) el.textContent = 'Core tasks audit (prod) unavailable (API error)'; return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', 'Core tasks audit (prod)');
 				const bucketEl = document.getElementById('coreTasksBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
 				const files = Array.isArray(data.files) ? data.files : [];
 				
@@ -2074,9 +2002,7 @@
 				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
 				
 				// Get corpus files
-				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}&prefix=corpus/`, { cache: 'no-cache' });
-				if (!res.ok) { alert(`Failed to fetch corpus files from ${bucket}`); return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&bucket=${bucket}&prefix=corpus/`, `Validate core tasks (${environment})`);
 				const files = Array.isArray(data.files) ? data.files : [];
 				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
 				
@@ -2194,9 +2120,7 @@
 				const bucket = environment === 'prod' ? 'levante-assets-prod' : 'levante-assets-dev';
 				
 				// Get corpus files
-				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}&prefix=corpus/`, { cache: 'no-cache' });
-				if (!res.ok) { alert(`Failed to fetch corpus files from ${bucket}`); return; }
-				const data = await res.json();
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&bucket=${bucket}&prefix=corpus/`, `Validate corpus (${environment})`);
 				const files = Array.isArray(data.files) ? data.files : [];
 				const textFiles = files.filter(f => f.toLowerCase().endsWith('.txt') || f.toLowerCase().endsWith('.json') || f.toLowerCase().endsWith('.csv'));
 				
@@ -2324,6 +2248,7 @@
 		}
 		
 		const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
+		const completenessNum = Number(completeness);
 		
 		// Choose icon based on completeness level
 		const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
@@ -2341,6 +2266,7 @@
 		
 		// Store for stoplight comparison
 		window.translationCompletenessDevMissing = missingTranslations;
+		window.translationCompletenessDevPercent = completenessNum;
 				
 			} catch (error) {
 				summaryEl.textContent = `❌ Error: ${error.message}`;
@@ -2408,6 +2334,7 @@
 			}
 			
 			const completeness = ((totalItems * languageColumns.length - missingTranslations) / (totalItems * languageColumns.length) * 100).toFixed(1);
+			const completenessNum = Number(completeness);
 			
 			// Choose icon based on completeness level
 			const icon = completeness >= 100 ? '✅' : (completeness >= 95 ? '⚠️' : '❌');
@@ -2425,6 +2352,7 @@
 			
 			// Store for stoplight comparison
 			window.translationCompletenessProdMissing = missingTranslations;
+			window.translationCompletenessProdPercent = completenessNum;
 				
 			} catch (error) {
 				summaryEl.textContent = `❌ Error: ${error.message}`;
@@ -2488,12 +2416,9 @@
 				const issues = [];
 				
 				// Get all files from the bucket
-				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}`, { cache: 'no-cache' });
-				if (!res.ok) {
-					throw new Error(`Failed to fetch files from ${bucket}`);
-				}
-				const data = await res.json();
-				const files = Array.isArray(data.files) ? data.files : [];
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&files=1&meta=1&bucket=${bucket}`, `Read tags for ${bucket}`);
+				const fileEntries = Array.isArray(data.files) ? data.files : [];
+				const files = fileEntries.map(f => typeof f === 'string' ? f : f?.name).filter(Boolean);
 				
 				// Check for PNG files that should be WEBP
 				const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
@@ -2509,22 +2434,12 @@
 		// Note: Audio file checking removed - use Audio Coverage report for detailed audio analysis
 		// The previous check was too broad and didn't account for language-specific audio or items without translations
 				
-				// Check for empty or very small files
-				const smallFiles = [];
-				for (const file of files.slice(0, 20)) { // Check first 20 files for performance
-					try {
-						const fileUrl = `https://storage.googleapis.com/${bucket}/${file}`;
-						const fileRes = await fetch(fileUrl, { method: 'HEAD', cache: 'no-cache' });
-						if (fileRes.ok) {
-							const contentLength = fileRes.headers.get('content-length');
-							if (contentLength && parseInt(contentLength) < 100) { // Less than 100 bytes
-								smallFiles.push(file);
-							}
-						}
-					} catch (e) {
-						// Skip files that can't be checked
-					}
-				}
+				// Check for empty or very small files using metadata (faster + full coverage)
+				const smallFiles = fileEntries
+					.filter((entry) => entry && typeof entry === 'object')
+					.filter((entry) => Number.isFinite(Number(entry.size)) && Number(entry.size) > 0 && Number(entry.size) < 100)
+					.map((entry) => entry.name)
+					.filter(Boolean);
 				
 				if (smallFiles.length > 0) {
 					issues.push({
@@ -2569,12 +2484,9 @@
 				const issues = [];
 				
 				// Get all files from the bucket
-				const res = await fetch(`/api/read-tags?list=1&bucket=${bucket}`, { cache: 'no-cache' });
-				if (!res.ok) {
-					throw new Error(`Failed to fetch files from ${bucket}`);
-				}
-				const data = await res.json();
-				const files = Array.isArray(data.files) ? data.files : [];
+				const data = await fetchJsonOrThrow(`/api/read-tags?list=1&files=1&meta=1&bucket=${bucket}`, `Read tags for ${bucket}`);
+				const fileEntries = Array.isArray(data.files) ? data.files : [];
+				const files = fileEntries.map(f => typeof f === 'string' ? f : f?.name).filter(Boolean);
 				
 				// Check for PNG files that should be WEBP
 				const pngFiles = files.filter(f => f.toLowerCase().endsWith('.png'));
@@ -2590,22 +2502,12 @@
 		// Note: Audio file checking removed - use Audio Coverage report for detailed audio analysis
 		// The previous check was too broad and didn't account for language-specific audio or items without translations
 				
-				// Check for empty or very small files
-				const smallFiles = [];
-				for (const file of files.slice(0, 20)) { // Check first 20 files for performance
-					try {
-						const fileUrl = `https://storage.googleapis.com/${bucket}/${file}`;
-						const fileRes = await fetch(fileUrl, { method: 'HEAD', cache: 'no-cache' });
-						if (fileRes.ok) {
-							const contentLength = fileRes.headers.get('content-length');
-							if (contentLength && parseInt(contentLength) < 100) { // Less than 100 bytes
-								smallFiles.push(file);
-							}
-						}
-					} catch (e) {
-						// Skip files that can't be checked
-					}
-				}
+				// Check for empty or very small files using metadata (faster + full coverage)
+				const smallFiles = fileEntries
+					.filter((entry) => entry && typeof entry === 'object')
+					.filter((entry) => Number.isFinite(Number(entry.size)) && Number(entry.size) > 0 && Number(entry.size) < 100)
+					.map((entry) => entry.name)
+					.filter(Boolean);
 				
 				if (smallFiles.length > 0) {
 					issues.push({
@@ -2692,9 +2594,12 @@
 			const summaryEl = document.getElementById('configValidationSummary');
 			const detailsEl = document.getElementById('configValidationDetails');
 			const validateBtn = document.getElementById('configValidationValidateBtn');
+			const inlineIssuesEl = document.getElementById('configValidationInlineIssues');
 			
 			try {
 				summaryEl.textContent = 'Validating configuration...';
+				if (detailsEl) detailsEl.style.display = 'none';
+				if (inlineIssuesEl) inlineIssuesEl.style.display = 'none';
 				
 				// Check for actual configuration issues in dev environment
 				const checks = [];
@@ -2758,39 +2663,32 @@
 					totalIssues++;
 				}
 				
-				// Check for required file types
+				// Check for required file types using concrete prefixes.
 				try {
-					const filesRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-dev', { cache: 'no-cache' });
-					if (filesRes.ok) {
-						const filesData = await filesRes.json();
-						const files = Array.isArray(filesData.files) ? filesData.files : [];
-						
-						const audioFiles = files.filter(f => f.toLowerCase().endsWith('.mp3'));
-						const imageFiles = files.filter(f => f.toLowerCase().endsWith('.png') || f.toLowerCase().endsWith('.webp'));
-						const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
-						
-						if (audioFiles.length > 0 && imageFiles.length > 0 && csvFiles.length > 0) {
-							checks.push({ 
-								name: 'Required File Types', 
-								status: 'valid', 
-								description: 'All required file types present',
-								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
-							});
-						} else {
-							checks.push({ 
-								name: 'Required File Types', 
-								status: 'warning', 
-								description: 'Some required file types missing',
-								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
-							});
-							totalIssues++;
-						}
+					const [audioData, visualData, corpusData] = await Promise.all([
+						fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=audio/', 'Config check audio files (dev)'),
+						fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=visual/', 'Config check visual files (dev)'),
+						fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', 'Config check corpus files (dev)')
+					]);
+					const audioFiles = Array.isArray(audioData.files) ? audioData.files.filter(f => f.toLowerCase().endsWith('.mp3')) : [];
+					const imageFiles = Array.isArray(visualData.files)
+						? visualData.files.filter(f => f.toLowerCase().endsWith('.png') || f.toLowerCase().endsWith('.webp') || f.toLowerCase().endsWith('.jpg') || f.toLowerCase().endsWith('.jpeg'))
+						: [];
+					const csvFiles = Array.isArray(corpusData.files) ? corpusData.files.filter(f => f.toLowerCase().endsWith('.csv')) : [];
+					
+					if (audioFiles.length > 0 && imageFiles.length > 0 && csvFiles.length > 0) {
+						checks.push({ 
+							name: 'Required File Types', 
+							status: 'valid', 
+							description: 'All required file types present',
+							details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
+						});
 					} else {
 						checks.push({ 
 							name: 'Required File Types', 
-							status: 'error', 
-							description: 'Cannot check file types',
-							details: 'Unable to access file listing'
+							status: 'warning', 
+							description: 'Some required file categories look empty',
+							details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
 						});
 						totalIssues++;
 					}
@@ -2846,6 +2744,17 @@
 					summaryEl.innerHTML = `⚠️ <strong>${totalIssues} issues</strong> found (${errorCount} errors, ${warningCount} warnings)`;
 					detailsEl.style.display = 'inline';
 					detailsEl.onclick = () => showConfigValidationDetails(checks);
+					const flagged = checks.filter(c => c.status === 'error' || c.status === 'warning');
+					if (inlineIssuesEl && flagged.length > 0) {
+						const top = flagged.slice(0, 3);
+						inlineIssuesEl.innerHTML = `
+							<strong>Top issues:</strong>
+							<ul style="margin:6px 0 0 16px; padding:0;">
+								${top.map(c => `<li><strong>${c.name}</strong>: ${c.details || c.description || c.status}</li>`).join('')}
+							</ul>
+						`;
+						inlineIssuesEl.style.display = 'block';
+					}
 				}
 				
 				validateBtn.style.display = 'inline-block';
@@ -2864,9 +2773,12 @@
 			const summaryEl = document.getElementById('configValidationSummaryProd');
 			const detailsEl = document.getElementById('configValidationDetailsProd');
 			const validateBtn = document.getElementById('configValidationValidateBtnProd');
+			const inlineIssuesEl = document.getElementById('configValidationInlineIssuesProd');
 			
 			try {
 				summaryEl.textContent = 'Validating configuration...';
+				if (detailsEl) detailsEl.style.display = 'none';
+				if (inlineIssuesEl) inlineIssuesEl.style.display = 'none';
 				
 				// Check for actual configuration issues in prod environment
 				const checks = [];
@@ -2930,39 +2842,32 @@
 					totalIssues++;
 				}
 				
-				// Check for required file types
+				// Check for required file types using concrete prefixes.
 				try {
-					const filesRes = await fetch('/api/read-tags?list=1&bucket=levante-assets-prod', { cache: 'no-cache' });
-					if (filesRes.ok) {
-						const filesData = await filesRes.json();
-						const files = Array.isArray(filesData.files) ? filesData.files : [];
-						
-						const audioFiles = files.filter(f => f.toLowerCase().endsWith('.mp3'));
-						const imageFiles = files.filter(f => f.toLowerCase().endsWith('.png') || f.toLowerCase().endsWith('.webp'));
-						const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
-						
-						if (audioFiles.length > 0 && imageFiles.length > 0 && csvFiles.length > 0) {
-							checks.push({ 
-								name: 'Required File Types', 
-								status: 'valid', 
-								description: 'All required file types present',
-								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
-							});
-						} else {
-							checks.push({ 
-								name: 'Required File Types', 
-								status: 'warning', 
-								description: 'Some required file types missing',
-								details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
-							});
-							totalIssues++;
-						}
+					const [audioData, visualData, corpusData] = await Promise.all([
+						fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=audio/', 'Config check audio files (prod)'),
+						fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=visual/', 'Config check visual files (prod)'),
+						fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', 'Config check corpus files (prod)')
+					]);
+					const audioFiles = Array.isArray(audioData.files) ? audioData.files.filter(f => f.toLowerCase().endsWith('.mp3')) : [];
+					const imageFiles = Array.isArray(visualData.files)
+						? visualData.files.filter(f => f.toLowerCase().endsWith('.png') || f.toLowerCase().endsWith('.webp') || f.toLowerCase().endsWith('.jpg') || f.toLowerCase().endsWith('.jpeg'))
+						: [];
+					const csvFiles = Array.isArray(corpusData.files) ? corpusData.files.filter(f => f.toLowerCase().endsWith('.csv')) : [];
+					
+					if (audioFiles.length > 0 && imageFiles.length > 0 && csvFiles.length > 0) {
+						checks.push({ 
+							name: 'Required File Types', 
+							status: 'valid', 
+							description: 'All required file types present',
+							details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
+						});
 					} else {
 						checks.push({ 
 							name: 'Required File Types', 
-							status: 'error', 
-							description: 'Cannot check file types',
-							details: 'Unable to access file listing'
+							status: 'warning', 
+							description: 'Some required file categories look empty',
+							details: `${audioFiles.length} audio, ${imageFiles.length} images, ${csvFiles.length} CSV files`
 						});
 						totalIssues++;
 					}
@@ -3018,6 +2923,17 @@
 					summaryEl.innerHTML = `⚠️ <strong>${totalIssues} issues</strong> found (${errorCount} errors, ${warningCount} warnings)`;
 					detailsEl.style.display = 'inline';
 					detailsEl.onclick = () => showConfigValidationDetails(checks);
+					const flagged = checks.filter(c => c.status === 'error' || c.status === 'warning');
+					if (inlineIssuesEl && flagged.length > 0) {
+						const top = flagged.slice(0, 3);
+						inlineIssuesEl.innerHTML = `
+							<strong>Top issues:</strong>
+							<ul style="margin:6px 0 0 16px; padding:0;">
+								${top.map(c => `<li><strong>${c.name}</strong>: ${c.details || c.description || c.status}</li>`).join('')}
+							</ul>
+						`;
+						inlineIssuesEl.style.display = 'block';
+					}
 				}
 				
 				validateBtn.style.display = 'inline-block';
@@ -3556,39 +3472,6 @@
 			});
 		});
 		
-		// Build Crowdin table
-		const crowdinTbody = document.querySelector('#crowdinTable tbody');
-		for (const lang of languageCodes) {
-			const crowdinData = await itembankStats(lang, 'dev');
-			
-			// Compute breakdowns for Crowdin stats
-			const approved = crowdinData.exact || 0;
-			const translated = crowdinData.withBase || 0;
-			const unapproved = Math.max(0, translated - approved);
-			const untranslated = Math.max(0, (crowdinData.total || 0) - translated);
-			
-			const crowdinTr = document.createElement('tr');
-			crowdinTr.innerHTML = `
-				<td>${languageDisplayName(lang)}</td>
-				<td><span class="code">${lang}</span></td>
-				<td class="crowdin-cell" data-lang="${lang}" data-env="dev">
-					${badge(crowdinData.exact, crowdinData.total)} <span class=\"small\">(${crowdinData.exact}/${crowdinData.total}; UA ${unapproved}, NT ${untranslated})</span>
-					${crowdinData.total > 0 && (crowdinData.exact / crowdinData.total) < 1 ? '<span class="warning-icon" title="Click to view untranslated items">⚠️</span>' : ''}
-				</td>
-			`;
-			crowdinTbody.appendChild(crowdinTr);
-		}
-		
-		// Add event listeners for warning icons in Crowdin table
-		document.querySelectorAll('#crowdinTable .warning-icon').forEach(icon => {
-			icon.addEventListener('click', function() {
-				const cell = this.closest('.crowdin-cell');
-				const lang = cell.dataset.lang;
-				const env = cell.dataset.env;
-				showUntranslatedModal(lang, env);
-			});
-		});
-
 		await refreshVisualAudit();
 		await refreshVisualAuditProd();
 		await refreshAudioAudit(activeLanguageList);
@@ -3602,7 +3485,6 @@
 		await refreshConfigValidationAudit();
 		await refreshConfigValidationAuditProd();
 		await refreshGitHubIssuesAudit();
-		await refreshBucketInfo();
 		
 		setSelectionNotice('Selections persist between sessions. Refresh after changing selections to re-run the analysis.');
 		
