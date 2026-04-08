@@ -3810,6 +3810,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         voice: this.latestGeneratedAudio.voiceName || this.latestGeneratedAudio.voiceId,
                         lang_code: canonicalLangCode,
                         text: this.latestGeneratedAudio.text || '',
+                        original_translation_text: this.latestGeneratedAudio.originalTranslationText || '',
+                        audio_enhanced_text: this.latestGeneratedAudio.audioEnhancedText || '',
+                        used_audio_enhanced_text: this.latestGeneratedAudio.usedAudioEnhancedText ? 'true' : 'false',
                         created: this.latestGeneratedAudio.generatedAt,
                         copyright: this.audioCopyright,
                         source: 'patch'

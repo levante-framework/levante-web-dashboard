@@ -88,6 +88,9 @@ export default async function handler(req, res) {
 		pushCustomTag('voice', tags?.voice);
 		pushCustomTag('lang_code', tags?.lang_code || langCode);
 		pushCustomTag('text', tags?.text);
+		pushCustomTag('original_translation_text', tags?.original_translation_text);
+		pushCustomTag('audio_enhanced_text', tags?.audio_enhanced_text);
+		pushCustomTag('used_audio_enhanced_text', tags?.used_audio_enhanced_text);
 		pushCustomTag('created', tags?.created || new Date().toISOString());
 		pushCustomTag('source', tags?.source);
 		pushCustomTag('version', versionTag);
