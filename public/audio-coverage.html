@@ -104,8 +104,9 @@
 <div class="source-title">Source</div>
 <div class="source-controls">
 <button class="pill" id="useRepo">Repo</button>
-<button class="pill" id="useDev">Dev</button>
-<button class="pill" id="useProd">Prod</button>
+<button class="pill" id="useDraft">-draft</button>
+<button class="pill" id="useDev">-dev</button>
+<button class="pill" id="useProd">-prod</button>
 <button class="pill rescan-btn" id="rescanBtn">🔄 Rescan</button>
 </div>
 <div class="source-detail">
@@ -139,7 +140,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <script>
     // Bucket selection helpers
-    let currentSource = 'bucket'; // 'bucket' or 'repo'
+    let currentSource = 'dev'; // 'repo' | 'draft' | 'dev' | 'prod' | 'bucket'
     const urlParams = new URLSearchParams(window.location.search);
     const requestedLangs = parseRequestedLangs(urlParams.get('langs'));
 
@@ -159,6 +160,8 @@
       const env = urlParams.get('env');
       if (env === 'prod') {
         document.getElementById('useProd').click();
+      } else if (env === 'draft') {
+        document.getElementById('useDraft').click();
       } else if (env === 'dev') {
         document.getElementById('useDev').click();
       } else if (env === 'repo') {
@@ -169,10 +172,19 @@
     function rememberSource(val){ try{ localStorage.setItem('levante_audio_source', val); }catch(_){} }
     function updateSourceUI(){
       const repoBtn = document.getElementById('useRepo');
+      const draftBtn = document.getElementById('useDraft');
       const devBtn = document.getElementById('useDev');
       const prodBtn = document.getElementById('useProd');
-      [repoBtn, devBtn, prodBtn].forEach(btn => { if(btn){ btn.classList.remove('active'); }});
-      const activeBtn = currentSource === 'repo' ? repoBtn : (document.getElementById('bucketInput').value.includes('-prod') ? prodBtn : devBtn);
+      [repoBtn, draftBtn, devBtn, prodBtn].forEach(btn => { if(btn){ btn.classList.remove('active'); }});
+      const bucketVal = String(document.getElementById('bucketInput').value || '').toLowerCase();
+      let activeBtn = null;
+      if (currentSource === 'repo') activeBtn = repoBtn;
+      else if (currentSource === 'draft') activeBtn = draftBtn;
+      else if (currentSource === 'prod') activeBtn = prodBtn;
+      else if (currentSource === 'dev') activeBtn = devBtn;
+      else if (bucketVal.includes('-draft')) activeBtn = draftBtn;
+      else if (bucketVal.includes('-prod')) activeBtn = prodBtn;
+      else activeBtn = devBtn;
       if(activeBtn) activeBtn.classList.add('active');
       const labelEl = document.querySelector('.source-detail label');
       const inputEl = document.getElementById('bucketInput');
@@ -198,12 +210,14 @@
     (function initBucketUI(){
       restoreSelectors();
       const repoBtn = document.getElementById('useRepo');
+      const draftBtn = document.getElementById('useDraft');
       const devBtn = document.getElementById('useDev');
       const prodBtn = document.getElementById('useProd');
       const rescanBtn = document.getElementById('rescanBtn');
       if(repoBtn){ repoBtn.addEventListener('click', ()=>{ currentSource='repo'; rememberSource('repo'); updateSourceUI(); }); }
-      if(devBtn){ devBtn.addEventListener('click', ()=>{ currentSource='bucket'; document.getElementById('bucketInput').value='levante-assets-dev'; rememberBucket('levante-assets-dev'); rememberSource('bucket'); updateSourceUI(); }); }
-      if(prodBtn){ prodBtn.addEventListener('click', ()=>{ currentSource='bucket'; document.getElementById('bucketInput').value='levante-assets-prod'; rememberBucket('levante-assets-prod'); rememberSource('bucket'); updateSourceUI(); }); }
+      if(draftBtn){ draftBtn.addEventListener('click', ()=>{ currentSource='draft'; document.getElementById('bucketInput').value='levante-assets-draft'; rememberBucket('levante-assets-draft'); rememberSource('draft'); updateSourceUI(); }); }
+      if(devBtn){ devBtn.addEventListener('click', ()=>{ currentSource='dev'; document.getElementById('bucketInput').value='levante-assets-dev'; rememberBucket('levante-assets-dev'); rememberSource('dev'); updateSourceUI(); }); }
+      if(prodBtn){ prodBtn.addEventListener('click', ()=>{ currentSource='prod'; document.getElementById('bucketInput').value='levante-assets-prod'; rememberBucket('levante-assets-prod'); rememberSource('prod'); updateSourceUI(); }); }
       if(rescanBtn){ rescanBtn.addEventListener('click', ()=>{ 
         // Clear caches and restart
         cachedCsvLangCodes = null; 
@@ -213,7 +227,18 @@
         build().catch(e=>{ console.error(e); alert('Rescan failed: '+e.message); });
       }); }
       const input = document.getElementById('bucketInput');
-      if(input){ input.addEventListener('change', ()=> { rememberBucket(getSelectedBucket()); rememberSource('bucket'); currentSource='bucket'; updateSourceUI(); }); }
+      if(input){
+        input.addEventListener('change', ()=> {
+          const bucket = getSelectedBucket();
+          rememberBucket(bucket);
+          if (bucket.includes('-draft')) currentSource = 'draft';
+          else if (bucket.includes('-prod')) currentSource = 'prod';
+          else if (bucket.includes('-dev')) currentSource = 'dev';
+          else currentSource = 'bucket';
+          rememberSource(currentSource);
+          updateSourceUI();
+        });
+      }
       updateSourceUI();
     })();
 
