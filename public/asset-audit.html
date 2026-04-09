@@ -122,6 +122,12 @@
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 15px;
     }
+    .status-note {
+      margin-top: 10px;
+      grid-column: 1 / -1;
+      font-size: 12px;
+      color: #94a3b8;
+    }
     
     .stat-card {
       background: rgba(30, 41, 59, 0.5);
@@ -456,11 +462,11 @@
     <div id="statusSection" class="status" style="display: none;">
       <div class="stat-card">
         <div class="stat-value" id="devFileCount">0</div>
-        <div class="stat-label">Files in Dev</div>
+        <div class="stat-label">Scoped files in Dev</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" id="prodFileCount">0</div>
-        <div class="stat-label">Files in Prod</div>
+        <div class="stat-label">Scoped files in Prod</div>
       </div>
       <div class="stat-card">
         <div class="stat-value" id="onlyInDevCount">0</div>
@@ -481,6 +487,9 @@
       <div class="stat-card">
         <div class="stat-value" id="identicalCount">0</div>
         <div class="stat-label">Identical (excluded)</div>
+      </div>
+      <div class="status-note" id="statusNote">
+        Counts are for all files in the selected scope. Result lists are shown in collapsed folders and can be narrowed with filters.
       </div>
     </div>
     
