@@ -369,6 +369,7 @@
 			window.audioProdLanguages = undefined;
 			window.coreTasksDevCsvs = undefined;
 			window.coreTasksProdCsvs = undefined;
+			window.coreTasksComparisonStatus = undefined;
 			window.translationCompletenessDevMissing = undefined;
 			window.translationCompletenessProdMissing = undefined;
 			window.assetIntegrityDevIssues = undefined;
@@ -612,6 +613,29 @@
 			}
 			
 			// Special case: core tasks are "Ready" when dev already exceeds prod
+			if (buttonId === 'coreTasksStoplight') {
+				const status = String(window.coreTasksComparisonStatus || '').toLowerCase();
+				if (status === 'in_sync') {
+					btn.textContent = 'Ready to go';
+					btn.className = 'stoplight go';
+					btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+					return;
+				}
+				if (status === 'review') {
+					btn.textContent = 'Review';
+					btn.className = 'stoplight diff';
+					btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+					return;
+				}
+				if (status === 'fail') {
+					btn.textContent = 'Fail';
+					btn.className = 'stoplight fail';
+					btn.onclick = () => showDiffModal(buttonId, devValue, prodValue);
+					return;
+				}
+			}
+
+			// Legacy fallback: core tasks are "Ready" when dev already exceeds prod
 			const coreTasksAdvantage = (
 				buttonId === 'coreTasksStoplight' &&
 				typeof devNum === 'number' &&
@@ -779,6 +803,20 @@
 					<p style="color: #e2e8f0 !important; line-height: 1.6;">${getRecommendation(buttonId, devValue, prodValue)}</p>
 				</div>
 			`;
+
+			// Bind dynamic Core Tasks category buttons rendered inside modal content.
+			body.querySelectorAll('[data-coretasks-list]').forEach((btn) => {
+				btn.addEventListener('click', () => {
+					try {
+						const title = String(btn.getAttribute('data-title') || 'Core Tasks Files');
+						const encoded = String(btn.getAttribute('data-coretasks-list') || '');
+						const files = JSON.parse(decodeURIComponent(encoded));
+						showFileListModal(title, Array.isArray(files) ? files : []);
+					} catch (error) {
+						alert(`Could not open file list: ${error.message}`);
+					}
+				});
+			});
 		}
 		
 		// Get detailed visual differences
@@ -900,17 +938,35 @@
 		// Get detailed core tasks differences
 		async function getCoreTasksDifferences() {
 			try {
-				const [devData, prodData] = await Promise.all([
-					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', 'Core tasks differences (dev)'),
-					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', 'Core tasks differences (prod)')
-				]);
-				
-				const devFiles = (devData.files || []).filter(f => f.toLowerCase().endsWith('.csv'));
-				const prodFiles = (prodData.files || []).filter(f => f.toLowerCase().endsWith('.csv'));
-				
-				const devOnly = devFiles.filter(f => !prodFiles.includes(f));
-				const prodOnly = prodFiles.filter(f => !devFiles.includes(f));
-				const common = devFiles.filter(f => prodFiles.includes(f));
+				const cmp = await fetchJsonOrThrow('/api/asset-audit?prefix=corpus/', 'Core tasks differences');
+				const devOnly = Array.isArray(cmp.onlyInDev) ? cmp.onlyInDev.map((f) => f.name).filter(Boolean) : [];
+				const prodOnly = Array.isArray(cmp.onlyInProd) ? cmp.onlyInProd.map((f) => f.name).filter(Boolean) : [];
+				const newerInDev = Array.isArray(cmp.newerInDev) ? cmp.newerInDev.map((f) => f.name).filter(Boolean) : [];
+				const newerInProd = Array.isArray(cmp.newerInProd) ? cmp.newerInProd.map((f) => f.name).filter(Boolean) : [];
+				const totalDiffs = Number(cmp?.summary?.total || (devOnly.length + prodOnly.length + newerInDev.length + newerInProd.length));
+				const common = Math.max(0, Number(cmp?.summary?.identicalCount || 0));
+
+				const renderCategory = (title, files, color = '#ffb347') => {
+					if (!Array.isArray(files) || files.length === 0) return '';
+					const escaped = title.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+					const payload = encodeURIComponent(JSON.stringify(files));
+					return `
+						<div style="margin-top: 10px;">
+							<button
+								style="padding:6px 10px; border:1px solid rgba(148,163,184,0.35); border-radius:8px; background: rgba(2,6,23,0.7); color:${color}; cursor:pointer; font-weight:600;"
+								data-title="${escaped}"
+								data-coretasks-list="${payload}">
+								${title}: ${files.length} file${files.length === 1 ? '' : 's'} (click to view)
+							</button>
+						</div>
+					`;
+				};
+
+				const statusReason = (prodOnly.length > 0 || newerInProd.length > 0)
+					? `Fail because prod has ${prodOnly.length} prod-only and ${newerInProd.length} prod-newer corpus files.`
+					: ((devOnly.length > 0 || newerInDev.length > 0)
+						? `Review because dev has ${devOnly.length} dev-only and ${newerInDev.length} dev-newer corpus files.`
+						: 'In sync: no dev/prod corpus diffs detected.');
 				
 				return `
 					<div class="diff-section">
@@ -929,24 +985,18 @@
 						</div>
 						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
 							<strong style="color: #fbbf24 !important;">Common Files</strong><br>
-							<span class="diff-value" style="color: #f59e0b !important;">${common.length}</span> CSV files present in both environments
+							<span class="diff-value" style="color: #f59e0b !important;">${common}</span> CSV files identical in both environments
 						</div>
-						${devOnly.length > 0 ? `
-							<div style="margin-top: 12px;">
-								<strong style="color: #ffb347 !important;">CSV files only in Dev:</strong><br>
-								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
-									${devOnly.map(f => `• ${f}`).join('<br>')}
-								</div>
-							</div>
-						` : ''}
-						${prodOnly.length > 0 ? `
-							<div style="margin-top: 12px;">
-								<strong style="color: #ffb347 !important;">CSV files only in Prod:</strong><br>
-								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
-									${prodOnly.map(f => `• ${f}`).join('<br>')}
-								</div>
-							</div>
-						` : ''}
+						<div style="margin-top: 12px; padding: 10px; background: rgba(15,23,42,0.65); border-left: 4px solid rgba(125,211,252,0.6); border-radius: 6px; color:#cbd5e1;">
+							<strong>Status reason:</strong> ${statusReason}
+						</div>
+						<div style="margin-top: 12px; padding: 8px; background: rgba(15,23,42,0.55); border-radius: 6px; border:1px solid rgba(56,189,248,0.2);">
+							<strong style="color: #7dd3fc !important;">Diff categories (total ${totalDiffs})</strong>
+							${renderCategory('Dev-only CSVs', devOnly, '#7dd3fc')}
+							${renderCategory('Prod-only CSVs', prodOnly, '#86efac')}
+							${renderCategory('Dev-newer CSVs', newerInDev, '#fbbf24')}
+							${renderCategory('Prod-newer CSVs', newerInProd, '#fca5a5')}
+						</div>
 					</div>
 				`;
 			} catch (error) {
@@ -1983,7 +2033,10 @@
 		// Core Tasks audit (dev) + Validate
 		async function refreshCoreTasksAudit() {
 			try {
-				const data = await fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', 'Core tasks audit (dev)');
+				const [data, cmp] = await Promise.all([
+					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-dev&prefix=corpus/', 'Core tasks audit (dev)'),
+					fetchJsonOrThrow('/api/asset-audit?prefix=corpus/', 'Core tasks comparison')
+				]);
 				document.getElementById('coreTasksBucket').textContent = data.bucket || 'levante-assets-dev';
 				const files = Array.isArray(data.files) ? data.files : [];
 				
@@ -1993,9 +2046,25 @@
 				const folderCount = folders.length;
 				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
 				const csvCount = csvFiles.length;
+				const summaryStats = cmp?.summary || {};
+				const onlyInDev = Number(summaryStats.onlyInDevCount || 0);
+				const onlyInProd = Number(summaryStats.onlyInProdCount || 0);
+				const newerInDev = Number(summaryStats.newerInDevCount || 0);
+				const newerInProd = Number(summaryStats.newerInProdCount || 0);
+				const diffTotal = Number(summaryStats.total || 0);
+				let compareStatus = 'in_sync';
+				if (onlyInProd > 0 || newerInProd > 0) compareStatus = 'fail';
+				else if (onlyInDev > 0 || newerInDev > 0) compareStatus = 'review';
 				
 				const summary = document.getElementById('coreTasksSummary');
-				summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · CSVs: <span class="code">${csvCount}</span> · Status: <span class="badge ${csvCount > 0 ? 'ok' : 'err'}">${csvCount > 0 ? 'Available' : 'Missing'}</span>`;
+				const statusClass = compareStatus === 'in_sync' ? 'ok' : compareStatus === 'review' ? 'warn' : 'err';
+				const statusLabel = compareStatus === 'in_sync' ? 'In sync' : compareStatus === 'review' ? 'Review' : 'Fail';
+				const statusWhy = compareStatus === 'fail'
+					? `prod has ${onlyInProd} prod-only and ${newerInProd} prod-newer`
+					: compareStatus === 'review'
+						? `dev has ${onlyInDev} dev-only and ${newerInDev} dev-newer`
+						: 'no diffs';
+				summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · CSVs: <span class="code">${csvCount}</span> · Diffs: <span class="code">${diffTotal}</span> <span class="small">(dev-only ${onlyInDev}, prod-only ${onlyInProd}, dev-newer ${newerInDev}, prod-newer ${newerInProd})</span> · Status: <span class="badge ${statusClass}">${statusLabel}</span> <span class="small">(${statusWhy})</span>`;
 				const detailsLink = document.getElementById('coreTasksDetails');
 				const validateBtn = document.getElementById('coreTasksValidateBtn');
 				if (files.length > 0) {
@@ -2010,16 +2079,21 @@
 				
 				// Store CSV count for stoplight comparison
 				window.coreTasksDevCsvs = csvCount;
+				window.coreTasksComparisonStatus = compareStatus;
 			} catch (e) {
 				document.getElementById('coreTasksSummary').textContent = 'Core tasks audit unavailable';
 				window.coreTasksDevCsvs = null;
+				window.coreTasksComparisonStatus = 'fail';
 			}
 		}
 
 		// Core Tasks audit (prod) + Validate
 		async function refreshCoreTasksAuditProd() {
 			try {
-				const data = await fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', 'Core tasks audit (prod)');
+				const [data, cmp] = await Promise.all([
+					fetchJsonOrThrow('/api/read-tags?list=1&bucket=levante-assets-prod&prefix=corpus/', 'Core tasks audit (prod)'),
+					fetchJsonOrThrow('/api/asset-audit?prefix=corpus/', 'Core tasks comparison')
+				]);
 				const bucketEl = document.getElementById('coreTasksBucketProd'); if (bucketEl) bucketEl.textContent = data.bucket || 'levante-assets-prod';
 				const files = Array.isArray(data.files) ? data.files : [];
 				
@@ -2029,9 +2103,25 @@
 				const folderCount = folders.length;
 				const csvFiles = files.filter(f => f.toLowerCase().endsWith('.csv'));
 				const csvCount = csvFiles.length;
+				const summaryStats = cmp?.summary || {};
+				const onlyInDev = Number(summaryStats.onlyInDevCount || 0);
+				const onlyInProd = Number(summaryStats.onlyInProdCount || 0);
+				const newerInDev = Number(summaryStats.newerInDevCount || 0);
+				const newerInProd = Number(summaryStats.newerInProdCount || 0);
+				const diffTotal = Number(summaryStats.total || 0);
+				let compareStatus = 'in_sync';
+				if (onlyInProd > 0 || newerInProd > 0) compareStatus = 'fail';
+				else if (onlyInDev > 0 || newerInDev > 0) compareStatus = 'review';
 				
 				const summary = document.getElementById('coreTasksSummaryProd');
-				if (summary) summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · CSVs: <span class="code">${csvCount}</span> · Status: <span class="badge ${csvCount > 0 ? 'ok' : 'err'}">${csvCount > 0 ? 'Available' : 'Missing'}</span>`;
+				const statusClass = compareStatus === 'in_sync' ? 'ok' : compareStatus === 'review' ? 'warn' : 'err';
+				const statusLabel = compareStatus === 'in_sync' ? 'In sync' : compareStatus === 'review' ? 'Review' : 'Fail';
+				const statusWhy = compareStatus === 'fail'
+					? `prod has ${onlyInProd} prod-only and ${newerInProd} prod-newer`
+					: compareStatus === 'review'
+						? `dev has ${onlyInDev} dev-only and ${newerInDev} dev-newer`
+						: 'no diffs';
+				if (summary) summary.innerHTML = `Folders: <span class="code">${folderCount}</span> · Files: <span class="code">${fileCount}</span> · CSVs: <span class="code">${csvCount}</span> · Diffs: <span class="code">${diffTotal}</span> <span class="small">(dev-only ${onlyInDev}, prod-only ${onlyInProd}, dev-newer ${newerInDev}, prod-newer ${newerInProd})</span> · Status: <span class="badge ${statusClass}">${statusLabel}</span> <span class="small">(${statusWhy})</span>`;
 				const detailsLink = document.getElementById('coreTasksDetailsProd');
 				const validateBtn = document.getElementById('coreTasksValidateBtnProd');
 				if (files.length > 0) {
@@ -2046,9 +2136,11 @@
 				
 				// Store CSV count for stoplight comparison
 				window.coreTasksProdCsvs = csvCount;
+				window.coreTasksComparisonStatus = compareStatus;
 			} catch (e) {
 				const el = document.getElementById('coreTasksSummaryProd'); if (el) el.textContent = 'Core tasks audit (prod) unavailable';
 				window.coreTasksProdCsvs = null;
+				window.coreTasksComparisonStatus = 'fail';
 			}
 		}
 
