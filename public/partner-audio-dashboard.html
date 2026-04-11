@@ -474,6 +474,203 @@
             box-shadow: 0 0 0 3px rgba(218, 61, 22, 0.1);
         }
 
+        .common-tags-panel {
+            margin: -8px 0 20px;
+            padding: 12px;
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            background: #f8fbff;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .common-tags-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .common-tags-header-actions {
+            display: inline-flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .common-tags-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1e3a8a;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .common-tags-subtitle {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .common-tags-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .common-tags-input {
+            min-width: 240px;
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 13px;
+            color: #0f172a;
+            background: #fff;
+        }
+
+        .common-tags-input:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+        }
+
+        .common-tags-add-btn {
+            border: 1px solid #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .common-tags-add-btn:hover {
+            background: #dbeafe;
+        }
+
+        .common-tags-aux-btn {
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .common-tags-aux-btn:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+
+        .common-tags-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 24px;
+        }
+
+        .common-tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            color: #1e3a8a;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 12px;
+            max-width: 100%;
+            cursor: grab;
+        }
+
+        .common-tag-chip.dragging {
+            opacity: 0.6;
+            cursor: grabbing;
+        }
+
+        .common-tag-chip.drop-target {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+        }
+
+        .common-tag-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 320px;
+        }
+
+        .common-tag-remove {
+            border: none;
+            background: transparent;
+            color: #dc2626;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .common-tag-remove:hover {
+            color: #991b1b;
+        }
+
+        .common-tags-empty {
+            font-size: 12px;
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .enhanced-tag-context-menu {
+            position: fixed;
+            z-index: 3000;
+            min-width: 220px;
+            max-width: 360px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            box-shadow: 0 16px 40px rgba(2, 6, 23, 0.45);
+            padding: 8px;
+            display: none;
+        }
+
+        .enhanced-tag-context-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #93c5fd;
+            font-weight: 700;
+            margin: 2px 4px 8px;
+        }
+
+        .enhanced-tag-context-item {
+            width: 100%;
+            text-align: left;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #f8fafc;
+            padding: 8px 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .enhanced-tag-context-item:hover {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .enhanced-tag-context-empty {
+            font-size: 12px;
+            color: #94a3b8;
+            margin: 4px;
+        }
+
         .tab-button {
             padding: 12px 24px;
             background: transparent;
@@ -1301,6 +1498,20 @@
                 min-width: 0;
                 width: 100%;
             }
+
+            .common-tags-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .common-tags-input {
+                min-width: 0;
+                width: 100%;
+            }
+
+            .common-tags-header-actions {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -1483,6 +1694,37 @@
                 </select>
             </div>
         </div>
+        <div class="common-tags-panel">
+            <div class="common-tags-header">
+                <div>
+                    <div class="common-tags-title"><i class="fas fa-tags"></i> Common Audio Tags</div>
+                    <div class="common-tags-subtitle">
+                        Right-click in Enhanced Audio to insert a saved tag.
+                        <span id="commonTagsScopeLabel"></span>
+                    </div>
+                </div>
+                <div class="common-tags-header-actions">
+                    <button type="button" id="exportCommonTagsBtn" class="common-tags-aux-btn">
+                        <i class="fas fa-file-export"></i> Export
+                    </button>
+                    <button type="button" id="importCommonTagsBtn" class="common-tags-aux-btn">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                </div>
+            </div>
+            <div class="common-tags-controls">
+                <input
+                    type="text"
+                    id="commonTagInput"
+                    class="common-tags-input"
+                    placeholder="Example: [slowly], [with excitement], [pause]"
+                />
+                <button type="button" id="addCommonTagBtn" class="common-tags-add-btn">
+                    <i class="fas fa-plus"></i> Add Tag
+                </button>
+            </div>
+            <div id="commonTagsList" class="common-tags-list"></div>
+        </div>
         <div class="tab-content active" id="tabContentPending">
             <div class="items-list" id="itemsList">
                 <div class="empty-state">
@@ -1608,6 +1850,10 @@
                 this.enhancedTextSyncTimer = null;
                 this.missingEnhancedKeyLogs = new Set();
                 this.debugEnhancedKeyMisses = false;
+                this.commonAudioTags = [];
+                this.commonAudioTagsStorageKeyPrefix = 'partnerAudioCommonTags';
+                this.contextMenuTargetInput = null;
+                this.enhancedTagContextMenuEl = null;
                 try {
                     const debugParam = new URLSearchParams(window.location.search).get('debugEnhancedKeyMisses');
                     this.debugEnhancedKeyMisses = debugParam === '1' || String(debugParam || '').toLowerCase() === 'true';
@@ -1790,6 +2036,322 @@
                 return normalized
                     ? `partnerAudioEnhancedText::${normalized}`
                     : 'partnerAudioEnhancedText::global';
+            }
+
+            getCommonAudioTagsStorageKey(langCode = this.currentLangCode) {
+                const normalized = this.normalizeEnhancedLangCode(langCode);
+                return normalized
+                    ? `${this.commonAudioTagsStorageKeyPrefix}::${normalized}`
+                    : `${this.commonAudioTagsStorageKeyPrefix}::global`;
+            }
+
+            updateCommonTagsScopeLabel() {
+                const el = document.getElementById('commonTagsScopeLabel');
+                if (!el) return;
+                const languageName = this.currentLanguage
+                    ? this.getLanguageDisplayName(this.currentLanguage)
+                    : 'All languages';
+                el.textContent = ` (${languageName})`;
+            }
+
+            loadCommonAudioTags() {
+                let tags = [];
+                try {
+                    const raw = localStorage.getItem(this.getCommonAudioTagsStorageKey());
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (Array.isArray(parsed)) {
+                            tags = parsed
+                                .map((tag) => String(tag || '').trim())
+                                .filter(Boolean)
+                                .slice(0, 100);
+                        }
+                    }
+                } catch (_) {
+                    tags = [];
+                }
+                if (!tags.length) {
+                    // One-time migration from old global key format.
+                    try {
+                        const legacyRaw = localStorage.getItem(this.commonAudioTagsStorageKeyPrefix);
+                        if (legacyRaw) {
+                            const parsed = JSON.parse(legacyRaw);
+                            if (Array.isArray(parsed)) {
+                                tags = parsed
+                                    .map((tag) => String(tag || '').trim())
+                                    .filter(Boolean)
+                                    .slice(0, 100);
+                                localStorage.setItem(this.getCommonAudioTagsStorageKey(), JSON.stringify(tags));
+                                localStorage.removeItem(this.commonAudioTagsStorageKeyPrefix);
+                            }
+                        }
+                    } catch (_) {
+                        // ignore migration failures
+                    }
+                }
+                this.commonAudioTags = Array.from(new Set(tags));
+                this.updateCommonTagsScopeLabel();
+                return this.commonAudioTags;
+            }
+
+            saveCommonAudioTags() {
+                try {
+                    if (!Array.isArray(this.commonAudioTags) || this.commonAudioTags.length === 0) {
+                        localStorage.removeItem(this.getCommonAudioTagsStorageKey());
+                        return;
+                    }
+                    localStorage.setItem(this.getCommonAudioTagsStorageKey(), JSON.stringify(this.commonAudioTags.slice(0, 100)));
+                } catch (_) {
+                    // Ignore storage failures.
+                }
+            }
+
+            renderCommonAudioTags() {
+                const listEl = document.getElementById('commonTagsList');
+                if (!listEl) return;
+                const tags = Array.isArray(this.commonAudioTags) ? this.commonAudioTags : [];
+                if (!tags.length) {
+                    listEl.innerHTML = `<div class="common-tags-empty">No saved tags yet.</div>`;
+                    return;
+                }
+                listEl.innerHTML = tags.map((tag, index) => {
+                    const escaped = this.escapeHtml(tag);
+                    return `
+                        <span class="common-tag-chip" data-common-tag-index="${index}" draggable="true" title="${escaped}">
+                            <span class="common-tag-text">${escaped}</span>
+                            <button type="button" class="common-tag-remove" data-common-tag-index="${index}" aria-label="Remove tag ${escaped}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </span>
+                    `;
+                }).join('');
+                let dragIndex = null;
+                const clearDropTargets = () => {
+                    listEl.querySelectorAll('.common-tag-chip.drop-target').forEach((el) => el.classList.remove('drop-target'));
+                };
+                listEl.querySelectorAll('.common-tag-chip[data-common-tag-index]').forEach((chip) => {
+                    chip.addEventListener('dragstart', (event) => {
+                        const index = Number(chip.getAttribute('data-common-tag-index'));
+                        if (!Number.isInteger(index)) return;
+                        dragIndex = index;
+                        chip.classList.add('dragging');
+                        if (event.dataTransfer) {
+                            event.dataTransfer.effectAllowed = 'move';
+                            event.dataTransfer.setData('text/plain', String(index));
+                        }
+                    });
+                    chip.addEventListener('dragend', () => {
+                        chip.classList.remove('dragging');
+                        clearDropTargets();
+                    });
+                    chip.addEventListener('dragover', (event) => {
+                        event.preventDefault();
+                        chip.classList.add('drop-target');
+                    });
+                    chip.addEventListener('dragleave', () => {
+                        chip.classList.remove('drop-target');
+                    });
+                    chip.addEventListener('drop', (event) => {
+                        event.preventDefault();
+                        clearDropTargets();
+                        const toIndex = Number(chip.getAttribute('data-common-tag-index'));
+                        const fromIndex = Number.isInteger(dragIndex) ? dragIndex : Number(event.dataTransfer?.getData('text/plain'));
+                        if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex === toIndex) return;
+                        const next = [...this.commonAudioTags];
+                        const [moved] = next.splice(fromIndex, 1);
+                        if (!moved) return;
+                        next.splice(toIndex, 0, moved);
+                        this.commonAudioTags = next;
+                        this.saveCommonAudioTags();
+                        this.renderCommonAudioTags();
+                    });
+                });
+                listEl.querySelectorAll('[data-common-tag-index]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        if (!btn.classList.contains('common-tag-remove')) return;
+                        const index = Number(btn.getAttribute('data-common-tag-index'));
+                        if (!Number.isInteger(index) || index < 0 || index >= this.commonAudioTags.length) return;
+                        this.removeCommonAudioTag(this.commonAudioTags[index]);
+                    });
+                });
+            }
+
+            addCommonAudioTag(rawTag) {
+                const tag = String(rawTag || '').trim();
+                if (!tag) return;
+                const exists = this.commonAudioTags.some((existing) => String(existing || '').toLowerCase() === tag.toLowerCase());
+                if (exists) return;
+                this.commonAudioTags.push(tag);
+                this.saveCommonAudioTags();
+                this.renderCommonAudioTags();
+            }
+
+            removeCommonAudioTag(rawTag) {
+                const target = String(rawTag || '').trim().toLowerCase();
+                if (!target) return;
+                this.commonAudioTags = this.commonAudioTags.filter((tag) => String(tag || '').trim().toLowerCase() !== target);
+                this.saveCommonAudioTags();
+                this.renderCommonAudioTags();
+            }
+
+            setupCommonAudioTagUI() {
+                this.loadCommonAudioTags();
+                this.renderCommonAudioTags();
+                const input = document.getElementById('commonTagInput');
+                const addBtn = document.getElementById('addCommonTagBtn');
+                const exportBtn = document.getElementById('exportCommonTagsBtn');
+                const importBtn = document.getElementById('importCommonTagsBtn');
+                if (addBtn && !addBtn.dataset.bound) {
+                    addBtn.dataset.bound = '1';
+                    addBtn.addEventListener('click', () => {
+                        const value = input ? input.value : '';
+                        this.addCommonAudioTag(value);
+                        if (input) {
+                            input.value = '';
+                            input.focus();
+                        }
+                    });
+                }
+                if (input && !input.dataset.bound) {
+                    input.dataset.bound = '1';
+                    input.addEventListener('keydown', (event) => {
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        this.addCommonAudioTag(input.value);
+                        input.value = '';
+                    });
+                }
+                if (exportBtn && !exportBtn.dataset.bound) {
+                    exportBtn.dataset.bound = '1';
+                    exportBtn.addEventListener('click', () => {
+                        const payload = {
+                            langCode: this.normalizeEnhancedLangCode(this.currentLangCode) || 'global',
+                            tags: Array.isArray(this.commonAudioTags) ? this.commonAudioTags : [],
+                            exportedAt: new Date().toISOString()
+                        };
+                        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                        const anchor = document.createElement('a');
+                        const lang = payload.langCode || 'global';
+                        anchor.href = URL.createObjectURL(blob);
+                        anchor.download = `partner-audio-common-tags-${lang}.json`;
+                        document.body.appendChild(anchor);
+                        anchor.click();
+                        document.body.removeChild(anchor);
+                        setTimeout(() => URL.revokeObjectURL(anchor.href), 1000);
+                    });
+                }
+                if (importBtn && !importBtn.dataset.bound) {
+                    importBtn.dataset.bound = '1';
+                    importBtn.addEventListener('click', () => {
+                        const raw = window.prompt('Paste exported tags JSON (array or object with "tags").');
+                        if (!raw) return;
+                        try {
+                            const parsed = JSON.parse(raw);
+                            const incoming = Array.isArray(parsed)
+                                ? parsed
+                                : Array.isArray(parsed?.tags)
+                                    ? parsed.tags
+                                    : [];
+                            const cleaned = Array.from(new Set(incoming.map((tag) => String(tag || '').trim()).filter(Boolean))).slice(0, 100);
+                            this.commonAudioTags = cleaned;
+                            this.saveCommonAudioTags();
+                            this.renderCommonAudioTags();
+                        } catch (error) {
+                            alert(`Could not import tags: ${error?.message || 'Invalid JSON'}`);
+                        }
+                    });
+                }
+            }
+
+            ensureEnhancedTagContextMenu() {
+                if (this.enhancedTagContextMenuEl && document.body.contains(this.enhancedTagContextMenuEl)) {
+                    return this.enhancedTagContextMenuEl;
+                }
+                const menu = document.createElement('div');
+                menu.className = 'enhanced-tag-context-menu';
+                menu.id = 'enhancedTagContextMenu';
+                document.body.appendChild(menu);
+                this.enhancedTagContextMenuEl = menu;
+                return menu;
+            }
+
+            hideEnhancedTagContextMenu() {
+                const menu = this.ensureEnhancedTagContextMenu();
+                menu.style.display = 'none';
+                this.contextMenuTargetInput = null;
+            }
+
+            insertTagAtCursor(input, tag) {
+                if (!input) return;
+                const value = String(input.value || '');
+                const insertion = String(tag || '').trim();
+                if (!insertion) return;
+                const start = Number.isFinite(input.selectionStart) ? input.selectionStart : value.length;
+                const end = Number.isFinite(input.selectionEnd) ? input.selectionEnd : start;
+                const left = value.slice(0, start);
+                const right = value.slice(end);
+                const needsLeftSpace = left.length > 0 && !/\s$/.test(left);
+                const needsRightSpace = right.length > 0 && !/^\s/.test(right);
+                const chunk = `${needsLeftSpace ? ' ' : ''}${insertion}${needsRightSpace ? ' ' : ''}`;
+                const next = `${left}${chunk}${right}`;
+                input.value = next;
+                const caret = left.length + chunk.length;
+                input.focus();
+                input.setSelectionRange(caret, caret);
+                const itemId = String(input.dataset?.itemId || '').trim();
+                if (itemId) {
+                    this.handleEnhancedTextInput(itemId, next);
+                }
+            }
+
+            showEnhancedTagContextMenu(clientX, clientY, input) {
+                const menu = this.ensureEnhancedTagContextMenu();
+                this.contextMenuTargetInput = input || null;
+                const tags = Array.isArray(this.commonAudioTags) ? this.commonAudioTags : [];
+                menu.innerHTML = `
+                    <div class="enhanced-tag-context-title">Insert Common Tag</div>
+                    ${tags.length ? tags.map((tag, index) => `<button type="button" class="enhanced-tag-context-item" data-context-tag-index="${index}">${this.escapeHtml(tag)}</button>`).join('') : '<div class="enhanced-tag-context-empty">No tags yet. Add tags above to use right-click insertion.</div>'}
+                `;
+                menu.querySelectorAll('[data-context-tag-index]').forEach((btn) => {
+                    btn.addEventListener('click', () => {
+                        const index = Number(btn.getAttribute('data-context-tag-index'));
+                        if (!Number.isInteger(index) || index < 0 || index >= this.commonAudioTags.length) return;
+                        this.insertTagAtCursor(this.contextMenuTargetInput, this.commonAudioTags[index]);
+                        this.hideEnhancedTagContextMenu();
+                    });
+                });
+                const viewportW = window.innerWidth || document.documentElement.clientWidth || 1200;
+                const viewportH = window.innerHeight || document.documentElement.clientHeight || 800;
+                menu.style.display = 'block';
+                menu.style.left = '0px';
+                menu.style.top = '0px';
+                const rect = menu.getBoundingClientRect();
+                const x = Math.min(Math.max(8, clientX), Math.max(8, viewportW - rect.width - 8));
+                const y = Math.min(Math.max(8, clientY), Math.max(8, viewportH - rect.height - 8));
+                menu.style.left = `${x}px`;
+                menu.style.top = `${y}px`;
+            }
+
+            setupEnhancedAudioContextMenu() {
+                const menu = this.ensureEnhancedTagContextMenu();
+                if (menu.dataset.boundGlobalHandlers) return;
+                menu.dataset.boundGlobalHandlers = '1';
+                document.addEventListener('click', () => this.hideEnhancedTagContextMenu());
+                document.addEventListener('scroll', () => this.hideEnhancedTagContextMenu(), true);
+                window.addEventListener('resize', () => this.hideEnhancedTagContextMenu());
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') this.hideEnhancedTagContextMenu();
+                });
+                document.addEventListener('contextmenu', (event) => {
+                    const target = event.target;
+                    if (!(target instanceof HTMLElement)) return;
+                    if (!target.classList.contains('audio-enhanced-input')) {
+                        this.hideEnhancedTagContextMenu();
+                        return;
+                    }
+                    event.preventDefault();
+                    this.showEnhancedTagContextMenu(event.clientX, event.clientY, target);
+                });
             }
 
             normalizeEnhancedLangCode(langCode) {
@@ -2581,6 +3143,8 @@
                 this.ensureTaskFilterUI();
                 this.startToolbarWatchdog();
                 this.setupRefreshControls();
+                this.setupCommonAudioTagUI();
+                this.setupEnhancedAudioContextMenu();
                 await this.loadLanguagesFromConfig();
                 
                 // If user has a restricted language, set it automatically
@@ -4004,6 +4568,8 @@
                 if (!language || !this.languages[language]) {
                     this.currentLanguage = null;
                     this.currentLangCode = null;
+                    this.loadCommonAudioTags();
+                    this.renderCommonAudioTags();
                     await this.renderItems([]);
                     this.lastRefreshTime = null;
                     this.updateRefreshIndicator();
@@ -4021,6 +4587,8 @@
                 
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
+                this.loadCommonAudioTags();
+                this.renderCommonAudioTags();
                 this.resetNoAudioDebugInfo();
                 await this.loadEnhancedTextFromServer(this.currentLangCode);
                 
