@@ -1197,6 +1197,109 @@
             flex-wrap: wrap;
         }
 
+        .comparison-controls {
+            width: 100%;
+            margin-top: 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .comparison-controls-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .comparison-controls-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #475569;
+            font-weight: 700;
+        }
+
+        .compare-slot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .compare-slot {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 6px;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 62px;
+        }
+
+        .compare-slot.active {
+            border-color: #16a34a;
+            box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.18);
+            background: #f0fdf4;
+        }
+
+        .compare-slot-empty {
+            border-style: dashed;
+            background: #f8fafc;
+            color: #94a3b8;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .compare-slot-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+            line-height: 1.2;
+        }
+
+        .compare-slot-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-mini {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 6px;
+            cursor: pointer;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-mini:hover:not(:disabled) {
+            background: #f1f5f9;
+        }
+
+        .btn-mini:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .btn-mini-use.active {
+            border-color: #16a34a;
+            color: #166534;
+            background: #dcfce7;
+        }
+
         .item-audio-enhanced {
             grid-column: 2;
             display: flex;
@@ -1511,6 +1614,10 @@
 
             .common-tags-header-actions {
                 width: 100%;
+            }
+
+            .compare-slot-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -1848,6 +1955,7 @@
                 this.enhancedTextLoadedLangs = new Set();
                 this.enhancedTextSyncQueue = new Map();
                 this.enhancedTextSyncTimer = null;
+                this.audioComparisonsByKey = new Map();
                 this.missingEnhancedKeyLogs = new Set();
                 this.debugEnhancedKeyMisses = false;
                 this.commonAudioTags = [];
@@ -5276,9 +5384,13 @@
                                         <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate new audio">
                                             <i class="fas fa-arrows-rotate"></i> Regenerate
                                         </button>
+                                        <button class="btn btn-secondary" data-audio-action="add-compare" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.addCurrentToCompare('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Add current generated audio to comparison slots' : 'Generate audio before adding to compare'}">
+                                            <i class="fas fa-layer-group"></i> Add to compare
+                                        </button>
                                         <button class="btn btn-success save-btn" data-audio-action="save" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Approve & save generated audio' : 'Generate audio before saving'}">
                                             <i class="fas fa-check-circle"></i> Approve & Save
                                         </button>
+                                        ${this.renderCompareControlsHtml(itemId)}
                                     </div>
                                     <div class="text-block item-audio-enhanced">
                                         <div class="text-label text-label-row">
@@ -5407,21 +5519,219 @@
                 this.updateSaveButtonStates();
             }
 
+            getCompareStateKey(itemId, langCode = this.currentLangCode) {
+                const normalizedLang = String(langCode || '').trim().toLowerCase();
+                const normalizedItemId = String(itemId || '').trim();
+                if (!normalizedLang || !normalizedItemId) return '';
+                return `${normalizedLang}::${normalizedItemId}`;
+            }
+
+            getCompareState(itemId, createIfMissing = false) {
+                const key = this.getCompareStateKey(itemId);
+                if (!key) return null;
+                if (!this.audioComparisonsByKey.has(key) && createIfMissing) {
+                    this.audioComparisonsByKey.set(key, { slots: [], activeIndex: -1 });
+                }
+                return this.audioComparisonsByKey.get(key) || null;
+            }
+
+            isPendingGeneratedForItem(itemId) {
+                const pendingKey = this.pendingSaveKey;
+                const key = `${this.currentLangCode}::${itemId}`;
+                return Boolean(
+                    pendingKey &&
+                    pendingKey === key &&
+                    this.latestGeneratedAudio &&
+                    this.latestGeneratedAudio.itemId === itemId &&
+                    this.latestGeneratedAudio.langCode === this.currentLangCode
+                );
+            }
+
+            createCompareSnapshot(audioState) {
+                if (!audioState || !audioState.audioBase64) return null;
+                return {
+                    itemId: String(audioState.itemId || ''),
+                    langCode: String(audioState.langCode || ''),
+                    audioBase64: String(audioState.audioBase64 || ''),
+                    service: String(audioState.service || 'ElevenLabs'),
+                    voiceId: String(audioState.voiceId || ''),
+                    voiceName: String(audioState.voiceName || ''),
+                    modelId: String(audioState.modelId || 'eleven_v3'),
+                    text: String(audioState.text || ''),
+                    originalTranslationText: String(audioState.originalTranslationText || ''),
+                    audioEnhancedText: String(audioState.audioEnhancedText || ''),
+                    usedAudioEnhancedText: Boolean(audioState.usedAudioEnhancedText),
+                    itemLabel: String(audioState.itemLabel || ''),
+                    capturedAt: new Date().toISOString()
+                };
+            }
+
+            hydrateAudioFromSnapshot(snapshot) {
+                if (!snapshot || !snapshot.audioBase64) return null;
+                return {
+                    itemId: String(snapshot.itemId || ''),
+                    langCode: String(snapshot.langCode || ''),
+                    audioBase64: String(snapshot.audioBase64 || ''),
+                    service: String(snapshot.service || 'ElevenLabs'),
+                    voiceId: String(snapshot.voiceId || ''),
+                    voiceName: String(snapshot.voiceName || ''),
+                    modelId: String(snapshot.modelId || 'eleven_v3'),
+                    text: String(snapshot.text || ''),
+                    originalTranslationText: String(snapshot.originalTranslationText || ''),
+                    audioEnhancedText: String(snapshot.audioEnhancedText || ''),
+                    usedAudioEnhancedText: Boolean(snapshot.usedAudioEnhancedText),
+                    itemLabel: String(snapshot.itemLabel || '')
+                };
+            }
+
+            base64ToBlob(base64, contentType = 'audio/mpeg') {
+                const binaryString = atob(String(base64 || ''));
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i += 1) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return new Blob([bytes], { type: contentType });
+            }
+
+            renderCompareControlsHtml(itemId) {
+                const escapedItemId = this.escapeHtml(itemId);
+                const state = this.getCompareState(itemId, false) || { slots: [], activeIndex: -1 };
+                const slots = Array.isArray(state.slots) ? state.slots : [];
+                const pending = this.isPendingGeneratedForItem(itemId);
+                const slotHtml = Array.from({ length: 3 }).map((_, index) => {
+                    const slot = slots[index];
+                    if (!slot) {
+                        return `<div class="compare-slot compare-slot-empty">Slot ${index + 1}</div>`;
+                    }
+                    const isActive = Number(state.activeIndex) === index;
+                    const voiceLabel = this.escapeHtml(String(slot.voiceName || slot.voiceId || 'Voice'));
+                    return `
+                        <div class="compare-slot ${isActive ? 'active' : ''}">
+                            <div class="compare-slot-label">#${index + 1} • ${voiceLabel}</div>
+                            <div class="compare-slot-actions">
+                                <button type="button" class="btn-mini" onclick="dashboard.playCompareSlot('${escapedItemId}', ${index})" title="Play comparison slot ${index + 1}">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button type="button" class="btn-mini btn-mini-use ${isActive ? 'active' : ''}" onclick="dashboard.useCompareSlot('${escapedItemId}', ${index})" title="Use this slot as current audio">
+                                    <i class="fas fa-check"></i> Use
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                return `
+                    <div class="comparison-controls" data-compare-item-id="${escapedItemId}">
+                        <div class="comparison-controls-header">
+                            <span class="comparison-controls-title">Compare (up to 3)</span>
+                            <span class="audio-enhanced-meta">${pending ? 'Current generation ready to add' : 'Generate first, then add to compare'}</span>
+                        </div>
+                        <div class="compare-slot-grid">${slotHtml}</div>
+                    </div>
+                `;
+            }
+
+            refreshCompareControlsForItem(itemId) {
+                const cards = document.querySelectorAll('.item-card[data-item-id]');
+                cards.forEach((card) => {
+                    if (String(card.dataset?.itemId || '') !== String(itemId || '')) return;
+                    const container = card.querySelector('.comparison-controls[data-compare-item-id]');
+                    if (!container) return;
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = this.renderCompareControlsHtml(itemId);
+                    const next = wrapper.firstElementChild;
+                    if (next) container.replaceWith(next);
+                });
+            }
+
+            addCurrentToCompare(itemId) {
+                if (!this.isPendingGeneratedForItem(itemId)) {
+                    this.setStatus('Generate audio for this item before adding to compare.', 'warning');
+                    return;
+                }
+                const snapshot = this.createCompareSnapshot(this.latestGeneratedAudio);
+                if (!snapshot) {
+                    this.setStatus('No generated audio available to add to compare.', 'warning');
+                    return;
+                }
+                const state = this.getCompareState(itemId, true);
+                if (!state || !Array.isArray(state.slots)) return;
+                const duplicateIndex = state.slots.findIndex((entry) => String(entry?.audioBase64 || '') === snapshot.audioBase64);
+                if (duplicateIndex >= 0) {
+                    state.activeIndex = duplicateIndex;
+                    this.setStatus(`Already in compare slot #${duplicateIndex + 1}.`, 'info');
+                    this.refreshCompareControlsForItem(itemId);
+                    this.updateSaveButtonStates();
+                    return;
+                }
+                if (state.slots.length >= 3) {
+                    state.slots.shift();
+                }
+                state.slots.push(snapshot);
+                state.activeIndex = state.slots.length - 1;
+                this.refreshCompareControlsForItem(itemId);
+                this.updateSaveButtonStates();
+                this.setStatus(`Added current generation to compare slot #${state.activeIndex + 1}.`, 'success');
+            }
+
+            async playCompareSlot(itemId, slotIndex) {
+                const state = this.getCompareState(itemId, false);
+                const slot = state?.slots?.[slotIndex];
+                if (!slot || !slot.audioBase64) {
+                    this.setStatus('Comparison slot is empty.', 'warning');
+                    return;
+                }
+                try {
+                    const audioBlob = this.base64ToBlob(slot.audioBase64, 'audio/mpeg');
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.addEventListener('ended', () => URL.revokeObjectURL(audioUrl));
+                    audio.addEventListener('error', () => URL.revokeObjectURL(audioUrl));
+                    await audio.play();
+                    this.setStatus(`Playing compare slot #${Number(slotIndex) + 1} for ${itemId}.`, 'success');
+                } catch (error) {
+                    this.setStatus(`Unable to play compare slot: ${error.message}`, 'error');
+                }
+            }
+
+            useCompareSlot(itemId, slotIndex) {
+                const state = this.getCompareState(itemId, false);
+                const slot = state?.slots?.[slotIndex];
+                if (!slot) {
+                    this.setStatus('Comparison slot is empty.', 'warning');
+                    return;
+                }
+                const nextAudio = this.hydrateAudioFromSnapshot(slot);
+                if (!nextAudio) {
+                    this.setStatus('Comparison slot is invalid.', 'warning');
+                    return;
+                }
+                this.latestGeneratedAudio = nextAudio;
+                this.pendingSaveKey = `${this.currentLangCode}::${itemId}`;
+                state.activeIndex = Number(slotIndex);
+                this.refreshCompareControlsForItem(itemId);
+                this.updateSaveButtonStates();
+                this.setStatus(`Compare slot #${Number(slotIndex) + 1} is now current for save & approve.`, 'success');
+            }
+
+            clearCompareSlotsForItem(itemId) {
+                const key = this.getCompareStateKey(itemId);
+                if (!key) return;
+                this.audioComparisonsByKey.delete(key);
+                this.refreshCompareControlsForItem(itemId);
+            }
+
             updateSaveButtonStates() {
-                const buttons = document.querySelectorAll('.save-btn, .save-approve-btn');
+                const buttons = document.querySelectorAll('.save-btn, .save-approve-btn, [data-audio-action="add-compare"]');
                 buttons.forEach(btn => {
                     const itemId = btn.dataset.itemId;
-                    const pendingKey = this.pendingSaveKey;
-                    const key = `${this.currentLangCode}::${itemId}`;
-                    const isPending = Boolean(
-                        pendingKey &&
-                        pendingKey === key &&
-                        this.latestGeneratedAudio &&
-                        this.latestGeneratedAudio.itemId === itemId &&
-                        this.latestGeneratedAudio.langCode === this.currentLangCode
-                    );
+                    const isPending = this.isPendingGeneratedForItem(itemId);
                     btn.disabled = !isPending;
-                    btn.title = isPending ? 'Approve & save generated audio' : 'Generate audio before saving';
+                    if (btn.dataset.audioAction === 'add-compare') {
+                        btn.title = isPending ? 'Add current generated audio to comparison slots' : 'Generate audio before adding to compare';
+                    } else {
+                        btn.title = isPending ? 'Approve & save generated audio' : 'Generate audio before saving';
+                    }
                 });
             }
 
@@ -5721,6 +6031,51 @@
                 }
             }
 
+            getElevenLabsProxyFallbackBase() {
+                try {
+                    const host = String(window.location.hostname || '').toLowerCase();
+                    const isPreview = host.endsWith('.vercel.app') && host !== 'levante-pitwall.vercel.app';
+                    return isPreview ? 'https://levante-pitwall.vercel.app' : '';
+                } catch (_) {
+                    return '';
+                }
+            }
+
+            shouldFallbackElevenLabsProxy(status, responseText) {
+                const text = String(responseText || '');
+                if (status !== 400 && status !== 401) return false;
+                return /missing elevenlabs api key|invalid_api_key|invalid api key/i.test(text);
+            }
+
+            async fetchElevenLabsProxy(pathAndQuery, options = {}) {
+                const request = {
+                    method: options.method || 'GET',
+                    headers: options.headers || {},
+                    body: options.body
+                };
+                const primaryUrl = `/api/elevenlabs-proxy${pathAndQuery}`;
+                const primaryRes = await fetch(primaryUrl, request);
+                if (primaryRes.ok) {
+                    return primaryRes;
+                }
+
+                const fallbackBase = this.getElevenLabsProxyFallbackBase();
+                if (!fallbackBase) {
+                    return primaryRes;
+                }
+                const primaryErrorText = await primaryRes.text().catch(() => '');
+                if (!this.shouldFallbackElevenLabsProxy(primaryRes.status, primaryErrorText)) {
+                    return new Response(primaryErrorText, {
+                        status: primaryRes.status,
+                        statusText: primaryRes.statusText,
+                        headers: primaryRes.headers
+                    });
+                }
+
+                const fallbackUrl = `${fallbackBase}/api/elevenlabs-proxy${pathAndQuery}`;
+                return fetch(fallbackUrl, request);
+            }
+
             async fetchAvailableVoices() {
                 const credentials = this.getCredentials();
                 const elevenKey = credentials.elevenlabs_api_key || credentials.elevenlabsApiKey;
@@ -5732,7 +6087,7 @@
                 }
 
                 const requestVoices = async (requestHeaders) => {
-                    const response = await fetch('/api/elevenlabs-proxy', {
+                    const response = await this.fetchElevenLabsProxy('', {
                         method: 'GET',
                         headers: requestHeaders
                     });
@@ -5764,18 +6119,18 @@
                     throw new Error('No voice is configured for this language. Configure a voice before regenerating audio.');
                 }
 
+                // Prefer explicit voice_id immediately. This avoids blocking regeneration when
+                // preview/staging environments cannot list voices but can still synthesize by ID.
+                if (configuredId) {
+                    return {
+                        voiceName: configured || configuredId,
+                        voiceId: configuredId,
+                        source: 'configured_id_direct'
+                    };
+                }
+
                 const existingVoice = await this.getExistingGeneratedVoice(itemId);
                 const voices = await this.fetchAvailableVoices();
-                if (configuredId) {
-                    const configuredById = voices.find(v => String(v?.voice_id || '').trim() === configuredId);
-                    if (configuredById?.voice_id) {
-                        return {
-                            voiceName: String(configuredById?.name || configured || configuredId),
-                            voiceId: configuredById.voice_id,
-                            source: 'configured_id'
-                        };
-                    }
-                }
                 const configuredMatch = this.findVoiceByName(voices, configured);
                 if (configuredMatch?.voice_id) {
                     return {
@@ -5830,7 +6185,7 @@
                     output_format: 'mp3_22050_32'
                 };
                 
-                const response = await fetch(`/api/elevenlabs-proxy?voice_id=${voiceId}`, {
+                const response = await this.fetchElevenLabsProxy(`?voice_id=${voiceId}`, {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(requestData)
@@ -6113,6 +6468,7 @@
                     // Update state
                     this.pendingSaveKey = null;
                     this.latestGeneratedAudio = null;
+                    this.clearCompareSlotsForItem(itemId);
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId);
                     this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
@@ -6244,6 +6600,7 @@
                     // Step 3: Update state
                     this.pendingSaveKey = null;
                     this.latestGeneratedAudio = null;
+                    this.clearCompareSlotsForItem(itemId);
                     this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId); // Remove from unapproved if it was there
                     this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
