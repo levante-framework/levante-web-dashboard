@@ -453,6 +453,27 @@
     </div>
 </div>
 
+<!-- Unsaved validation changes (language tab switch) -->
+<div id="unsavedValidationModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+            <h2><i class="fas fa-exclamation-triangle" style="color:#f57c00;"></i> Unsaved validation changes</h2>
+            <span class="close" id="unsavedValidationModalClose" title="Stay on this tab">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="unsavedValidationModalText" style="margin: 0 0 12px 0; color: #37474f; line-height: 1.45;">
+                You have unsaved validation changes (scores, approvals, needs review, notes, etc.).
+                Save them to shared storage, discard them and revert to your last saved state, or stay on this tab.
+            </p>
+        </div>
+        <div class="modal-body" style="padding-top: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" id="unsavedValidationStayBtn">Stay on this tab</button>
+            <button type="button" class="btn btn-warning" id="unsavedValidationDiscardBtn" title="Revert to last saved validation state">Discard changes</button>
+            <button type="button" class="btn btn-primary" id="unsavedValidationSaveBtn"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>
+
 <!-- Help Modal -->
 <div id="helpModal" class="modal">
     <div class="modal-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">

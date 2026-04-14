@@ -29,6 +29,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
                 this.validation_results = {};
+                /** Stable snapshot string for unsaved-change detection (tab switch / leave page). */
+                this.validationSaveBaseline = null;
+                /** Deep clone of validation_results when baseline was last set (used for Discard). */
+                this.validationSnapshotAtBaseline = null;
+                this._unsavedValidationResolve = null;
                 this.sharedValidationSource = 'unknown';
                 this.loadedValidationLanguageCodes = new Set();
                 this.excludedValidationPrefixes = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
@@ -287,6 +292,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     
                     // Setup auto-save on page unload
                     this.setupAutoSave();
+                    this.setupUnsavedValidationWarning();
                     
                     this.setStatus('Dashboard ready - Select a language to begin', 'success');
                 } catch (error) {
@@ -465,6 +471,31 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     out.add(s.toLowerCase().replace(/-/g, '_'));
                 });
                 return Array.from(out);
+            }
+
+            /**
+             * Text for the active language column: tries configured language code plus regional/base aliases
+             * so CSV columns like pt-PT still show under the pt-BR tab (Crowdin headers vary by locale).
+             */
+            getTranslationTextForLanguage(item, langCode) {
+                if (!item) return '';
+                const aliases = this.getLanguageAliasCodes(langCode);
+                for (let i = 0; i < aliases.length; i++) {
+                    const code = aliases[i];
+                    const v = item[code];
+                    if (v != null && String(v).trim() !== '') return String(v).trim();
+                }
+                for (const key of Object.keys(item)) {
+                    const keyNorm = String(key).replace(/_/g, '-').toLowerCase();
+                    for (let j = 0; j < aliases.length; j++) {
+                        const a = String(aliases[j]).replace(/_/g, '-').toLowerCase();
+                        if (keyNorm === a) {
+                            const v = item[key];
+                            if (v != null && String(v).trim() !== '') return String(v).trim();
+                        }
+                    }
+                }
+                return '';
             }
 
             resolvePreferredLangCode(langCode) {
@@ -1516,21 +1547,53 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
                     if (loadedBatches.length > 0) {
                         const mergedById = new Map();
+                        const inferSourcePathFromBatch = (batchUrl, row) => {
+                            const explicitPath = String(row?._path || '').trim();
+                            if (explicitPath) return explicitPath;
+                            const lower = String(batchUrl || '').toLowerCase();
+                            if (lower.includes('/translations/item-bank-translations.csv')) {
+                                return 'main/itembank_by_task/item-bank-translations.csv';
+                            }
+                            if (lower.includes('/translations/surveys.csv')) {
+                                return 'main/surveys/surveys.csv';
+                            }
+                            if (lower.includes('/text/translated_prompts.csv')) {
+                                return 'main/dashboard/text/translated_prompts.csv';
+                            }
+                            return String(batchUrl || '').trim();
+                        };
                         loadedBatches.forEach((batch) => {
                             batch.rows.forEach((row, index) => {
+                                const inferredSourcePath = inferSourcePathFromBatch(batch.url, row);
+                                const rowSourcePaths = Array.isArray(row?._sourcePaths)
+                                    ? row._sourcePaths.map((p) => String(p || '').trim()).filter(Boolean)
+                                    : [];
+                                const normalizedRow = {
+                                    ...row,
+                                    ...(inferredSourcePath ? { _path: String(row?._path || '').trim() || inferredSourcePath } : {}),
+                                    ...(inferredSourcePath || rowSourcePaths.length
+                                        ? { _sourcePaths: [...new Set([...(rowSourcePaths || []), ...(inferredSourcePath ? [inferredSourcePath] : [])])] }
+                                        : {})
+                                };
                                 const rawId = String(
-                                    row.item_id || row.identifier || row.id || row.ID || row.Item_ID || ''
+                                    normalizedRow.item_id || normalizedRow.identifier || normalizedRow.id || normalizedRow.ID || normalizedRow.Item_ID || ''
                                 ).trim();
                                 const key = rawId ? rawId.toLowerCase() : `${batch.url}::${index}`;
                                 const existing = mergedById.get(key);
                                 if (!existing) {
-                                    mergedById.set(key, { ...row });
+                                    mergedById.set(key, normalizedRow);
                                     return;
                                 }
+                                const mergedSourcePaths = [...new Set([
+                                    ...(Array.isArray(existing._sourcePaths) ? existing._sourcePaths : []),
+                                    ...(Array.isArray(normalizedRow._sourcePaths) ? normalizedRow._sourcePaths : [])
+                                ])];
                                 mergedById.set(key, {
                                     ...existing,
-                                    ...row,
-                                    item_id: existing.item_id || row.item_id
+                                    ...normalizedRow,
+                                    item_id: existing.item_id || normalizedRow.item_id,
+                                    _path: existing._path || normalizedRow._path || '',
+                                    _sourcePaths: mergedSourcePaths
                                 });
                             });
                         });
@@ -2032,9 +2095,164 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     console.error('❌ Error loading validation results:', error);
                     this.validation_results = {};
                 }
+                this.updateValidationSaveBaseline();
                 // First render runs in createTabs() before validation finishes loading; refresh so rows/summary match storage.
                 this.noteValidationResultsChanged();
                 this.populateDataTable();
+            }
+
+            /** Deterministic JSON for dirty-checking validation_results (sorted keys at every object level). */
+            stableStringifyValidationResults(data) {
+                const walk = (v) => {
+                    if (v === null || v === undefined) return JSON.stringify(v);
+                    const t = typeof v;
+                    if (t !== 'object') return JSON.stringify(v);
+                    if (Array.isArray(v)) return `[${v.map(walk).join(',')}]`;
+                    const keys = Object.keys(v).sort();
+                    return `{${keys.map((k) => `${JSON.stringify(k)}:${walk(v[k])}`).join(',')}}`;
+                };
+                return walk(data && typeof data === 'object' ? data : {});
+            }
+
+            updateValidationSaveBaseline() {
+                this.validationSaveBaseline = this.stableStringifyValidationResults(this.validation_results);
+                try {
+                    this.validationSnapshotAtBaseline = typeof structuredClone === 'function'
+                        ? structuredClone(this.validation_results)
+                        : JSON.parse(JSON.stringify(this.validation_results));
+                } catch (_) {
+                    this.validationSnapshotAtBaseline = {};
+                }
+            }
+
+            restoreValidationResultsFromBaselineSnapshot() {
+                if (!this.validationSnapshotAtBaseline) return;
+                try {
+                    this.validation_results = typeof structuredClone === 'function'
+                        ? structuredClone(this.validationSnapshotAtBaseline)
+                        : JSON.parse(JSON.stringify(this.validationSnapshotAtBaseline));
+                } catch (_) {
+                    return;
+                }
+                this.sanitizeValidationResultsStore();
+                this.normalizeValidationResultsLanguageKeys();
+            }
+
+            ensureUnsavedValidationModalMounted() {
+                let modal = document.getElementById('unsavedValidationModal');
+                if (modal) return modal;
+                const wrap = document.createElement('div');
+                wrap.innerHTML = `
+<div id="unsavedValidationModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 480px;">
+        <div class="modal-header">
+            <h2><i class="fas fa-exclamation-triangle" style="color:#f57c00;"></i> Unsaved validation changes</h2>
+            <span class="close" id="unsavedValidationModalClose" title="Stay on this tab">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p style="margin: 0 0 12px 0; color: #37474f; line-height: 1.45;">
+                You have unsaved validation changes (scores, approvals, needs review, notes, etc.).
+                Save them to shared storage, discard them and revert to your last saved state, or stay on this tab.
+            </p>
+        </div>
+        <div class="modal-body" style="padding-top: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" id="unsavedValidationStayBtn">Stay on this tab</button>
+            <button type="button" class="btn btn-warning" id="unsavedValidationDiscardBtn" title="Revert to last saved validation state">Discard changes</button>
+            <button type="button" class="btn btn-primary" id="unsavedValidationSaveBtn"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>`;
+                document.body.appendChild(wrap.firstElementChild);
+                return document.getElementById('unsavedValidationModal');
+            }
+
+            ensureUnsavedValidationModalListeners() {
+                const modal = this.ensureUnsavedValidationModalMounted();
+                if (!modal || modal.dataset.unsavedListenersBound === '1') return;
+                modal.dataset.unsavedListenersBound = '1';
+
+                const getButtons = () => ({
+                    save: document.getElementById('unsavedValidationSaveBtn'),
+                    discard: document.getElementById('unsavedValidationDiscardBtn'),
+                    stay: document.getElementById('unsavedValidationStayBtn'),
+                    close: document.getElementById('unsavedValidationModalClose')
+                });
+
+                const finish = (result) => {
+                    if (!this._unsavedValidationResolve) return;
+                    modal.style.display = 'none';
+                    const r = this._unsavedValidationResolve;
+                    this._unsavedValidationResolve = null;
+                    r(result);
+                };
+
+                const { save, discard, stay, close } = getButtons();
+                if (stay) stay.addEventListener('click', () => finish('stay'));
+                if (discard) discard.addEventListener('click', () => finish('discard'));
+                if (close) close.addEventListener('click', () => finish('stay'));
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) finish('stay');
+                });
+
+                if (save) {
+                    save.addEventListener('click', async () => {
+                        const btns = getButtons();
+                        const all = [btns.save, btns.discard, btns.stay].filter(Boolean);
+                        all.forEach((b) => { b.disabled = true; });
+                        const prev = btns.save.innerHTML;
+                        btns.save.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                        try {
+                            const res = await this.saveValidationResults();
+                            if (res && res.success) {
+                                finish('save');
+                                return;
+                            }
+                            this.setStatus('Could not save validation results. Fix any issues and try again, or choose Stay or Discard.', 'error');
+                        } catch (err) {
+                            this.setStatus(`Save failed: ${err?.message || err}`, 'error');
+                        } finally {
+                            if (btns.save && modal.style.display !== 'none') {
+                                btns.save.innerHTML = prev;
+                                all.forEach((b) => { b.disabled = false; });
+                            }
+                        }
+                    });
+                }
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Escape') return;
+                    const m = document.getElementById('unsavedValidationModal');
+                    if (m && m.style.display !== 'none') finish('stay');
+                });
+            }
+
+            promptUnsavedValidationAction() {
+                this.ensureUnsavedValidationModalMounted();
+                this.ensureUnsavedValidationModalListeners();
+                const modal = document.getElementById('unsavedValidationModal');
+                return new Promise((resolve) => {
+                    this._unsavedValidationResolve = resolve;
+                    if (modal) modal.style.display = 'block';
+                    else resolve('stay');
+                });
+            }
+
+            hasUnsavedValidationChanges() {
+                if (this.validationSaveBaseline == null) return false;
+                return this.stableStringifyValidationResults(this.validation_results) !== this.validationSaveBaseline;
+            }
+
+            setupUnsavedValidationWarning() {
+                if (typeof window === 'undefined' || this._unsavedValidationBeforeUnloadBound) return;
+                this._unsavedValidationBeforeUnloadBound = true;
+                window.addEventListener('beforeunload', (e) => {
+                    try {
+                        if (this.hasUnsavedValidationChanges()) {
+                            e.preventDefault();
+                            e.returnValue = '';
+                        }
+                    } catch (_) { /* ignore */ }
+                });
             }
             
             async saveValidationResults() {
@@ -2076,8 +2294,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     
                     console.log(`✅ Saved ${Object.keys(this.validation_results).length} items with ${totalValidations} total validations`);
                     
+                    const success = sharedSaved || localStorageMode !== 'none';
+                    if (success) this.updateValidationSaveBaseline();
                     return {
-                        success: sharedSaved || localStorageMode !== 'none',
+                        success,
                         itemCount: Object.keys(this.validation_results).length,
                         validationCount: totalValidations,
                         localStorageMode,
@@ -2314,6 +2534,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 ? 'session memory fallback'
                                 : this.sharedValidationSource;
                         this.setStatus(`🌐 Loaded validation results from ${sourceLabel}`, this.sharedValidationSource === 'memory' ? 'warning' : 'success');
+                        this.updateValidationSaveBaseline();
                         return true;
                     }
                 } catch (error) {
@@ -2471,7 +2692,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const isActive = language === this.currentLanguage || (index === 0 && !this.languages[this.currentLanguage]);
                     button.className = `tab-button ${isActive ? 'active' : ''}`;
                     button.textContent = displayLanguage;
-                    button.addEventListener('click', () => this.switchTab(language, button));
+                    button.addEventListener('click', () => { void this.switchTab(language, button); });
                     tabButtons.appendChild(button);
 
                     // Create tab content
@@ -2635,16 +2856,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
             
             buildDataRow(item, index, langCode) {
-                    let text = item[langCode];
-                    if (!text && langCode.includes('-')) {
-                        const base = langCode.split('-')[0];
-                        text = item[base];
-                    }
-                    if (!text) {
-                        const keys = Object.keys(item);
-                        const match = keys.find(k => k.toLowerCase() === langCode.toLowerCase());
-                        text = match ? item[match] : null;
-                    }
+                    let text = this.getTranslationTextForLanguage(item, langCode);
                     const hasTranslatedText = !!String(text || '').trim();
                     if (!text) text = 'Missing translation';
                     const isSourceEnglishTab = String(langCode).split('-')[0].toLowerCase() === 'en';
@@ -2682,9 +2894,12 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         ? String(backTranslation).trim()
                         : 'Back-translation unavailable (click View Results to generate)';
                     const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined);
-                    const backTranslationHtml = hasAnyStoredScore
-                        ? `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`
-                        : '';
+                    let backTranslationHtml = '';
+                    if (hasAnyStoredScore) {
+                        backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`;
+                    } else if (canValidateTranslation) {
+                        backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing" title="Back-translation">Not generated yet — click Validate to run scoring and back-translation.</div>`;
+                    }
                     const displayItemIdText = String(displayItemId || '');
                     const compactItemId = displayMeta.compactItemId || (displayItemIdText.length > 36 ? `${displayItemIdText.slice(0, 33)}...` : displayItemIdText);
                     const escapedTaskName = escapeHtml(String(taskName));
@@ -3053,7 +3268,16 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.updateEditedTextIndicators();
             }
 
-            switchTab(language, button) {
+            async switchTab(language, button) {
+                if (language === this.currentLanguage) return;
+                if (this.hasUnsavedValidationChanges()) {
+                    const choice = await this.promptUnsavedValidationAction();
+                    if (choice === 'stay') return;
+                    if (choice === 'discard') {
+                        this.restoreValidationResultsFromBaselineSnapshot();
+                        this.noteValidationResultsChanged();
+                    }
+                }
                 // Update active states immediately so INP stays low (tab switch is visible right away)
                 document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -3790,17 +4014,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             extractTextForItem(item, langCode) {
                 if (!item) return '';
-                let text = item[langCode];
-                if (!text && langCode.includes('-')) {
-                    const base = langCode.split('-')[0];
-                    text = item[base];
-                }
-                if (!text) {
-                    const keys = Object.keys(item);
-                    const match = keys.find(k => k.toLowerCase() === langCode.toLowerCase());
-                    text = match ? item[match] : null;
-                }
-                return text || item.en || '';
+                const t = this.getTranslationTextForLanguage(item, langCode);
+                return t || String(item.en || '').trim();
             }
 
             getRegenerationTextForItem(item, itemId, langCode) {
