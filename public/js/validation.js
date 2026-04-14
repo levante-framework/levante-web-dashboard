@@ -1167,6 +1167,9 @@ async function saveValidationsManually() {
                 button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saved, syncing...';
                 const syncSuccess = await window.dashboard.loadFromSharedStorage();
                 if (syncSuccess) {
+                    if (typeof window.dashboard.noteValidationResultsChanged === 'function') {
+                        window.dashboard.noteValidationResultsChanged();
+                    }
                     window.dashboard.populateDataTable();
                     const source = String(window.dashboard?.sharedValidationSource || 'unknown');
                     const sourceLabel = source === 'gcs' ? 'shared bucket (GCS)' : source === 'memory' ? 'session memory fallback' : source;
@@ -1208,6 +1211,9 @@ async function loadValidationsFromShared() {
         button.disabled = true;
         const success = await window.dashboard.loadFromSharedStorage();
         if (success) {
+            if (typeof window.dashboard.noteValidationResultsChanged === 'function') {
+                window.dashboard.noteValidationResultsChanged();
+            }
             // Re-render the table to show updated validation results (pre-computed in HTML)
             window.dashboard.populateDataTable();
             button.innerHTML = '<i class="fas fa-check"></i> Loaded!';
@@ -1653,7 +1659,7 @@ function setValidationSummaryLoading(loading) {
         const el = document.getElementById(id);
         if (el) {
             if (loading) el.innerHTML = spinner;
-            else if (el.querySelector && el.querySelector('.fa-spinner')) el.textContent = '0';
+            // Do not write "0" here — that flashes before setValidationSummaryCounts / updateValidationSummary run.
         }
     });
     if (loadingLabel) loadingLabel.style.display = loading ? 'inline-block' : 'none';
@@ -1675,8 +1681,17 @@ function setValidationSummaryCounts(counts) {
 }
 
 function updateValidationSummary() {
-    const currentLanguage = window.dashboard?.currentLanguage;
+    const dash = window.dashboard;
+    const currentLanguage = dash?.currentLanguage;
     if (!currentLanguage) return;
+    const langCode = String(dash.languages?.[currentLanguage]?.lang_code || '').trim();
+    // Prefer live validation_results — DOM row datasets can lag async shared-storage merges.
+    if (langCode && typeof dash.computeValidationSummaryCountsForRows === 'function' && typeof dash.getVisibleValidationRowsForLanguage === 'function') {
+        const rows = dash.getVisibleValidationRowsForLanguage(currentLanguage);
+        const counts = dash.computeValidationSummaryCountsForRows(rows, langCode);
+        setValidationSummaryCounts(counts);
+        return;
+    }
     const currentTable = document.getElementById(`table-${currentLanguage}`);
     if (!currentTable) return;
     const indicators = currentTable.querySelectorAll('.status-indicator');

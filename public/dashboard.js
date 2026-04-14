@@ -18,6 +18,8 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.selectedRow = null;
                 this.voices = { playht: [], elevenlabs: [] };
                 this.dataVersion = 0;
+                /** Bumped when validation_results change so lazy-render cache invalidates (DOM row datasets stay in sync). */
+                this.validationResultsRevision = 0;
                 this.renderSignatureByLanguage = new Map();
                 this.activeRenderJobId = 0;
                 this.inFlightRenderSignatureByLanguage = new Map();
@@ -28,7 +30,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
                 this.validation_results = {};
                 this.sharedValidationSource = 'unknown';
+                this.loadedValidationLanguageCodes = new Set();
                 this.excludedValidationPrefixes = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
+                this.reasonAutoSaveTimers = new Map();
                 this.embeddingAdvisoryEnabled = (window.CONFIG?.embeddingAdvisoryEnabled !== false);
                 this.embeddingAdvisoryMeta = null;
                 this.embeddingAdvisoryByItem = {};
@@ -408,15 +412,32 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             getCurrentRenderSignature(language) {
                 const filterValue = (document.getElementById('reviewTablePathFilter')?.value || 'all');
                 const fileFilterValue = this.fileFilterByLanguage.get(language) || 'all';
-                return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}`;
+                return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}::vr${this.validationResultsRevision}`;
+            }
+
+            noteValidationResultsChanged() {
+                this.validationResultsRevision += 1;
+            }
+
+            /** Rows currently shown in the main grid for a language tab (path filter + per-file filter). */
+            getVisibleValidationRowsForLanguage(language) {
+                const lang = language || this.currentLanguage;
+                const baseRows = this.getFilteredItemsForLanguage(lang);
+                const selectedFile = this.fileFilterByLanguage.get(lang) || 'all';
+                if (selectedFile === 'all') return baseRows;
+                return baseRows.filter((item) => this.getItemSourcePaths(item).includes(selectedFile));
             }
 
             getLanguageAliasCodes(langCode) {
                 const raw = String(langCode || '').trim();
                 if (!raw) return [];
-                const out = new Set([raw]);
-                const lower = raw.toLowerCase();
-                const base = raw.includes('-') ? raw.split('-')[0] : raw;
+                const normalizedHyphen = raw.replace(/_/g, '-');
+                const normalizedUnderscore = raw.replace(/-/g, '_');
+                const out = new Set([raw, normalizedHyphen, normalizedUnderscore]);
+                const lower = normalizedHyphen.toLowerCase();
+                out.add(lower);
+                out.add(lower.replace(/-/g, '_'));
+                const base = normalizedHyphen.includes('-') ? normalizedHyphen.split('-')[0] : normalizedHyphen;
                 if (base && base !== raw) out.add(base);
                 const aliasMap = {
                     'en': ['en', 'en-US'],
@@ -425,10 +446,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     'en-gh': ['en-GH', 'en-gh'],
                     'de': ['de', 'de-DE'],
                     'de-de': ['de', 'de-DE'],
-                    'pt-br': ['pt-BR', 'pt-br'],
-                    'pt-pt': ['pt-PT', 'pt-pt']
+                    // Treat Portuguese regional variants as aliases for validation result retrieval.
+                    // This prevents saved notes/back-translations from appearing "missing" after sync
+                    // when one client uses pt-BR and another uses pt-PT.
+                    'pt': ['pt', 'pt-BR', 'pt-br', 'pt-PT', 'pt-pt'],
+                    'pt-br': ['pt', 'pt-BR', 'pt-br', 'pt-PT', 'pt-pt'],
+                    'pt-pt': ['pt', 'pt-BR', 'pt-br', 'pt-PT', 'pt-pt']
                 };
                 (aliasMap[lower] || []).forEach((code) => out.add(code));
+                // Include case and separator variants for every alias candidate.
+                Array.from(out).forEach((code) => {
+                    const s = String(code || '').trim();
+                    if (!s) return;
+                    out.add(s.toLowerCase());
+                    out.add(s.replace(/_/g, '-'));
+                    out.add(s.replace(/-/g, '_'));
+                    out.add(s.toLowerCase().replace(/_/g, '-'));
+                    out.add(s.toLowerCase().replace(/-/g, '_'));
+                });
                 return Array.from(out);
             }
 
@@ -460,22 +495,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 });
                 directSuffixMatches.forEach((m) => candidates.push(m));
                 const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const langCandidates = Array.from(new Set(
+                    [preferred, langCode, ...aliases]
+                        .map((code) => String(code || '').trim())
+                        .filter(Boolean)
+                ));
 
-                let byItem = null;
+                // Search all matching item-id candidates before giving up.
+                // This avoids stale local short-ids masking path::id keys loaded from shared storage.
                 for (let i = 0; i < uniqueCandidates.length; i++) {
                     const key = uniqueCandidates[i];
-                    if (this.validation_results?.[key]) {
-                        byItem = this.validation_results[key];
-                        break;
+                    const byItem = this.validation_results?.[key];
+                    if (!byItem || typeof byItem !== 'object') continue;
+                    for (let j = 0; j < langCandidates.length; j++) {
+                        const candidateLang = langCandidates[j];
+                        if (byItem[candidateLang]) return byItem[candidateLang];
                     }
-                }
-                if (!byItem) return null;
-                const preferred = this.resolvePreferredLangCode(langCode);
-                if (byItem[preferred]) return byItem[preferred];
-                const aliases = this.getLanguageAliasCodes(langCode);
-                for (let i = 0; i < aliases.length; i++) {
-                    const alias = aliases[i];
-                    if (byItem[alias]) return byItem[alias];
                 }
                 return null;
             }
@@ -593,7 +630,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             normalizeValidationResultsLanguageKeys() {
                 const data = this.validation_results || {};
-                const groups = [['en', 'en-US'], ['de', 'de-DE']];
+                const groups = [
+                    ['en', 'en-US'],
+                    ['de', 'de-DE'],
+                    ['pt', 'pt-BR', 'pt-PT']
+                ];
                 const configured = new Set(
                     Object.values(this.languages || {})
                         .map((cfg) => String(cfg?.lang_code || '').trim())
@@ -1991,6 +2032,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     console.error('❌ Error loading validation results:', error);
                     this.validation_results = {};
                 }
+                // First render runs in createTabs() before validation finishes loading; refresh so rows/summary match storage.
+                this.noteValidationResultsChanged();
+                this.populateDataTable();
             }
             
             async saveValidationResults() {
@@ -2118,22 +2162,60 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return compact;
             }
 
-            async loadFromSharedStorage() {
+            getValidationLanguageLoadKey(langCode) {
+                return String(langCode || '')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/_/g, '-');
+            }
+
+            async loadFromSharedStorage(languageOverride = '') {
                 try {
                     console.log('🌐 Loading validation results from shared storage...');
 
-                    const defaultRemoteSharedEndpoint = 'https://levante-pitwall.vercel.app/api/validation-storage';
                     const configuredRemoteSharedEndpoint = String(window.CONFIG?.sharedValidationEndpoint || '').trim();
-                    const remoteSharedEndpoint = configuredRemoteSharedEndpoint || defaultRemoteSharedEndpoint;
+                    const currentLangCode = String(
+                        languageOverride
+                        || this.languages?.[this.currentLanguage]?.lang_code
+                        || ''
+                    ).trim();
+                    const requestedLangKey = this.getValidationLanguageLoadKey(currentLangCode);
+                    if (requestedLangKey && this.loadedValidationLanguageCodes.has(requestedLangKey)) {
+                        return false;
+                    }
+                    const appendLanguageParam = (endpoint, langCode) => {
+                        const lang = String(langCode || '').trim();
+                        if (!lang) return endpoint;
+                        try {
+                            const url = new URL(endpoint, window.location.origin);
+                            url.searchParams.set('language', lang);
+                            if (endpoint.startsWith('/')) {
+                                return `${url.pathname}${url.search}`;
+                            }
+                            return url.toString();
+                        } catch (_) {
+                            const joiner = endpoint.includes('?') ? '&' : '?';
+                            return `${endpoint}${joiner}language=${encodeURIComponent(lang)}`;
+                        }
+                    };
                     const endpointCandidates = ['/api/validation-storage'];
-                    if (remoteSharedEndpoint && !endpointCandidates.includes(remoteSharedEndpoint)) {
-                        endpointCandidates.push(remoteSharedEndpoint);
+                    // Cross-origin fallback is opt-in only.
+                    if (configuredRemoteSharedEndpoint && !endpointCandidates.includes(configuredRemoteSharedEndpoint)) {
+                        endpointCandidates.push(configuredRemoteSharedEndpoint);
                     }
 
                     const payloadCandidates = [];
                     for (const endpoint of endpointCandidates) {
+                        const attempts = [];
+                        const scopedEndpoint = appendLanguageParam(endpoint, currentLangCode);
+                        if (scopedEndpoint) attempts.push({ url: scopedEndpoint, scoped: true });
+                        attempts.push({ url: endpoint, scoped: false });
+                        const seenAttemptUrls = new Set();
+                        for (const attempt of attempts) {
+                            if (!attempt?.url || seenAttemptUrls.has(attempt.url)) continue;
+                            seenAttemptUrls.add(attempt.url);
                         try {
-                            const response = await fetch(endpoint, { cache: 'no-store' });
+                            const response = await fetch(attempt.url, { cache: 'no-store' });
                             if (!response.ok) continue;
                             const result = await response.json();
                             if (!result?.success) continue;
@@ -2144,22 +2226,32 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 || {};
                             if (!sharedResultsRaw || typeof sharedResultsRaw !== 'object') continue;
                             payloadCandidates.push({
-                                endpoint,
+                                endpoint: attempt.url,
+                                sameOrigin: attempt.url.startsWith('/'),
+                                scoped: !!attempt.scoped,
                                 source: String(result?.source || 'unknown'),
                                 sharedResults: sharedResultsRaw,
                                 itemCount: Object.keys(sharedResultsRaw).length
                             });
+                            // Prefer successful scoped response for this endpoint, skip full fetch.
+                            if (attempt.scoped) break;
                         } catch (endpointError) {
-                            console.log(`Shared validation load skipped for ${endpoint}:`, endpointError?.message || endpointError);
+                            console.log(`Shared validation load skipped for ${attempt.url}:`, endpointError?.message || endpointError);
+                        }
                         }
                     }
 
                     if (payloadCandidates.length > 0) {
                         payloadCandidates.sort((a, b) => {
-                            if (b.itemCount !== a.itemCount) return b.itemCount - a.itemCount;
+                            const sameOriginDelta = Number(!!b.sameOrigin) - Number(!!a.sameOrigin);
+                            if (sameOriginDelta !== 0) return sameOriginDelta;
+                            const scopeDelta = Number(!!b.scoped) - Number(!!a.scoped);
+                            if (scopeDelta !== 0) return scopeDelta;
                             const aIsMemory = a.source === 'memory' ? 1 : 0;
                             const bIsMemory = b.source === 'memory' ? 1 : 0;
-                            return aIsMemory - bIsMemory;
+                            if (aIsMemory !== bIsMemory) return aIsMemory - bIsMemory;
+                            if (b.itemCount !== a.itemCount) return b.itemCount - a.itemCount;
+                            return 0;
                         });
                         const bestPayload = payloadCandidates[0];
                         this.sharedValidationSource = String(bestPayload.source || 'unknown');
@@ -2214,6 +2306,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         this.validation_results = localResults;
                         this.sanitizeValidationResultsStore();
                         this.normalizeValidationResultsLanguageKeys();
+                        if (requestedLangKey) this.loadedValidationLanguageCodes.add(requestedLangKey);
                         console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items from ${bestPayload.endpoint} (${bestPayload.source})`);
                         const sourceLabel = this.sharedValidationSource === 'gcs'
                             ? 'shared bucket (GCS)'
@@ -2580,7 +2673,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let approvedHtml = '';
                     let scoreValue = -1;
                     const storedResult = this.getValidationEntry(itemId, langCode);
-                    const needsReview = storedResult?.needsReview || false;
+                    const needsReview = storedResult?.needsReview === true;
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
                     const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -2746,9 +2839,6 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                 </label>
                                 <div class="reason-container" style="display: ${(!manualApproved && needsReview) ? 'flex' : 'none'}; align-items: center; gap: 4px; flex: 1; min-width: 150px;">
                                     <input type="text" class="reason-input" data-item-id="${escapedItemId}" data-lang-code="${langCode}" value="${reviewReason.replace(/"/g, '&quot;')}" placeholder="Reason..." style="flex: 1; padding: 3px 6px; font-size: 0.8em; border: 1px solid #ced4da; border-radius: 4px; min-width: 100px;">
-                                    <button class="save-reason-btn" data-item-id="${escapedItemId}" data-lang-code="${langCode}" title="Save reason" style="padding: 3px 6px; font-size: 0.75em; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                        <i class="fas fa-check"></i>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -2838,6 +2928,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (!isChecked) {
                             reasonInput.value = '';
                             self.validation_results[itemId][preferredLangCode].reason = '';
+                            if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
                         }
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         console.log(`📝 Needs Review ${isChecked ? 'set' : 'cleared'} for ${itemId}[${langCode}]`);
@@ -2852,19 +2943,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Reason input handlers
                 tableContent.querySelectorAll('.reason-input').forEach(input => {
                     input.onclick = (e) => e.stopPropagation(); // Prevent row selection
-                });
-                
-                // Save reason button handlers
-                tableContent.querySelectorAll('.save-reason-btn').forEach(btn => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const itemId = btn.dataset.itemId;
-                        const langCode = btn.dataset.langCode;
-                        const row = btn.closest('.data-row');
-                        const reasonInput = row.querySelector('.reason-input');
-                        const reason = reasonInput.value.trim();
-                        
-                        // Update validation_results
+                    const saveReasonToStore = () => {
+                        const itemId = input.dataset.itemId;
+                        const langCode = input.dataset.langCode;
+                        const reason = String(input.value || '').trim();
                         if (!self.validation_results[itemId]) {
                             self.validation_results[itemId] = {};
                         }
@@ -2872,18 +2954,35 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (!self.validation_results[itemId][preferredLangCode]) {
                             self.validation_results[itemId][preferredLangCode] = {};
                         }
+                        if (self.validation_results[itemId][preferredLangCode].reason === reason) return;
                         self.validation_results[itemId][preferredLangCode].reason = reason;
-                        
-                        // Visual feedback
-                        btn.innerHTML = '<i class="fas fa-check"></i>';
-                        btn.style.background = '#28a745';
-                        setTimeout(() => {
-                            btn.innerHTML = '<i class="fas fa-check"></i>';
-                        }, 1000);
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
-                        
                         console.log(`📝 Reason saved for ${itemId}[${langCode}]: "${reason}"`);
-                        self.setStatus(`Saved reason for ${itemId}`, 'success');
+                    };
+                    const scheduleSharedSave = () => {
+                        const itemId = String(input.dataset.itemId || '').trim();
+                        const langCode = String(input.dataset.langCode || '').trim();
+                        const timerKey = `${itemId}::${langCode}`;
+                        if (self.reasonAutoSaveTimers.has(timerKey)) {
+                            clearTimeout(self.reasonAutoSaveTimers.get(timerKey));
+                        }
+                        const timerId = setTimeout(() => {
+                            self.reasonAutoSaveTimers.delete(timerKey);
+                            if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
+                        }, 800);
+                        self.reasonAutoSaveTimers.set(timerKey, timerId);
+                    };
+                    input.oninput = () => {
+                        saveReasonToStore();
+                        scheduleSharedSave();
+                    };
+                    input.onchange = () => {
+                        saveReasonToStore();
+                        if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
+                    };
+                    input.onblur = () => {
+                        saveReasonToStore();
+                        if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
                     };
                 });
             }
@@ -2967,12 +3066,24 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 // Defer heavy work so the click handler returns quickly (fixes 5s+ INP)
                 if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(true);
                 requestAnimationFrame(() => {
-                    this.refreshLanguagesFromConfig();
-                    this.populateVoices();
-                    this.populateDataTable();
-                    const langConfig = this.languages[language];
-                    const label = langConfig ? `${this.getDisplayName(language)} - ${langConfig.service} (${langConfig.lang_code})` : language;
-                    this.setStatus(`Switched to ${label}`, 'success');
+                    void (async () => {
+                        this.refreshLanguagesFromConfig();
+                        this.populateVoices();
+                        const langConfig = this.languages[language];
+                        const label = langConfig ? `${this.getDisplayName(language)} - ${langConfig.service} (${langConfig.lang_code})` : language;
+                        this.setStatus(`Switched to ${label}`, 'success');
+                        const scopedLangCode = String(langConfig?.lang_code || '').trim();
+                        if (scopedLangCode) {
+                            try {
+                                const sharedMerged = await this.loadFromSharedStorage(scopedLangCode);
+                                if (sharedMerged) this.noteValidationResultsChanged();
+                            } catch (e) {
+                                console.log(`Language-scoped shared load skipped for ${scopedLangCode}:`, e?.message || e);
+                            }
+                        }
+                        if (this.currentLanguage !== language) return;
+                        this.populateDataTable();
+                    })();
                 });
             }
 

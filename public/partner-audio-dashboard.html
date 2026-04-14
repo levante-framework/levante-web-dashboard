@@ -1956,6 +1956,7 @@
                 this.enhancedTextSyncQueue = new Map();
                 this.enhancedTextSyncTimer = null;
                 this.audioComparisonsByKey = new Map();
+                this.playedExistingAudioByKey = new Map();
                 this.missingEnhancedKeyLogs = new Set();
                 this.debugEnhancedKeyMisses = false;
                 this.commonAudioTags = [];
@@ -5351,6 +5352,7 @@
                         this.latestGeneratedAudio.itemId === itemId &&
                         this.latestGeneratedAudio.langCode === this.currentLangCode
                     );
+                    const hasCompareCandidate = this.hasCompareCandidateForItem(itemId);
                     
                     const isApproved = this.approvedItems.has(baseId);
                     
@@ -5384,7 +5386,7 @@
                                         <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate new audio">
                                             <i class="fas fa-arrows-rotate"></i> Regenerate
                                         </button>
-                                        <button class="btn btn-secondary" data-audio-action="add-compare" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.addCurrentToCompare('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Add current generated audio to comparison slots' : 'Generate audio before adding to compare'}">
+                                        <button class="btn btn-secondary" data-audio-action="add-compare" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.addCurrentToCompare('${escapedItemId}')" ${hasCompareCandidate ? '' : 'disabled'} title="${hasCompareCandidate ? 'Add current generated/existing audio to comparison slots' : 'Generate or play existing audio before adding to compare'}">
                                             <i class="fas fa-layer-group"></i> Add to compare
                                         </button>
                                         <button class="btn btn-success save-btn" data-audio-action="save" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Approve & save generated audio' : 'Generate audio before saving'}">
@@ -5547,6 +5549,16 @@
                 );
             }
 
+            getPlayedExistingAudioForItem(itemId) {
+                const key = this.getCompareStateKey(itemId);
+                if (!key) return null;
+                return this.playedExistingAudioByKey.get(key) || null;
+            }
+
+            hasCompareCandidateForItem(itemId) {
+                return this.isPendingGeneratedForItem(itemId) || Boolean(this.getPlayedExistingAudioForItem(itemId));
+            }
+
             createCompareSnapshot(audioState) {
                 if (!audioState || !audioState.audioBase64) return null;
                 return {
@@ -5562,6 +5574,8 @@
                     audioEnhancedText: String(audioState.audioEnhancedText || ''),
                     usedAudioEnhancedText: Boolean(audioState.usedAudioEnhancedText),
                     itemLabel: String(audioState.itemLabel || ''),
+                    sourceType: String(audioState.sourceType || 'generated'),
+                    sourceLabel: String(audioState.sourceLabel || 'Regenerated'),
                     capturedAt: new Date().toISOString()
                 };
             }
@@ -5580,7 +5594,9 @@
                     originalTranslationText: String(snapshot.originalTranslationText || ''),
                     audioEnhancedText: String(snapshot.audioEnhancedText || ''),
                     usedAudioEnhancedText: Boolean(snapshot.usedAudioEnhancedText),
-                    itemLabel: String(snapshot.itemLabel || '')
+                    itemLabel: String(snapshot.itemLabel || ''),
+                    sourceType: String(snapshot.sourceType || 'generated'),
+                    sourceLabel: String(snapshot.sourceLabel || 'Regenerated')
                 };
             }
 
@@ -5599,6 +5615,7 @@
                 const state = this.getCompareState(itemId, false) || { slots: [], activeIndex: -1 };
                 const slots = Array.isArray(state.slots) ? state.slots : [];
                 const pending = this.isPendingGeneratedForItem(itemId);
+                const playedExisting = this.getPlayedExistingAudioForItem(itemId);
                 const slotHtml = Array.from({ length: 3 }).map((_, index) => {
                     const slot = slots[index];
                     if (!slot) {
@@ -5606,9 +5623,10 @@
                     }
                     const isActive = Number(state.activeIndex) === index;
                     const voiceLabel = this.escapeHtml(String(slot.voiceName || slot.voiceId || 'Voice'));
+                    const sourceLabel = this.escapeHtml(String(slot.sourceLabel || (slot.sourceType === 'existing' ? 'Existing' : 'Regenerated')));
                     return `
                         <div class="compare-slot ${isActive ? 'active' : ''}">
-                            <div class="compare-slot-label">#${index + 1} • ${voiceLabel}</div>
+                            <div class="compare-slot-label">#${index + 1} • ${sourceLabel} • ${voiceLabel}</div>
                             <div class="compare-slot-actions">
                                 <button type="button" class="btn-mini" onclick="dashboard.playCompareSlot('${escapedItemId}', ${index})" title="Play comparison slot ${index + 1}">
                                     <i class="fas fa-play"></i>
@@ -5624,7 +5642,11 @@
                     <div class="comparison-controls" data-compare-item-id="${escapedItemId}">
                         <div class="comparison-controls-header">
                             <span class="comparison-controls-title">Compare (up to 3)</span>
-                            <span class="audio-enhanced-meta">${pending ? 'Current generation ready to add' : 'Generate first, then add to compare'}</span>
+                            <span class="audio-enhanced-meta">${
+                                pending
+                                    ? 'Current generation ready to add'
+                                    : (playedExisting ? 'Existing audio ready to add (after Play)' : 'Generate or play existing audio, then add to compare')
+                            }</span>
                         </div>
                         <div class="compare-slot-grid">${slotHtml}</div>
                     </div>
@@ -5645,13 +5667,25 @@
             }
 
             addCurrentToCompare(itemId) {
-                if (!this.isPendingGeneratedForItem(itemId)) {
-                    this.setStatus('Generate audio for this item before adding to compare.', 'warning');
-                    return;
+                let snapshot = null;
+                if (this.isPendingGeneratedForItem(itemId)) {
+                    snapshot = this.createCompareSnapshot({
+                        ...this.latestGeneratedAudio,
+                        sourceType: 'generated',
+                        sourceLabel: 'Regenerated'
+                    });
+                } else {
+                    const playedExisting = this.getPlayedExistingAudioForItem(itemId);
+                    if (playedExisting) {
+                        snapshot = this.createCompareSnapshot({
+                            ...playedExisting,
+                            sourceType: 'existing',
+                            sourceLabel: 'Existing'
+                        });
+                    }
                 }
-                const snapshot = this.createCompareSnapshot(this.latestGeneratedAudio);
                 if (!snapshot) {
-                    this.setStatus('No generated audio available to add to compare.', 'warning');
+                    this.setStatus('Generate or play existing audio for this item before adding to compare.', 'warning');
                     return;
                 }
                 const state = this.getCompareState(itemId, true);
@@ -5671,7 +5705,8 @@
                 state.activeIndex = state.slots.length - 1;
                 this.refreshCompareControlsForItem(itemId);
                 this.updateSaveButtonStates();
-                this.setStatus(`Added current generation to compare slot #${state.activeIndex + 1}.`, 'success');
+                const sourceText = snapshot.sourceType === 'existing' ? 'existing audio' : 'current generation';
+                this.setStatus(`Added ${sourceText} to compare slot #${state.activeIndex + 1}.`, 'success');
             }
 
             async playCompareSlot(itemId, slotIndex) {
@@ -5718,6 +5753,7 @@
                 const key = this.getCompareStateKey(itemId);
                 if (!key) return;
                 this.audioComparisonsByKey.delete(key);
+                this.playedExistingAudioByKey.delete(key);
                 this.refreshCompareControlsForItem(itemId);
             }
 
@@ -5726,9 +5762,10 @@
                 buttons.forEach(btn => {
                     const itemId = btn.dataset.itemId;
                     const isPending = this.isPendingGeneratedForItem(itemId);
-                    btn.disabled = !isPending;
+                    const hasCandidate = this.hasCompareCandidateForItem(itemId);
+                    btn.disabled = btn.dataset.audioAction === 'add-compare' ? !hasCandidate : !isPending;
                     if (btn.dataset.audioAction === 'add-compare') {
-                        btn.title = isPending ? 'Add current generated audio to comparison slots' : 'Generate audio before adding to compare';
+                        btn.title = hasCandidate ? 'Add current generated/existing audio to comparison slots' : 'Generate or play existing audio before adding to compare';
                     } else {
                         btn.title = isPending ? 'Approve & save generated audio' : 'Generate audio before saving';
                     }
@@ -5824,6 +5861,29 @@
                     }
                     
                     const blob = await response.blob();
+                    const audioBase64 = await this.convertBlobToBase64(blob);
+                    const playedSnapshot = {
+                        itemId: String(itemId || ''),
+                        langCode: String(this.currentLangCode || ''),
+                        audioBase64,
+                        service: 'ElevenLabs',
+                        voiceId: '',
+                        voiceName: 'Existing audio',
+                        modelId: '',
+                        text: '',
+                        originalTranslationText: '',
+                        audioEnhancedText: '',
+                        usedAudioEnhancedText: false,
+                        itemLabel: String(itemId || ''),
+                        sourceType: 'existing',
+                        sourceLabel: 'Existing'
+                    };
+                    const compareKey = this.getCompareStateKey(itemId);
+                    if (compareKey) {
+                        this.playedExistingAudioByKey.set(compareKey, playedSnapshot);
+                        this.refreshCompareControlsForItem(itemId);
+                        this.updateSaveButtonStates();
+                    }
                     const audioUrl = URL.createObjectURL(blob);
                     const audio = new Audio(audioUrl);
                     

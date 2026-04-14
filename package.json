@@ -48,6 +48,7 @@
     "validation:prolific:import": "python3 scripts/import_prolific_results.py",
     "validation:prolific:export:pilot-es-ar": "python3 scripts/export_prolific_translation_study.py --translations-csv data/validation/crowdin-xliff-merged.csv --target-col es-AR --sample-size 180 --seed 42 --output-csv data/validation/prolific-study-es-AR-pilot.csv",
     "validation:prolific:import:pilot-es-ar": "python3 scripts/import_prolific_results.py --translations-csv data/validation/crowdin-xliff-merged.csv --target-col es-AR --output-prefix data/validation/prolific-es-AR-pilot",
+    "validation:seed-by-language": "node scripts/seed-validation-by-language-from-legacy.js",
     "validation:cleanup-artifacts": "python3 scripts/cleanup_validation_artifacts.py",
     "validation:cleanup-artifacts:apply": "python3 scripts/cleanup_validation_artifacts.py --apply"
   },

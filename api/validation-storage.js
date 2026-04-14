@@ -20,7 +20,11 @@ let inMemoryValidationData = {
 
 // Validation storage should live in levante-tools (dev project).
 const BUCKET_NAME = process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools';
-const FILE_PATH = process.env.VALIDATION_RESULTS_OBJECT || 'validations/validation_results.json';
+const BY_LANGUAGE_PREFIX = process.env.VALIDATION_RESULTS_BY_LANGUAGE_PREFIX || 'validations/by-language';
+const VERSION_HISTORY_BY_LANGUAGE_PREFIX = process.env.VALIDATION_RESULTS_HISTORY_BY_LANGUAGE_PREFIX || 'validations/history/by-language';
+const VERSION_HISTORY_AGGREGATE_PREFIX = process.env.VALIDATION_RESULTS_HISTORY_AGGREGATE_PREFIX || 'validations/history/aggregate';
+const MAX_HISTORY_PER_LANGUAGE = Number(process.env.VALIDATION_HISTORY_MAX_PER_LANGUAGE || 30);
+const MAX_HISTORY_AGGREGATE = Number(process.env.VALIDATION_HISTORY_MAX_AGGREGATE || 30);
 const EXCLUDED_VALIDATION_PREFIXES = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
 
 function isExcludedValidationItemId(itemId) {
@@ -37,6 +41,44 @@ function sanitizeValidationResultsMap(validationResults) {
     out[itemId] = source[itemId];
   });
   return out;
+}
+
+function mergeValidationEntry(existingEntry, incomingEntry) {
+  const existing = existingEntry && typeof existingEntry === 'object' ? existingEntry : {};
+  const incoming = incomingEntry && typeof incomingEntry === 'object' ? incomingEntry : {};
+  const nextEntry = { ...existing, ...incoming };
+
+  // Protect against accidental loss of review notes when clients send compact payloads.
+  const incomingHasNeedsReview = Object.prototype.hasOwnProperty.call(incoming, 'needsReview');
+  const incomingHasReason = Object.prototype.hasOwnProperty.call(incoming, 'reason');
+  const incomingHasManualApproved = Object.prototype.hasOwnProperty.call(incoming, 'manualApproved');
+  const incomingHasManualApprovalUpdatedAt = Object.prototype.hasOwnProperty.call(incoming, 'manualApprovalUpdatedAt');
+  if (!incomingHasNeedsReview && existing.needsReview === true) {
+    nextEntry.needsReview = true;
+  }
+  if (!incomingHasReason && typeof existing.reason === 'string' && existing.reason) {
+    nextEntry.reason = existing.reason;
+  }
+  // Preserve manual approvals unless the client explicitly toggled approval state.
+  // This prevents re-validation payloads from unintentionally clearing approvals.
+  if (!incomingHasManualApproved && existing.manualApproved === true) {
+    nextEntry.manualApproved = true;
+  }
+  if (
+    existing.manualApproved === true
+    && incomingHasManualApproved
+    && incoming.manualApproved !== true
+    && !incomingHasManualApprovalUpdatedAt
+  ) {
+    nextEntry.manualApproved = true;
+  }
+  if (nextEntry.manualApproved === true) {
+    nextEntry.score = 1;
+    nextEntry.scoreSource = 'manual';
+    if (!nextEntry.notes) nextEntry.notes = 'Manually approved';
+  }
+
+  return nextEntry;
 }
 
 function mergeValidationResultsWithExisting(existingResults, incomingResults) {
@@ -56,45 +98,159 @@ function mergeValidationResultsWithExisting(existingResults, incomingResults) {
       const existingEntry = existingByLang[langCode] && typeof existingByLang[langCode] === 'object'
         ? existingByLang[langCode]
         : {};
-      const nextEntry = { ...existingEntry, ...incomingEntry };
-
-      // Protect against accidental loss of review notes when clients send compact payloads.
-      const incomingHasNeedsReview = Object.prototype.hasOwnProperty.call(incomingEntry, 'needsReview');
-      const incomingHasReason = Object.prototype.hasOwnProperty.call(incomingEntry, 'reason');
-      const incomingHasManualApproved = Object.prototype.hasOwnProperty.call(incomingEntry, 'manualApproved');
-      const incomingHasManualApprovalUpdatedAt = Object.prototype.hasOwnProperty.call(incomingEntry, 'manualApprovalUpdatedAt');
-      if (!incomingHasNeedsReview && existingEntry.needsReview === true) {
-        nextEntry.needsReview = true;
-      }
-      if (!incomingHasReason && typeof existingEntry.reason === 'string' && existingEntry.reason) {
-        nextEntry.reason = existingEntry.reason;
-      }
-      // Preserve manual approvals unless the client explicitly toggled approval state.
-      // This prevents re-validation payloads from unintentionally clearing approvals.
-      if (!incomingHasManualApproved && existingEntry.manualApproved === true) {
-        nextEntry.manualApproved = true;
-      }
-      if (
-        existingEntry.manualApproved === true
-        && incomingHasManualApproved
-        && incomingEntry.manualApproved !== true
-        && !incomingHasManualApprovalUpdatedAt
-      ) {
-        nextEntry.manualApproved = true;
-      }
-      if (nextEntry.manualApproved === true) {
-        nextEntry.score = 1;
-        nextEntry.scoreSource = 'manual';
-        if (!nextEntry.notes) nextEntry.notes = 'Manually approved';
-      }
-
-      outByLang[langCode] = nextEntry;
+      outByLang[langCode] = mergeValidationEntry(existingEntry, incomingEntry);
     });
 
     merged[itemId] = outByLang;
   });
 
   return merged;
+}
+
+function normalizeLanguageCodeForPath(language) {
+  return String(language || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '_');
+}
+
+function normalizeLanguageCode(language) {
+  return String(language || '')
+    .trim()
+    .replace(/_/g, '-');
+}
+
+function getLanguageAliasCodes(language) {
+  const raw = normalizeLanguageCode(language);
+  if (!raw) return [];
+  const out = new Set([raw]);
+  const lower = raw.toLowerCase();
+  out.add(lower);
+  if (raw.includes('-')) {
+    const base = raw.split('-')[0];
+    if (base) {
+      out.add(base);
+      out.add(base.toLowerCase());
+    }
+  }
+  // Preserve underscore variant for backward compatibility with legacy keys.
+  out.add(raw.replace(/-/g, '_'));
+  out.add(lower.replace(/-/g, '_'));
+  return Array.from(out);
+}
+
+function getLanguageFilePath(language) {
+  return `${BY_LANGUAGE_PREFIX}/${normalizeLanguageCodeForPath(language)}.json`;
+}
+
+function buildVersionId() {
+  const iso = new Date().toISOString().replace(/[:.]/g, '-');
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `${iso}-${rand}`;
+}
+
+function getLanguageVersionFilePath(language, versionId) {
+  return `${VERSION_HISTORY_BY_LANGUAGE_PREFIX}/${normalizeLanguageCodeForPath(language)}/${versionId}.json`;
+}
+
+function getAggregateVersionFilePath(versionId) {
+  return `${VERSION_HISTORY_AGGREGATE_PREFIX}/${versionId}.json`;
+}
+
+async function pruneHistoryFiles(bucket, prefix, maxKeep) {
+  const limit = Number(maxKeep);
+  if (!Number.isFinite(limit) || limit <= 0) return;
+  try {
+    const [files] = await bucket.getFiles({ prefix });
+    const jsonFiles = (files || []).filter((file) => String(file?.name || '').toLowerCase().endsWith('.json'));
+    if (jsonFiles.length <= limit) return;
+    const sortedNewestFirst = jsonFiles.sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')));
+    const toDelete = sortedNewestFirst.slice(limit);
+    await Promise.all(toDelete.map(async (file) => {
+      try {
+        await file.delete({ ignoreNotFound: true });
+      } catch (deleteError) {
+        console.warn(`Failed to prune history file ${file?.name}:`, deleteError?.message || deleteError);
+      }
+    }));
+  } catch (e) {
+    console.warn(`Failed to prune history prefix ${prefix}:`, e?.message || e);
+  }
+}
+
+function splitValidationResultsByLanguage(validationResults) {
+  const source = sanitizeValidationResultsMap(validationResults || {});
+  const byLanguage = {};
+  Object.entries(source).forEach(([itemId, byLang]) => {
+    if (!byLang || typeof byLang !== 'object') return;
+    Object.entries(byLang).forEach(([langCode, entry]) => {
+      const lang = String(langCode || '').trim();
+      if (!lang) return;
+      if (!byLanguage[lang]) byLanguage[lang] = {};
+      byLanguage[lang][itemId] = entry && typeof entry === 'object' ? entry : {};
+    });
+  });
+  return byLanguage;
+}
+
+function combineLanguageMaps(languageMaps) {
+  const out = {};
+  Object.entries(languageMaps || {}).forEach(([langCode, byItem]) => {
+    if (!byItem || typeof byItem !== 'object') return;
+    Object.entries(byItem).forEach(([itemId, entry]) => {
+      if (isExcludedValidationItemId(itemId)) return;
+      if (!out[itemId]) out[itemId] = {};
+      out[itemId][langCode] = entry && typeof entry === 'object' ? entry : {};
+    });
+  });
+  return out;
+}
+
+function buildCombinedMapForLanguage(language, byItem) {
+  const lang = String(language || '').trim();
+  if (!lang) return {};
+  const source = sanitizeValidationResultsMap(byItem || {});
+  const out = {};
+  Object.entries(source).forEach(([itemId, entry]) => {
+    out[itemId] = { [lang]: entry && typeof entry === 'object' ? entry : {} };
+  });
+  return out;
+}
+
+function filterValidationResultsByLanguage(validationResults, language) {
+  const lang = normalizeLanguageCode(language);
+  if (!lang) return sanitizeValidationResultsMap(validationResults || {});
+  const aliases = new Set(getLanguageAliasCodes(lang).map((code) => String(code || '').toLowerCase()));
+  const source = sanitizeValidationResultsMap(validationResults || {});
+  const out = {};
+  Object.entries(source).forEach(([itemId, byLang]) => {
+    if (!byLang || typeof byLang !== 'object') return;
+    const matchingLang = Object.keys(byLang).find((existingLang) => {
+      const existing = normalizeLanguageCode(existingLang).toLowerCase();
+      const existingUnderscore = existing.replace(/-/g, '_');
+      return aliases.has(existing) || aliases.has(existingUnderscore);
+    });
+    if (!matchingLang) return;
+    out[itemId] = { [matchingLang]: byLang[matchingLang] };
+  });
+  return out;
+}
+
+function collectLanguagesFromValidationResults(validationResults) {
+  const langs = new Set();
+  Object.values(validationResults || {}).forEach((byLang) => {
+    if (!byLang || typeof byLang !== 'object') return;
+    Object.keys(byLang).forEach((langCode) => {
+      const normalized = String(langCode || '').trim();
+      if (normalized) langs.add(normalized);
+    });
+  });
+  return Array.from(langs);
+}
+
+function getRequestedLanguage(req) {
+  const raw = normalizeLanguageCode(req?.query?.language || '');
+  return raw || '';
 }
 
 function getStorageClient() {
@@ -143,32 +299,151 @@ export default async function handler(req, res) {
   }
 }
 
-async function loadFromGCS() {
-  const storage = getStorageClient();
-  if (!storage) return null;
+async function loadByLanguageFromGCS(storage, requestedLanguage = '') {
   try {
     const bucket = storage.bucket(BUCKET_NAME);
-    const file = bucket.file(FILE_PATH);
-    const [exists] = await file.exists();
-    if (!exists) return null;
-    const [data] = await file.download();
-    const validationData = JSON.parse(data.toString());
-    console.log(`☁️ Loaded validation results from GCS: ${Object.keys(validationData.validation_results || {}).length} items`);
-    return validationData;
+    const scopedLanguage = String(requestedLanguage || '').trim();
+    if (scopedLanguage) {
+      const file = bucket.file(getLanguageFilePath(scopedLanguage));
+      const [exists] = await file.exists();
+      if (!exists) return null;
+      const [buf] = await file.download();
+      const parsed = JSON.parse(buf.toString());
+      const lang = String(parsed?.language || scopedLanguage).trim();
+      const byItem = parsed?.validation_results && typeof parsed.validation_results === 'object'
+        ? parsed.validation_results
+        : {};
+      const combined = buildCombinedMapForLanguage(lang, byItem);
+      let validationCount = 0;
+      Object.values(combined).forEach((byLang) => {
+        validationCount += Object.keys(byLang || {}).length;
+      });
+      return {
+        validation_results: combined,
+        metadata: {
+          version: '2.0',
+          storage_mode: 'by-language',
+          scoped_language: lang,
+          item_count: Object.keys(combined).length,
+          validation_count: validationCount,
+          loaded: new Date().toISOString()
+        }
+      };
+    }
+
+    const [files] = await bucket.getFiles({ prefix: `${BY_LANGUAGE_PREFIX}/` });
+    const languageMaps = {};
+    for (const file of files) {
+      const name = String(file?.name || '');
+      if (!name.toLowerCase().endsWith('.json')) continue;
+      try {
+        const [buf] = await file.download();
+        const parsed = JSON.parse(buf.toString());
+        const lang = String(parsed?.language || '').trim();
+        const byItem = parsed?.validation_results && typeof parsed.validation_results === 'object'
+          ? parsed.validation_results
+          : {};
+        if (!lang || !Object.keys(byItem).length) continue;
+        languageMaps[lang] = sanitizeValidationResultsMap(byItem);
+      } catch (readError) {
+        console.warn(`Failed to parse by-language validation file ${name}:`, readError?.message || readError);
+      }
+    }
+    if (!Object.keys(languageMaps).length) return null;
+    const combined = combineLanguageMaps(languageMaps);
+    let validationCount = 0;
+    Object.values(combined).forEach((byLang) => {
+      validationCount += Object.keys(byLang || {}).length;
+    });
+    return {
+      validation_results: combined,
+      metadata: {
+        version: '2.0',
+        storage_mode: 'by-language',
+        item_count: Object.keys(combined).length,
+        validation_count: validationCount,
+        loaded: new Date().toISOString()
+      }
+    };
   } catch (e) {
-    console.warn('Failed to load validation results from GCS:', e.message);
+    console.warn('Failed to load by-language validation results from GCS:', e.message);
     return null;
   }
 }
 
-async function saveToGCS(validationData) {
+async function loadFromGCS(options = {}) {
+  const storage = getStorageClient();
+  if (!storage) return null;
+  const requestedLanguage = String(options?.requestedLanguage || '').trim();
+
+  const byLanguageData = await loadByLanguageFromGCS(storage, requestedLanguage);
+  if (byLanguageData) {
+    console.log(`☁️ Loaded validation results from by-language GCS files: ${Object.keys(byLanguageData.validation_results || {}).length} items`);
+    return byLanguageData;
+  }
+  return null;
+}
+
+async function saveToGCS(validationData, options = {}) {
   const storage = getStorageClient();
   if (!storage) return false;
   try {
     const bucket = storage.bucket(BUCKET_NAME);
-    const file = bucket.file(FILE_PATH);
-    await file.save(JSON.stringify(validationData, null, 2), { contentType: 'application/json', resumable: false });
-    console.log(`☁️ Saved validation results to GCS: ${validationData.metadata.item_count} items, ${validationData.metadata.validation_count} validations`);
+    const fullResults = sanitizeValidationResultsMap(validationData?.validation_results || {});
+    const byLanguageMaps = splitValidationResultsByLanguage(fullResults);
+    const touchedLanguages = Array.isArray(options?.touchedLanguages)
+      ? options.touchedLanguages.map((lang) => String(lang || '').trim()).filter(Boolean)
+      : [];
+    const languagesToWrite = touchedLanguages.length
+      ? touchedLanguages
+      : Object.keys(byLanguageMaps);
+    const versionId = String(options?.versionId || buildVersionId());
+
+    for (const lang of languagesToWrite) {
+      const existingLangMap = (() => {
+        const current = byLanguageMaps[lang];
+        return current && typeof current === 'object' ? current : {};
+      })();
+      const payload = {
+        language: lang,
+        validation_results: existingLangMap,
+        metadata: {
+          saved: new Date().toISOString(),
+          version: '2.0',
+          storage_mode: 'by-language',
+          item_count: Object.keys(existingLangMap).length
+        }
+      };
+      const file = bucket.file(getLanguageFilePath(lang));
+      await file.save(JSON.stringify(payload, null, 2), { contentType: 'application/json', resumable: false });
+      try {
+        const historyFile = bucket.file(getLanguageVersionFilePath(lang, versionId));
+        await historyFile.save(JSON.stringify(payload, null, 2), { contentType: 'application/json', resumable: false });
+        await pruneHistoryFiles(bucket, `${VERSION_HISTORY_BY_LANGUAGE_PREFIX}/${normalizeLanguageCodeForPath(lang)}/`, MAX_HISTORY_PER_LANGUAGE);
+      } catch (historyError) {
+        console.warn(`Failed to write by-language version snapshot for ${lang}:`, historyError?.message || historyError);
+      }
+    }
+
+    // Keep a versioned aggregate snapshot for audit/rollback support.
+    const aggregateSnapshot = {
+      ...validationData,
+      validation_results: fullResults,
+      metadata: {
+        ...(validationData?.metadata || {}),
+        storage_mode: 'by-language',
+        aggregate_snapshot_saved: new Date().toISOString()
+      }
+    };
+    try {
+      const aggregateHistoryFile = bucket.file(getAggregateVersionFilePath(versionId));
+      await aggregateHistoryFile.save(JSON.stringify(aggregateSnapshot, null, 2), { contentType: 'application/json', resumable: false });
+      await pruneHistoryFiles(bucket, `${VERSION_HISTORY_AGGREGATE_PREFIX}/`, MAX_HISTORY_AGGREGATE);
+    } catch (historyError) {
+      console.warn('Failed to write aggregate version snapshot:', historyError?.message || historyError);
+    }
+
+    console.log(`☁️ Saved validation results to GCS by-language (${languagesToWrite.length} files) + aggregate history snapshot (version ${versionId})`);
     return true;
   } catch (e) {
     console.warn('Failed to save validation results to GCS:', e.message);
@@ -176,17 +451,22 @@ async function saveToGCS(validationData) {
   }
 }
 
-async function getValidationResults(_req, res) {
+async function getValidationResults(req, res) {
   try {
-    let validationData = await loadFromGCS();
+    const requestedLanguage = getRequestedLanguage(req);
+    let validationData = await loadFromGCS({ requestedLanguage });
     if (!validationData) validationData = inMemoryValidationData;
-    const sanitizedResults = sanitizeValidationResultsMap(validationData.validation_results || {});
+    const scopedSource = requestedLanguage
+      ? filterValidationResultsByLanguage(validationData.validation_results || {}, requestedLanguage)
+      : validationData.validation_results || {};
+    const sanitizedResults = sanitizeValidationResultsMap(scopedSource);
     const responseData = {
       ...validationData,
       validation_results: sanitizedResults,
       metadata: {
         ...(validationData.metadata || {}),
-        item_count: Object.keys(sanitizedResults).length
+        item_count: Object.keys(sanitizedResults).length,
+        ...(requestedLanguage ? { scoped_language: requestedLanguage } : {})
       }
     };
     return res.status(200).json({
@@ -221,13 +501,19 @@ async function saveValidationResults(req, res) {
       metadata: {
         ...metadata,
         saved: new Date().toISOString(),
-        version: '1.0',
+        version: '2.0',
+        storage_mode: 'by-language',
+        version_id: buildVersionId(),
         item_count: Object.keys(sanitizedResults).length,
         validation_count: totalValidations
       }
     };
 
-    const gcsSuccess = await saveToGCS(validationData);
+    const touchedLanguages = collectLanguagesFromValidationResults(validation_results);
+    const gcsSuccess = await saveToGCS(validationData, {
+      touchedLanguages,
+      versionId: validationData.metadata.version_id
+    });
     inMemoryValidationData = validationData; // always keep memory copy
     return res.status(200).json({
       success: true,
@@ -262,12 +548,18 @@ async function updateValidationResults(req, res) {
     };
 
     currentData.metadata.last_updated = new Date().toISOString();
+    currentData.metadata.version = '2.0';
+    currentData.metadata.storage_mode = 'by-language';
+    currentData.metadata.version_id = buildVersionId();
     currentData.metadata.item_count = Object.keys(currentData.validation_results).length;
     let totalValidations = 0;
     Object.keys(currentData.validation_results).forEach(i => { totalValidations += Object.keys(currentData.validation_results[i] || {}).length; });
     currentData.metadata.validation_count = totalValidations;
 
-    const gcsSuccess = await saveToGCS(currentData);
+    const gcsSuccess = await saveToGCS(currentData, {
+      touchedLanguages: [language],
+      versionId: currentData.metadata.version_id
+    });
     inMemoryValidationData = currentData;
     return res.status(200).json({
       success: true,
