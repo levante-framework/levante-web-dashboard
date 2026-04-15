@@ -1965,6 +1965,7 @@
                 this.noAudioScanSummary = null;
                 this.audioBehaviorByItem = new Map();
                 this.audioBehaviorSessionId = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+                this.translationCsvHeaders = [];
                 this.clientVersionCurrent = '';
                 this.clientVersionPollTimer = null;
                 this.clientVersionReloadTriggered = false;
@@ -3129,6 +3130,87 @@
                 return normalized;
             }
 
+            normalizeLangCode(langCode) {
+                return String(langCode || '').trim().replace(/_/g, '-');
+            }
+
+            isLikelyLanguageCodeHeader(headerName) {
+                const code = this.normalizeLangCode(headerName);
+                if (!code) return false;
+                // Accept common BCP-47-like forms: en, en-US, zh-Hant-TW, etc.
+                return /^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*$/.test(code);
+            }
+
+            getLanguageDisplayNameFromCode(langCode) {
+                const normalizedCode = this.normalizeLangCode(langCode);
+                if (!normalizedCode) return '';
+                const localeCode = normalizedCode.toLowerCase();
+                const primary = localeCode.split('-')[0] || '';
+                const hasDialect = localeCode.includes('-');
+
+                let languageName = '';
+                let dialectName = '';
+                try {
+                    const locale = new Intl.Locale(normalizedCode);
+                    const language = String(locale.language || primary || '').toLowerCase();
+                    const region = String(locale.region || '').toUpperCase();
+                    const script = String(locale.script || '');
+
+                    if (language) {
+                        languageName = new Intl.DisplayNames(['en'], { type: 'language' }).of(language) || '';
+                    }
+                    if (region) {
+                        dialectName = new Intl.DisplayNames(['en'], { type: 'region' }).of(region) || '';
+                    } else if (script) {
+                        dialectName = new Intl.DisplayNames(['en'], { type: 'script' }).of(script) || '';
+                    }
+                } catch (_) {
+                    languageName = '';
+                    dialectName = '';
+                }
+
+                if (!languageName) languageName = primary || normalizedCode;
+                languageName = languageName.charAt(0).toUpperCase() + languageName.slice(1);
+                if (dialectName) return `${languageName} (${dialectName})`;
+                if (hasDialect) return `${languageName} (${normalizedCode.split('-').slice(1).join('-')})`;
+                return languageName;
+            }
+
+            mergeDiscoveredLanguagesFromCsvHeaders() {
+                if (!Array.isArray(this.translationCsvHeaders) || this.translationCsvHeaders.length === 0) return;
+                const existingByCode = new Set(
+                    Object.values(this.languages || {}).map((cfg) => this.normalizeLangCode(cfg?.lang_code).toLowerCase()).filter(Boolean)
+                );
+
+                const discovered = {};
+                this.translationCsvHeaders.forEach((header) => {
+                    const code = this.normalizeLangCode(header);
+                    const codeKey = code.toLowerCase();
+                    if (!this.isLikelyLanguageCodeHeader(code)) return;
+                    if (!codeKey || existingByCode.has(codeKey)) return;
+                    const displayName = this.getLanguageDisplayNameFromCode(code) || code;
+                    let languageKey = displayName;
+                    if (this.languages[languageKey] || discovered[languageKey]) {
+                        languageKey = `${displayName} [${code}]`;
+                    }
+                    discovered[languageKey] = {
+                        lang_code: code,
+                        service: 'ElevenLabs',
+                        voice: '',
+                        display_name: displayName,
+                        auto_discovered: true
+                    };
+                    existingByCode.add(codeKey);
+                });
+
+                if (Object.keys(discovered).length > 0) {
+                    this.languages = this.normalizeLanguageEntries({
+                        ...this.languages,
+                        ...discovered
+                    });
+                }
+            }
+
             async loadLanguagesFromConfig() {
                 try {
                     const response = await fetch('/api/language-config', { cache: 'no-store' });
@@ -3139,15 +3221,24 @@
                     const data = await response.json();
                     const remoteLanguages = data && data.languages && typeof data.languages === 'object' ? data.languages : null;
                     if (remoteLanguages && Object.keys(remoteLanguages).length > 0) {
-                        this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(remoteLanguages)));
-                        console.log(`Loaded ${Object.keys(this.languages).length} languages from /api/language-config`);
+                        const normalizedRemote = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(remoteLanguages)));
+                        // Keep fallback/default language definitions available so CSV-active languages
+                        // (e.g., en-US/de-DE) still appear even when remote config is partial.
+                        this.languages = this.normalizeLanguageEntries({
+                            ...JSON.parse(JSON.stringify(this.defaultLanguages)),
+                            ...normalizedRemote
+                        });
+                        this.mergeDiscoveredLanguagesFromCsvHeaders();
+                        console.log(`Loaded ${Object.keys(normalizedRemote).length} remote languages (${Object.keys(this.languages).length} total with defaults) from /api/language-config`);
                     } else {
                         console.warn('Remote language config empty; using fallback language list.');
                         this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
+                        this.mergeDiscoveredLanguagesFromCsvHeaders();
                     }
                 } catch (error) {
                     console.warn('Failed to load remote language config; using fallback language list:', error);
                     this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
+                    this.mergeDiscoveredLanguagesFromCsvHeaders();
                 }
             }
             
@@ -3411,6 +3502,8 @@
                 try {
                     if (!Array.isArray(this.data) || this.data.length === 0) {
                         await this.loadData();
+                        // Rebuild language options using actual translation availability in the loaded CSV.
+                        this.populateLanguageSelect();
                     }
                     this.loadCrowdinScreenshotArtifact().then((loaded) => {
                         if (loaded && this.currentLanguage && this.currentLangCode) {
@@ -4561,24 +4654,44 @@
 
             async loadData() {
                 try {
-                    const csvUrl = 'https://storage.googleapis.com/levante-assets-draft/audio/item_bank_translations.csv';
-                    const separator = csvUrl.includes('?') ? '&' : '?';
-                    const cacheBypassUrl = `${csvUrl}${separator}ts=${Date.now()}`;
-                    const csvResponse = await fetch(cacheBypassUrl, { cache: 'no-store' });
-                    if (!csvResponse.ok) {
-                        throw new Error(`Failed to load CSV from ${csvUrl} (status: ${csvResponse.status})`);
+                    const cacheBust = `ts=${Date.now()}`;
+                    const apiSource = '/api/partner-audio-translations';
+                    const csvSources = [apiSource];
+
+                    let csvText = '';
+                    let loadedFrom = '';
+                    const failures = [];
+                    for (const source of csvSources) {
+                        try {
+                            const separator = source.includes('?') ? '&' : '?';
+                            const url = `${source}${separator}${cacheBust}`;
+                            const csvResponse = await fetch(url, { cache: 'no-store' });
+                            if (!csvResponse.ok) {
+                                failures.push(`${source} -> HTTP ${csvResponse.status}`);
+                                continue;
+                            }
+                            const candidateText = await csvResponse.text();
+                            if (!candidateText || !candidateText.trim()) {
+                                failures.push(`${source} -> empty body`);
+                                continue;
+                            }
+                            csvText = candidateText;
+                            loadedFrom = source;
+                            break;
+                        } catch (sourceError) {
+                            failures.push(`${source} -> ${sourceError?.message || sourceError}`);
+                        }
                     }
 
-                    const csvText = await csvResponse.text();
                     if (!csvText || csvText.trim().length === 0) {
-                        throw new Error('CSV file is empty');
+                        throw new Error(`Failed to load translation CSV from ${apiSource}. Tried: ${failures.join(' | ')}. If this endpoint is 404, deploy the latest dashboard API changes.`);
                     }
                     const allItems = this.parseCSV(csvText);
                     
                     // Store all items - filtering by audio will happen when language is selected
                     this.data = allItems;
                     
-                    console.log(`Loaded ${this.data.length} items from CSV: ${csvUrl}`);
+                    console.log(`Loaded ${this.data.length} items from CSV source: ${loadedFrom || 'unknown'}`);
                 } catch (error) {
                     console.error('Failed to load translation data:', error);
                     throw error;
@@ -4633,6 +4746,7 @@
                 if (rows.length === 0) return [];
 
                 const headers = rows[0].map(h => String(h || '').trim().replace(/^\uFEFF/, '').replace(/^"|"$/g, ''));
+                this.translationCsvHeaders = headers.slice();
                 const data = [];
 
                 for (let i = 1; i < rows.length; i++) {
@@ -4746,11 +4860,17 @@
                     // Superadmin, Owner, Manager, or override email - show all languages, dropdown enabled
                     select.disabled = false;
                 }
+
+                // Hide languages that do not currently have any translation text in the loaded CSV.
+                if (Array.isArray(this.data) && this.data.length > 0) {
+                    const languagesWithTranslations = this.getLanguagesWithActiveTranslations(languageKeys);
+                    languageKeys = languageKeys.filter((lang) => languagesWithTranslations.has(lang));
+                }
                 
                 console.log('Populating languages:', languageKeys);
                 
                 if (languageKeys.length === 0) {
-                    console.error('No languages defined!');
+                    console.warn('No languages with active translations found in current CSV.');
                     return;
                 }
                 
@@ -4789,6 +4909,43 @@
                 }
                 
                 console.log(`Successfully populated ${languageKeys.length} languages in dropdown`);
+            }
+
+            getLanguagesWithActiveTranslations(languageKeys) {
+                const result = new Set();
+                if (!Array.isArray(languageKeys) || languageKeys.length === 0) return result;
+                if (!Array.isArray(this.data) || this.data.length === 0) return result;
+
+                const remaining = new Set(languageKeys);
+                for (let i = 0; i < this.data.length; i++) {
+                    if (remaining.size === 0) break;
+                    const row = this.data[i];
+                    for (const languageName of Array.from(remaining)) {
+                        const langCode = String(this.languages?.[languageName]?.lang_code || '').trim();
+                        if (!langCode) {
+                            remaining.delete(languageName);
+                            continue;
+                        }
+                        const text = String(this.getExactTranslationForLanguage(row, langCode) || '').trim();
+                        if (text) {
+                            result.add(languageName);
+                            remaining.delete(languageName);
+                        }
+                    }
+                }
+
+                return result;
+            }
+
+            getExactTranslationForLanguage(item, langCode) {
+                if (!item || !langCode) return '';
+                const target = String(langCode || '').trim().toLowerCase();
+                if (!target) return '';
+                const keys = Object.keys(item || {});
+                const exactKey = keys.find((key) => String(key || '').trim().toLowerCase() === target);
+                if (!exactKey) return '';
+                const value = item[exactKey];
+                return value && String(value).trim() ? String(value).trim() : '';
             }
 
             async selectLanguage(language) {
