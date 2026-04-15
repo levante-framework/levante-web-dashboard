@@ -474,6 +474,32 @@
             box-shadow: 0 0 0 3px rgba(218, 61, 22, 0.1);
         }
 
+        .task-finish-btn {
+            margin-left: 6px;
+            padding: 7px 12px;
+            border: none;
+            border-radius: 8px;
+            background: #2e7d32;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .task-finish-btn:hover {
+            background: #256b29;
+        }
+
+        .task-finish-btn.finished {
+            background: #455a64;
+            cursor: default;
+        }
+
         .common-tags-panel {
             margin: -8px 0 20px;
             padding: 12px;
@@ -1799,6 +1825,10 @@
                 <select id="taskFilterSelect" onchange="dashboard.handleTaskFilterChange(this.value)">
                     <option value="__all__">All tasks</option>
                 </select>
+                <button id="finishedTaskBtn" class="task-finish-btn" type="button" onclick="dashboard.handleFinishedTaskClick()">
+                    <i class="fas fa-check-circle"></i>
+                    Finished with this task
+                </button>
             </div>
         </div>
         <div class="common-tags-panel">
@@ -1922,6 +1952,8 @@
                 this.pendingSaveKey = null;
                 this.currentSearchQuery = ''; // Current search filter
                 this.currentTaskFilter = '__all__'; // Current task filter
+                this.currentTaskCompletionStats = { totalAudio: 0, approvedAudio: 0 };
+                this.finishedTasksByLang = new Map(); // langCode -> Set(normalizedTaskName)
                 this.audioBuckets = {
                     draft: 'levante-assets-draft',
                     dev: 'levante-assets-dev'
@@ -2890,8 +2922,109 @@
                 taskFilter.style.visibility = 'visible';
                 taskFilter.style.opacity = '1';
                 select.style.display = 'block';
+                this.ensureFinishedTaskButtonUI(taskFilter);
 
                 return select;
+            }
+
+            ensureFinishedTaskButtonUI(taskFilterEl = null) {
+                const taskFilter = taskFilterEl || document.querySelector('.task-filter');
+                if (!taskFilter) return null;
+                let button = document.getElementById('finishedTaskBtn');
+                if (!button) {
+                    button = document.createElement('button');
+                    button.id = 'finishedTaskBtn';
+                    button.className = 'task-finish-btn';
+                    button.type = 'button';
+                    button.innerHTML = '<i class="fas fa-check-circle"></i> Finished with this task';
+                    taskFilter.appendChild(button);
+                } else if (!taskFilter.contains(button)) {
+                    taskFilter.appendChild(button);
+                }
+                if (!button.dataset.boundClickHandler) {
+                    button.addEventListener('click', () => this.handleFinishedTaskClick());
+                    button.dataset.boundClickHandler = '1';
+                }
+                return button;
+            }
+
+            updateFinishedTaskButtonVisibility(stats = {}) {
+                const button = this.ensureFinishedTaskButtonUI();
+                if (!button) return;
+
+                const selectedTask = String(this.currentTaskFilter || '__all__');
+                const totalAudio = Number(stats.totalAudio || 0);
+                const approvedAudio = Number(stats.approvedAudio || 0);
+                this.currentTaskCompletionStats = { totalAudio, approvedAudio };
+                const alreadyFinished = this.isTaskMarkedFinished(this.currentLangCode, selectedTask);
+
+                const shouldShow = (
+                    selectedTask !== '__all__'
+                    && approvedAudio > 1
+                    && totalAudio > 0
+                    && totalAudio === approvedAudio
+                );
+
+                button.style.display = shouldShow ? 'inline-flex' : 'none';
+                button.classList.toggle('finished', shouldShow && alreadyFinished);
+                button.innerHTML = shouldShow && alreadyFinished
+                    ? '<i class="fas fa-check-double"></i> Task finished'
+                    : '<i class="fas fa-check-circle"></i> Finished with this task';
+                button.title = shouldShow
+                    ? (alreadyFinished
+                        ? `Task "${selectedTask}" was already marked finished.`
+                        : `All audio is approved for "${selectedTask}" (${approvedAudio}/${totalAudio}).`)
+                    : 'Select a completed task to mark review finished.';
+            }
+
+            normalizeFinishedTaskKey(taskName) {
+                return String(taskName || '').trim().toLowerCase();
+            }
+
+            getFinishedTaskSetForLang(langCode) {
+                const lang = String(langCode || '').trim();
+                if (!lang) return new Set();
+                if (!this.finishedTasksByLang.has(lang)) {
+                    this.finishedTasksByLang.set(lang, new Set());
+                }
+                return this.finishedTasksByLang.get(lang);
+            }
+
+            isTaskMarkedFinished(langCode, taskName) {
+                const key = this.normalizeFinishedTaskKey(taskName);
+                if (!key) return false;
+                const set = this.getFinishedTaskSetForLang(langCode);
+                return set.has(key);
+            }
+
+            markTaskFinishedLocal(langCode, taskName) {
+                const key = this.normalizeFinishedTaskKey(taskName);
+                if (!key) return;
+                this.getFinishedTaskSetForLang(langCode).add(key);
+            }
+
+            async loadFinishedTasksForLanguage(langCode) {
+                const lang = String(langCode || '').trim();
+                if (!lang) return;
+                try {
+                    const response = await fetch(`/api/partner-task-finished?langCode=${encodeURIComponent(lang)}`, {
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) {
+                        console.warn(`Failed to load finished tasks for ${lang}: HTTP ${response.status}`);
+                        return;
+                    }
+                    const payload = await response.json();
+                    const tasks = Array.isArray(payload?.tasks) ? payload.tasks : [];
+                    const normalized = new Set(
+                        tasks
+                            .map((task) => this.normalizeFinishedTaskKey(task?.task))
+                            .filter(Boolean)
+                    );
+                    this.finishedTasksByLang.set(lang, normalized);
+                } catch (error) {
+                    console.warn(`Failed to load finished tasks for ${lang}:`, error?.message || error);
+                }
             }
 
             startToolbarWatchdog() {
@@ -2949,6 +3082,7 @@
                 } else {
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
+                this.updateFinishedTaskButtonVisibility({ totalAudio: 0, approvedAudio: 0 });
             }
 
             resolveLanguageKey(languageName) {
@@ -4367,6 +4501,17 @@
                     this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
                 ]);
                 const combinedIds = new Set([...draftInfo.ids, ...devInfo.ids]);
+
+                const taskAudioIds = new Set();
+                const taskApprovedAudioIds = new Set();
+                taskFilteredTranslations.forEach(item => {
+                    const baseId = this.extractBaseId(item.item_id || '');
+                    if (!baseId || !combinedIds.has(baseId)) return;
+                    taskAudioIds.add(baseId);
+                    if (this.approvedItems.has(baseId)) {
+                        taskApprovedAudioIds.add(baseId);
+                    }
+                });
                 
                 const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
                 const total = taskFilteredTranslations.length;
@@ -4408,6 +4553,10 @@
                 if (statsEl) {
                     statsEl.style.display = 'flex';
                 }
+                this.updateFinishedTaskButtonVisibility({
+                    totalAudio: taskAudioIds.size,
+                    approvedAudio: taskApprovedAudioIds.size
+                });
             }
 
             async loadData() {
@@ -4700,6 +4849,7 @@
                 this.renderCommonAudioTags();
                 this.resetNoAudioDebugInfo();
                 await this.loadEnhancedTextFromServer(this.currentLangCode);
+                await this.loadFinishedTasksForLanguage(this.currentLangCode);
                 
                 // Clear unapproved items when switching languages
                 this.unapprovedItems.clear();
@@ -6846,6 +6996,50 @@
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
                 }
+            }
+
+            async handleFinishedTaskClick() {
+                const selectedTask = String(this.currentTaskFilter || '__all__');
+                if (selectedTask === '__all__') return;
+                const totalAudio = Number(this.currentTaskCompletionStats?.totalAudio || 0);
+                const approvedAudio = Number(this.currentTaskCompletionStats?.approvedAudio || 0);
+                if (this.isTaskMarkedFinished(this.currentLangCode, selectedTask)) {
+                    this.setStatus(`"${selectedTask}" is already marked finished.`, 'info');
+                    return;
+                }
+                try {
+                    const response = await fetch('/api/partner-task-finished', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            langCode: this.currentLangCode,
+                            language: this.currentLanguage,
+                            task: selectedTask,
+                            approver: this.currentUserEmail || '',
+                            approvedAudio,
+                            totalAudio
+                        })
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || payload?.success === false) {
+                        throw new Error(payload?.message || payload?.error || `HTTP ${response.status}`);
+                    }
+                    this.markTaskFinishedLocal(this.currentLangCode, selectedTask);
+                    this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
+                    const slackSent = payload?.slack?.sent === true;
+                    this.setStatus(
+                        `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved)${slackSent ? ' and posted to Slack.' : '.'}`,
+                        'success'
+                    );
+                } catch (error) {
+                    this.setStatus(`Could not mark task finished: ${error?.message || error}`, 'error');
+                    return;
+                }
+                await this.logApproverAudioEvent('task_review_finished', '__task__', {
+                    task: selectedTask,
+                    totalAudio,
+                    approvedAudio
+                });
             }
 
             setStatus(message, type = '') {
