@@ -4561,45 +4561,14 @@
 
             async loadData() {
                 try {
-                    // First, load all translation data from CSV
-                    // Try multiple possible paths (translations subfolder first, then fallbacks)
-                    const urls = [
-                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/translations/item-bank-translations.csv',
-                        'https://raw.githubusercontent.com/levante-framework/levante_translations/l10n_pending/item-bank-translations.csv',
-                        'https://raw.githubusercontent.com/levante-framework/levante_translations/main/translations/item-bank-translations.csv'
-                    ];
-                    
-                    let csvResponse = null;
-                    let lastError = null;
-                    let successfulUrl = null;
-                    
-                    for (const url of urls) {
-                        try {
-                            const separator = url.includes('?') ? '&' : '?';
-                            const cacheBypassUrl = `${url}${separator}ts=${Date.now()}`;
-                            csvResponse = await fetch(cacheBypassUrl, { cache: 'no-store' });
-                            if (csvResponse.ok) {
-                                successfulUrl = url;
-                                console.log(`Successfully loaded CSV from: ${url}`);
-                                break;
-                            } else {
-                                // If not ok, continue to next URL
-                                console.warn(`CSV not found at ${url} (status: ${csvResponse.status})`);
-                                csvResponse = null;
-                            }
-                        } catch (err) {
-                            console.warn(`Error fetching CSV from ${url}:`, err);
-                            lastError = err;
-                            csvResponse = null;
-                            continue;
-                        }
+                    const csvUrl = 'https://storage.googleapis.com/levante-assets-draft/audio/item_bank_translations.csv';
+                    const separator = csvUrl.includes('?') ? '&' : '?';
+                    const cacheBypassUrl = `${csvUrl}${separator}ts=${Date.now()}`;
+                    const csvResponse = await fetch(cacheBypassUrl, { cache: 'no-store' });
+                    if (!csvResponse.ok) {
+                        throw new Error(`Failed to load CSV from ${csvUrl} (status: ${csvResponse.status})`);
                     }
-                    
-                    if (!csvResponse || !csvResponse.ok) {
-                        const errorMsg = lastError ? lastError.message : `Failed to load CSV from any URL (tried ${urls.length} locations)`;
-                        throw new Error(errorMsg);
-                    }
-                    
+
                     const csvText = await csvResponse.text();
                     if (!csvText || csvText.trim().length === 0) {
                         throw new Error('CSV file is empty');
@@ -4609,7 +4578,7 @@
                     // Store all items - filtering by audio will happen when language is selected
                     this.data = allItems;
                     
-                    console.log(`Loaded ${this.data.length} items from CSV`);
+                    console.log(`Loaded ${this.data.length} items from CSV: ${csvUrl}`);
                 } catch (error) {
                     console.error('Failed to load translation data:', error);
                     throw error;
