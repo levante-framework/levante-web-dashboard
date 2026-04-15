@@ -596,7 +596,7 @@
             const dash = window.dashboard;
             if (!dash || typeof dash.loadFromSharedStorage !== 'function') return false;
             try {
-                const loaded = await dash.loadFromSharedStorage();
+                const loaded = await dash.loadFromSharedStorage('', { force: true });
                 if (loaded) {
                     if (typeof dash.populateDataTable === 'function') dash.populateDataTable();
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();

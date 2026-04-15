@@ -2389,7 +2389,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     .replace(/_/g, '-');
             }
 
-            async loadFromSharedStorage(languageOverride = '') {
+            async loadFromSharedStorage(languageOverride = '', options = {}) {
                 try {
                     console.log('🌐 Loading validation results from shared storage...');
 
@@ -2399,8 +2399,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         || this.languages?.[this.currentLanguage]?.lang_code
                         || ''
                     ).trim();
+                    const forceReload = options && options.force === true;
                     const requestedLangKey = this.getValidationLanguageLoadKey(currentLangCode);
-                    if (requestedLangKey && this.loadedValidationLanguageCodes.has(requestedLangKey)) {
+                    if (!forceReload && requestedLangKey && this.loadedValidationLanguageCodes.has(requestedLangKey)) {
                         return false;
                     }
                     const appendLanguageParam = (endpoint, langCode) => {

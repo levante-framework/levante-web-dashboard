@@ -1209,7 +1209,7 @@ async function loadValidationsFromShared() {
     try {
         button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
         button.disabled = true;
-        const success = await window.dashboard.loadFromSharedStorage();
+        const success = await window.dashboard.loadFromSharedStorage('', { force: true });
         if (success) {
             if (typeof window.dashboard.noteValidationResultsChanged === 'function') {
                 window.dashboard.noteValidationResultsChanged();
@@ -1228,11 +1228,8 @@ async function loadValidationsFromShared() {
             }
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
         } else {
-            button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> No Data';
-            window.dashboard.setStatus('⚠️ No shared validation data found', 'warning');
-            if (typeof window.setValidationSharedSyncLabel === 'function') {
-                window.setValidationSharedSyncLabel('', true);
-            }
+            button.innerHTML = '<i class="fas fa-info-circle"></i> Up to date';
+            window.dashboard.setStatus('ℹ️ Shared validation already up to date (no new changes)', 'success');
             setTimeout(() => { button.innerHTML = originalText; button.disabled = false; }, 2000);
         }
     } catch (error) {

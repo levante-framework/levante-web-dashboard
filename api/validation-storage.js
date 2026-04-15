@@ -184,7 +184,7 @@ function splitValidationResultsByLanguage(validationResults) {
   Object.entries(source).forEach(([itemId, byLang]) => {
     if (!byLang || typeof byLang !== 'object') return;
     Object.entries(byLang).forEach(([langCode, entry]) => {
-      const lang = String(langCode || '').trim();
+      const lang = normalizeLanguageCode(langCode);
       if (!lang) return;
       if (!byLanguage[lang]) byLanguage[lang] = {};
       byLanguage[lang][itemId] = entry && typeof entry === 'object' ? entry : {};
@@ -304,31 +304,39 @@ async function loadByLanguageFromGCS(storage, requestedLanguage = '') {
     const bucket = storage.bucket(BUCKET_NAME);
     const scopedLanguage = String(requestedLanguage || '').trim();
     if (scopedLanguage) {
-      const file = bucket.file(getLanguageFilePath(scopedLanguage));
-      const [exists] = await file.exists();
-      if (!exists) return null;
-      const [buf] = await file.download();
-      const parsed = JSON.parse(buf.toString());
-      const lang = String(parsed?.language || scopedLanguage).trim();
-      const byItem = parsed?.validation_results && typeof parsed.validation_results === 'object'
-        ? parsed.validation_results
-        : {};
-      const combined = buildCombinedMapForLanguage(lang, byItem);
-      let validationCount = 0;
-      Object.values(combined).forEach((byLang) => {
-        validationCount += Object.keys(byLang || {}).length;
-      });
-      return {
-        validation_results: combined,
-        metadata: {
-          version: '2.0',
-          storage_mode: 'by-language',
-          scoped_language: lang,
-          item_count: Object.keys(combined).length,
-          validation_count: validationCount,
-          loaded: new Date().toISOString()
-        }
-      };
+      const languageCandidates = Array.from(new Set([
+        scopedLanguage,
+        ...getLanguageAliasCodes(scopedLanguage)
+      ]));
+      for (const candidate of languageCandidates) {
+        const file = bucket.file(getLanguageFilePath(candidate));
+        const [exists] = await file.exists();
+        if (!exists) continue;
+        const [buf] = await file.download();
+        const parsed = JSON.parse(buf.toString());
+        const lang = normalizeLanguageCode(parsed?.language || candidate || scopedLanguage);
+        const byItem = parsed?.validation_results && typeof parsed.validation_results === 'object'
+          ? parsed.validation_results
+          : {};
+        const combined = buildCombinedMapForLanguage(lang, byItem);
+        let validationCount = 0;
+        Object.values(combined).forEach((byLang) => {
+          validationCount += Object.keys(byLang || {}).length;
+        });
+        return {
+          validation_results: combined,
+          metadata: {
+            version: '2.0',
+            storage_mode: 'by-language',
+            scoped_language: normalizeLanguageCode(scopedLanguage) || lang,
+            loaded_language_file: getLanguageFilePath(candidate),
+            item_count: Object.keys(combined).length,
+            validation_count: validationCount,
+            loaded: new Date().toISOString()
+          }
+        };
+      }
+      return null;
     }
 
     const [files] = await bucket.getFiles({ prefix: `${BY_LANGUAGE_PREFIX}/` });
