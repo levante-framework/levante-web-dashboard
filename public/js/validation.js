@@ -853,14 +853,14 @@ function queueValidationAutoSave() {
         _validationAutoSaveInFlight = true;
         _validationAutoSaveQueued = false;
         try {
-            await dashboard.saveValidationResults();
+            await dashboard.saveValidationResults({ updateBaseline: false, silent: true });
         } catch (e) {
             console.warn('Auto-save failed:', e?.message || e);
         } finally {
             _validationAutoSaveInFlight = false;
             if (_validationAutoSaveQueued) queueValidationAutoSave();
         }
-    }, 1200);
+    }, 2000);
 }
 
 function resetValidationUiForRow(row, langCode) {

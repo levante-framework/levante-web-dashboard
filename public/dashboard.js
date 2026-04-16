@@ -2496,7 +2496,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 });
             }
             
-            async saveValidationResults() {
+            async saveValidationResults(options = {}) {
+                const updateBaseline = options && options.updateBaseline !== false;
+                const silent = options && options.silent === true;
                 try {
                     console.log('💾 Saving validation results to localStorage and shared storage...');
                     this.sanitizeValidationResultsStore();
@@ -2531,12 +2533,12 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     }
                     
                     // Save to shared storage (bucket) regardless of local storage mode.
-                    const sharedSaved = await this.saveToSharedStorage();
+                    const sharedSaved = await this.saveToSharedStorage({ silent });
                     
                     console.log(`✅ Saved ${Object.keys(this.validation_results).length} items with ${totalValidations} total validations`);
                     
                     const success = sharedSaved || localStorageMode !== 'none';
-                    if (success) this.updateValidationSaveBaseline();
+                    if (success && updateBaseline) this.updateValidationSaveBaseline();
                     return {
                         success,
                         itemCount: Object.keys(this.validation_results).length,
@@ -2553,7 +2555,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 }
             }
 
-            async saveToSharedStorage() {
+            async saveToSharedStorage(options = {}) {
+                const silent = options && options.silent === true;
                 try {
                     console.log('🌐 Saving validation results to shared storage...');
                     
@@ -2579,7 +2582,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     if (response.ok) {
                         const result = await response.json();
                         console.log('✅ Successfully saved to shared storage:', result.metadata);
-                        this.setStatus('💾 Validation results saved to shared session storage for team access', 'success');
+                        if (!silent) this.setStatus('💾 Validation results saved to shared session storage for team access', 'success');
                         return true;
                     } else {
                         console.warn('⚠️ Failed to save to shared storage, but localStorage backup is available');
@@ -3424,8 +3427,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         if (self.validation_results[itemId][preferredLangCode].reason === reason) return;
                         self.validation_results[itemId][preferredLangCode].reason = reason;
                         self.validation_results[itemId][preferredLangCode].reviewUpdatedAt = new Date().toISOString();
-                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
-                        console.log(`📝 Reason saved for ${itemId}[${langCode}]: "${reason}"`);
+                        if (typeof requestValidationSummaryUpdate === 'function') requestValidationSummaryUpdate(180);
+                        else if (typeof updateValidationSummary === 'function') updateValidationSummary();
                     };
                     const scheduleSharedSave = () => {
                         const itemId = String(input.dataset.itemId || '').trim();
@@ -3437,7 +3440,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         const timerId = setTimeout(() => {
                             self.reasonAutoSaveTimers.delete(timerKey);
                             if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
-                        }, 800);
+                        }, 2200);
                         self.reasonAutoSaveTimers.set(timerKey, timerId);
                     };
                     input.oninput = () => {

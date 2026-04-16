@@ -292,6 +292,7 @@
                                     Rendering...
                                 </span>
                                 <button type="button" class="btn btn-link btn-compact" style="padding: 4px 8px; font-size: 0.85em;" onclick="showItemsByFileModal()" title="Show how many items (for current filter) come from each Crowdin file">Total Files</button>
+                                <button type="button" class="btn btn-link btn-compact" style="padding: 4px 8px; font-size: 0.85em;" onclick="openReviewHistoryForCurrentLanguage()" title="Show Needs Review reason history for current language">Review History</button>
                             </div>
                         </div>
                     </div>
@@ -743,6 +744,166 @@
         function closeItemsByFileModal() {
             const modal = document.getElementById('itemsByFileModal');
             if (modal) modal.style.display = 'none';
+        }
+
+        function closeReviewHistoryModal() {
+            const modal = document.getElementById('reviewHistoryModal');
+            if (modal) modal.style.display = 'none';
+            window._reviewHistoryRows = [];
+            window._reviewHistoryTotalRows = 0;
+        }
+
+        function escapeHtmlText(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderReviewHistoryRows() {
+            const rows = Array.isArray(window._reviewHistoryRows) ? window._reviewHistoryRows : [];
+            const totalRows = Number(window._reviewHistoryTotalRows || rows.length);
+            const messageEl = document.getElementById('reviewHistoryMessage');
+            const tableEl = document.getElementById('reviewHistoryTable');
+            const bodyEl = document.getElementById('reviewHistoryBody');
+            const changesOnlyEl = document.getElementById('reviewHistoryChangesOnly');
+            const latestChangeOnlyEl = document.getElementById('reviewHistoryLatestChangeOnly');
+            if (!messageEl || !tableEl || !bodyEl) return;
+            const changesOnly = !!(changesOnlyEl && changesOnlyEl.checked);
+            const latestChangeOnly = !!(latestChangeOnlyEl && latestChangeOnlyEl.checked);
+            let filtered = changesOnly ? rows.filter((row) => row.changed === true) : rows;
+            if (latestChangeOnly) {
+                const latestByItem = new Map();
+                filtered.forEach((row) => {
+                    const key = String(row.itemId || '');
+                    if (!key) return;
+                    if (!latestByItem.has(key)) latestByItem.set(key, row);
+                });
+                filtered = Array.from(latestByItem.values());
+            }
+            if (filtered.length === 0) {
+                messageEl.textContent = changesOnly
+                    ? 'No reason changes found across the loaded snapshots.'
+                    : 'No Needs Review history rows found.';
+                bodyEl.innerHTML = '';
+                tableEl.style.display = 'none';
+                return;
+            }
+            const shown = filtered.length;
+            const modeParts = [];
+            if (changesOnly) modeParts.push('changed reasons only');
+            if (latestChangeOnly) modeParts.push('latest change per item');
+            const modeLabel = modeParts.length ? modeParts.join(' + ') : 'all rows';
+            messageEl.textContent = `Showing ${modeLabel}: ${shown}/${totalRows} row(s).`;
+            bodyEl.innerHTML = filtered.map((row) => {
+                const reason = row.reason ? escapeHtmlText(row.reason) : '<span style="color:#888;">(empty)</span>';
+                const updated = row.updated || row.snapshotUpdated || '';
+                const updatedText = updated
+                    ? escapeHtmlText(new Date(updated).toString() === 'Invalid Date' ? updated : new Date(updated).toLocaleString())
+                    : '';
+                const changeBadge = row.changed
+                    ? '<span style="display:inline-block; margin-left:6px; font-size:0.75em; color:#0d47a1; background:#e3f2fd; border:1px solid #90caf9; border-radius:10px; padding:1px 6px;">changed</span>'
+                    : '';
+                return `
+                    <tr>
+                        <td style="padding:6px; border-bottom:1px solid #eee; white-space:nowrap;">${escapeHtmlText(row.versionId)}${changeBadge}</td>
+                        <td style="padding:6px; border-bottom:1px solid #eee; font-family:monospace; font-size:0.85em; word-break:break-all;">${escapeHtmlText(row.itemId)}</td>
+                        <td style="padding:6px; border-bottom:1px solid #eee; white-space:pre-wrap;">${reason}</td>
+                        <td style="padding:6px; border-bottom:1px solid #eee; white-space:nowrap;">${updatedText}</td>
+                    </tr>
+                `;
+            }).join('');
+            tableEl.style.display = 'table';
+        }
+
+        async function openReviewHistoryForCurrentLanguage() {
+            const dash = window.dashboard;
+            const modal = document.getElementById('reviewHistoryModal');
+            const titleEl = document.getElementById('reviewHistoryModalTitle');
+            const messageEl = document.getElementById('reviewHistoryMessage');
+            const tableEl = document.getElementById('reviewHistoryTable');
+            const bodyEl = document.getElementById('reviewHistoryBody');
+            if (!dash || !dash.currentLanguage || !modal || !titleEl || !messageEl || !tableEl || !bodyEl) return;
+
+            const langName = dash.currentLanguage;
+            const langCode = (dash.languages && dash.languages[langName] && dash.languages[langName].lang_code)
+                ? String(dash.languages[langName].lang_code)
+                : '';
+            if (!langCode) return;
+
+            titleEl.innerHTML = `<i class="fas fa-history"></i> Needs Review history - ${escapeHtmlText(langCode)}`;
+            messageEl.textContent = 'Loading history snapshots...';
+            bodyEl.innerHTML = '';
+            tableEl.style.display = 'none';
+            const changesOnlyEl = document.getElementById('reviewHistoryChangesOnly');
+            if (changesOnlyEl) changesOnlyEl.checked = false;
+            const latestChangeOnlyEl = document.getElementById('reviewHistoryLatestChangeOnly');
+            if (latestChangeOnlyEl) latestChangeOnlyEl.checked = false;
+            window._reviewHistoryRows = [];
+            window._reviewHistoryTotalRows = 0;
+            modal.style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/validation-storage-rollback?language=${encodeURIComponent(langCode)}&mode=needs-review-history&limit=30`, { cache: 'no-store' });
+                const payload = await response.json();
+                if (!response.ok || !payload?.success) {
+                    const err = String(payload?.error || payload?.message || `HTTP ${response.status}`);
+                    throw new Error(err);
+                }
+
+                const versions = Array.isArray(payload.versions) ? payload.versions : [];
+                const rows = [];
+                const reasonMaps = versions.map((version) => {
+                    const map = new Map();
+                    const entries = Array.isArray(version?.entries) ? version.entries : [];
+                    entries.forEach((entry) => {
+                        const itemId = String(entry?.itemId || '');
+                        if (!itemId) return;
+                        const reason = String(entry?.reason || '').trim();
+                        map.set(itemId, reason);
+                    });
+                    return map;
+                });
+                versions.forEach((version) => {
+                    const versionIndex = versions.indexOf(version);
+                    const versionId = String(version?.versionId || '');
+                    const snapshotUpdated = String(version?.updated || '');
+                    const entries = Array.isArray(version?.entries) ? version.entries : [];
+                    entries.forEach((entry) => {
+                        const itemId = String(entry?.itemId || '');
+                        const reason = String(entry?.reason || '');
+                        const reasonTrimmed = reason.trim();
+                        const olderReason = (versionIndex + 1 < reasonMaps.length)
+                            ? reasonMaps[versionIndex + 1].get(itemId)
+                            : undefined;
+                        const changed = olderReason === undefined ? true : String(olderReason || '').trim() !== reasonTrimmed;
+                        rows.push({
+                            versionId,
+                            snapshotUpdated,
+                            itemId,
+                            reason,
+                            updated: String(entry?.reviewUpdatedAt || entry?.updated || ''),
+                            changed
+                        });
+                    });
+                });
+
+                if (rows.length === 0) {
+                    messageEl.textContent = `No Needs Review history found for ${langCode} in the latest snapshots.`;
+                    tableEl.style.display = 'none';
+                    return;
+                }
+
+                messageEl.textContent = `Language: ${langCode} · Snapshots scanned: ${versions.length} · Rows: ${rows.length}`;
+                window._reviewHistoryRows = rows;
+                window._reviewHistoryTotalRows = rows.length;
+                renderReviewHistoryRows();
+            } catch (error) {
+                messageEl.textContent = `Failed to load history: ${error.message || error}`;
+                tableEl.style.display = 'none';
+            }
         }
 
         function getPendingRowsForCurrentLanguage() {

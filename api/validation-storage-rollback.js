@@ -134,6 +134,70 @@ export default async function handler(req, res) {
       if (!language) {
         return res.status(400).json({ success: false, error: 'Missing required query param: language' });
       }
+      const mode = String(req.query.mode || '').trim().toLowerCase();
+      if (mode === 'needs-review-history') {
+        const requestedLimit = Number(req.query.limit || 30);
+        const limit = Number.isFinite(requestedLimit)
+          ? Math.min(Math.max(Math.trunc(requestedLimit), 1), 100)
+          : 30;
+        const prefix = getLanguageHistoryPrefix(language);
+        const [files] = await bucket.getFiles({ prefix });
+        const jsonFiles = (files || [])
+          .filter((file) => String(file?.name || '').toLowerCase().endsWith('.json'))
+          .sort((a, b) => String(b.name || '').localeCompare(String(a.name || '')))
+          .slice(0, limit);
+
+        const versions = [];
+        for (const file of jsonFiles) {
+          const name = String(file?.name || '');
+          const versionId = name.split('/').pop().replace(/\.json$/i, '');
+          try {
+            const payload = await readJsonFile(file);
+            const byItem = payload?.validation_results && typeof payload.validation_results === 'object'
+              ? payload.validation_results
+              : {};
+            const entries = [];
+            Object.entries(byItem).forEach(([itemId, entry]) => {
+              const record = entry && typeof entry === 'object' ? entry : {};
+              if (record.needsReview !== true) return;
+              entries.push({
+                itemId,
+                reason: String(record.reason || ''),
+                reviewUpdatedAt: String(record.reviewUpdatedAt || ''),
+                updated: String(record.updated || record.timestamp || ''),
+                needsReview: true
+              });
+            });
+            entries.sort((a, b) => String(a.itemId || '').localeCompare(String(b.itemId || '')));
+            versions.push({
+              versionId,
+              path: name,
+              updated: file?.metadata?.updated || null,
+              size: Number(file?.metadata?.size || 0),
+              needsReviewCount: entries.length,
+              entries
+            });
+          } catch (_e) {
+            versions.push({
+              versionId,
+              path: name,
+              updated: file?.metadata?.updated || null,
+              size: Number(file?.metadata?.size || 0),
+              needsReviewCount: 0,
+              entries: [],
+              readError: true
+            });
+          }
+        }
+
+        return res.status(200).json({
+          success: true,
+          mode: 'needs-review-history',
+          language,
+          count: versions.length,
+          versions
+        });
+      }
       const prefix = getLanguageHistoryPrefix(language);
       const [files] = await bucket.getFiles({ prefix });
       const versions = [];

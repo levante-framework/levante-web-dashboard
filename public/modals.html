@@ -15,6 +15,40 @@
     </div>
 </div>
 
+<!-- Needs Review reason history modal -->
+<div id="reviewHistoryModal" class="modal">
+    <div class="modal-content" style="max-width: 1100px; width: 92%;">
+        <div class="modal-header">
+            <h2 id="reviewHistoryModalTitle"><i class="fas fa-history"></i> Needs Review history</h2>
+            <span class="close" onclick="closeReviewHistoryModal()">&times;</span>
+        </div>
+        <div class="modal-body" style="max-height: 72vh; overflow-y: auto;">
+            <p id="reviewHistoryMessage" style="color: #666; margin-bottom: 12px;"></p>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9em; color:#37474f;">
+                    <input type="checkbox" id="reviewHistoryChangesOnly" onchange="renderReviewHistoryRows()" style="cursor:pointer;">
+                    Changes only
+                </label>
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9em; color:#37474f;">
+                    <input type="checkbox" id="reviewHistoryLatestChangeOnly" onchange="renderReviewHistoryRows()" style="cursor:pointer;">
+                    Latest change per item only
+                </label>
+            </div>
+            <table id="reviewHistoryTable" style="width: 100%; border-collapse: collapse; font-size: 0.88em; display: none;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Snapshot</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Item ID</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Reason</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="reviewHistoryBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Crowdin files modal -->
 <div id="crowdinFilesModal" class="modal">
     <div class="modal-content">
