@@ -101,10 +101,25 @@
                     </div>
                 </div>
             </div>
-            <div class="controls-section">
-                <div class="control-group">
-                    <label><i class="fas fa-volume-up"></i> Voice Tools:</label>
-                    <div class="voice-controls single-row" id="voiceControls">
+            <div class="controls-section" id="voiceToolsSection">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                    <label style="margin: 0; font-weight: 600; color: #e2e8f0;"><i class="fas fa-volume-up"></i> Voice Tools:</label>
+                    <button
+                        type="button"
+                        id="toggleVoiceToolsBtn"
+                        class="btn btn-link btn-compact"
+                        style="padding: 2px 6px; font-size: 0.85em; min-width: 28px;"
+                        onclick="toggleVoiceToolsPanel()"
+                        aria-expanded="true"
+                        aria-label="Collapse voice tools panel"
+                        title="Collapse voice tools panel"
+                    >
+                        <i class="fas fa-chevron-up" id="voiceToolsChevron" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="voiceToolsPanelContent" style="margin-top: 10px;">
+                    <div class="control-group">
+                        <div class="voice-controls single-row" id="voiceControls">
                         <div class="voice-select-row">
                             <div class="voice-input compact">
                                 <select id="playhtVoice" class="voice-select split">
@@ -149,42 +164,43 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            <!-- Locate Me panel hidden - not needed for translations dashboard workflow -->
-            <div class="control-group location-panel" style="display: none;">
-                <label><i class="fas fa-location-dot"></i> Locate Me:</label>
-                <div class="location-wrapper">
-                    <div class="location-actions">
-                        <button id="locateMeButton" class="btn btn-primary">
-                            <i class="fas fa-location-arrow"></i> Locate Me
-                        </button>
-                        <small class="location-hint">Uses on-device GPS and a local dataset only.</small>
                     </div>
-                    <div class="location-result" id="locationResult">
-                        <strong>Current Location:</strong>
-                        <span id="locationResultText">Not determined yet.</span>
+                    <!-- Locate Me panel hidden - not needed for translations dashboard workflow -->
+                    <div class="control-group location-panel" style="display: none;">
+                        <label><i class="fas fa-location-dot"></i> Locate Me:</label>
+                        <div class="location-wrapper">
+                            <div class="location-actions">
+                                <button id="locateMeButton" class="btn btn-primary">
+                                    <i class="fas fa-location-arrow"></i> Locate Me
+                                </button>
+                                <small class="location-hint">Uses on-device GPS and a local dataset only.</small>
+                            </div>
+                            <div class="location-result" id="locationResult">
+                                <strong>Current Location:</strong>
+                                <span id="locationResultText">Not determined yet.</span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
                 
-                <!-- Text Generation Section -->
-                <div class="control-group tts-control-group">
-                    <label class="tts-label"><i class="fas fa-edit"></i> Text to Speech:</label>
-                    <div class="tts-layout">
-                        <textarea id="textInput" class="tts-textarea" placeholder="Enter text to convert to speech, or select an item from the table below..."></textarea>
-                        <div class="tts-button-grid">
-                            <button id="generateAudio" class="btn btn-success">
-                                <i class="fas fa-play"></i> Generate Audio
-                            </button>
-                            <button id="populateSelected" class="btn btn-primary">
-                                <i class="fas fa-arrow-down"></i> Use Selected Item
-                            </button>
-                            <button id="viewDraftAudio" class="btn btn-secondary">
-                                <i class="fas fa-folder-open"></i> Draft Audio
-                            </button>
-                            <button id="viewApprovedAudio" class="btn btn-secondary">
-                                <i class="fas fa-check"></i> Approved Audio
-                            </button>
+                    <!-- Text Generation Section -->
+                    <div class="control-group tts-control-group">
+                        <label class="tts-label"><i class="fas fa-edit"></i> Text to Speech:</label>
+                        <div class="tts-layout">
+                            <textarea id="textInput" class="tts-textarea" placeholder="Enter text to convert to speech, or select an item from the table below..."></textarea>
+                            <div class="tts-button-grid">
+                                <button id="generateAudio" class="btn btn-success">
+                                    <i class="fas fa-play"></i> Generate Audio
+                                </button>
+                                <button id="populateSelected" class="btn btn-primary">
+                                    <i class="fas fa-arrow-down"></i> Use Selected Item
+                                </button>
+                                <button id="viewDraftAudio" class="btn btn-secondary">
+                                    <i class="fas fa-folder-open"></i> Draft Audio
+                                </button>
+                                <button id="viewApprovedAudio" class="btn btn-secondary">
+                                    <i class="fas fa-check"></i> Approved Audio
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -212,10 +228,10 @@
                         </select>
                         <input type="hidden" id="validateSpeedMode" value="turbo">
                         <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
-                            <i class="fas fa-save"></i> Save
+                            <i class="fas fa-save"></i> Save Reviews
                         </button>
                         <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="loadValidationsFromShared()" title="Sync latest validation results from shared team storage">
-                            <i class="fas fa-cloud-download-alt"></i> Sync
+                            <i class="fas fa-cloud-download-alt"></i> Load Reviews
                         </button>
                         <button id="exportValidations" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f; display: none;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
@@ -753,6 +769,39 @@
             window._reviewHistoryTotalRows = 0;
         }
 
+        const VOICE_TOOLS_COLLAPSE_KEY = 'voice_tools_collapsed';
+
+        function setVoiceToolsCollapsedState(collapsed) {
+            const controls = document.getElementById('voiceToolsPanelContent');
+            const chevron = document.getElementById('voiceToolsChevron');
+            const button = document.getElementById('toggleVoiceToolsBtn');
+            if (!controls || !chevron || !button) return;
+            controls.style.display = collapsed ? 'none' : '';
+            chevron.className = collapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+            button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            const nextAction = collapsed ? 'Expand voice tools panel' : 'Collapse voice tools panel';
+            button.setAttribute('aria-label', nextAction);
+            button.title = nextAction;
+            try {
+                localStorage.setItem(VOICE_TOOLS_COLLAPSE_KEY, collapsed ? '1' : '0');
+            } catch (_) {}
+        }
+
+        function toggleVoiceToolsPanel() {
+            const controls = document.getElementById('voiceToolsPanelContent');
+            if (!controls) return;
+            const collapsed = controls.style.display !== 'none' ? true : false;
+            setVoiceToolsCollapsedState(collapsed);
+        }
+
+        function initializeVoiceToolsCollapsedState() {
+            let collapsed = false;
+            try {
+                collapsed = String(localStorage.getItem(VOICE_TOOLS_COLLAPSE_KEY) || '') === '1';
+            } catch (_) {}
+            setVoiceToolsCollapsedState(collapsed);
+        }
+
         function escapeHtmlText(value) {
             return String(value || '')
                 .replace(/&/g, '&amp;')
@@ -1231,6 +1280,7 @@
             const last = localStorage.getItem('validation_shared_last_sync') || '';
             const source = localStorage.getItem('validation_shared_last_sync_source') || '';
             setValidationSharedSyncLabel(last, false, source);
+            initializeVoiceToolsCollapsedState();
         });
 
         function downloadNeedsReviewCSVWithTranslations(langCode) {

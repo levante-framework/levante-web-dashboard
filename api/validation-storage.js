@@ -25,7 +25,10 @@ const VERSION_HISTORY_BY_LANGUAGE_PREFIX = process.env.VALIDATION_RESULTS_HISTOR
 const VERSION_HISTORY_AGGREGATE_PREFIX = process.env.VALIDATION_RESULTS_HISTORY_AGGREGATE_PREFIX || 'validations/history/aggregate';
 const MAX_HISTORY_PER_LANGUAGE = Number(process.env.VALIDATION_HISTORY_MAX_PER_LANGUAGE || 30);
 const MAX_HISTORY_AGGREGATE = Number(process.env.VALIDATION_HISTORY_MAX_AGGREGATE || 30);
-const EXCLUDED_VALIDATION_PREFIXES = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
+const EXCLUDED_VALIDATION_PREFIXES = [
+  'main/Z_LEGACY_DO_NOT_TRANSLATE/',
+  'main/LEGACY_DO_NOT_TRANSLATE/'
+];
 
 function isExcludedValidationItemId(itemId) {
   const normalized = String(itemId || '').trim().toLowerCase();

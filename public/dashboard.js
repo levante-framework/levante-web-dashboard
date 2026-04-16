@@ -38,7 +38,10 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 this._unsavedValidationResolve = null;
                 this.sharedValidationSource = 'unknown';
                 this.loadedValidationLanguageCodes = new Set();
-                this.excludedValidationPrefixes = ['main/Z_LEGACY_DO_NOT_TRANSLATE/'];
+                this.excludedValidationPrefixes = [
+                    'main/Z_LEGACY_DO_NOT_TRANSLATE/',
+                    'main/LEGACY_DO_NOT_TRANSLATE/'
+                ];
                 this.reasonAutoSaveTimers = new Map();
                 this.embeddingAdvisoryEnabled = (window.CONFIG?.embeddingAdvisoryEnabled !== false);
                 this.embeddingAdvisoryMeta = null;
@@ -111,7 +114,11 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 if (!normalized) return false;
                 const compact = normalized.replace(/^[a-z]{2}(?:-[A-Za-z]{2,4})?\//i, '').toLowerCase();
                 const segments = compact.split('/').filter(Boolean);
-                return segments.some((segment) => segment.startsWith('z_'));
+                return segments.some((segment) => (
+                    segment.startsWith('z_')
+                    || segment === 'legacy_do_not_translate'
+                    || segment === 'z_legacy_do_not_translate'
+                ));
             }
 
             isSupportedCrowdinZipPath(path) {
