@@ -1,4 +1,5 @@
 const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project and is released under a Creative Commons BY-NC-SA 4.0 license';
+const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
 
         class Dashboard {
             constructor() {
@@ -14,6 +15,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 
                 this.data = [];
                 this.crowdinFilesUsed = null;
+                this.crowdinCacheState = '';
                 this.currentLanguage = 'English';
                 this.selectedRow = null;
                 this.voices = { playht: [], elevenlabs: [] };
@@ -110,6 +112,32 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const compact = normalized.replace(/^[a-z]{2}(?:-[A-Za-z]{2,4})?\//i, '').toLowerCase();
                 const segments = compact.split('/').filter(Boolean);
                 return segments.some((segment) => segment.startsWith('z_'));
+            }
+
+            isSupportedCrowdinZipPath(path) {
+                const normalized = String(path || '').replace(/\\/g, '/').trim();
+                if (!normalized) return false;
+                const lower = normalized.toLowerCase();
+                if (!(lower.endsWith('.csv') || lower.endsWith('.xlf') || lower.endsWith('.xliff'))) return false;
+                return this.isSupportedCrowdinSourcePath(lower);
+            }
+
+            isSupportedCrowdinSourcePath(path) {
+                const normalized = String(path || '').replace(/\\/g, '/').trim().toLowerCase();
+                if (!normalized) return false;
+                const segments = normalized.split('/').filter(Boolean);
+                if (segments.length < 3) return false;
+                let baseIdx = 0;
+                if (/^[a-z]{2}(?:-[a-z0-9]{2,4})?$/.test(segments[0])) {
+                    if (segments[1] !== 'main') return false;
+                    baseIdx = 1;
+                } else if (segments[0] === 'main') {
+                    baseIdx = 0;
+                } else {
+                    return false;
+                }
+                const contentGroup = segments[baseIdx + 1];
+                return contentGroup === 'dashboard' || contentGroup === 'itembank_by_task' || contentGroup === 'surveys';
             }
 
             isExcludedCrowdinItem(item) {
@@ -361,10 +389,20 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const loaded = await this.loadDataFromCrowdin({ forceRefresh });
                     if (loaded) return;
                     if (forceRefresh) {
-                        console.warn('Crowdin refresh failed, falling back to CSV');
+                        console.warn('Crowdin refresh failed; keeping Crowdin mode without CSV fallback');
                     } else {
-                        console.info('No cached Crowdin data found yet; using CSV fallback until Update Translations succeeds.');
+                        // New sessions (or different logins/browsers) may not have local Crowdin cache yet.
+                        // Attempt one automatic network refresh before falling back to partial CSV bundles.
+                        const autoLoaded = await this.loadDataFromCrowdin({ forceRefresh: true, suppressAlert: true, auto: true });
+                        if (autoLoaded) return;
+                        console.info('No cached Crowdin data found yet; Crowdin mode requires successful refresh.');
                     }
+                    // Important: legacy CSV fallback uses different identifiers than shared validation storage
+                    // for many locales (notably es-CO and pt-BR), causing missing score/back-translation UI.
+                    // In Crowdin mode, fail closed instead of silently loading incompatible CSV data.
+                    this.setStatus('Could not load Crowdin translations. Shared validation/back-translation data will not align with CSV fallback. Please retry "Update Translations".', 'error');
+                    this.updateDataSourceLabel('Crowdin unavailable');
+                    return;
                 }
 
                 await this.loadDataFromCSV();
@@ -375,7 +413,11 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const label = document.getElementById('dataSourceLabel');
                 if (!label) return;
                 const displaySource = (source !== undefined && source !== null) ? source : this.currentDataSource;
-                if (displaySource) label.textContent = `Currently loaded: ${displaySource}`;
+                if (displaySource) {
+                    const cacheState = String(this.crowdinCacheState || '').trim();
+                    const cacheSuffix = cacheState ? ` | Cache: ${cacheState}` : '';
+                    label.textContent = `Currently loaded: ${displaySource}${cacheSuffix}`;
+                }
                 else label.textContent = '';
             }
 
@@ -388,6 +430,58 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 this.lazyRenderStateByLanguage.clear();
                 this.fileFilterByLanguage.clear();
                 this.activeRenderJobId += 1;
+            }
+
+            hasUsableTranslationsDataset(rows) {
+                const data = Array.isArray(rows) ? rows : [];
+                if (data.length === 0) return false;
+                let withEnglish = 0;
+                let withAnyTranslated = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i] && typeof data[i] === 'object' ? data[i] : {};
+                    const enText = String(row.en || '').trim();
+                    if (enText) withEnglish++;
+                    const hasTranslated = Object.keys(row).some((key) => {
+                        const normalized = String(key || '').trim();
+                        if (!normalized || normalized.toLowerCase() === 'en') return false;
+                        if (!/^[a-z]{2}(?:-[A-Za-z0-9]{2,4})?$/.test(normalized)) return false;
+                        return !!String(row[key] || '').trim();
+                    });
+                    if (hasTranslated) withAnyTranslated++;
+                    if (withEnglish > 25 && withAnyTranslated > 25) return true;
+                }
+                return withEnglish > 0 && withAnyTranslated > 0;
+            }
+
+            normalizeCrowdinCacheRows(rows) {
+                const data = Array.isArray(rows) ? rows : [];
+                const normalized = [];
+                for (let i = 0; i < data.length; i++) {
+                    const row = data[i] && typeof data[i] === 'object' ? { ...data[i] } : null;
+                    if (!row) continue;
+                    const itemId = String(row.item_id || row.identifier || row.id || row.ID || row.Item_ID || '').trim();
+                    if (!itemId) continue;
+                    row.item_id = itemId;
+                    row.en = String(row.en || row.source || row.source_phrase || row.english || row['en-US'] || row['en_US'] || row.text || '').trim();
+                    const sourcePaths = [];
+                    if (Array.isArray(row._sourcePaths)) {
+                        row._sourcePaths.forEach((p) => {
+                            const v = String(p || '').replace(/\\/g, '/').trim();
+                            if (!v) return;
+                            if (this.isSupportedCrowdinSourcePath(v)) sourcePaths.push(v);
+                        });
+                    }
+                    if (row._path) {
+                        const p = String(row._path || '').replace(/\\/g, '/').trim();
+                        if (p && this.isSupportedCrowdinSourcePath(p)) sourcePaths.push(p);
+                    }
+                    if (sourcePaths.length > 0) {
+                        row._sourcePaths = Array.from(new Set(sourcePaths));
+                        row._path = row._sourcePaths[0];
+                    }
+                    normalized.push(row);
+                }
+                return normalized;
             }
 
             attachDerivedDisplayFields(rows) {
@@ -509,22 +603,114 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return preferred || String(langCode || '');
             }
 
-            getValidationEntry(itemId, langCode) {
-                const rawItemId = String(itemId || '').trim();
+            normalizeValidationPathKey(rawPath) {
+                const normalized = String(rawPath || '').replace(/\\/g, '/').trim();
+                if (!normalized) return '';
+                const parts = normalized.split('/').filter(Boolean);
+                if (parts.length >= 2 && /^([a-z]{2}(?:-[a-z0-9]{2,4})?)$/i.test(parts[0]) && parts[1].toLowerCase() === 'main') {
+                    return parts.slice(1).join('/').toLowerCase();
+                }
+                return normalized.toLowerCase();
+            }
+
+            getValidationEntry(itemOrId, langCode) {
+                const rawItemId = String(
+                    (itemOrId && typeof itemOrId === 'object')
+                        ? (itemOrId.item_id || itemOrId.identifier || '')
+                        : (itemOrId || '')
+                ).trim();
                 if (!rawItemId) return null;
-                const candidates = [rawItemId, rawItemId.toLowerCase()];
-                if (rawItemId.includes('::')) {
-                    const tail = String(rawItemId.split('::').pop() || '').trim();
-                    if (tail) {
-                        candidates.push(tail, tail.toLowerCase());
+                const sourcePathHints = (() => {
+                    if (!itemOrId || typeof itemOrId !== 'object') return [];
+                    try {
+                        return this.getItemSourcePaths(itemOrId).map((p) => this.normalizeValidationPathKey(p)).filter(Boolean);
+                    } catch (_) {
+                        return [];
+                    }
+                })();
+
+                const normalizedRaw = rawItemId
+                    .replace(/\.xliff(?=::|$)/ig, '.xlf')
+                    .replace(/\.xlf(?=::|$)/ig, '.xliff');
+                const tail = normalizedRaw.includes('::')
+                    ? String(normalizedRaw.split('::').pop() || '').trim()
+                    : '';
+                const tailNoQuery = tail.split(/[?#]/)[0] || tail;
+                const tailPrimary = tailNoQuery.split('|')[0] || tailNoQuery;
+                const tailSlashLeaf = tailPrimary.includes('/') ? tailPrimary.split('/').pop() : tailPrimary;
+                const rawVariants = new Set(
+                    [rawItemId, normalizedRaw]
+                        .map((v) => String(v || '').trim())
+                        .filter(Boolean)
+                );
+                [tail, tailNoQuery, tailPrimary, tailSlashLeaf].forEach((v) => {
+                    const s = String(v || '').trim();
+                    if (!s) return;
+                    rawVariants.add(s);
+                    rawVariants.add(s.toLowerCase());
+                });
+                const candidates = Array.from(rawVariants);
+                const exactNeedles = new Set(
+                    Array.from(rawVariants).map((v) => String(v || '').trim().toLowerCase()).filter(Boolean)
+                );
+                const suffixNeedles = new Set(
+                    [tail, tailNoQuery, tailPrimary, tailSlashLeaf]
+                        .map((v) => String(v || '').trim().toLowerCase())
+                        .filter((v) => v && v.length >= 2)
+                );
+                const storedKeys = Object.keys(this.validation_results || {});
+                const exactMatches = storedKeys.filter((storedKey) => {
+                    const lower = String(storedKey || '').trim().toLowerCase();
+                    return !!lower && exactNeedles.has(lower);
+                });
+                exactMatches.forEach((m) => candidates.push(m));
+
+                // Extension-swapped suffix compatibility for legacy .xlf/.xliff drift.
+                const extSwapNeedles = new Set();
+                Array.from(exactNeedles).forEach((needle) => {
+                    if (needle.includes('.xliff')) extSwapNeedles.add(needle.replace(/\.xliff(?=::|$)/g, '.xlf'));
+                    if (needle.includes('.xlf')) extSwapNeedles.add(needle.replace(/\.xlf(?=::|$)/g, '.xliff'));
+                });
+                if (extSwapNeedles.size > 0) {
+                    storedKeys.forEach((storedKey) => {
+                        const lower = String(storedKey || '').trim().toLowerCase();
+                        if (extSwapNeedles.has(lower)) candidates.push(storedKey);
+                    });
+                }
+
+                const suffixMatches = storedKeys.filter((storedKey) => {
+                    const lower = String(storedKey || '').trim().toLowerCase();
+                    if (!lower) return false;
+                    for (const needle of suffixNeedles) {
+                        if (lower.endsWith(`::${needle}`)) return true;
+                    }
+                    return false;
+                });
+                if (suffixMatches.length === 1) {
+                    candidates.push(suffixMatches[0]);
+                } else if (suffixMatches.length > 1 && sourcePathHints.length > 0) {
+                    const byPath = suffixMatches.filter((storedKey) => {
+                        const pathPart = String(storedKey || '').split('::')[0] || '';
+                        const normalizedPath = this.normalizeValidationPathKey(pathPart);
+                        return normalizedPath && sourcePathHints.some((hint) => normalizedPath.endsWith(hint) || hint.endsWith(normalizedPath));
+                    });
+                    if (byPath.length === 1) candidates.push(byPath[0]);
+                }
+
+                const legacyTail = rawItemId.includes('::')
+                    ? String(rawItemId.split('::').pop() || '').trim()
+                    : '';
+                // Last-resort compatibility with historic short keys.
+                if (legacyTail) {
+                    const tailLower = legacyTail.toLowerCase();
+                    const tailMatches = storedKeys.filter((storedKey) => {
+                        const s = String(storedKey || '').trim().toLowerCase();
+                        return !!s && s.endsWith(`::${tailLower}`);
+                    });
+                    if (tailMatches.length === 1) {
+                        candidates.push(tailMatches[0]);
                     }
                 }
-                // Legacy caches may only have the short key; newer data often has path::short-key.
-                const directSuffixMatches = Object.keys(this.validation_results || {}).filter((storedKey) => {
-                    const s = String(storedKey || '');
-                    return s && (s.endsWith(`::${rawItemId}`) || s.toLowerCase().endsWith(`::${rawItemId.toLowerCase()}`));
-                });
-                directSuffixMatches.forEach((m) => candidates.push(m));
                 const uniqueCandidates = Array.from(new Set(candidates.filter(Boolean)));
                 const preferred = this.resolvePreferredLangCode(langCode);
                 const aliases = this.getLanguageAliasCodes(langCode);
@@ -797,7 +983,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
                 (rows || []).forEach((item) => {
                     const itemId = item?.item_id || item?.identifier || '';
-                    const storedResult = this.getValidationEntry(itemId, normalizedLang);
+                    const storedResult = this.getValidationEntry(item, normalizedLang);
                     if (storedResult?.needsReview === true) needsReview++;
                     if (storedResult?.manualApproved === true) approved++;
 
@@ -879,6 +1065,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
 
             async loadDataFromCrowdin(options = {}) {
                 const forceRefresh = options && options.forceRefresh === true;
+                const suppressAlert = options && options.suppressAlert === true;
                 const totalStart = this.perfNow();
                 try {
                     if (!forceRefresh) {
@@ -886,7 +1073,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             this.logPerf('Crowdin load (cache path)', totalStart);
                             return true;
                         }
-                        // Do not call Crowdin automatically during normal loads.
+                        // Callers may opt into auto-refresh after cache miss.
                         this.setStatus('No Crowdin cache found yet. Using CSV fallback now. Click "Update Translations" to fetch Crowdin and seed cache.', 'warning');
                         return false;
                     }
@@ -958,13 +1145,13 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         filter: (f) => {
                             const n = nameLower(f);
                             if (n.includes('archive')) return false;
-                            if (n.startsWith('main/') && !n.startsWith('main/dashboard/')) return false;
-                            return n.endsWith('.csv') || n.endsWith('.xlf') || n.endsWith('.xliff');
+                            return this.isSupportedCrowdinZipPath(n);
                         }
                     });
                     this.logPerf('Crowdin zip unzip', unzipStart, `files=${Object.keys(unzipped).length}`);
                     const filteredUnzipped = {};
                     Object.entries(unzipped).forEach(([path, fileData]) => {
+                        if (!this.isSupportedCrowdinZipPath(path)) return;
                         if (this.isExcludedCrowdinPath(path)) return;
                         filteredUnzipped[path] = fileData;
                     });
@@ -977,6 +1164,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     this.setLoadedData(merged);
                     this.logPerf('Crowdin setLoadedData', setDataStart, `rows=${this.data.length}`);
                     const source = 'Crowdin (approved only)';
+                    this.crowdinCacheState = '';
                     console.log(`Loaded ${this.data.length} items from ${source}`);
                     this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
                     this.updateDataSourceLabel(source);
@@ -990,7 +1178,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     console.warn('Crowdin load failed:', error);
                     this.setStatus(`Crowdin refresh failed (${error.message}). Using CSV fallback for now.`, 'warning');
                     // Only interrupt users when they explicitly requested a Crowdin refresh.
-                    if (forceRefresh) {
+                    if (forceRefresh && !suppressAlert) {
                         const message = error.message || String(error);
                         alert(`Crowdin refresh failed: ${message}\n\nUsing CSV fallback for now. You can retry "Update Translations".`);
                     }
@@ -1009,15 +1197,32 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         const cached = JSON.parse(raw);
                         this.logPerf('Crowdin cache localStorage parse', parseStart, `rows=${Array.isArray(cached?.data) ? cached.data.length : 0}`);
                         if (cached && Array.isArray(cached.data) && cached.data.length > 0) {
+                            const normalizedRows = this.normalizeCrowdinCacheRows(cached.data);
+                            const schemaMatches = String(cached.cacheSchemaVersion || '') === CROWDIN_CACHE_SCHEMA_VERSION;
+                            const canMigrateLegacy = String(cached.cacheFormat || '') === 'crowdin-full-merge';
+                            if (!schemaMatches && !canMigrateLegacy) {
+                                console.warn('Ignoring outdated non-migratable Crowdin cache from localStorage; refreshing with current schema.');
+                            } else if (!this.hasUsableTranslationsDataset(normalizedRows)) {
+                                console.warn('Ignoring invalid cached Crowdin data from localStorage (missing base/translated text).');
+                            } else {
                             const setDataStart = this.perfNow();
-                            this.setLoadedData(cached.data);
+                            this.setLoadedData(normalizedRows);
                             this.logPerf('Crowdin cache setLoadedData (localStorage)', setDataStart, `rows=${this.data.length}`);
                             this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
+                            this.crowdinCacheState = schemaMatches ? 'current' : 'migrated';
                             const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                             this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
                             this.updateDataSourceLabel(`cached Crowdin data (retrieved ${cachedAt})`);
+                            if (!schemaMatches || normalizedRows.length !== cached.data.length) {
+                                console.log('♻️ Migrating cached Crowdin data to latest schema.');
+                                await this.cacheCrowdinDataLocally({
+                                    rows: normalizedRows,
+                                    files: Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : (this.crowdinFilesUsed || [])
+                                });
+                            }
                             this.logPerf('Crowdin cache load total (localStorage)', cacheStart);
                             return true;
+                            }
                         }
                     }
                 } catch (error) {
@@ -1028,13 +1233,32 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     const cached = await this.readCrowdinCacheFromIndexedDB();
                     this.logPerf('Crowdin cache IndexedDB read', idbReadStart, cached ? 'hit' : 'miss');
                     if (!cached || !Array.isArray(cached.data) || cached.data.length === 0) return false;
+                    const normalizedRows = this.normalizeCrowdinCacheRows(cached.data);
+                    const schemaMatches = String(cached.cacheSchemaVersion || '') === CROWDIN_CACHE_SCHEMA_VERSION;
+                    const canMigrateLegacy = String(cached.cacheFormat || '') === 'crowdin-full-merge';
+                    if (!schemaMatches && !canMigrateLegacy) {
+                        console.warn('Ignoring outdated non-migratable Crowdin cache from IndexedDB; refreshing with current schema.');
+                        return false;
+                    }
+                    if (!this.hasUsableTranslationsDataset(normalizedRows)) {
+                        console.warn('Ignoring invalid cached Crowdin data from IndexedDB (missing base/translated text).');
+                        return false;
+                    }
                     const setDataStart = this.perfNow();
-                    this.setLoadedData(cached.data);
+                    this.setLoadedData(normalizedRows);
                     this.logPerf('Crowdin cache setLoadedData (IndexedDB)', setDataStart, `rows=${this.data.length}`);
                     this.crowdinFilesUsed = Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : null;
+                    this.crowdinCacheState = schemaMatches ? 'current' : 'migrated';
                     const cachedAt = cached.cachedAt ? new Date(cached.cachedAt).toLocaleString() : 'previous session';
                     this.setStatus(`Loaded ${this.data.length} items from cached Crowdin data (${cachedAt}, CSV + XLIFF)`, 'success');
                     this.updateDataSourceLabel(`cached Crowdin data (retrieved ${cachedAt})`);
+                    if (!schemaMatches || normalizedRows.length !== cached.data.length) {
+                        console.log('♻️ Migrating cached Crowdin data to latest schema.');
+                        await this.cacheCrowdinDataLocally({
+                            rows: normalizedRows,
+                            files: Array.isArray(cached.crowdinFilesUsed) ? cached.crowdinFilesUsed : (this.crowdinFilesUsed || [])
+                        });
+                    }
                     this.logPerf('Crowdin cache load total (IndexedDB)', cacheStart);
                     return true;
                 } catch (error) {
@@ -1043,9 +1267,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
             }
 
-            sanitizeCrowdinDataForCache() {
+            sanitizeCrowdinDataForCache(rowsOverride = null) {
                 // Reduce cache size by removing diagnostic-only fields (not needed by table rendering).
-                return (this.data || []).map((row) => {
+                const rows = Array.isArray(rowsOverride) ? rowsOverride : (this.data || []);
+                return rows.map((row) => {
                     const cleaned = {};
                     Object.keys(row || {}).forEach((key) => {
                         if (String(key).startsWith('_') && key !== '_sourcePaths' && key !== '_path') return;
@@ -1094,12 +1319,14 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 return value;
             }
 
-            async cacheCrowdinDataLocally() {
+            async cacheCrowdinDataLocally(options = {}) {
                 try {
-                    const files = this.crowdinFilesUsed || [];
-                    const compactData = this.sanitizeCrowdinDataForCache();
+                    const files = Array.isArray(options?.files) ? options.files : (this.crowdinFilesUsed || []);
+                    const rowsForCache = Array.isArray(options?.rows) ? options.rows : (this.data || []);
+                    const compactData = this.sanitizeCrowdinDataForCache(rowsForCache);
                     const payload = {
                         cachedAt: new Date().toISOString(),
+                        cacheSchemaVersion: CROWDIN_CACHE_SCHEMA_VERSION,
                         data: compactData,
                         crowdinFilesUsed: files,
                         cacheFormat: 'crowdin-full-merge',
@@ -1135,7 +1362,21 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
             }
 
             parseCrowdinZipToMerged(unzipped) {
-                const LANG_ID_TO_CODE = { en: 'en', 'es-CO': 'es-CO', es: 'es-CO', de: 'de', 'fr-CA': 'fr-CA', fr: 'fr-CA', nl: 'nl', 'de-CH': 'de-CH', 'es-AR': 'es-AR', 'en-GH': 'en-GH' };
+                const LANG_ID_TO_CODE = {
+                    en: 'en',
+                    'es-CO': 'es-CO',
+                    es: 'es-CO',
+                    de: 'de',
+                    'fr-CA': 'fr-CA',
+                    fr: 'fr-CA',
+                    nl: 'nl',
+                    'de-CH': 'de-CH',
+                    'es-AR': 'es-AR',
+                    'en-GH': 'en-GH',
+                    pt: 'pt-BR',
+                    'pt-br': 'pt-BR',
+                    'pt-pt': 'pt-PT'
+                };
                 function langFromFirstSegment(path) {
                     const parts = String(path || '').replace(/\\/g, '/').split('/');
                     const first = (parts[0] || '').trim();
@@ -2366,8 +2607,10 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         if (r.updated) entry.updated = r.updated;
                         if (r.scoreSource) entry.scoreSource = r.scoreSource;
                         if (r.manualApproved === true) entry.manualApproved = true;
+                        if (typeof r.manualApprovalUpdatedAt === 'string' && r.manualApprovalUpdatedAt) entry.manualApprovalUpdatedAt = r.manualApprovalUpdatedAt;
                         if (r.needsReview === true) entry.needsReview = true;
                         if (typeof r.reason === 'string' && r.reason) entry.reason = r.reason.slice(0, 400);
+                        if (typeof r.reviewUpdatedAt === 'string' && r.reviewUpdatedAt) entry.reviewUpdatedAt = r.reviewUpdatedAt;
                         if (typeof r.notes === 'string' && r.notes) entry.notes = r.notes.slice(0, 160);
                         if (typeof r.backTranslation === 'string' && r.backTranslation) entry.backTranslation = r.backTranslation.slice(0, 1000);
                         if (typeof r.aiUsed === 'boolean') entry.aiUsed = r.aiUsed;
@@ -2508,6 +2751,9 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                     const shouldHydrateNeedsReview =
                                         sharedValidation?.needsReview === true
                                         && localValidation?.needsReview !== true;
+                                    const shouldHydrateManualApproved =
+                                        sharedValidation?.manualApproved === true
+                                        && localValidation?.manualApproved !== true;
                                     const localReason = String(localValidation?.reason || '').trim();
                                     const sharedReason = String(sharedValidation?.reason || '').trim();
                                     const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
@@ -2516,6 +2762,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                                         || (sharedTs && (!localTs || sharedTs > localTs))
                                         || shouldHydrateBackTranslation
                                         || shouldHydrateNeedsReview
+                                        || shouldHydrateManualApproved
                                         || shouldHydrateReasonForReview
                                     ) {
                                         localResults[itemId][lang] = sharedValidation;
@@ -2576,14 +2823,17 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                 }
                 const preferredLangCode = this.resolvePreferredLangCode(langCode);
                 const existing = this.getValidationEntry(itemId, preferredLangCode);
-                // Store the result; preserve needsReview, reason, and backTranslation from existing entry
+                // Store the result; preserve reviewer metadata from existing entry.
                 this.validation_results[itemId][preferredLangCode] = {
                     score: score,
                     notes: notes,
                     timestamp: new Date().toISOString(),
+                    manualApproved: existing && existing.manualApproved === true ? true : false,
+                    manualApprovalUpdatedAt: existing && existing.manualApprovalUpdatedAt ? existing.manualApprovalUpdatedAt : '',
                     needsReview: existing && existing.needsReview !== undefined ? existing.needsReview : false,
                     reason: existing && existing.reason !== undefined ? existing.reason : '',
-                    backTranslation: existing && existing.backTranslation !== undefined ? existing.backTranslation : ''
+                    backTranslation: existing && existing.backTranslation !== undefined ? existing.backTranslation : '',
+                    reviewUpdatedAt: existing && existing.reviewUpdatedAt !== undefined ? existing.reviewUpdatedAt : ''
                 };
                 console.log(`📝 Stored validation result: ${itemId}[${preferredLangCode}] = ${score}%`);
             }
@@ -2885,7 +3135,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                     let embeddingRowHtml = '';
                     let approvedHtml = '';
                     let scoreValue = -1;
-                    const storedResult = this.getValidationEntry(itemId, langCode);
+                    const storedResult = this.getValidationEntry(item, langCode);
                     const needsReview = storedResult?.needsReview === true;
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
@@ -3139,6 +3389,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                             self.validation_results[itemId][preferredLangCode] = {};
                         }
                         self.validation_results[itemId][preferredLangCode].needsReview = isChecked;
+                        self.validation_results[itemId][preferredLangCode].reviewUpdatedAt = new Date().toISOString();
                         
                         // Clear reason if unchecked
                         if (!isChecked) {
@@ -3172,6 +3423,7 @@ const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project a
                         }
                         if (self.validation_results[itemId][preferredLangCode].reason === reason) return;
                         self.validation_results[itemId][preferredLangCode].reason = reason;
+                        self.validation_results[itemId][preferredLangCode].reviewUpdatedAt = new Date().toISOString();
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         console.log(`📝 Reason saved for ${itemId}[${langCode}]: "${reason}"`);
                     };

@@ -53,11 +53,45 @@ function mergeValidationEntry(existingEntry, incomingEntry) {
   const incomingHasReason = Object.prototype.hasOwnProperty.call(incoming, 'reason');
   const incomingHasManualApproved = Object.prototype.hasOwnProperty.call(incoming, 'manualApproved');
   const incomingHasManualApprovalUpdatedAt = Object.prototype.hasOwnProperty.call(incoming, 'manualApprovalUpdatedAt');
+  const incomingHasReviewUpdatedAt = Object.prototype.hasOwnProperty.call(incoming, 'reviewUpdatedAt');
+  const incomingReviewUpdatedAt = String(incoming?.reviewUpdatedAt || '').trim();
+  const existingReviewUpdatedAt = String(existing?.reviewUpdatedAt || '').trim();
   if (!incomingHasNeedsReview && existing.needsReview === true) {
     nextEntry.needsReview = true;
   }
+  // Prevent stale clients from clearing shared review flags accidentally.
+  // Clearing needsReview requires an explicit reviewUpdatedAt marker from the editor.
+  if (
+    existing.needsReview === true
+    && incomingHasNeedsReview
+    && incoming.needsReview !== true
+  ) {
+    const hasExplicitReviewChange = incomingHasReviewUpdatedAt && !!incomingReviewUpdatedAt;
+    const incomingReviewIsNewer = hasExplicitReviewChange
+      && (!existingReviewUpdatedAt || incomingReviewUpdatedAt >= existingReviewUpdatedAt);
+    if (!incomingReviewIsNewer) {
+      nextEntry.needsReview = true;
+    }
+  }
   if (!incomingHasReason && typeof existing.reason === 'string' && existing.reason) {
     nextEntry.reason = existing.reason;
+  }
+  if (
+    existing.needsReview === true
+    && typeof existing.reason === 'string'
+    && existing.reason
+    && incomingHasReason
+    && !String(incoming.reason || '').trim()
+  ) {
+    const hasExplicitReviewChange = incomingHasReviewUpdatedAt && !!incomingReviewUpdatedAt;
+    const incomingReviewIsNewer = hasExplicitReviewChange
+      && (!existingReviewUpdatedAt || incomingReviewUpdatedAt >= existingReviewUpdatedAt);
+    if (!incomingReviewIsNewer) {
+      nextEntry.reason = existing.reason;
+    }
+  }
+  if (!incomingHasReviewUpdatedAt && existingReviewUpdatedAt) {
+    nextEntry.reviewUpdatedAt = existingReviewUpdatedAt;
   }
   // Preserve manual approvals unless the client explicitly toggled approval state.
   // This prevents re-validation payloads from unintentionally clearing approvals.
@@ -136,6 +170,22 @@ function getLanguageAliasCodes(language) {
   // Preserve underscore variant for backward compatibility with legacy keys.
   out.add(raw.replace(/-/g, '_'));
   out.add(lower.replace(/-/g, '_'));
+  // Keep Portuguese regional variants interoperable (pt-BR <-> pt-PT <-> pt).
+  const aliasMap = {
+    pt: ['pt', 'pt-BR', 'pt-br', 'pt-PT', 'pt-pt'],
+    'pt-br': ['pt', 'pt-BR', 'pt-br', 'pt-PT', 'pt-pt'],
+    'pt-pt': ['pt', 'pt-BR', 'pt-br', 'pt-PT', 'pt-pt']
+  };
+  (aliasMap[lower] || []).forEach((code) => out.add(code));
+  Array.from(out).forEach((code) => {
+    const s = String(code || '').trim();
+    if (!s) return;
+    out.add(s.toLowerCase());
+    out.add(s.replace(/_/g, '-'));
+    out.add(s.replace(/-/g, '_'));
+    out.add(s.toLowerCase().replace(/_/g, '-'));
+    out.add(s.toLowerCase().replace(/-/g, '_'));
+  });
   return Array.from(out);
 }
 
@@ -308,6 +358,8 @@ async function loadByLanguageFromGCS(storage, requestedLanguage = '') {
         scopedLanguage,
         ...getLanguageAliasCodes(scopedLanguage)
       ]));
+      const scopedLanguageMaps = {};
+      const loadedLanguageFiles = [];
       for (const candidate of languageCandidates) {
         const file = bucket.file(getLanguageFilePath(candidate));
         const [exists] = await file.exists();
@@ -318,7 +370,17 @@ async function loadByLanguageFromGCS(storage, requestedLanguage = '') {
         const byItem = parsed?.validation_results && typeof parsed.validation_results === 'object'
           ? parsed.validation_results
           : {};
-        const combined = buildCombinedMapForLanguage(lang, byItem);
+        if (!Object.keys(byItem).length) continue;
+        loadedLanguageFiles.push(getLanguageFilePath(candidate));
+        if (!scopedLanguageMaps[lang]) scopedLanguageMaps[lang] = {};
+        Object.entries(byItem).forEach(([itemId, entry]) => {
+          if (isExcludedValidationItemId(itemId)) return;
+          const existingEntry = scopedLanguageMaps[lang][itemId];
+          scopedLanguageMaps[lang][itemId] = mergeValidationEntry(existingEntry, entry);
+        });
+      }
+      if (Object.keys(scopedLanguageMaps).length) {
+        const combined = combineLanguageMaps(scopedLanguageMaps);
         let validationCount = 0;
         Object.values(combined).forEach((byLang) => {
           validationCount += Object.keys(byLang || {}).length;
@@ -328,15 +390,18 @@ async function loadByLanguageFromGCS(storage, requestedLanguage = '') {
           metadata: {
             version: '2.0',
             storage_mode: 'by-language',
-            scoped_language: normalizeLanguageCode(scopedLanguage) || lang,
-            loaded_language_file: getLanguageFilePath(candidate),
+            scoped_language: normalizeLanguageCode(scopedLanguage) || scopedLanguage,
+            loaded_language_file: loadedLanguageFiles[0] || '',
+            loaded_language_files: loadedLanguageFiles,
             item_count: Object.keys(combined).length,
             validation_count: validationCount,
             loaded: new Date().toISOString()
           }
         };
       }
-      return null;
+      // If scoped language file is missing, fall back to full by-language scan.
+      // This recovers data when historical files use a different variant key
+      // (for example pt-BR vs pt-PT) and lets downstream filtering apply aliases.
     }
 
     const [files] = await bucket.getFiles({ prefix: `${BY_LANGUAGE_PREFIX}/` });

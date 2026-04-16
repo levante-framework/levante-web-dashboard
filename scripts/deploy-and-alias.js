@@ -33,6 +33,50 @@ function shellEscape(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableVercelDeployError(message) {
+  const text = String(message || '').toLowerCase();
+  return (
+    text.includes('invalid json response body') ||
+    text.includes('internal server error') ||
+    text.includes("unexpected token 'i'") ||
+    text.includes('fetcherror') ||
+    text.includes('socket hang up') ||
+    text.includes('ecconnreset') ||
+    text.includes('etimedout')
+  );
+}
+
+async function runVercelDeployWithRetry(cwd, maxAttempts = 3) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      if (attempt > 1) {
+        console.log(`🔁 Retrying Vercel deploy (${attempt}/${maxAttempts})...`);
+      }
+      const { stdout } = await runInDir(
+        'npx -y vercel --prod --yes --archive=tgz -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1',
+        cwd
+      );
+      return stdout;
+    } catch (err) {
+      lastError = err;
+      const retryable = isRetryableVercelDeployError(err?.message || err);
+      if (!retryable || attempt === maxAttempts) {
+        throw err;
+      }
+      const waitMs = 2000 * Math.pow(2, attempt - 1);
+      console.warn(`⚠️  Vercel API transient failure (attempt ${attempt}/${maxAttempts}): ${err.message}`);
+      console.warn(`⏳ Waiting ${Math.round(waitMs / 1000)}s before retry...`);
+      await sleep(waitMs);
+    }
+  }
+  throw lastError || new Error('Vercel deployment failed.');
+}
+
 (async () => {
   let deployCwd = process.cwd();
   let tempDeployDir = null;
@@ -97,10 +141,7 @@ function shellEscape(value) {
     console.log('🚀 Deploying to Vercel (production)...');
     await runInDir('node scripts/apply-version.js', deployCwd);
     // Avoid pulling large optional binaries during the Vercel build (keeps serverless bundles under size limits).
-    const { stdout: deployOut } = await runInDir(
-      'npx -y vercel --prod --yes --archive=tgz -b PUPPETEER_SKIP_DOWNLOAD=1 -b PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1',
-      deployCwd
-    );
+    const deployOut = await runVercelDeployWithRetry(deployCwd, 3);
     process.stdout.write(deployOut);
 
     // Try to extract the production deployment URL from the CLI output
