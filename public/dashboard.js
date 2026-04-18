@@ -1050,7 +1050,15 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const baseText = mode === 'not-approved' ? 'Not Approved' : 'Approved';
                     btn.disabled = !!isBusy;
                     btn.dataset.busy = isBusy ? '1' : '0';
-                    btn.textContent = isBusy ? `${baseText}...` : baseText;
+                    if (isBusy) {
+                        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${baseText}...`;
+                        btn.style.border = '1px solid #f57c00';
+                        btn.style.background = '#fff3e0';
+                        btn.style.color = '#e65100';
+                        btn.style.fontWeight = '700';
+                    } else {
+                        btn.textContent = baseText;
+                    }
                 });
             }
 
@@ -1064,7 +1072,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const isActive = active === mode;
                     const isBusy = btn.dataset.busy === '1';
                     const baseText = mode === 'not-approved' ? 'Not Approved' : 'Approved';
-                    if (!isBusy) btn.textContent = baseText;
+                    if (isBusy) return;
+                    btn.textContent = baseText;
                     btn.style.border = `1px solid ${isActive ? '#0d47a1' : '#b0bec5'}`;
                     btn.style.background = isActive ? '#e3f2fd' : '#f8f9fa';
                     btn.style.color = isActive ? '#0d47a1' : '#546e7a';
@@ -1108,13 +1117,45 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 });
             }
 
-            computeValidationSummaryCountsForRows(rows, langCode) {
+            buildValidationEntryCacheForRows(rows, langCode) {
+                const out = new Map();
+                const normalizedLang = String(langCode || '').trim();
+                (rows || []).forEach((item) => {
+                    const itemId = String(item?.item_id || item?.identifier || '').trim();
+                    if (!itemId) return;
+                    out.set(itemId, this.getValidationEntryForDisplay(item, normalizedLang));
+                });
+                return out;
+            }
+
+            getCachedValidationEntry(entryCache, item, langCode) {
+                const itemId = String(item?.item_id || item?.identifier || '').trim();
+                if (entryCache instanceof Map && itemId && entryCache.has(itemId)) {
+                    return entryCache.get(itemId);
+                }
+                return this.getValidationEntryForDisplay(item, langCode);
+            }
+
+            applyApprovalFilterToRowsWithCache(rows, langCode, language, entryCache) {
+                const filterMode = this.getApprovalFilterForLanguage(language || this.currentLanguage);
+                if (filterMode === 'all') return rows;
+                const normalizedLang = String(langCode || '').trim();
+                return (rows || []).filter((item) => {
+                    const storedResult = this.getCachedValidationEntry(entryCache, item, normalizedLang);
+                    const isApproved = this.isManualApprovedEntry(storedResult);
+                    if (filterMode === 'approved') return isApproved;
+                    if (filterMode === 'not-approved') return !isApproved;
+                    return true;
+                });
+            }
+
+            computeValidationSummaryCountsForRows(rows, langCode, entryCache = null) {
                 let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
                 const normalizedLang = String(langCode || '').trim();
                 const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
                 (rows || []).forEach((item) => {
                     const itemId = item?.item_id || item?.identifier || '';
-                    const storedResult = this.getValidationEntryForDisplay(item, normalizedLang);
+                    const storedResult = this.getCachedValidationEntry(entryCache, item, normalizedLang);
                     if (storedResult?.needsReview === true) needsReview++;
                     if (this.isManualApprovedEntry(storedResult)) approved++;
 
@@ -1134,15 +1175,59 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 return { good, warning, error, needsReview, approved, pending };
             }
 
+            setTableLoadingState(language, isLoading, loadedCount = 0, totalCount = 0) {
+                const lang = String(language || '').trim();
+                if (!lang) return;
+                const statusEl = document.getElementById(`table-loading-${lang}`);
+                const contentEl = document.getElementById(`content-${lang}`);
+                const controls = contentEl
+                    ? Array.from(contentEl.querySelectorAll('.sort-controls .btn, .sort-controls select'))
+                    : [];
+                controls.forEach((el) => { el.disabled = !!isLoading; });
+                if (!statusEl) return;
+                if (isLoading) {
+                    const loadedSafe = Math.max(0, Number(loadedCount) || 0);
+                    const totalSafe = Math.max(0, Number(totalCount) || 0);
+                    statusEl.style.display = 'inline-flex';
+                    statusEl.style.alignItems = 'center';
+                    statusEl.style.gap = '6px';
+                    statusEl.style.padding = '4px 10px';
+                    statusEl.style.borderRadius = '999px';
+                    statusEl.style.border = '1px solid #f57c00';
+                    statusEl.style.background = '#fff3e0';
+                    statusEl.style.color = '#e65100';
+                    statusEl.style.fontWeight = '800';
+                    statusEl.style.fontSize = '0.92em';
+                    statusEl.style.letterSpacing = '0.01em';
+                    statusEl.style.boxShadow = '0 0 0 2px rgba(245, 124, 0, 0.15)';
+                    statusEl.innerHTML = `<i class="fas fa-spinner fa-spin" style="font-size:1.05em;"></i> Loading Table ${loadedSafe}/${totalSafe}`;
+                    return;
+                }
+                statusEl.style.display = 'inline-flex';
+                statusEl.style.alignItems = 'center';
+                statusEl.style.gap = '6px';
+                statusEl.style.padding = '4px 10px';
+                statusEl.style.borderRadius = '999px';
+                statusEl.style.border = '1px solid #2e7d32';
+                statusEl.style.background = '#e8f5e9';
+                statusEl.style.fontWeight = '800';
+                statusEl.style.fontSize = '0.92em';
+                statusEl.style.color = '#2e7d32';
+                statusEl.style.letterSpacing = '0.01em';
+                statusEl.style.boxShadow = '0 0 0 2px rgba(46, 125, 50, 0.14)';
+                statusEl.innerHTML = '<i class="fas fa-check-circle" style="font-size:1.05em;"></i> Table Loaded';
+            }
+
             appendRenderBatch(state, batchSize) {
                 const end = Math.min(state.offset + batchSize, state.rows.length);
                 const fragment = document.createDocumentFragment();
                 for (let i = state.offset; i < end; i++) {
-                    const row = this.buildDataRow(state.rows[i], i, state.langCode);
+                    const row = this.buildDataRow(state.rows[i], i, state.langCode, state.entryCache);
                     if (row) fragment.appendChild(row);
                 }
                 state.tableContent.appendChild(fragment);
                 state.offset = end;
+                this.setTableLoadingState(state.renderLanguage, true, state.offset, state.rows.length);
                 return state.offset < state.rows.length;
             }
 
@@ -1155,6 +1240,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();
                 }
+                this.setTableLoadingState(state.renderLanguage, false);
                 this.setApprovalFilterBusy(state.renderLanguage, false);
                 this.updateApprovalFilterButtonsForLanguage(state.renderLanguage);
                 this.setupSortAndReviewHandlers();
@@ -3107,7 +3193,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         <div class="data-table">
                             <div class="table-header">
                                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                                    <h4 style="margin: 0;"><i class="fas fa-table"></i> Translation Items <span id="item-count-${language}" class="item-count">(Loading...)</span></h4>
+                                    <h4 style="margin: 0;"><i class="fas fa-table"></i> Translation Items <span id="item-count-${language}" class="item-count">(Loading...)</span> <span id="table-loading-${language}" style="display:none; margin-left: 10px; font-size: 0.85em; color: #6c757d;"></span></h4>
                                     <div class="sort-controls" style="display: flex; gap: 6px; align-items: center;">
                                         <span style="font-size: 0.85em; color: #6c757d;">Sort:</span>
                                         <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="score-desc" title="Sort by score (highest first)" style="padding: 4px 8px; font-size: 0.8em;">
@@ -3180,6 +3266,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 if (previousSignature === currentSignature && tableContent.children.length > 0) {
                     if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    this.setTableLoadingState(renderLanguage, false);
                     this.setApprovalFilterBusy(renderLanguage, false);
                     this.updateApprovalFilterButtonsForLanguage(renderLanguage);
                     this.logPerf(`Render table skipped (${renderLanguage})`, renderStart, `rows=${tableContent.children.length}`);
@@ -3187,6 +3274,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 }
                 const inFlightSignature = this.inFlightRenderSignatureByLanguage.get(renderLanguage);
                 if (inFlightSignature === currentSignature) {
+                    this.setTableLoadingState(renderLanguage, false);
                     this.setApprovalFilterBusy(renderLanguage, false);
                     this.updateApprovalFilterButtonsForLanguage(renderLanguage);
                     this.logPerf(`Render table skipped (${renderLanguage})`, renderStart, 'already in-flight');
@@ -3203,12 +3291,13 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 const baseRowsForFile = selectedFile === 'all'
                     ? baseRows
                     : baseRows.filter((item) => this.getItemSourcePaths(item).includes(selectedFile));
-                const dataToShow = this.applyApprovalFilterToRows(baseRowsForFile, langCode, renderLanguage);
+                const entryCache = this.buildValidationEntryCacheForRows(baseRowsForFile, langCode);
+                const dataToShow = this.applyApprovalFilterToRowsWithCache(baseRowsForFile, langCode, renderLanguage, entryCache);
                 this.updateApprovalFilterButtonsForLanguage(renderLanguage);
+                this.setTableLoadingState(renderLanguage, true, 0, dataToShow.length);
 
                 if (renderLanguage === this.currentLanguage) {
-                    const quickCounts = this.computeValidationSummaryCountsForRows(dataToShow, langCode);
-                    if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
+                    const quickCounts = this.computeValidationSummaryCountsForRows(dataToShow, langCode, entryCache);
                     if (typeof window.setValidationSummaryCounts === 'function') {
                         window.setValidationSummaryCounts(quickCounts);
                     }
@@ -3229,6 +3318,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     langCode,
                     tableContent,
                     rows: dataToShow,
+                    entryCache,
                     offset: 0,
                     signature: currentSignature,
                     renderStart,
@@ -3241,6 +3331,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         if (self.inFlightRenderSignatureByLanguage.get(renderLanguage) === currentSignature) {
                             self.inFlightRenderSignatureByLanguage.delete(renderLanguage);
                         }
+                        self.setTableLoadingState(renderLanguage, false);
                         self.logPerf(`Render table cancelled (${renderLanguage})`, renderStart);
                         return;
                     }
@@ -3254,7 +3345,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 processBatch();
             }
             
-            buildDataRow(item, index, langCode) {
+            buildDataRow(item, index, langCode, entryCache = null) {
                     let text = this.getTranslationTextForLanguage(item, langCode);
                     const hasTranslatedText = !!String(text || '').trim();
                     if (!text) text = 'Missing translation';
@@ -3283,7 +3374,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     let embeddingRowHtml = '';
                     let approvedHtml = '';
                     let scoreValue = -1;
-                    const storedResult = this.getValidationEntryForDisplay(item, langCode);
+                    const storedResult = this.getCachedValidationEntry(entryCache, item, langCode);
                     const needsReview = storedResult?.needsReview === true;
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
