@@ -686,12 +686,18 @@
                 const byItem = results[itemId];
                 if (!byItem || typeof byItem !== 'object') return;
                 const r = byItem[preferred] || byItem[langCode] || null;
-                if (!r || r.needsReview !== true) return;
+                if (!r) return;
+                const hasScoredState = typeof r.score === 'number';
+                const hasApprovedState = r.manualApproved === true;
+                const hasNeedsReviewState = r.needsReview === true;
+                const hasReasonState = !!String(r.reason || '').trim();
+                if (!hasScoredState && !hasApprovedState && !hasNeedsReviewState && !hasReasonState) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
                 rows.push({
                     itemId,
                     score: scoreVal,
                     notes: r.notes || '',
+                    manualApproved: r.manualApproved === true,
                     needsReview: r.needsReview === true,
                     reason: r.reason || ''
                 });
@@ -1057,7 +1063,7 @@
             const langName = Object.keys(dash.languages || {}).find(k => dash.languages[k].lang_code === langCode) || langCode;
             titleEl.innerHTML = `<i class="fas fa-list-alt"></i> Validation review – ${langName} (${langCode})`;
             _reviewTableLangCode = langCode;
-            tbody.innerHTML = '<tr><td colspan="5" style="padding:12px; color:#6c757d; font-style:italic;"><i class="fas fa-spinner fa-spin"></i> Processing...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:12px; color:#6c757d; font-style:italic;"><i class="fas fa-spinner fa-spin"></i> Processing...</td></tr>';
             emptyEl.style.display = 'none';
             tableEl.style.display = 'table';
             document.getElementById('validationReviewTableDownloadCsv').disabled = true;
@@ -1109,6 +1115,7 @@
                     vb = vb == null ? -1 : Number(vb);
                     return dir * (va - vb);
                 }
+                if (by === 'manualApproved') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
                 if (by === 'needsReview') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
                 return dir * String(va).localeCompare(String(vb));
             });
@@ -1134,6 +1141,31 @@
                 tdNotes.textContent = row.notes;
                 tdNotes.className = 'validation-review-notes-cell';
                 tr.appendChild(tdNotes);
+                const tdApproved = document.createElement('td');
+                const approvedCheck = document.createElement('input');
+                approvedCheck.type = 'checkbox';
+                approvedCheck.checked = row.manualApproved === true;
+                approvedCheck.dataset.itemId = row.itemId;
+                approvedCheck.addEventListener('change', function() {
+                    const preferred = (typeof dash.resolvePreferredLangCode === 'function')
+                        ? dash.resolvePreferredLangCode(langCode)
+                        : langCode;
+                    if (typeof window.setManualApprovalForValidation === 'function') {
+                        window.setManualApprovalForValidation(row.itemId, preferred, approvedCheck.checked);
+                    } else {
+                        if (!dash.validation_results[row.itemId]) dash.validation_results[row.itemId] = {};
+                        if (!dash.validation_results[row.itemId][preferred]) {
+                            dash.validation_results[row.itemId][preferred] = {};
+                        }
+                        const nowIso = new Date().toISOString();
+                        dash.validation_results[row.itemId][preferred].manualApproved = approvedCheck.checked;
+                        dash.validation_results[row.itemId][preferred].manualApprovalUpdatedAt = nowIso;
+                        dash.validation_results[row.itemId][preferred].updated = nowIso;
+                    }
+                    row.manualApproved = approvedCheck.checked;
+                });
+                tdApproved.appendChild(approvedCheck);
+                tr.appendChild(tdApproved);
                 const tdCheck = document.createElement('td');
                 const check = document.createElement('input');
                 check.type = 'checkbox';
@@ -1148,6 +1180,10 @@
                         dash.validation_results[row.itemId][preferred] = {};
                     }
                     dash.validation_results[row.itemId][preferred].needsReview = check.checked;
+                    const nowIso = new Date().toISOString();
+                    dash.validation_results[row.itemId][preferred].reviewUpdatedAt = nowIso;
+                    dash.validation_results[row.itemId][preferred].updated = nowIso;
+                    row.needsReview = check.checked;
                 });
                 tdCheck.appendChild(check);
                 tr.appendChild(tdCheck);
@@ -1167,6 +1203,10 @@
                         dash.validation_results[row.itemId][preferred] = {};
                     }
                     dash.validation_results[row.itemId][preferred].reason = input.value;
+                    const nowIso = new Date().toISOString();
+                    dash.validation_results[row.itemId][preferred].reviewUpdatedAt = nowIso;
+                    dash.validation_results[row.itemId][preferred].updated = nowIso;
+                    row.reason = input.value;
                 });
                 tdReason.appendChild(input);
                 tr.appendChild(tdReason);

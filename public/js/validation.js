@@ -533,6 +533,14 @@ function inferScoreSource(result) {
     return '';
 }
 
+function isManualApprovedResult(result) {
+    if (!result || typeof result !== 'object') return false;
+    if (result.manualApproved === true) return true;
+    if (String(result.scoreSource || '').trim().toLowerCase() === 'manual') return true;
+    if (String(result.notes || '').trim().toLowerCase() === 'manually approved') return true;
+    return false;
+}
+
 function ensureScoreSourceBadge(containerEl, source, aiModel = '') {
     if (!containerEl) return;
     let badge = containerEl.querySelector('.score-source-badge');
@@ -632,11 +640,13 @@ function upsertBackTranslationInRow(row, backTranslation) {
 function syncApprovedRowUi(row, approved) {
     if (!row) return;
     const reviewContainer = row.querySelector('.needs-review-container');
+    const needsReviewLabel = row.querySelector('.needs-review-toggle-label');
     const reasonContainer = row.querySelector('.reason-container');
     const needsReviewCheckbox = row.querySelector('.needs-review-checkbox');
     const approvedIndicator = row.querySelector('.approved-indicator');
     const approvedLabel = row.querySelector('.approved-toggle-label');
-    if (reviewContainer) reviewContainer.style.display = approved ? 'none' : 'flex';
+    if (reviewContainer) reviewContainer.style.display = 'flex';
+    if (needsReviewLabel) needsReviewLabel.style.display = approved ? 'none' : 'flex';
     if (reasonContainer) {
         const shouldShowReason = !approved && !!needsReviewCheckbox?.checked;
         reasonContainer.style.display = shouldShowReason ? 'flex' : 'none';
@@ -675,7 +685,7 @@ function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
             if (scoreBadge) scoreBadge.remove();
             ensureScoreSourceBadge(statusWrap, '');
         }
-        syncApprovedRowUi(row, !!result.manualApproved);
+        syncApprovedRowUi(row, isManualApprovedResult(result));
         return;
     }
 
@@ -717,7 +727,7 @@ function applyValidationUiFromResult(itemId, langCode, rowOverride = null) {
     scoreBadge.title = buildScoreTooltip(result, score);
 
     ensureScoreSourceBadge(statusWrap, inferScoreSource(result), result?.aiModel || '');
-    syncApprovedRowUi(row, !!result.manualApproved);
+    syncApprovedRowUi(row, isManualApprovedResult(result));
 
     if (button) {
         button.textContent = buttonText;

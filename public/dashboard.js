@@ -27,6 +27,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 this.inFlightRenderSignatureByLanguage = new Map();
                 this.lazyRenderStateByLanguage = new Map();
                 this.fileFilterByLanguage = new Map();
+                this.approvalFilterByLanguage = new Map();
                 
                 // Persistent validation results dictionary
                 // Structure: { item_id: { lang_code: { score: number, notes: string } } }
@@ -519,7 +520,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
             getCurrentRenderSignature(language) {
                 const filterValue = (document.getElementById('reviewTablePathFilter')?.value || 'all');
                 const fileFilterValue = this.fileFilterByLanguage.get(language) || 'all';
-                return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}::vr${this.validationResultsRevision}`;
+                const approvalFilterValue = this.getApprovalFilterForLanguage(language);
+                return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}::${approvalFilterValue}::vr${this.validationResultsRevision}`;
             }
 
             noteValidationResultsChanged() {
@@ -608,6 +610,52 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 );
                 const preferred = aliases.find((code) => configured.has(code));
                 return preferred || String(langCode || '');
+            }
+
+            isManualApprovedEntry(entry) {
+                const result = entry && typeof entry === 'object' ? entry : {};
+                const manualFlag = result.manualApproved;
+                if (manualFlag === true) return true;
+                if (String(manualFlag || '').trim().toLowerCase() === 'true') return true;
+                if (String(manualFlag || '').trim() === '1') return true;
+                const source = String(result.scoreSource || '').trim().toLowerCase();
+                if (source === 'manual') return true;
+                const notes = String(result.notes || '').trim().toLowerCase();
+                if (notes === 'manually approved') return true;
+                return false;
+            }
+
+            getValidationEntryForDisplay(itemOrId, langCode) {
+                const direct = this.getValidationEntry(itemOrId, langCode);
+                if (direct) return direct;
+                const itemId = String(
+                    (itemOrId && typeof itemOrId === 'object')
+                        ? (itemOrId.item_id || itemOrId.identifier || '')
+                        : (itemOrId || '')
+                ).trim();
+                if (!itemId) return null;
+                const itemIdLower = itemId.toLowerCase();
+                const storedKeys = Object.keys(this.validation_results || {});
+                const matches = storedKeys.filter((storedKey) => {
+                    const lower = String(storedKey || '').trim().toLowerCase();
+                    if (!lower) return false;
+                    return lower === itemIdLower || lower.endsWith(`::${itemIdLower}`);
+                });
+                if (matches.length !== 1) return null;
+                const byItem = this.validation_results?.[matches[0]];
+                if (!byItem || typeof byItem !== 'object') return null;
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const langCandidates = Array.from(new Set(
+                    [preferred, langCode, ...aliases]
+                        .map((code) => String(code || '').trim())
+                        .filter(Boolean)
+                ));
+                for (let i = 0; i < langCandidates.length; i++) {
+                    const candidateLang = langCandidates[i];
+                    if (byItem[candidateLang]) return byItem[candidateLang];
+                }
+                return null;
             }
 
             normalizeValidationPathKey(rawPath) {
@@ -984,15 +1032,91 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 return this.data.filter(item => allowedIds.has(String(item.item_id || item.identifier || '')));
             }
 
+            getApprovalFilterForLanguage(language) {
+                const raw = String(this.approvalFilterByLanguage.get(language) || 'all').trim().toLowerCase();
+                return raw === 'approved' || raw === 'not-approved' ? raw : 'all';
+            }
+
+            setApprovalFilterForCurrentLanguage(filterMode) {
+                this.applyApprovalFilterForLanguage(this.currentLanguage, filterMode);
+            }
+
+            setApprovalFilterBusy(language, isBusy) {
+                const lang = String(language || '').trim();
+                if (!lang) return;
+                document.querySelectorAll('.approval-filter-btn').forEach((btn) => {
+                    if (String(btn.dataset.lang || '') !== lang) return;
+                    const mode = String(btn.dataset.filter || '').trim().toLowerCase();
+                    const baseText = mode === 'not-approved' ? 'Not Approved' : 'Approved';
+                    btn.disabled = !!isBusy;
+                    btn.dataset.busy = isBusy ? '1' : '0';
+                    btn.textContent = isBusy ? `${baseText}...` : baseText;
+                });
+            }
+
+            updateApprovalFilterButtonsForLanguage(language) {
+                const lang = String(language || '').trim();
+                if (!lang) return;
+                const active = this.getApprovalFilterForLanguage(lang);
+                document.querySelectorAll('.approval-filter-btn').forEach((btn) => {
+                    if (String(btn.dataset.lang || '') !== lang) return;
+                    const mode = String(btn.dataset.filter || '').trim().toLowerCase();
+                    const isActive = active === mode;
+                    const isBusy = btn.dataset.busy === '1';
+                    const baseText = mode === 'not-approved' ? 'Not Approved' : 'Approved';
+                    if (!isBusy) btn.textContent = baseText;
+                    btn.style.border = `1px solid ${isActive ? '#0d47a1' : '#b0bec5'}`;
+                    btn.style.background = isActive ? '#e3f2fd' : '#f8f9fa';
+                    btn.style.color = isActive ? '#0d47a1' : '#546e7a';
+                    btn.style.fontWeight = isActive ? '700' : '500';
+                });
+            }
+
+            applyApprovalFilterForLanguage(language, filterMode) {
+                const lang = String(language || this.currentLanguage || '').trim();
+                if (!lang) return;
+                const normalized = String(filterMode || 'all').trim().toLowerCase();
+                const next = normalized === 'approved' || normalized === 'not-approved' ? normalized : 'all';
+                const current = this.getApprovalFilterForLanguage(lang);
+                const target = current === next ? 'all' : next;
+                this.approvalFilterByLanguage.set(lang, target);
+                this.setApprovalFilterBusy(lang, true);
+                this.updateApprovalFilterButtonsForLanguage(lang);
+                const langCode = String(this.languages?.[lang]?.lang_code || '').trim();
+                const shouldSync = target !== 'all' && !!langCode && typeof this.loadFromSharedStorage === 'function';
+                if (!shouldSync) {
+                    this.populateDataTable();
+                    return;
+                }
+                Promise.resolve(this.loadFromSharedStorage(langCode, { force: true }))
+                    .catch(() => false)
+                    .finally(() => {
+                        this.populateDataTable();
+                    });
+            }
+
+            applyApprovalFilterToRows(rows, langCode, language) {
+                const filterMode = this.getApprovalFilterForLanguage(language || this.currentLanguage);
+                if (filterMode === 'all') return rows;
+                const normalizedLang = String(langCode || '').trim();
+                return (rows || []).filter((item) => {
+                    const storedResult = this.getValidationEntryForDisplay(item, normalizedLang);
+                    const isApproved = this.isManualApprovedEntry(storedResult);
+                    if (filterMode === 'approved') return isApproved;
+                    if (filterMode === 'not-approved') return !isApproved;
+                    return true;
+                });
+            }
+
             computeValidationSummaryCountsForRows(rows, langCode) {
                 let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
                 const normalizedLang = String(langCode || '').trim();
                 const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
                 (rows || []).forEach((item) => {
                     const itemId = item?.item_id || item?.identifier || '';
-                    const storedResult = this.getValidationEntry(item, normalizedLang);
+                    const storedResult = this.getValidationEntryForDisplay(item, normalizedLang);
                     if (storedResult?.needsReview === true) needsReview++;
-                    if (storedResult?.manualApproved === true) approved++;
+                    if (this.isManualApprovedEntry(storedResult)) approved++;
 
                     const translatedText = this.extractTextForItem(item || {}, normalizedLang);
                     const hasTranslatedText = !!String(translatedText || '').trim();
@@ -1031,6 +1155,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();
                 }
+                this.setApprovalFilterBusy(state.renderLanguage, false);
+                this.updateApprovalFilterButtonsForLanguage(state.renderLanguage);
                 this.setupSortAndReviewHandlers();
                 this.logPerf(`Render table complete (${state.renderLanguage})`, state.renderStart, `rows=${state.rows.length}`);
             }
@@ -2996,7 +3122,13 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                         <button class="btn btn-compact sort-btn" data-lang="${language}" data-sort="review" title="Show items needing review first" style="padding: 4px 8px; font-size: 0.8em;">
                                             <i class="fas fa-flag"></i> Review
                                         </button>
-                                        <select id="file-filter-${language}" class="voice-select btn-compact file-filter-select" data-language="${language}" style="height: 30px; padding: 0 8px; min-width: 210px; max-width: 310px;" title="Filter grid to one source file">
+                                        <button class="btn btn-compact approval-filter-btn" data-lang="${language}" data-filter="approved" onclick="window.dashboard && window.dashboard.applyApprovalFilterForLanguage('${language.replace(/'/g, "\\'")}', 'approved')" title="Show only approved rows in this table" style="padding: 4px 8px; font-size: 0.8em; border: 1px solid #b0bec5; background: #f8f9fa; color: #546e7a;">
+                                            Approved
+                                        </button>
+                                        <button class="btn btn-compact approval-filter-btn" data-lang="${language}" data-filter="not-approved" onclick="window.dashboard && window.dashboard.applyApprovalFilterForLanguage('${language.replace(/'/g, "\\'")}', 'not-approved')" title="Show only not-approved rows in this table" style="padding: 4px 8px; font-size: 0.8em; border: 1px solid #b0bec5; background: #f8f9fa; color: #546e7a;">
+                                            Not Approved
+                                        </button>
+                                        <select id="file-filter-${language}" class="voice-select btn-compact file-filter-select" data-language="${language}" style="height: 30px; padding: 0 8px; min-width: 150px; max-width: 220px;" title="Filter grid to one source file">
                                             <option value="all">All Files</option>
                                         </select>
                                     </div>
@@ -3048,11 +3180,15 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 if (previousSignature === currentSignature && tableContent.children.length > 0) {
                     if (typeof setValidationSummaryLoading === 'function') setValidationSummaryLoading(false);
                     if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    this.setApprovalFilterBusy(renderLanguage, false);
+                    this.updateApprovalFilterButtonsForLanguage(renderLanguage);
                     this.logPerf(`Render table skipped (${renderLanguage})`, renderStart, `rows=${tableContent.children.length}`);
                     return;
                 }
                 const inFlightSignature = this.inFlightRenderSignatureByLanguage.get(renderLanguage);
                 if (inFlightSignature === currentSignature) {
+                    this.setApprovalFilterBusy(renderLanguage, false);
+                    this.updateApprovalFilterButtonsForLanguage(renderLanguage);
                     this.logPerf(`Render table skipped (${renderLanguage})`, renderStart, 'already in-flight');
                     return;
                 }
@@ -3064,9 +3200,11 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 const baseRows = this.getFilteredItemsForLanguage(renderLanguage);
                 this.refreshFileFilterOptions(renderLanguage, baseRows);
                 const selectedFile = this.fileFilterByLanguage.get(renderLanguage) || 'all';
-                const dataToShow = selectedFile === 'all'
+                const baseRowsForFile = selectedFile === 'all'
                     ? baseRows
                     : baseRows.filter((item) => this.getItemSourcePaths(item).includes(selectedFile));
+                const dataToShow = this.applyApprovalFilterToRows(baseRowsForFile, langCode, renderLanguage);
+                this.updateApprovalFilterButtonsForLanguage(renderLanguage);
 
                 if (renderLanguage === this.currentLanguage) {
                     const quickCounts = this.computeValidationSummaryCountsForRows(dataToShow, langCode);
@@ -3145,7 +3283,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     let embeddingRowHtml = '';
                     let approvedHtml = '';
                     let scoreValue = -1;
-                    const storedResult = this.getValidationEntry(item, langCode);
+                    const storedResult = this.getValidationEntryForDisplay(item, langCode);
                     const needsReview = storedResult?.needsReview === true;
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
@@ -3266,7 +3404,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         const advisoryDatasetLabel = advisoryDataset ? ` ${escapeHtml(advisoryDataset)}` : '';
                         embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}"><span class="item-embedding-label">Embedding${advisoryDatasetLabel}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
                     }
-                    const manualApproved = !!storedResult?.manualApproved;
+                    const manualApproved = this.isManualApprovedEntry(storedResult);
                     approvedHtml = `<label class="approved-toggle-label" title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? '#2e7d32' : '#6c757d'}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? 'checked' : ''} onchange="window.setManualApprovalForValidation && window.setManualApprovalForValidation('${escapedItemId}', '${langCode}', this.checked, this.closest('.data-row'))" style="cursor: pointer;">Approved</label>`;
                     
                     row.dataset.score = scoreValue;
@@ -3306,10 +3444,10 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
                                 <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
-                                ${approvedHtml}
                             </div>
-                            <div class="needs-review-container" style="margin-top: 6px; display: ${manualApproved ? 'none' : 'flex'}; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
-                                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? '#dc3545' : '#6c757d'};">
+                            <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
+                                ${approvedHtml}
+                                <label class="needs-review-toggle-label" style="display: ${manualApproved ? 'none' : 'flex'}; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? '#dc3545' : '#6c757d'};">
                                     <input type="checkbox" class="needs-review-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${needsReview ? 'checked' : ''} style="cursor: pointer;">
                                     <i class="fas fa-flag" style="color: ${needsReview ? '#dc3545' : '#adb5bd'};"></i> Needs Review
                                 </label>
