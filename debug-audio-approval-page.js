@@ -6,7 +6,7 @@
 
 const { chromium } = require('playwright');
 
-const TARGET_URL = 'https://levante-pitwall.vercel.app/audio-approval.html';
+const TARGET_URL = 'https://levante-pitwall.vercel.app/partner-audio-dashboard.html';
 
 async function debugPage() {
   console.log('Debugging page:', TARGET_URL);

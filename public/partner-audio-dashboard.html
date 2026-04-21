@@ -16,12 +16,49 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
+        const DASHBOARD_BUILD_VERSION = '2026-04-21-audio-output-hint-v6';
+        const CANONICAL_DASHBOARD_HOST = 'levante-partner-tools.vercel.app';
+        const ALLOWED_DASHBOARD_HOSTS = new Set([
+            'levante-partner-tools.vercel.app',
+            'levante-pitwall.vercel.app',
+        ]);
+
+        // Force users onto the canonical, latest-hosted dashboard URL.
+        // This avoids stale deployment-pinned links (`?dpl=...`) and old deployment hosts.
+        (function enforceCanonicalDashboardUrl() {
+            try {
+                const current = new URL(window.location.href);
+                const host = String(current.hostname || '').toLowerCase();
+                const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+                let shouldRedirect = false;
+
+                if (current.searchParams.has('dpl')) {
+                    current.searchParams.delete('dpl');
+                    shouldRedirect = true;
+                }
+
+                const isVercelHost = host.endsWith('.vercel.app');
+                if (!isLocalHost && isVercelHost && !ALLOWED_DASHBOARD_HOSTS.has(host)) {
+                    current.hostname = CANONICAL_DASHBOARD_HOST;
+                    shouldRedirect = true;
+                }
+
+                if (shouldRedirect) {
+                    current.searchParams.set('v', DASHBOARD_BUILD_VERSION);
+                    console.warn('Redirecting to canonical dashboard URL:', current.toString());
+                    window.location.replace(current.toString());
+                }
+            } catch (error) {
+                console.warn('Canonical dashboard URL enforcement failed:', error);
+            }
+        })();
+
         // ULTRA-EARLY VERSION CHECK - Runs before ANY other scripts
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
         console.log('%c  DASHBOARD VERSION CHECK', 'color: green; font-size: 18px; font-weight: bold;');
-        console.log('%c  VERSION: 2026-03-13-audio-tips-v1', 'color: blue; font-size: 16px; font-weight: bold;');
+        console.log(`%c  VERSION: ${DASHBOARD_BUILD_VERSION}`, 'color: blue; font-size: 16px; font-weight: bold;');
         console.log('%c========================================', 'color: green; font-size: 20px; font-weight: bold;');
-        window.DASHBOARD_VERSION = '2026-03-13-audio-tips-v1';
+        window.DASHBOARD_VERSION = DASHBOARD_BUILD_VERSION;
         window.DASHBOARD_LOADED_AT = new Date().toISOString();
         console.log('Check window.DASHBOARD_VERSION in console:', window.DASHBOARD_VERSION);
     </script>
@@ -1914,10 +1951,10 @@
         // IMMEDIATE VERSION CHECK - Runs before anything else
         (function() {
             console.log('%c=== PARTNER AUDIO DASHBOARD LOADED ===', 'color: green; font-size: 16px; font-weight: bold;');
-            console.log('%cVERSION: 2026-03-13-audio-tips-v1', 'color: blue; font-size: 14px; font-weight: bold;');
+            console.log(`%cVERSION: ${window.DASHBOARD_VERSION || 'unknown'}`, 'color: blue; font-size: 14px; font-weight: bold;');
             console.log('TIMESTAMP:', new Date().toISOString());
             console.warn('If you see old line numbers in errors, clear your browser cache!');
-            window.DASHBOARD_VERSION = '2026-03-13-audio-tips-v1';
+            window.DASHBOARD_VERSION = '2026-04-20-audio-play-fixes-v4';
             window.DASHBOARD_LOADED = true;
         })();
         
@@ -1996,6 +2033,8 @@
                 this.commonAudioTagsStorageKeyPrefix = 'partnerAudioCommonTags';
                 this.contextMenuTargetInput = null;
                 this.enhancedTagContextMenuEl = null;
+                this._hasShownNoSoundHint = false;
+                this._activePlaybackProbe = null;
                 try {
                     const debugParam = new URLSearchParams(window.location.search).get('debugEnhancedKeyMisses');
                     this.debugEnhancedKeyMisses = debugParam === '1' || String(debugParam || '').toLowerCase() === 'true';
@@ -3985,7 +4024,7 @@
             
             async handlePasswordLogin() {
                 console.log('=== handlePasswordLogin CALLED ===');
-                console.log('VERSION: 2026-03-13-audio-tips-v1');
+                console.log('VERSION:', window.DASHBOARD_VERSION || 'unknown');
                 const emailInput = document.getElementById('emailInput');
                 const passwordInput = document.getElementById('passwordInput');
                 const email = emailInput?.value?.trim() || '';
@@ -6095,6 +6134,107 @@
                 return null;
             }
 
+            showAudioPreviewPlayer(audioUrl, itemId, reveal = false) {
+                if (!audioUrl) return;
+                if (!this._audioPreviewState) {
+                    this._audioPreviewState = {
+                        objectUrl: null
+                    };
+                }
+                if (this._audioPreviewState.objectUrl && this._audioPreviewState.objectUrl !== audioUrl) {
+                    try {
+                        URL.revokeObjectURL(this._audioPreviewState.objectUrl);
+                    } catch (_) {
+                        // Ignore cleanup errors for stale blob URLs.
+                    }
+                }
+                this._audioPreviewState.objectUrl = audioUrl;
+
+                let panel = document.getElementById('audioPreviewPanel');
+                let label = document.getElementById('audioPreviewLabel');
+                let player = document.getElementById('audioPreviewPlayer');
+                if (!panel) {
+                    panel = document.createElement('div');
+                    panel.id = 'audioPreviewPanel';
+                    panel.style.cssText = [
+                        'position:fixed',
+                        'right:16px',
+                        'bottom:16px',
+                        'z-index:9999',
+                        'background:#ffffff',
+                        'border:1px solid #d1d5db',
+                        'border-radius:10px',
+                        'box-shadow:0 8px 24px rgba(0,0,0,0.18)',
+                        'padding:10px',
+                        'max-width:360px',
+                        'width:min(360px, calc(100vw - 32px))',
+                        'display:none'
+                    ].join(';');
+                    panel.innerHTML = `
+                        <div id="audioPreviewLabel" style="font-size:12px;color:#374151;margin-bottom:8px;"></div>
+                        <audio id="audioPreviewPlayer" controls style="width:100%;"></audio>
+                    `;
+                    document.body.appendChild(panel);
+                    label = document.getElementById('audioPreviewLabel');
+                    player = document.getElementById('audioPreviewPlayer');
+                }
+                if (label) {
+                    label.textContent = `Audio preview: ${itemId}`;
+                }
+                if (player) {
+                    player.src = audioUrl;
+                    player.muted = false;
+                    player.volume = 1.0;
+                    player.currentTime = 0;
+                    player.load();
+                }
+                panel.style.display = reveal ? 'block' : 'none';
+            }
+
+            showNoSoundHintBanner() {
+                if (this._hasShownNoSoundHint) return;
+                this._hasShownNoSoundHint = true;
+
+                let banner = document.getElementById('noSoundHintBanner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.id = 'noSoundHintBanner';
+                    banner.style.cssText = [
+                        'position:fixed',
+                        'left:16px',
+                        'top:16px',
+                        'z-index:10000',
+                        'max-width:520px',
+                        'width:min(520px, calc(100vw - 32px))',
+                        'background:#fff7ed',
+                        'border:1px solid #fdba74',
+                        'color:#7c2d12',
+                        'border-radius:10px',
+                        'box-shadow:0 8px 24px rgba(0,0,0,0.15)',
+                        'padding:12px'
+                    ].join(';');
+                    banner.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+                            <div>
+                                <div style="font-weight:700;margin-bottom:6px;">Playback worked, but no sound?</div>
+                                <div style="font-size:13px;line-height:1.4;">
+                                    Audio loaded and played successfully. If you still hear nothing, check browser tab mute,
+                                    system volume mixer, and selected output device (speaker/headset/Bluetooth).
+                                </div>
+                            </div>
+                            <button id="noSoundHintDismiss" type="button" style="border:none;background:transparent;color:#9a3412;font-size:18px;line-height:1;cursor:pointer;">&times;</button>
+                        </div>
+                    `;
+                    document.body.appendChild(banner);
+                    const dismiss = document.getElementById('noSoundHintDismiss');
+                    if (dismiss) {
+                        dismiss.addEventListener('click', () => {
+                            banner.remove();
+                        });
+                    }
+                }
+            }
+
             async playAudio(itemId) {
                 this.setAudioActionLoading(itemId, 'play', true, 'Loading...');
                 try {
@@ -6107,7 +6247,15 @@
                     if (!baseId) {
                         throw new Error(`Invalid item id: ${itemId}`);
                     }
+                    const playbackProbe = {
+                        itemId: String(itemId || ''),
+                        fetchOk: false,
+                        playResolved: false,
+                        progressed: false
+                    };
+                    this._activePlaybackProbe = playbackProbe;
                     let audioPath = null;
+                    let audioUrl = '';
                     const audioBucket = this.currentTab === 'approved'
                         ? this.audioBuckets.dev
                         : this.audioBuckets.draft;
@@ -6122,7 +6270,8 @@
                     // Fallback to default path if not found
                     if (!audioPath) {
                         const fallbackPrefix = this.getAudioPrefixes(this.currentLangCode)[0] || `audio/${this.currentLangCode}/`;
-                        audioPath = `${fallbackPrefix}${itemId}.mp3`;
+                        // Use normalized base id to avoid path mismatches from display-only variants.
+                        audioPath = `${fallbackPrefix}${baseId}.mp3`;
                     }
                     
                     const params = new URLSearchParams({
@@ -6130,13 +6279,26 @@
                         path: audioPath
                     });
                     
+                    let blob = null;
                     const response = await fetch(`/api/get-draft-audio?${params.toString()}`);
-                    
-                    if (!response.ok) {
-                        throw new Error('Audio not found in draft/dev buckets');
+                    if (response.ok) {
+                        blob = await response.blob();
+                        playbackProbe.fetchOk = true;
+                    } else {
+                        // Fallback for environments where proxy auth/env is misconfigured.
+                        // Buckets are publicly readable in current partner workflow.
+                        const encodedPath = String(audioPath || '')
+                            .split('/')
+                            .map(segment => encodeURIComponent(segment))
+                            .join('/');
+                        const directUrl = `https://storage.googleapis.com/${encodeURIComponent(audioBucket)}/${encodedPath}`;
+                        const directResponse = await fetch(directUrl, { cache: 'no-store' });
+                        if (!directResponse.ok) {
+                            throw new Error(`Audio not found (proxy ${response.status}, direct ${directResponse.status})`);
+                        }
+                        blob = await directResponse.blob();
+                        playbackProbe.fetchOk = true;
                     }
-                    
-                    const blob = await response.blob();
                     const audioBase64 = await this.convertBlobToBase64(blob);
                     const playedSnapshot = {
                         itemId: String(itemId || ''),
@@ -6160,25 +6322,66 @@
                         this.refreshCompareControlsForItem(itemId);
                         this.updateSaveButtonStates();
                     }
-                    const audioUrl = URL.createObjectURL(blob);
+                    audioUrl = URL.createObjectURL(blob);
+                    this.showAudioPreviewPlayer(audioUrl, itemId, false);
                     const audio = new Audio(audioUrl);
-                    
-                    audio.addEventListener('ended', () => {
-                        URL.revokeObjectURL(audioUrl);
+                    this._activePlaybackAudio = audio;
+                    audio.muted = false;
+                    audio.volume = 1.0;
+                    audio.currentTime = 0;
+                    audio.preload = 'auto';
+
+                    const onEnded = () => {
                         this.setStatus('Playback completed', 'success');
-                    });
-                    
-                    audio.addEventListener('error', () => {
+                        if (
+                            this._activePlaybackProbe === playbackProbe &&
+                            playbackProbe.fetchOk &&
+                            playbackProbe.playResolved &&
+                            playbackProbe.progressed
+                        ) {
+                            this.showNoSoundHintBanner();
+                        }
+                        this._activePlaybackProbe = null;
                         URL.revokeObjectURL(audioUrl);
+                    };
+                    const onError = () => {
                         this.setStatus('Error playing audio', 'error');
-                    });
-                    
+                        this._activePlaybackProbe = null;
+                        URL.revokeObjectURL(audioUrl);
+                    };
+
+                    audio.addEventListener('ended', onEnded, { once: true });
+                    audio.addEventListener('error', onError, { once: true });
                     await audio.play();
+                    playbackProbe.playResolved = true;
+                    setTimeout(() => {
+                        const nowTime = Number(audio.currentTime || 0);
+                        if (nowTime > 0.05) {
+                            playbackProbe.progressed = true;
+                        }
+                    }, 1000);
                     this.setStatus(`Playing audio for ${itemId}...`, 'success');
                 } catch (error) {
                     console.error('Play audio error:', error);
+                    this._activePlaybackProbe = null;
                     const bucketLabel = this.currentTab === 'approved' ? 'approved (-dev)' : 'draft (-draft)';
-                    this.setStatus(`No audio found for ${itemId} in ${bucketLabel}.`, 'error');
+                    const errName = String(error?.name || '');
+                    if (errName === 'NotAllowedError') {
+                        this.showAudioPreviewPlayer(
+                            document.getElementById('audioPreviewPlayer')?.src || '',
+                            itemId,
+                            true
+                        );
+                        this.setStatus(`Browser blocked autoplay for ${itemId}. Use the audio controls panel to press Play once.`, 'warning');
+                    } else {
+                        this.showAudioPreviewPlayer(
+                            document.getElementById('audioPreviewPlayer')?.src || '',
+                            itemId,
+                            true
+                        );
+                        const detail = error?.message ? ` (${error.message})` : '';
+                        this.setStatus(`Could not play ${itemId} from ${bucketLabel}${detail}`, 'error');
+                    }
                 } finally {
                     this.setAudioActionLoading(itemId, 'play', false);
                 }

@@ -90,13 +90,19 @@ async function runVercelDeployWithRetry(cwd, maxAttempts = 3) {
       .split('\n')
       .map((file) => file.trim())
       .filter(Boolean);
+    const { stdout: untrackedFilesRaw } = await run('git ls-files --others --exclude-standard');
+    const untrackedFiles = untrackedFilesRaw
+      .split('\n')
+      .map((file) => file.trim())
+      .filter(Boolean);
+    const filesToOverlay = Array.from(new Set([...changedTrackedFiles, ...untrackedFiles]));
     const overlayIgnorePrefixes = [
       'node_modules/',
       '.venv/',
       '.venv-emb/',
       'venv/',
     ];
-    changedTrackedFiles.forEach((relativePath) => {
+    filesToOverlay.forEach((relativePath) => {
       const normalizedPath = String(relativePath || '').replace(/\\/g, '/');
       if (overlayIgnorePrefixes.some((prefix) => normalizedPath.startsWith(prefix))) {
         return;
@@ -163,7 +169,8 @@ async function runVercelDeployWithRetry(cwd, maxAttempts = 3) {
 
     const deploymentHost = new URL(deploymentUrl).host;
     const aliases = [
-      'levante-pitwall.vercel.app'
+      'levante-pitwall.vercel.app',
+      'levante-partner-tools.vercel.app'
     ];
 
     for (const alias of aliases) {

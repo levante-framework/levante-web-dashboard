@@ -127,6 +127,18 @@
       "destination": "/public/dashboard-app.html"
     },
     {
+      "source": "/partner-audio-dashboard",
+      "destination": "/public/partner-audio-dashboard.html"
+    },
+    {
+      "source": "/audio-approval",
+      "destination": "/public/partner-audio-dashboard.html"
+    },
+    {
+      "source": "/audio-approval.html",
+      "destination": "/public/partner-audio-dashboard.html"
+    },
+    {
       "source": "/validation/prolific/es-ar-pilot",
       "destination": "/public/validation/prolific/es-ar-pilot.html"
     },

@@ -2944,51 +2944,22 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         const sharedResults = bestPayload.sharedResults;
                         const localResults = this.validation_results;
 
-                        // Smart merge: keep newer validations
+                        // Shared storage is authoritative for any returned item+language.
+                        // Keep local-only entries as fallback, but do not let stale local cache
+                        // override shared review/approval flags.
                         Object.keys(sharedResults).forEach(itemId => {
                             if (this.isExcludedValidationItemId(itemId)) return;
                             if (!localResults[itemId]) {
                                 localResults[itemId] = sharedResults[itemId];
                             } else {
-                                // Merge language validations, keeping newer ones
+                                // Merge language validations with shared precedence.
                                 Object.keys(sharedResults[itemId]).forEach(lang => {
                                     const sharedValidation = sharedResults[itemId][lang];
                                     const localValidation = localResults[itemId][lang];
-
-                                    const sharedTs = [sharedValidation?.updated, sharedValidation?.timestamp]
-                                        .map((value) => String(value || '').trim())
-                                        .filter(Boolean)
-                                        .sort()
-                                        .pop() || '';
-                                    const localTs = [localValidation?.updated, localValidation?.timestamp]
-                                        .map((value) => String(value || '').trim())
-                                        .filter(Boolean)
-                                        .sort()
-                                        .pop() || '';
-                                    const localBack = String(localValidation?.backTranslation || '').trim();
-                                    const sharedBack = String(sharedValidation?.backTranslation || '').trim();
-                                    const shouldHydrateBackTranslation = !localBack && !!sharedBack;
-                                    // Shared review flags must propagate reliably across reviewers even when
-                                    // local metadata timestamps are newer.
-                                    const shouldHydrateNeedsReview =
-                                        sharedValidation?.needsReview === true
-                                        && localValidation?.needsReview !== true;
-                                    const shouldHydrateManualApproved =
-                                        sharedValidation?.manualApproved === true
-                                        && localValidation?.manualApproved !== true;
-                                    const localReason = String(localValidation?.reason || '').trim();
-                                    const sharedReason = String(sharedValidation?.reason || '').trim();
-                                    const shouldHydrateReasonForReview = shouldHydrateNeedsReview && !localReason && !!sharedReason;
-                                    if (
-                                        !localValidation
-                                        || (sharedTs && (!localTs || sharedTs > localTs))
-                                        || shouldHydrateBackTranslation
-                                        || shouldHydrateNeedsReview
-                                        || shouldHydrateManualApproved
-                                        || shouldHydrateReasonForReview
-                                    ) {
-                                        localResults[itemId][lang] = sharedValidation;
-                                    }
+                                    localResults[itemId][lang] = {
+                                        ...(localValidation && typeof localValidation === 'object' ? localValidation : {}),
+                                        ...(sharedValidation && typeof sharedValidation === 'object' ? sharedValidation : {})
+                                    };
                                 });
                             }
                         });
@@ -2996,6 +2967,11 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         this.validation_results = localResults;
                         this.sanitizeValidationResultsStore();
                         this.normalizeValidationResultsLanguageKeys();
+                        try {
+                            localStorage.setItem('validation_results', JSON.stringify(this.validation_results));
+                        } catch (_) {
+                            // Best effort only; shared state remains source of truth.
+                        }
                         if (requestedLangKey) this.loadedValidationLanguageCodes.add(requestedLangKey);
                         console.log(`✅ Loaded shared validation results: ${Object.keys(sharedResults).length} items from ${bestPayload.endpoint} (${bestPayload.source})`);
                         const sourceLabel = this.sharedValidationSource === 'gcs'
