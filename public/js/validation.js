@@ -535,6 +535,7 @@ function inferScoreSource(result) {
 
 function isManualApprovedResult(result) {
     if (!result || typeof result !== 'object') return false;
+    if (result.requiresRevalidation === true) return false;
     if (result.manualApproved === true) return true;
     if (String(result.scoreSource || '').trim().toLowerCase() === 'manual') return true;
     if (String(result.notes || '').trim().toLowerCase() === 'manually approved') return true;
@@ -1317,6 +1318,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             
             const existingResult = getValidationResult(window.dashboard, itemId, langCode) || {};
             const preserveManualApproval = existingResult.manualApproved === true;
+            const sourceHash = typeof window.dashboard?.simpleStableHash === 'function'
+                ? window.dashboard.simpleStableHash(normalizedOriginalText)
+                : '';
+            const translationHash = typeof window.dashboard?.simpleStableHash === 'function'
+                ? window.dashboard.simpleStableHash(normalizedTranslatedText)
+                : '';
             window.dashboard.validation_results[itemId][langKey] = {
                 score: similarity,
                 originalText: normalizedOriginalText,
@@ -1328,7 +1335,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
                 manualApproved: preserveManualApproval,
                 manualApprovalUpdatedAt: existingResult.manualApprovalUpdatedAt || '',
                 needsReview: !!existingResult.needsReview,
-                reason: existingResult.reason || ''
+                reason: existingResult.reason || '',
+                requiresRevalidation: false,
+                changeKind: '',
+                changeDetectedAt: '',
+                lastSeenSourceHash: sourceHash,
+                lastSeenTranslationHash: translationHash
             };
             if (preserveManualApproval) {
                 window.dashboard.validation_results[itemId][langKey].score = 1.0;
@@ -1486,6 +1498,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
         
         const existingResult = getValidationResult(window.dashboard, itemId, langCode) || {};
         const preserveManualApproval = existingResult.manualApproved === true;
+        const sourceHash = typeof window.dashboard?.simpleStableHash === 'function'
+            ? window.dashboard.simpleStableHash(normalizedOriginalText)
+            : '';
+        const translationHash = typeof window.dashboard?.simpleStableHash === 'function'
+            ? window.dashboard.simpleStableHash(normalizedTranslatedText)
+            : '';
         window.dashboard.validation_results[itemId][langKey] = {
             score: score / 100, // Store as decimal for consistency
             originalText: normalizedOriginalText,
@@ -1518,7 +1536,12 @@ async function validateSingle(itemId, originalText, translatedText, langCode) {
             manualApproved: preserveManualApproval,
             manualApprovalUpdatedAt: existingResult.manualApprovalUpdatedAt || '',
             needsReview: !!existingResult.needsReview,
-            reason: existingResult.reason || ''
+            reason: existingResult.reason || '',
+            requiresRevalidation: false,
+            changeKind: '',
+            changeDetectedAt: '',
+            lastSeenSourceHash: sourceHash,
+            lastSeenTranslationHash: translationHash
         };
         if (preserveManualApproval) {
             window.dashboard.validation_results[itemId][langKey].score = 1.0;
