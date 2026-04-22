@@ -440,6 +440,111 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 this.activeRenderJobId += 1;
             }
 
+            normalizeComparableText(value) {
+                return String(value || '').replace(/\s+/g, ' ').trim();
+            }
+
+            simpleStableHash(value) {
+                const s = this.normalizeComparableText(value);
+                let hash = 2166136261;
+                for (let i = 0; i < s.length; i++) {
+                    hash ^= s.charCodeAt(i);
+                    hash = Math.imul(hash, 16777619);
+                }
+                return `h${(hash >>> 0).toString(16)}`;
+            }
+
+            getConfiguredLanguageCodes() {
+                return Array.from(new Set(
+                    Object.values(this.languages || {})
+                        .map((cfg) => String(cfg?.lang_code || '').trim())
+                        .filter(Boolean)
+                ));
+            }
+
+            getLanguageLikeKeys(row) {
+                if (!row || typeof row !== 'object') return [];
+                return Object.keys(row)
+                    .map((key) => String(key || '').trim())
+                    .filter((key) => /^[a-z]{2}(?:-[A-Za-z0-9]{2,4})?$/.test(key));
+            }
+
+            findExistingValidationLangKey(byItem, langCode) {
+                const map = byItem && typeof byItem === 'object' ? byItem : null;
+                if (!map) return '';
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const candidates = Array.from(new Set([preferred, langCode, ...aliases].map((c) => String(c || '').trim()).filter(Boolean)));
+                for (let i = 0; i < candidates.length; i++) {
+                    if (map[candidates[i]]) return candidates[i];
+                }
+                return '';
+            }
+
+            applyCrowdinImportChangeFlags(previousRows, nextRows) {
+                const prevData = Array.isArray(previousRows) ? previousRows : [];
+                const nextData = Array.isArray(nextRows) ? nextRows : [];
+                if (!prevData.length || !nextData.length) return { changedEntries: 0, changedItems: 0 };
+                const prevById = new Map();
+                prevData.forEach((row) => {
+                    const itemId = String(row?.item_id || row?.identifier || '').trim();
+                    if (itemId) prevById.set(itemId, row);
+                });
+                const nowIso = new Date().toISOString();
+                let changedEntries = 0;
+                const changedItems = new Set();
+
+                nextData.forEach((nextRow) => {
+                    const itemId = String(nextRow?.item_id || nextRow?.identifier || '').trim();
+                    if (!itemId) return;
+                    const prevRow = prevById.get(itemId);
+                    if (!prevRow) return;
+                    const byItem = this.validation_results?.[itemId];
+                    if (!byItem || typeof byItem !== 'object') return;
+
+                    const sourceChanged = this.normalizeComparableText(prevRow?.en) !== this.normalizeComparableText(nextRow?.en);
+                    const langCandidates = new Set([
+                        ...Object.keys(byItem),
+                        ...this.getConfiguredLanguageCodes(),
+                        ...this.getLanguageLikeKeys(prevRow),
+                        ...this.getLanguageLikeKeys(nextRow)
+                    ]);
+
+                    langCandidates.forEach((langCode) => {
+                        const lang = String(langCode || '').trim();
+                        if (!lang) return;
+                        const existingLangKey = this.findExistingValidationLangKey(byItem, lang);
+                        if (!existingLangKey) return;
+                        const existingEntry = byItem[existingLangKey];
+                        if (!existingEntry || typeof existingEntry !== 'object') return;
+                        const prevTranslation = this.getTranslationTextForLanguage(prevRow, lang);
+                        const nextTranslation = this.getTranslationTextForLanguage(nextRow, lang);
+                        const translationChanged = this.normalizeComparableText(prevTranslation) !== this.normalizeComparableText(nextTranslation);
+                        if (!sourceChanged && !translationChanged) return;
+
+                        const changeKind = sourceChanged && translationChanged
+                            ? 'source+translation'
+                            : (sourceChanged ? 'source' : 'translation');
+
+                        byItem[existingLangKey] = {
+                            ...existingEntry,
+                            requiresRevalidation: true,
+                            changeKind,
+                            changeDetectedAt: nowIso,
+                            lastSeenSourceHash: this.simpleStableHash(nextRow?.en || ''),
+                            lastSeenTranslationHash: this.simpleStableHash(nextTranslation || '')
+                        };
+                        changedEntries += 1;
+                        changedItems.add(itemId);
+                    });
+                });
+
+                if (changedEntries > 0) {
+                    this.noteValidationResultsChanged();
+                }
+                return { changedEntries, changedItems: changedItems.size };
+            }
+
             hasUsableTranslationsDataset(rows) {
                 const data = Array.isArray(rows) ? rows : [];
                 if (data.length === 0) return false;
@@ -1156,13 +1261,18 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 (rows || []).forEach((item) => {
                     const itemId = item?.item_id || item?.identifier || '';
                     const storedResult = this.getCachedValidationEntry(entryCache, item, normalizedLang);
+                    const requiresRevalidation = storedResult?.requiresRevalidation === true;
                     if (storedResult?.needsReview === true) needsReview++;
-                    if (this.isManualApprovedEntry(storedResult)) approved++;
+                    if (!requiresRevalidation && this.isManualApprovedEntry(storedResult)) approved++;
 
                     const translatedText = this.extractTextForItem(item || {}, normalizedLang);
                     const hasTranslatedText = !!String(translatedText || '').trim();
                     const canValidateTranslation = isSourceEnglishTab || hasTranslatedText;
 
+                    if (requiresRevalidation) {
+                        pending++;
+                        return;
+                    }
                     if (storedResult && storedResult.score !== undefined && canValidateTranslation) {
                         const scorePercent = Number(storedResult.score) * 100;
                         if (scorePercent >= 85) good++;
@@ -1379,13 +1489,22 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const merged = this.parseCrowdinZipToMerged(filteredUnzipped);
                     this.logPerf('Crowdin CSV/XLIFF merge', mergeStart, `rows=${Array.isArray(merged) ? merged.length : 0}`);
                     if (!Array.isArray(merged) || merged.length === 0) throw new Error('No CSV or XLIFF data in Crowdin export');
+                    const previousRows = Array.isArray(this.data) ? this.data : [];
                     const setDataStart = this.perfNow();
                     this.setLoadedData(merged);
                     this.logPerf('Crowdin setLoadedData', setDataStart, `rows=${this.data.length}`);
+                    const importChangeSummary = this.applyCrowdinImportChangeFlags(previousRows, this.data);
                     const source = 'Crowdin (approved only)';
                     this.crowdinCacheState = '';
                     console.log(`Loaded ${this.data.length} items from ${source}`);
-                    this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
+                    if (importChangeSummary.changedEntries > 0) {
+                        this.setStatus(
+                            `Loaded ${this.data.length} items from ${source}. ${importChangeSummary.changedEntries} validation entries now require revalidation (${importChangeSummary.changedItems} item(s) changed).`,
+                            'warning'
+                        );
+                    } else {
+                        this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
+                    }
                     this.updateDataSourceLabel(source);
                     const cacheStart = this.perfNow();
                     this.cacheDataLocally(null);
@@ -2833,6 +2952,11 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         if (r.needsReview === true) entry.needsReview = true;
                         if (typeof r.reason === 'string' && r.reason) entry.reason = r.reason.slice(0, 400);
                         if (typeof r.reviewUpdatedAt === 'string' && r.reviewUpdatedAt) entry.reviewUpdatedAt = r.reviewUpdatedAt;
+                        if (r.requiresRevalidation === true) entry.requiresRevalidation = true;
+                        if (typeof r.changeKind === 'string' && r.changeKind) entry.changeKind = r.changeKind;
+                        if (typeof r.changeDetectedAt === 'string' && r.changeDetectedAt) entry.changeDetectedAt = r.changeDetectedAt;
+                        if (typeof r.lastSeenSourceHash === 'string' && r.lastSeenSourceHash) entry.lastSeenSourceHash = r.lastSeenSourceHash;
+                        if (typeof r.lastSeenTranslationHash === 'string' && r.lastSeenTranslationHash) entry.lastSeenTranslationHash = r.lastSeenTranslationHash;
                         if (typeof r.notes === 'string' && r.notes) entry.notes = r.notes.slice(0, 160);
                         if (typeof r.backTranslation === 'string' && r.backTranslation) entry.backTranslation = r.backTranslation.slice(0, 1000);
                         if (typeof r.aiUsed === 'boolean') entry.aiUsed = r.aiUsed;
@@ -3351,6 +3475,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     let approvedHtml = '';
                     let scoreValue = -1;
                     const storedResult = this.getCachedValidationEntry(entryCache, item, langCode);
+                    const requiresRevalidation = storedResult?.requiresRevalidation === true;
+                    const changeKind = String(storedResult?.changeKind || '').trim().toLowerCase();
                     const needsReview = storedResult?.needsReview === true;
                     const reviewReason = storedResult?.reason || '';
                     const backTranslation = storedResult?.backTranslation || '';
@@ -3359,10 +3485,12 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const backTranslationDisplayText = hasBackTranslation
                         ? String(backTranslation).trim()
                         : 'Back-translation unavailable (click View Results to generate)';
-                    const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined);
+                    const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined) && !requiresRevalidation;
                     let backTranslationHtml = '';
                     if (hasAnyStoredScore) {
                         backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`;
+                    } else if (requiresRevalidation && canValidateTranslation) {
+                        backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing" title="Back-translation">Validation is stale after translation update — click Revalidate to regenerate back-translation.</div>`;
                     } else if (canValidateTranslation) {
                         backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing" title="Back-translation">Not generated yet — click Validate to run scoring and back-translation.</div>`;
                     }
@@ -3372,7 +3500,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const escapedTypeName = escapeHtml(String(contentType));
                     const escapedOriginalText = escapeHtml(String(originalEnglish || ''));
                     const escapedDisplayText = escapeHtml(String(text || ''));
-                    const hasStoredScore = !!(storedResult && storedResult.score !== undefined) && canValidateTranslation;
+                    const hasStoredScore = !!(storedResult && storedResult.score !== undefined) && canValidateTranslation && !requiresRevalidation;
                     const validateOnClick = hasStoredScore
                         ? `(window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}'))`
                         : (canValidateTranslation
@@ -3381,7 +3509,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const indicatorOnClick = hasStoredScore
                         ? `onclick="window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}')" style="cursor: pointer;"`
                         : '';
-                    if (storedResult && storedResult.score !== undefined && canValidateTranslation) {
+                    if (storedResult && storedResult.score !== undefined && canValidateTranslation && !requiresRevalidation) {
                         const scorePercent = Math.round((storedResult.score * 100) * 100) / 100;
                         const scorePercentRounded = Math.round(scorePercent);
                         scoreValue = scorePercent;
@@ -3441,6 +3569,14 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         statusTitle = `Missing ${langCode} translation`;
                         buttonText = 'Missing';
                     }
+                    if (requiresRevalidation && canValidateTranslation) {
+                        const changeLabel = changeKind === 'source+translation'
+                            ? 'source + translation changed'
+                            : (changeKind === 'source' ? 'source changed' : 'translation changed');
+                        statusClass = 'status-pending';
+                        statusTitle = `⚠️ Revalidation required (${changeLabel || 'content changed'})`;
+                        buttonText = 'Revalidate';
+                    }
                     const advisory = this.getEmbeddingAdvisoryEntry(itemId, langCode);
                     if (advisory && Number.isFinite(Number(advisory.score))) {
                         const advisoryScorePercent = Number(advisory.score) * 100;
@@ -3476,11 +3612,15 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     
                     row.dataset.score = scoreValue;
                     row.dataset.needsReview = needsReview ? '1' : '0';
-                    row.dataset.approved = manualApproved ? '1' : '0';
-                    if (manualApproved) {
+                    row.dataset.approved = (!requiresRevalidation && manualApproved) ? '1' : '0';
+                    if (!requiresRevalidation && manualApproved) {
                         row.style.outline = '2px solid rgba(76,175,80,0.45)';
                         row.style.outlineOffset = '-2px';
                         row.style.background = 'rgba(46,125,50,0.08)';
+                    } else {
+                        row.style.outline = '';
+                        row.style.outlineOffset = '';
+                        row.style.background = '';
                     }
                     row.innerHTML = `
                         <div class="item-id-cell">
@@ -3510,7 +3650,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 </div>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
-                                <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
+                                ${requiresRevalidation ? '<span class="stale-validation-indicator" style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#b26a00; background:#fff3e0; border:1px solid #ffcc80; border-radius:4px; padding:1px 6px;">⚠ Revalidate</span>' : ''}
+                                <span class="approved-indicator" style="display: ${(!requiresRevalidation && manualApproved) ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
                             </div>
                             <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
                                 ${approvedHtml}
