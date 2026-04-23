@@ -35,7 +35,8 @@ function resolveVercelBin() {
     if (fs.existsSync(candidate)) return candidate;
   }
 
-  return 'vercel';
+  // Fall back to npx so the script works without a pinned local CLI dependency.
+  return 'npx -y vercel';
 }
 
 const VERCEL_BIN = resolveVercelBin();

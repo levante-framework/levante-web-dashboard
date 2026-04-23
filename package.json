@@ -16,7 +16,7 @@
     "deploy": "node scripts/deploy-and-alias.js",
     "deploy:test": "node scripts/deploy-prod.js",
     "deploy:prod": "node scripts/deploy-prod.js --promote",
-    "deploy-dev": "vercel --yes",
+    "deploy-dev": "npx -y vercel --yes",
     "deploy-bat": "deploy.bat",
     "test:partner-audio-regression": "node scripts/check-partner-audio-approval-regression.js",
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
@@ -86,10 +86,11 @@
     "playwright": "^1.58.2",
     "serve": "^14.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.3.0",
-    "vercel": "^50.23.2"
+    "typescript": "^5.3.0"
   },
   "overrides": {
+    "@tootallnate/once": "^3.0.1",
+    "uuid": "^14.0.0",
     "basic-ftp": "^5.2.0",
     "osmtogeojson": {
       "@xmldom/xmldom": "^0.8.11"
