@@ -319,7 +319,32 @@
             background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
             border-bottom: 1px solid #e4e4e7;
             display: flex;
-            gap: 32px;
+            gap: 24px;
+            align-items: stretch;
+            flex-wrap: wrap;
+        }
+
+        .approval-stats-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px 16px;
+            border: 1px solid #d4d4d8;
+            border-radius: 10px;
+            background: #ffffff;
+        }
+
+        .approval-stats-group-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #3f3f46;
+            letter-spacing: 0.5px;
+        }
+
+        .approval-stats-group-items {
+            display: flex;
+            gap: 24px;
             align-items: center;
             flex-wrap: wrap;
         }
@@ -328,6 +353,11 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+        }
+
+        .stat-item.stat-standalone {
+            margin-left: auto;
+            justify-content: center;
         }
 
         .stat-label {
@@ -1805,21 +1835,30 @@
         </div>
 
         <div class="approval-stats" id="approvalStats" style="display: none;">
-            <div class="stat-item">
-                <span class="stat-label">Total Items</span>
-                <span class="stat-value" id="statTotal">0</span>
+            <div class="approval-stats-group">
+                <div class="approval-stats-group-label">New/Changed Items</div>
+                <div class="approval-stats-group-items">
+                    <div class="stat-item">
+                        <span class="stat-label">Total</span>
+                        <span class="stat-value" id="statTotal">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Approved</span>
+                        <span class="stat-value stat-approved" id="statApproved">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Pending</span>
+                        <span class="stat-value stat-pending" id="statPending">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">No Audio</span>
+                        <span class="stat-value stat-noaudio" id="statNoAudio">0</span>
+                    </div>
+                </div>
             </div>
-            <div class="stat-item">
-                <span class="stat-label">Approved</span>
-                <span class="stat-value stat-approved" id="statApproved">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Pending</span>
-                <span class="stat-value stat-pending" id="statPending">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">No Audio</span>
-                <span class="stat-value stat-noaudio" id="statNoAudio">0</span>
+            <div class="stat-item stat-standalone">
+                <span class="stat-label">Total Approved</span>
+                <span class="stat-value stat-approved" id="statTotalApproved">0</span>
             </div>
         </div>
         <div class="status" id="status">
@@ -1982,7 +2021,7 @@
                 this.allowedLanguage = null; // Will be set based on user's site
                 this.approvedItems = new Set(); // Track approved item IDs (already moved to dev)
                 this.unapprovedItems = new Set(); // Track explicitly unapproved items (to prevent re-adding)
-                this.approvalStats = { total: 0, approved: 0, pending: 0, noAudio: 0 };
+                this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0 };
                 this.currentTab = 'pending'; // Current tab: 'pending' or 'approved'
                 
                 this.data = [];
@@ -4709,6 +4748,7 @@
                 
                 const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
                 const total = taskFilteredTranslations.length;
+                const totalApproved = devInfo.ids.size;
                 const noAudio = itemsWithoutAudio.length;
                 let approved = 0;
                 let pending = 0;
@@ -4726,17 +4766,20 @@
                 });
                 
                 this.approvalStats.total = total;
+                this.approvalStats.totalApproved = totalApproved;
                 this.approvalStats.approved = approved;
                 this.approvalStats.pending = pending;
                 this.approvalStats.noAudio = noAudio;
                 
                 // Update UI elements
                 const statTotal = document.getElementById('statTotal');
+                const statTotalApproved = document.getElementById('statTotalApproved');
                 const statApproved = document.getElementById('statApproved');
                 const statPending = document.getElementById('statPending');
                 const statNoAudio = document.getElementById('statNoAudio');
                 
                 if (statTotal) statTotal.textContent = total;
+                if (statTotalApproved) statTotalApproved.textContent = totalApproved;
                 if (statApproved) statApproved.textContent = approved;
                 if (statPending) statPending.textContent = pending;
                 if (statNoAudio) statNoAudio.textContent = noAudio;

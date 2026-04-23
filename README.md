@@ -184,6 +184,9 @@ Required/optional keys used by current translation and AI features:
 - `OPENAI_API_KEY` – enables AI-assisted translation judging
 - `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4.1`)
 - `GCP_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` – JSON credentials for private GCS-backed APIs
+- `ASSETS_DRAFT_BUCKET` – optional draft assets bucket override used by partner audio APIs (defaults to `levante-assets-draft`)
+- `PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH` – optional CSV object path for `/api/partner-audio-translations` (defaults to `audio/item_bank_translations.csv`)
+- `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE` – optional toggle to enable legacy XLIFF bucket scanning fallback in `/api/partner-audio-translations` (`false` by default; set `true` only if needed)
 - `AUDIT_DASHBOARD_BUCKET` – optional bucket override for the audit dashboard API (defaults to `levante-tools`)
 - `AUDIT_DASHBOARD_OBJECT` – optional object path override (defaults to `pitwall/audit-mini-dashboard/dashboard-data.json`)
 - `AUDIT_DASHBOARD_DOWNLOAD_PREFIX` – optional prefix for JSON download listing (defaults to `pitwall/audit-mini-dashboard/`)
@@ -206,6 +209,16 @@ Key dependencies:
 - `sharp` – Image processing
 
 ## API Endpoints
+
+### `/api/partner-audio-translations`
+Returns the partner audio approval catalog as CSV.
+
+**Default source order:**
+- `gs://<ASSETS_DRAFT_BUCKET>/<PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH>` (default `gs://levante-assets-draft/audio/item_bank_translations.csv`)
+- Public URL to the same object path when private GCS credentials are unavailable
+
+**Optional legacy source (off by default):**
+- Bucket-wide XLIFF scan/build path is only used when `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE=true`
 
 ### `/api/reverse-geocode`
 Finds nearest cities based on GPS coordinates.
