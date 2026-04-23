@@ -16,7 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
-        const DASHBOARD_BUILD_VERSION = '2026-04-21-audio-output-hint-v6';
+        const DASHBOARD_BUILD_VERSION = '2026-04-23-ptbr-column-resolve-v8';
         const CANONICAL_DASHBOARD_HOST = 'levante-partner-tools.vercel.app';
         const ALLOWED_DASHBOARD_HOSTS = new Set([
             'levante-partner-tools.vercel.app',
@@ -1954,7 +1954,7 @@
             console.log(`%cVERSION: ${window.DASHBOARD_VERSION || 'unknown'}`, 'color: blue; font-size: 14px; font-weight: bold;');
             console.log('TIMESTAMP:', new Date().toISOString());
             console.warn('If you see old line numbers in errors, clear your browser cache!');
-            window.DASHBOARD_VERSION = '2026-04-20-audio-play-fixes-v4';
+            window.DASHBOARD_VERSION = DASHBOARD_BUILD_VERSION;
             window.DASHBOARD_LOADED = true;
         })();
         
@@ -1968,13 +1968,16 @@
                     'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet', display_name: 'French (Canada)' },
                     'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' },
-                    'Portuguese': { lang_code: 'pt-PT', service: 'ElevenLabs', voice: 'Liam' }
+                    'Portuguese (Brazil)': { lang_code: 'pt-BR', service: 'ElevenLabs', voice: 'Liam', display_name: 'Portuguese (Brazil)' }
                 };
                 this.defaultLanguages = this.normalizeLanguageEntries(this.defaultLanguages);
                 this.languages = JSON.parse(JSON.stringify(this.defaultLanguages));
                 this.legacyLanguageCodeByName = Object.fromEntries(
                     Object.entries(this.defaultLanguages).map(([name, cfg]) => [name, String(cfg.lang_code || '')])
                 );
+                // Backward compatibility for older approver configs/claims that used generic Portuguese naming.
+                this.legacyLanguageCodeByName['Portuguese'] = 'pt-BR';
+                this.legacyLanguageCodeByName['Portuguese (Portugal)'] = 'pt-PT';
                 
                 this.allowedLanguage = null; // Will be set based on user's site
                 this.approvedItems = new Set(); // Track approved item IDs (already moved to dev)
@@ -3132,12 +3135,44 @@
                 const requestedLower = requested.toLowerCase();
                 const byName = Object.keys(this.languages).find((name) => name.toLowerCase() === requestedLower);
                 if (byName) return byName;
+                // Allow language-code input (e.g., pt-BR) even when keys are display names.
+                const normalizedRequestedCode = this.normalizeLangCode(requested).toLowerCase();
+                if (/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(normalizedRequestedCode)) {
+                    const byRequestedCode = Object.keys(this.languages).find((name) => {
+                        const cfgCode = this.normalizeLangCode(this.languages[name]?.lang_code || '').toLowerCase();
+                        return cfgCode === normalizedRequestedCode;
+                    });
+                    if (byRequestedCode) return byRequestedCode;
+                }
                 const desiredCode = this.legacyLanguageCodeByName[requested];
                 if (desiredCode) {
-                    const byCode = Object.keys(this.languages).find((name) => String(this.languages[name]?.lang_code || '') === desiredCode);
+                    const normalizedDesired = this.normalizeLangCode(desiredCode).toLowerCase();
+                    const byCode = Object.keys(this.languages).find((name) => {
+                        const cfgCode = this.normalizeLangCode(this.languages[name]?.lang_code || '').toLowerCase();
+                        return cfgCode === normalizedDesired;
+                    });
                     if (byCode) return byCode;
                 }
+                // Fuzzy fallback: "Portuguese" should match "Portuguese (Brazil)" etc.
+                const byFuzzyName = Object.keys(this.languages).find((name) => {
+                    const lowerName = String(name || '').toLowerCase();
+                    return lowerName.includes(requestedLower) || requestedLower.includes(lowerName);
+                });
+                if (byFuzzyName) return byFuzzyName;
                 return null;
+            }
+
+            canonicalizeAllowedLanguageInput(languageName) {
+                const raw = String(languageName || '').trim();
+                if (!raw) return null;
+                const lower = raw.toLowerCase();
+                if (lower === 'portuguese' || lower === 'português' || lower === 'portuguese (portugal)' || lower === 'portuguese (brazil)') {
+                    return 'Portuguese (Brazil)';
+                }
+                if (lower === 'pt' || lower === 'pt-br' || lower === 'pt_pt' || lower === 'pt-pt') {
+                    return 'Portuguese (Brazil)';
+                }
+                return raw;
             }
 
             getLanguageDisplayName(languageKey) {
@@ -3338,8 +3373,10 @@
                     this.setupRefreshControls();
 
                     if (this.allowedLanguage) {
-                        const resolvedAllowed = this.resolveLanguageKey(this.allowedLanguage);
+                        const normalizedAllowedLanguage = this.canonicalizeAllowedLanguageInput(this.allowedLanguage);
+                        const resolvedAllowed = this.resolveLanguageKey(normalizedAllowedLanguage);
                         if (resolvedAllowed) {
+                            this.allowedLanguage = resolvedAllowed;
                             this.currentLanguage = resolvedAllowed;
                             this.currentLangCode = this.languages[resolvedAllowed]?.lang_code || null;
                         } else {
@@ -3473,21 +3510,33 @@
                     return true;
                 }
 
+                const requestedAliases = new Set(
+                    this.getAudioLangAliases(langCode)
+                        .map((code) => String(code || '').trim().toLowerCase())
+                        .filter(Boolean)
+                );
+                const hasAliasOverlap = (allowedCode) => {
+                    const allowedAliases = this.getAudioLangAliases(allowedCode)
+                        .map((code) => String(code || '').trim().toLowerCase())
+                        .filter(Boolean);
+                    return allowedAliases.some((alias) => requestedAliases.has(alias));
+                };
+
                 // Approver credentials are scoped to one configured language.
                 if (this.authMethod === 'approver-config') {
-                    const allowed = this.resolveLanguageKey(this.allowedLanguage);
+                    const allowed = this.resolveLanguageKey(this.canonicalizeAllowedLanguageInput(this.allowedLanguage));
                     if (!allowed || !this.languages[allowed]) return false;
                     const allowedCode = String(this.languages[allowed].lang_code || '');
-                    return String(langCode || '').toLowerCase() === allowedCode.toLowerCase();
+                    return hasAliasOverlap(allowedCode);
                 }
 
                 // Firebase admins: if a language restriction is present in claims, enforce it.
                 // Otherwise allow all languages for admin users.
                 if (this.authMethod === 'firebase') {
-                    const allowed = this.resolveLanguageKey(this.allowedLanguage);
+                    const allowed = this.resolveLanguageKey(this.canonicalizeAllowedLanguageInput(this.allowedLanguage));
                     if (!allowed || !this.languages[allowed]) return true;
                     const allowedCode = String(this.languages[allowed].lang_code || '');
-                    return String(langCode || '').toLowerCase() === allowedCode.toLowerCase();
+                    return hasAliasOverlap(allowedCode);
                 }
 
                 // Unknown auth state: deny by default.
@@ -3523,7 +3572,7 @@
                 // If user has a restricted language, set it automatically
                 // (Superadmins/override emails will have allowedLanguage = null, so they can choose)
                 if (this.allowedLanguage) {
-                    const resolvedAllowed = this.resolveLanguageKey(this.allowedLanguage);
+                    const resolvedAllowed = this.resolveLanguageKey(this.canonicalizeAllowedLanguageInput(this.allowedLanguage));
                     if (resolvedAllowed) {
                         this.currentLanguage = resolvedAllowed;
                         this.currentLangCode = this.languages[resolvedAllowed]?.lang_code || null;
@@ -3678,7 +3727,9 @@
                                     'fr-CA': 'French (Canada)',
                                     'nl': 'Dutch',
                                     'de-CH': 'German (Switzerland)',
-                                    'pt-PT': 'Portuguese'
+                                    'pt-BR': 'Portuguese (Brazil)',
+                                    'pt-PT': 'Portuguese (Brazil)',
+                                    'pt': 'Portuguese (Brazil)'
                                 };
                                 this.allowedLanguage = langMap[claims.site_language] || null;
                                 console.log(`Admin restricted to language: ${this.allowedLanguage} (from site_language claim)`);
@@ -3694,7 +3745,9 @@
                                     'fr-CA': 'French (Canada)',
                                     'nl': 'Dutch',
                                     'de-CH': 'German (Switzerland)',
-                                    'pt-PT': 'Portuguese'
+                                    'pt-BR': 'Portuguese (Brazil)',
+                                    'pt-PT': 'Portuguese (Brazil)',
+                                    'pt': 'Portuguese (Brazil)'
                                 };
                                 this.allowedLanguage = langMap[claims.locale] || null;
                                 console.log(`Admin restricted to language: ${this.allowedLanguage} (from locale claim)`);
@@ -3963,11 +4016,14 @@
             }
 
             async performApproverConfigLogin(userId, approverMatch) {
+                const requestedLanguage =
+                    this.canonicalizeAllowedLanguageInput(approverMatch?.languageName) ||
+                    this.canonicalizeAllowedLanguageInput(approverMatch?.allowedLanguage) ||
+                    this.canonicalizeAllowedLanguageInput(approverMatch?.language) ||
+                    null;
                 const resolvedLanguage =
-                    this.resolveLanguageKey(approverMatch?.languageName) ||
-                    this.resolveLanguageKey(approverMatch?.allowedLanguage) ||
-                    approverMatch?.languageName ||
-                    approverMatch?.allowedLanguage ||
+                    this.resolveLanguageKey(requestedLanguage) ||
+                    requestedLanguage ||
                     null;
                 if (!resolvedLanguage) {
                     throw new Error('Approver is configured, but no matching language was found.');
@@ -4192,6 +4248,12 @@
                     aliases.add('de');
                     aliases.add('de-DE');
                     aliases.add('de_DE');
+                } else if (lower === 'pt' || lower === 'pt-br' || lower === 'pt-pt') {
+                    aliases.add('pt');
+                    aliases.add('pt-BR');
+                    aliases.add('pt_BR');
+                    aliases.add('pt-PT');
+                    aliases.add('pt_PT');
                 }
 
                 return Array.from(aliases).filter(Boolean);
@@ -4850,7 +4912,7 @@
                 // Add default option
                 const defaultOption = document.createElement('option');
                 defaultOption.value = '';
-                const resolvedAllowedLanguage = this.resolveLanguageKey(this.allowedLanguage);
+                const resolvedAllowedLanguage = this.resolveLanguageKey(this.canonicalizeAllowedLanguageInput(this.allowedLanguage));
                 defaultOption.textContent = resolvedAllowedLanguage
                     ? `Language: ${this.getLanguageDisplayName(resolvedAllowedLanguage)}`
                     : 'Select a language...';
@@ -4858,6 +4920,7 @@
                 
                 // Map language codes to Crowdin language IDs
                 const langCodeToCrowdinId = {
+                    'pt-BR': 'pt-BR',
                     'pt-PT': 'pt',
                     'pt': 'pt',
                     'es-CO': 'es-CO',
@@ -4976,15 +5039,87 @@
                 return result;
             }
 
+            getTranslationColumnCandidates(langCode) {
+                const candidates = new Set();
+                const add = (value) => {
+                    const text = String(value || '').trim();
+                    if (!text) return;
+                    candidates.add(text);
+                    candidates.add(text.toLowerCase());
+                };
+
+                const aliases = this.getAudioLangAliases(langCode);
+                aliases.forEach((alias) => {
+                    const aliasText = String(alias || '').trim();
+                    if (!aliasText) return;
+                    add(aliasText);
+                    add(aliasText.replace(/-/g, '_'));
+                    add(aliasText.replace(/_/g, '-'));
+                });
+
+                const normalizedAliases = new Set(
+                    aliases.map((code) => this.normalizeLangCode(code).toLowerCase()).filter(Boolean)
+                );
+
+                // Include configured language display names that map to the same language code.
+                Object.entries(this.languages || {}).forEach(([name, cfg]) => {
+                    const cfgCode = this.normalizeLangCode(cfg?.lang_code).toLowerCase();
+                    if (!cfgCode) return;
+                    const cfgAliases = this.getAudioLangAliases(cfgCode)
+                        .map((code) => this.normalizeLangCode(code).toLowerCase())
+                        .filter(Boolean);
+                    const overlaps = cfgAliases.some((code) => normalizedAliases.has(code));
+                    if (!overlaps) return;
+                    add(name);
+                    add(cfg?.display_name);
+                });
+
+                // Legacy names can appear as CSV headers in some exports.
+                Object.entries(this.legacyLanguageCodeByName || {}).forEach(([legacyName, legacyCode]) => {
+                    const normalizedLegacy = this.normalizeLangCode(legacyCode).toLowerCase();
+                    if (!normalizedLegacy) return;
+                    if (normalizedAliases.has(normalizedLegacy)) {
+                        add(legacyName);
+                    }
+                });
+
+                // Portuguese exports are not always consistent; include common readable headers.
+                if (normalizedAliases.has('pt') || normalizedAliases.has('pt-br') || normalizedAliases.has('pt-pt')) {
+                    [
+                        'Portuguese',
+                        'Portuguese (Brazil)',
+                        'Portuguese (Portugal)',
+                        'Portuguese_Brazil',
+                        'Portuguese_Brasil',
+                        'Portuguese (Brasil)',
+                        'Portugues',
+                        'Português'
+                    ].forEach(add);
+                }
+
+                return Array.from(candidates).filter(Boolean);
+            }
+
+            getTranslationFromCandidates(item, candidateColumns) {
+                if (!item || !Array.isArray(candidateColumns) || candidateColumns.length === 0) return '';
+                const keys = Object.keys(item || {});
+                for (let i = 0; i < candidateColumns.length; i++) {
+                    const target = String(candidateColumns[i] || '').trim().toLowerCase();
+                    if (!target) continue;
+                    const exactKey = keys.find((key) => String(key || '').trim().toLowerCase() === target);
+                    if (!exactKey) continue;
+                    const value = item[exactKey];
+                    if (value && String(value).trim()) {
+                        return String(value).trim();
+                    }
+                }
+                return '';
+            }
+
             getExactTranslationForLanguage(item, langCode) {
                 if (!item || !langCode) return '';
-                const target = String(langCode || '').trim().toLowerCase();
-                if (!target) return '';
-                const keys = Object.keys(item || {});
-                const exactKey = keys.find((key) => String(key || '').trim().toLowerCase() === target);
-                if (!exactKey) return '';
-                const value = item[exactKey];
-                return value && String(value).trim() ? String(value).trim() : '';
+                const candidates = this.getTranslationColumnCandidates(langCode);
+                return this.getTranslationFromCandidates(item, candidates);
             }
 
             async selectLanguage(language) {
@@ -5039,16 +5174,17 @@
                 console.log(`Found ${withTranslations.length} items with translations for ${this.currentLangCode} (out of ${this.data.length} total items)`);
                 
                 // Debug: Check a sample item to see what columns exist
-                if (this.data.length > 0 && this.currentLangCode === 'pt-PT') {
+                if (this.data.length > 0 && (this.currentLangCode === 'pt-PT' || this.currentLangCode === 'pt-BR' || this.currentLangCode === 'pt')) {
                     const sampleItem = this.data[0];
-                    const sampleText = this.getTextForItem(sampleItem, 'pt-PT');
+                    const sampleText = this.getTextForItem(sampleItem, this.currentLangCode);
                     console.log('Sample item check:', {
                         itemId: sampleItem.item_id,
                         hasTranslation: !!sampleText,
                         ptColumns: Object.keys(sampleItem).filter(k => k.toLowerCase().includes('pt')),
                         allColumns: Object.keys(sampleItem).slice(0, 20),
                         samplePtValue: sampleItem['pt'] ? sampleItem['pt'].substring(0, 50) : '(no pt column)',
-                        samplePtPTValue: sampleItem['pt-PT'] ? sampleItem['pt-PT'].substring(0, 50) : '(no pt-PT column)'
+                        samplePtPTValue: sampleItem['pt-PT'] ? sampleItem['pt-PT'].substring(0, 50) : '(no pt-PT column)',
+                        samplePtBRValue: sampleItem['pt-BR'] ? sampleItem['pt-BR'].substring(0, 50) : '(no pt-BR column)'
                     });
                 }
                 
@@ -5196,15 +5332,25 @@
                 
                 const keys = Object.keys(item);
                 const langAliases = this.getAudioLangAliases(langCode);
+                const candidateColumns = this.getTranslationColumnCandidates(langCode);
+
+                // First pass: unified candidate matching across code-based and name-based headers.
+                const candidateMatch = this.getTranslationFromCandidates(item, candidateColumns);
+                if (candidateMatch) {
+                    return candidateMatch;
+                }
                 
-                // For pt-PT, check multiple possible column names
-                if (langCode === 'pt-PT') {
+                // For Portuguese variants, check multiple possible column names
+                if (langCode === 'pt-PT' || langCode === 'pt-BR' || langCode === 'pt') {
                     // Try exact match FIRST (pt-PT is the correct column name)
                     if (item['pt-PT'] && item['pt-PT'].trim()) {
                         return item['pt-PT'].trim();
                     }
+                    if (item['pt-BR'] && item['pt-BR'].trim()) {
+                        return item['pt-BR'].trim();
+                    }
                     // Try all other possible Portuguese column name variations
-                    const ptColumnNames = ['pt', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt'];
+                    const ptColumnNames = ['pt', 'pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt'];
                     for (const colName of ptColumnNames) {
                         if (item[colName] && item[colName].trim()) {
                             console.log(`Found Portuguese translation in '${colName}' column for item ${item.item_id || 'unknown'}`);
@@ -5255,7 +5401,8 @@
                     'es-AR': ['es-ar', 'es_AR', 'es_ar', 'esar'],
                     'de-CH': ['de-ch', 'de_CH', 'de_ch', 'dech'],
                     'fr-CA': ['fr-ca', 'fr_CA', 'fr_ca', 'frca'],
-                    'pt-PT': ['pt-pt', 'pt_PT', 'pt_pt', 'ptpt'] // Note: 'pt' already checked above
+                    'pt-PT': ['pt-pt', 'pt_PT', 'pt_pt', 'ptpt'], // Note: 'pt' already checked above
+                    'pt-BR': ['pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt']
                 };
                 
                 if (altNames[langCode]) {
@@ -5294,10 +5441,14 @@
                     return item[langMatch].trim();
                 }
                 
-                // Debug: Log what we tried for pt-PT
-                if (langCode === 'pt-PT') {
+                // Debug: Log what we tried for Portuguese variants (throttled to avoid console flooding)
+                if (langCode === 'pt-PT' || langCode === 'pt-BR' || langCode === 'pt') {
                     const ptKeys = keys.filter(k => k.toLowerCase().includes('pt'));
-                    console.warn(`Could not find Portuguese translation for item ${item.item_id || 'unknown'}. Tried columns:`, ['pt', 'pt-PT', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt', ...ptKeys]);
+                    this._missingPtTranslationWarnCount = Number(this._missingPtTranslationWarnCount || 0);
+                    if (this._missingPtTranslationWarnCount < 20) {
+                        this._missingPtTranslationWarnCount += 1;
+                        console.warn(`Could not find Portuguese translation for item ${item.item_id || 'unknown'}. Tried columns:`, ['pt', 'pt-BR', 'pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-PT', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt', ...candidateColumns, ...ptKeys]);
+                    }
                 }
                 
                 // Return empty string - do NOT fall back to English
