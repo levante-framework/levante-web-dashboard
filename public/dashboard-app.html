@@ -693,13 +693,18 @@
                 const hasReasonState = !!String(r.reason || '').trim();
                 if (!hasScoredState && !hasApprovedState && !hasNeedsReviewState && !hasReasonState) return;
                 const scoreVal = typeof r.score === 'number' ? (r.score <= 1 ? r.score * 100 : r.score) : null;
+                const changeKind = String(r.changeKind || '').trim().toLowerCase();
+                const updated = r.requiresRevalidation === true
+                    && (changeKind === 'translation' || changeKind === 'source+translation');
                 rows.push({
                     itemId,
                     score: scoreVal,
                     notes: r.notes || '',
                     manualApproved: r.manualApproved === true,
                     needsReview: r.needsReview === true,
-                    reason: r.reason || ''
+                    reason: r.reason || '',
+                    updated,
+                    changeKind
                 });
             });
             return rows;
@@ -1063,7 +1068,7 @@
             const langName = Object.keys(dash.languages || {}).find(k => dash.languages[k].lang_code === langCode) || langCode;
             titleEl.innerHTML = `<i class="fas fa-list-alt"></i> Validation review – ${langName} (${langCode})`;
             _reviewTableLangCode = langCode;
-            tbody.innerHTML = '<tr><td colspan="6" style="padding:12px; color:#6c757d; font-style:italic;"><i class="fas fa-spinner fa-spin"></i> Processing...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding:12px; color:#6c757d; font-style:italic;"><i class="fas fa-spinner fa-spin"></i> Processing...</td></tr>';
             emptyEl.style.display = 'none';
             tableEl.style.display = 'table';
             document.getElementById('validationReviewTableDownloadCsv').disabled = true;
@@ -1117,6 +1122,7 @@
                 }
                 if (by === 'manualApproved') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
                 if (by === 'needsReview') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
+                if (by === 'updated') { va = va ? 1 : 0; vb = vb ? 1 : 0; return dir * (va - vb); }
                 return dir * String(va).localeCompare(String(vb));
             });
         }
@@ -1187,6 +1193,16 @@
                 });
                 tdCheck.appendChild(check);
                 tr.appendChild(tdCheck);
+                const tdUpdated = document.createElement('td');
+                if (row.updated) {
+                    const kindText = row.changeKind === 'source+translation'
+                        ? 'Source + translation changed'
+                        : (row.changeKind === 'translation' ? 'Translation changed' : 'Content changed');
+                    tdUpdated.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px; font-size:0.8em; font-weight:700; color:#0d47a1; background:#e3f2fd; border:1px solid #90caf9; border-radius:10px; padding:2px 8px;" title="' + kindText.replace(/"/g, '&quot;') + '">🆕 Updated</span>';
+                } else {
+                    tdUpdated.innerHTML = '<span style="color:#999;">—</span>';
+                }
+                tr.appendChild(tdUpdated);
                 const tdReason = document.createElement('td');
                 const input = document.createElement('input');
                 input.type = 'text';
@@ -1339,18 +1355,23 @@
                 const currentTranslation = (row && row[langCode]) ? String(row[langCode]).trim() : '';
                 const reason = r.reason || '';
                 const backTranslation = r.backTranslation != null ? String(r.backTranslation) : '';
+                const changeKind = String(r.changeKind || '').trim().toLowerCase();
+                const updated = r.requiresRevalidation === true
+                    && (changeKind === 'translation' || changeKind === 'source+translation');
                 csvRows.push({
                     itemId,
                     sourceString,
                     language: langCode,
                     currentTranslation,
                     reason,
-                    backTranslation
+                    backTranslation,
+                    updated: updated ? 'yes' : 'no',
+                    changeKind: updated ? (changeKind || 'translation') : ''
                 });
             });
             const baseName = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10);
             // CSV (legacy)
-            const csvHeader = 'Item ID,Source String,Language,Current Translation,Reason,Back Translation,Outcome';
+            const csvHeader = 'Item ID,Source String,Language,Current Translation,Reason,Back Translation,Updated,Change Kind,Outcome';
             const csvLines = [csvHeader].concat(csvRows.map(r => [
                 csvEscape(r.itemId),
                 csvEscape(r.sourceString),
@@ -1358,6 +1379,8 @@
                 csvEscape(r.currentTranslation),
                 csvEscape(r.reason),
                 csvEscape(r.backTranslation),
+                csvEscape(r.updated),
+                csvEscape(r.changeKind),
                 ''  // Outcome - blank for user to fill
             ].join(',')));
             triggerDownload(new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), baseName + '.csv');
@@ -1372,12 +1395,23 @@
                 const r = getValidationEntryForLang(dash, itemId, langCode);
                 if (!r || r.needsReview !== true) return;
                 const score = typeof r.score === 'number' ? (r.score <= 1 ? Math.round(r.score * 100) : Math.round(r.score)) : 0;
-                rows.push({ item_id: itemId, language: langCode, score, notes: r.notes || '', reason: r.reason || '' });
+                const changeKind = String(r.changeKind || '').trim().toLowerCase();
+                const updated = r.requiresRevalidation === true
+                    && (changeKind === 'translation' || changeKind === 'source+translation');
+                rows.push({
+                    item_id: itemId,
+                    language: langCode,
+                    score,
+                    notes: r.notes || '',
+                    reason: r.reason || '',
+                    updated: updated ? 'yes' : 'no',
+                    change_kind: updated ? (changeKind || 'translation') : ''
+                });
             });
             const baseName = 'validation-needs-review-' + langCode + '-' + new Date().toISOString().slice(0, 10);
             // CSV (legacy)
-            const csvHeader = 'item_id,language,score,notes,reason';
-            const csvLines = [csvHeader].concat(rows.map(r => [r.item_id, r.language, r.score, csvEscape(r.notes), csvEscape(r.reason)].join(',')));
+            const csvHeader = 'item_id,language,score,notes,reason,updated,change_kind';
+            const csvLines = [csvHeader].concat(rows.map(r => [r.item_id, r.language, r.score, csvEscape(r.notes), csvEscape(r.reason), csvEscape(r.updated), csvEscape(r.change_kind)].join(',')));
             triggerDownload(new Blob(['\uFEFF' + csvLines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), baseName + '.csv');
         }
 
