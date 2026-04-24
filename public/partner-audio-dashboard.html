@@ -2827,9 +2827,49 @@
                     .join(' ');
             }
 
+            normalizeTaskLookupKey(value) {
+                return String(value || '')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/&/g, ' and ')
+                    .replace(/[_-]+/g, ' ')
+                    .replace(/\s+/g, ' ');
+            }
+
+            getDesiredTaskDisplayName(value) {
+                const key = this.normalizeTaskLookupKey(value);
+                if (!key) return '';
+                if (!this.taskDisplayNameMap) {
+                    this.taskDisplayNameMap = new Map([
+                        ['general', 'General'],
+                        ['hearts and flowers', 'Hearts & Flowers'],
+                        ['hostile attribution', 'Hostile Attribution'],
+                        ['math', 'Math'],
+                        ['egma math', 'Math'],
+                        ['memory game', 'Memory'],
+                        ['memory', 'Memory'],
+                        ['pattern matching', 'Pattern Matching'],
+                        ['matrix reasoning', 'Pattern Matching'],
+                        ['same and different', 'Same & Different'],
+                        ['same different selection', 'Same & Different'],
+                        ['sentence understanding', 'Sentence Understanding'],
+                        ['trog', 'Sentence Understanding'],
+                        ['shape rotation', 'Shape Rotation'],
+                        ['mental rotation', 'Shape Rotation'],
+                        ['stories', 'Stories'],
+                        ['theory of mind', 'Stories'],
+                        ['thoughts feelings', 'Thoughts & Feelings'],
+                        ['thoughts and feelings', 'Thoughts & Feelings'],
+                        ['child survey', 'Thoughts & Feelings'],
+                        ['vocab', 'Vocabulary'],
+                        ['vocabulary', 'Vocabulary']
+                    ]);
+                }
+                return this.taskDisplayNameMap.get(key) || '';
+            }
+
             normalizeTaskName(rawTask, itemId = '') {
                 const raw = String(rawTask || '').trim();
-                const normalized = raw.toLowerCase();
                 const id = String(itemId || '').trim().toLowerCase();
 
                 if (!raw) {
@@ -2837,35 +2877,40 @@
                     if (id.startsWith('trog-')) return 'Sentence Understanding';
                     if (id.startsWith('theory-of-mind-') || id.startsWith('theory_of_mind-')) return 'Stories';
                     if (id.startsWith('hearts-and-flowers-') || id.startsWith('hearts_and_flowers-')) return 'Hearts & Flowers';
+                    if (id.startsWith('hostile-attribution-') || id.startsWith('hostile_attribution-')) return 'Hostile Attribution';
+                    if (id.startsWith('math-') || id.startsWith('egma-math-') || id.startsWith('egma_math-')) return 'Math';
                     if (id.startsWith('memory-game-') || id.startsWith('memory_game-')) return 'Memory';
+                    if (id.startsWith('pattern-matching-') || id.startsWith('pattern_matching-')) return 'Pattern Matching';
                     if (id.startsWith('matrix-reasoning-') || id.startsWith('matrix_reasoning-')) return 'Pattern Matching';
+                    if (id.startsWith('same-and-different-') || id.startsWith('same_and_different-')) return 'Same & Different';
                     if (id.startsWith('mental-rotation-') || id.startsWith('mental_rotation-')) return 'Shape Rotation';
+                    if (id.startsWith('shape-rotation-') || id.startsWith('shape_rotation-')) return 'Shape Rotation';
                     if (id.startsWith('same-different-selection-') || id.startsWith('same_different_selection-')) return 'Same & Different';
-                    if (id.startsWith('childsurvey') || id.startsWith('child-survey') || id.startsWith('survey-')) return 'Child Survey';
+                    if (id.startsWith('stories-')) return 'Stories';
+                    if (id.startsWith('sentence-understanding-') || id.startsWith('sentence_understanding-')) return 'Sentence Understanding';
+                    if (id.startsWith('thoughts-feelings-') || id.startsWith('thoughts_feelings-')) return 'Thoughts & Feelings';
+                    if (id.startsWith('childsurvey') || id.startsWith('child-survey') || id.startsWith('survey-')) return 'Thoughts & Feelings';
                     return 'General';
                 }
-
-                if (normalized === 'child_survey' || normalized === 'child-survey' || normalized === 'child survey') {
-                    return 'Child Survey';
-                }
-                if (normalized.includes('thoughts & feelings') || normalized.includes('thoughts and feelings')) {
-                    return 'Child Survey';
-                }
-                if (normalized === 'general') return 'General';
 
                 // Labels often arrive as "<slug>, <display name>"
                 if (raw.includes(',')) {
                     const parts = raw.split(',').map((part) => part.trim()).filter(Boolean);
                     if (parts.length >= 2) {
-                        if (parts[1].toLowerCase().includes('thoughts') && parts[1].toLowerCase().includes('feelings')) {
-                            return 'Child Survey';
-                        }
-                        return parts[1];
+                        const mappedSecond = this.getDesiredTaskDisplayName(parts[1]);
+                        if (mappedSecond) return mappedSecond;
+                        const mappedFirst = this.getDesiredTaskDisplayName(parts[0]);
+                        if (mappedFirst) return mappedFirst;
+                        return this.getDesiredTaskDisplayName(raw) || parts[1];
                     }
                 }
 
+                const mappedRaw = this.getDesiredTaskDisplayName(raw);
+                if (mappedRaw) return mappedRaw;
+
                 if (/[_-]/.test(raw) && /^[a-z0-9_\-\s]+$/i.test(raw)) {
-                    return this.formatTaskSlug(raw);
+                    const formatted = this.formatTaskSlug(raw);
+                    return this.getDesiredTaskDisplayName(formatted) || formatted;
                 }
 
                 return raw;
