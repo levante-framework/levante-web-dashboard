@@ -318,14 +318,19 @@
 	(async function() {
 		// Refresh button handler
 		const refreshBtn = document.getElementById('refreshBtn');
-		refreshBtn.addEventListener('click', () => {
+		refreshBtn.addEventListener('click', async () => {
 			refreshReport();
 		});
 		
 		// Function to refresh the entire report
 		async function refreshReport() {
-			// Clear existing content
-			document.querySelector('#reportTable tbody').innerHTML = '';
+			await flushLanguageSelectionSave();
+			// Show an explicit loading row so the language list does not appear to vanish
+			// while the audit re-runs.
+			const reportBody = document.querySelector('#reportTable tbody');
+			if (reportBody) {
+				reportBody.innerHTML = '<tr><td colspan="10" class="small">Refreshing selected languages…</td></tr>';
+			}
 			document.getElementById('visualSummary').textContent = 'Loading…';
 			document.getElementById('visualSummaryProd').textContent = 'Loading…';
 			document.getElementById('audioSummary').textContent = 'Loading…';
@@ -339,7 +344,14 @@
 			resetStoplights();
 			
 			// Reload all data
-			await loadReportData();
+			try {
+				await loadReportData();
+			} catch (error) {
+				console.error('refreshReport failed', error);
+				if (reportBody) {
+					reportBody.innerHTML = `<tr><td colspan="10" class="err">Refresh failed: ${String(error?.message || error)}</td></tr>`;
+				}
+			}
 		}
 		
 		// Reset all stoplight buttons to loading state
@@ -466,19 +478,24 @@
 
 		function persistLanguageSelection() {
 			const orderedSelection = cachedLanguageCodes.filter(code => selectedLanguageSet.has(code));
+			const payload = {
+				languages: orderedSelection,
+				updatedAt: new Date().toISOString()
+			};
 			try {
-				window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(orderedSelection));
+				window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(payload));
 			} catch (error) {
 				console.warn('Unable to persist selection locally:', error.message);
 			}
 
 			if (selectionSaveTimeout) clearTimeout(selectionSaveTimeout);
 			selectionSaveTimeout = setTimeout(async () => {
+				selectionSaveTimeout = null;
 				try {
 					await fetch(LANGUAGE_SELECTION_API, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ languages: orderedSelection })
+						body: JSON.stringify(payload)
 					});
 				} catch (error) {
 					console.warn('Failed to persist selection to bucket:', error.message);
@@ -486,37 +503,83 @@
 			}, 800);
 		}
 
+		async function flushLanguageSelectionSave() {
+			if (selectionSaveTimeout) {
+				clearTimeout(selectionSaveTimeout);
+				selectionSaveTimeout = null;
+			}
+			if (!cachedLanguageCodes.length) return;
+			const orderedSelection = cachedLanguageCodes.filter(code => selectedLanguageSet.has(code));
+			const payload = {
+				languages: orderedSelection,
+				updatedAt: new Date().toISOString()
+			};
+			try {
+				window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(payload));
+			} catch (error) {
+				console.warn('Unable to persist selection locally before refresh:', error.message);
+			}
+			try {
+				await fetch(LANGUAGE_SELECTION_API, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(payload)
+				});
+			} catch (error) {
+				console.warn('Failed to flush selection to bucket before refresh:', error.message);
+			}
+		}
+
 		async function loadStoredLanguageSelection(languageCodes) {
-			let stored = null;
+			let remotePayload = null;
+			let localPayload = null;
 			try {
 				const res = await fetch(`${LANGUAGE_SELECTION_API}?t=${Date.now()}`, { cache: 'no-cache' });
 				if (res.ok) {
 					const data = await res.json();
 					if (Array.isArray(data.languages) && data.languages.length) {
-						stored = data.languages;
-						try {
-							window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(stored));
-						} catch (error) {
-							console.warn('Unable to cache selection locally:', error.message);
-						}
+						remotePayload = {
+							languages: data.languages,
+							updatedAt: data.updatedAt || ''
+						};
 					}
 				}
 			} catch (error) {
 				console.warn('Failed to fetch language selection from bucket:', error.message);
 			}
 
-			if (!stored) {
-				try {
-					const local = window.localStorage.getItem(LANGUAGE_SELECTION_LOCAL_KEY);
-					if (local) {
-						const parsed = JSON.parse(local);
-						if (Array.isArray(parsed) && parsed.length) stored = parsed;
+			try {
+				const local = window.localStorage.getItem(LANGUAGE_SELECTION_LOCAL_KEY);
+				if (local) {
+					const parsed = JSON.parse(local);
+					if (Array.isArray(parsed) && parsed.length) {
+						localPayload = { languages: parsed, updatedAt: '' };
+					} else if (parsed && Array.isArray(parsed.languages) && parsed.languages.length) {
+						localPayload = {
+							languages: parsed.languages,
+							updatedAt: parsed.updatedAt || ''
+						};
 					}
-				} catch (error) {
-					console.warn('Failed to read local language selection:', error.message);
 				}
+			} catch (error) {
+				console.warn('Failed to read local language selection:', error.message);
 			}
 
+			let stored = null;
+			if (remotePayload && localPayload) {
+				const remoteTime = Date.parse(remotePayload.updatedAt || '') || 0;
+				const localTime = Date.parse(localPayload.updatedAt || '') || 0;
+				stored = localTime > remoteTime ? localPayload.languages : remotePayload.languages;
+			} else {
+				stored = (remotePayload && remotePayload.languages) || (localPayload && localPayload.languages);
+			}
+			if (stored && stored === remotePayload?.languages) {
+				try {
+					window.localStorage.setItem(LANGUAGE_SELECTION_LOCAL_KEY, JSON.stringify(remotePayload));
+				} catch (error) {
+					console.warn('Unable to cache selection locally:', error.message);
+				}
+			}
 			const valid = (stored || []).filter(code => languageCodes.includes(code));
 			if (valid.length > 0) return valid;
 			return languageCodes.slice();
