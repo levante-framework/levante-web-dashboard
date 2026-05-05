@@ -2644,7 +2644,26 @@
                     localStorage.removeItem(storageKey);
                     return;
                 }
-                localStorage.setItem(storageKey, JSON.stringify(safeState));
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(safeState));
+                } catch (error) {
+                    const isQuotaError = error && (
+                        error.name === 'QuotaExceededError' ||
+                        error.name === 'NS_ERROR_DOM_QUOTA_REACHED' ||
+                        error.code === 22 ||
+                        error.code === 1014
+                    );
+                    if (!isQuotaError) throw error;
+                    try {
+                        localStorage.removeItem(storageKey);
+                    } catch (_) {
+                        // ignore cleanup failures; server sync remains the source of truth
+                    }
+                    console.warn('Enhanced text local cache exceeded browser quota; continuing with server sync only.', {
+                        storageKey,
+                        entryCount: Object.keys(safeState).length
+                    });
+                }
             }
 
             getEnhancedTextForItem(itemId, fallbackText = '') {
@@ -6666,7 +6685,7 @@
                     const sourceLabel = textSource === 'enhanced' ? 'audio-enhanced text' : 'translation text';
                     this.setStatus(`Generating audio for ${itemId} using ${sourceLabel}...`, 'loading');
                     
-                    const langConfig = this.languages[this.currentLanguage];
+                    const langConfig = this.getConfiguredVoiceForRegeneration();
                     const configuredVoice = String(langConfig?.voice || '').trim();
                     const configuredVoiceId = String(langConfig?.voice_id || '').trim();
                     const resolvedVoice = await this.resolveVoiceForRegeneration(itemId, configuredVoice, configuredVoiceId);
@@ -6798,6 +6817,33 @@
                 }
 
                 return '';
+            }
+
+            getConfiguredVoiceForRegeneration() {
+                const selectedConfig = this.languages[this.currentLanguage] || {};
+                const configs = [
+                    selectedConfig,
+                    ...Object.values(this.languages || {}),
+                    ...Object.values(this.defaultLanguages || {})
+                ];
+                const selectedLabel = this.normalizeLanguageLabel(this.currentLanguage || '', selectedConfig).toLowerCase();
+                const currentCode = this.normalizeLangCode(this.currentLangCode || selectedConfig.lang_code || '').toLowerCase();
+                const currentBase = currentCode.split('-')[0] || '';
+
+                const isMatch = (cfg) => {
+                    if (!cfg || typeof cfg !== 'object') return false;
+                    const cfgCode = this.normalizeLangCode(cfg.lang_code || '').toLowerCase();
+                    const cfgBase = cfgCode.split('-')[0] || '';
+                    const cfgLabel = this.normalizeLanguageLabel(cfg.display_name || '', cfg).toLowerCase();
+                    if (cfgCode && cfgCode === currentCode) return true;
+                    if (cfgLabel && selectedLabel && cfgLabel === selectedLabel) return true;
+                    return currentBase === 'en' && cfgBase === 'en' && cfgLabel === 'english (united states)';
+                };
+
+                return configs.find((cfg) => {
+                    const hasVoice = String(cfg?.voice || '').trim() || String(cfg?.voice_id || '').trim();
+                    return hasVoice && isMatch(cfg);
+                }) || selectedConfig;
             }
 
             getCredentials() {
@@ -7002,6 +7048,12 @@
                     const baseId = this.extractBaseId(itemId || '');
                     if (!baseId) {
                         throw new Error(`Invalid item id: ${itemId}`);
+                    }
+
+                    if (this.isPendingGeneratedForItem(itemId)) {
+                        this.setStatus(`Saving generated audio for ${itemId} before approval...`, 'loading');
+                        await this.saveAudio(itemId);
+                        return;
                     }
                     
                     // Check if already approved

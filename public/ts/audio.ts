@@ -7,6 +7,7 @@ interface AudioMetadata {
     contentType?: string;
     created?: string;
     language?: string;
+    bucket?: string;
     note?: string;
     comment?: string;
     id3Tags?: {
@@ -40,6 +41,7 @@ interface AudioMetadataResponse {
     contentType?: string;
     created?: string;
     language?: string;
+    bucket?: string;
     note?: string;
     comment?: string;
     id3Tags?: AudioMetadata['id3Tags'];
@@ -260,20 +262,32 @@ function closeDraftAudioModal(): void {
  */
 async function fetchAudioMetadata(itemId: string, langCode: string): Promise<void> {
     try {
-        const url = `/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(langCode)}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const buckets = ['levante-assets-dev', 'levante-assets-draft'];
+        const errors: string[] = [];
+
+        for (const bucket of buckets) {
+            const url = `/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(langCode)}&bucket=${encodeURIComponent(bucket)}`;
+            const response = await fetch(url);
+            let data: AudioMetadataResponse | null = null;
+
+            try {
+                data = await response.json();
+            } catch {
+                data = null;
+            }
+
+            if (response.ok && data && !data.error) {
+                data.bucket = bucket;
+                data.note = data.note || `Loaded from ${bucket}`;
+                showAudioInfoData(data);
+                return;
+            }
+
+            const detail = data?.details || data?.error || `${response.status} ${response.statusText}`.trim();
+            errors.push(`${bucket}: ${detail}`);
         }
-        
-        const data: AudioMetadataResponse = await response.json();
-        
-        if (data.error) {
-            showAudioInfoError(data.error, data.details || 'Unknown error');
-        } else {
-            showAudioInfoData(data);
-        }
+
+        showAudioInfoError('File not accessible', `No metadata found for ${itemId} in ${langCode}. ${errors.join(' | ')}`);
     } catch (error) {
         console.error('❌ Error fetching audio metadata:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

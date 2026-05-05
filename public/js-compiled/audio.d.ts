@@ -4,6 +4,7 @@ interface AudioMetadata {
     contentType?: string;
     created?: string;
     language?: string;
+    bucket?: string;
     note?: string;
     comment?: string;
     id3Tags?: {
@@ -30,6 +31,7 @@ interface AudioMetadataResponse {
     contentType?: string;
     created?: string;
     language?: string;
+    bucket?: string;
     note?: string;
     comment?: string;
     id3Tags?: AudioMetadata['id3Tags'];

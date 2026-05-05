@@ -3502,6 +3502,10 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const escapedTypeName = escapeHtml(String(contentType));
                     const escapedOriginalText = escapeHtml(String(originalEnglish || ''));
                     const escapedDisplayText = escapeHtml(String(text || ''));
+                    const hasAudioFile = String(contentType || '').trim().toLowerCase() === 'itembank';
+                    const infoButtonHtml = hasAudioFile
+                        ? `<button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>`
+                        : '<button class="info-btn" title="No audio file is expected for this row" disabled style="opacity:0.55; cursor:not-allowed;">No Audio</button>';
                     const hasStoredScore = !!(storedResult && storedResult.score !== undefined) && canValidateTranslation && !requiresRevalidation;
                     const validateOnClick = hasStoredScore
                         ? `(window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}'))`
@@ -3648,7 +3652,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}" ${indicatorOnClick}></div>
                                 <div class="validation-action-buttons">
                                     <button class="validate-btn" onclick="${validateOnClick}" ${canValidateTranslation ? '' : 'disabled'}>${buttonText}</button>
-                                    <button class="info-btn" onclick="showAudioInfo('${escapedItemId}', '${langCode}')" title="Show audio metadata">Info</button>
+                                    ${infoButtonHtml}
                                 </div>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
