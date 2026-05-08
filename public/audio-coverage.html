@@ -340,6 +340,50 @@
       return ids.map(id => ({ lang: language, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(language)}/${encodeURIComponent(id)}.mp3` }));
     }
 
+    function extractItemIdFromPath(filePath){
+      if(!filePath || typeof filePath !== 'string') return null;
+      const name = filePath.split('/').pop() || '';
+      if(!name.toLowerCase().endsWith('.mp3')) return null;
+      return name.slice(0, -4);
+    }
+
+    async function listDiscoveredAudioItems(langCodes){
+      const items = [];
+      const seen = new Set();
+      for(const lang of langCodes){
+        try{
+          const params = new URLSearchParams();
+          params.set('list', '1');
+          params.set('files', '1');
+          params.set('prefix', currentSource === 'repo' ? `audio_files/${lang}/` : `audio/${lang}/`);
+          if(currentSource === 'repo'){
+            params.set('source', 'repo');
+          } else {
+            params.set('bucket', getSelectedBucket());
+          }
+          const listed = await fetchJson(`/api/read-tags?${params.toString()}`);
+          const files = Array.isArray(listed.files) ? listed.files : [];
+          for(const path of files){
+            const id = extractItemIdFromPath(path);
+            if(!id) continue;
+            const key = `${lang}||${id}`;
+            if(seen.has(key)) continue;
+            seen.add(key);
+            items.push({
+              lang,
+              id,
+              url: currentSource === 'repo'
+                ? `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(lang)}/${encodeURIComponent(id)}.mp3`
+                : `https://storage.googleapis.com/${encodeURIComponent(getSelectedBucket())}/audio/${encodeURIComponent(lang)}/${encodeURIComponent(id)}.mp3`
+            });
+          }
+        } catch (err){
+          console.warn(`Failed to discover files for ${lang}:`, err.message);
+        }
+      }
+      return items;
+    }
+
     async function readTag(item){
       try{
         const params = new URLSearchParams();
@@ -448,30 +492,40 @@
         langCodes = filtered.concat(missingRequested);
       }
 
-      const ids = await getAllItemIds();
+      let ids = [];
+      try {
+        ids = await getAllItemIds();
+      } catch (e) {
+        console.warn('Failed to load CSV item IDs, continuing with discovered files only:', e.message);
+      }
       const includeChildSurvey = false; // document.getElementById('includeChildSurvey')?.checked ?? true;
-      const allItems = [];
-      if(currentSource === 'repo'){
-        for(const code of langCodes){
-          for(const id of ids){
-            // Standard audio files
-            allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
-            // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
-            // if (includeChildSurvey) {
-            //   allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
-            // }
+      let allItems = await listDiscoveredAudioItems(langCodes);
+
+      // Legacy fallback: when discovery is unavailable, probe expected IDs from CSV
+      if (allItems.length === 0 && ids.length > 0) {
+        allItems = [];
+        if(currentSource === 'repo'){
+          for(const code of langCodes){
+            for(const id of ids){
+              // Standard audio files
+              allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
+              // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
+              // if (includeChildSurvey) {
+              //   allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
+              // }
+            }
           }
-        }
-      } else {
-        const bucket = getSelectedBucket();
-        for(const code of langCodes){
-          for(const id of ids){
-            // Standard audio files
-            allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
-            // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
-            // if (includeChildSurvey) {
-            //   allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
-            // }
+        } else {
+          const bucket = getSelectedBucket();
+          for(const code of langCodes){
+            for(const id of ids){
+              // Standard audio files
+              allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
+              // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
+              // if (includeChildSurvey) {
+              //   allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
+              // }
+            }
           }
         }
       }

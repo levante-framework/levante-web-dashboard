@@ -125,6 +125,10 @@
       return Number.isNaN(d.getTime()) ? (v || '') : d.toLocaleString();
     }
 
+    function normalizeLangCode(v) {
+      return String(v || '').trim().replace(/_/g, '-').toLowerCase();
+    }
+
     function sumRows(rows) {
       return rows.reduce((acc, row) => {
         acc.approvalsTotal += Number(row.approvalsTotal || 0);
@@ -206,16 +210,28 @@
 
     function applyFilters() {
       if (!state.payload) return;
-      const lang = el('langFilter').value;
       const changedOnly = el('changedOnly').checked;
       const summary = state.payload.summaryByLanguage || [];
       const details = state.payload.approvalDetails || [];
+      const availableLangs = new Set(
+        summary
+          .map((row) => normalizeLangCode(row.language))
+          .filter(Boolean)
+      );
+      const langSelect = el('langFilter');
+      let lang = normalizeLangCode(langSelect.value);
+      if (!lang || (lang !== '__all__' && !availableLangs.has(lang))) {
+        lang = '__all__';
+        if (langSelect.value !== '__all__') {
+          langSelect.value = '__all__';
+        }
+      }
 
       const filteredSummary = lang === '__all__'
         ? summary
-        : summary.filter((row) => String(row.language) === lang);
+        : summary.filter((row) => normalizeLangCode(row.language) === lang);
 
-      const filteredDetails = details.filter((row) => (lang === '__all__' || String(row.langCode) === lang))
+      const filteredDetails = details.filter((row) => (lang === '__all__' || normalizeLangCode(row.langCode) === lang))
         .filter((row) => !changedOnly || (row.latestPriorEnhanced && row.latestPriorEnhanced.enhancedTextChanged === true));
 
       state.filteredDetails = filteredDetails;
@@ -247,11 +263,19 @@
         ? `Updated ${compacted} day${compacted === 1 ? '' : 's'} of log files${pending > 0 ? ` (${pending} pending)` : ''}`
         : '';
 
-      const langs = (payload.summaryByLanguage || []).map((r) => String(r.language || '')).filter(Boolean);
+      const langs = Array.from(new Set(
+        (payload.summaryByLanguage || [])
+          .map((r) => normalizeLangCode(r.language))
+          .filter(Boolean)
+      ));
       const langSelect = el('langFilter');
-      const current = langSelect.value;
+      const current = normalizeLangCode(langSelect.value);
       langSelect.innerHTML = '<option value="__all__">All</option>' + langs.map((l) => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
-      if (langs.includes(current)) langSelect.value = current;
+      if (langs.includes(current)) {
+        langSelect.value = current;
+      } else {
+        langSelect.value = '__all__';
+      }
 
       const compactLabel = compacted > 0
         ? ` • Log files updated: ${compacted}${pending > 0 ? ` (${pending} pending)` : ''}`

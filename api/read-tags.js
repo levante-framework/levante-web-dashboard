@@ -302,6 +302,42 @@ async function listRepoLanguages() {
     }
 }
 
+function normalizeRepoPrefix(prefix = '') {
+    const raw = (prefix || '').toString().trim().replace(/^\/+/, '');
+    if (!raw) return 'audio_files/';
+    if (raw.startsWith('audio_files/')) return raw;
+    if (raw.startsWith('audio/')) return raw.replace(/^audio\//, 'audio_files/');
+    return `audio_files/${raw}`;
+}
+
+// List files with a specific prefix from the repository (non-recursive directory listing)
+async function listRepoFilesWithPrefix(prefix) {
+    try {
+        const normalizedPrefix = normalizeRepoPrefix(prefix).replace(/\/+$/, '');
+        if (!normalizedPrefix) return [];
+
+        const encodedPath = normalizedPrefix
+            .split('/')
+            .filter(Boolean)
+            .map(segment => encodeURIComponent(segment))
+            .join('/');
+        const apiUrl = `https://api.github.com/repos/levante-framework/levante_translations/contents/${encodedPath}?ref=main`;
+        const resp = await fetch(apiUrl, { headers: { 'User-Agent': 'levante-audio-dashboard' } });
+        if (!resp.ok) {
+            return [];
+        }
+        const data = await resp.json();
+        if (!Array.isArray(data)) return [];
+
+        return data
+            .filter(entry => entry && entry.type === 'file' && entry.name && entry.path)
+            .map(entry => entry.path);
+    } catch (err) {
+        console.warn('⚠️ Failed to list repo files with prefix:', err.message);
+        return [];
+    }
+}
+
 // List files with a specific prefix in the bucket
 async function listFilesWithPrefix(bucketName, prefix, includeMetadata = false) {
     try {
@@ -358,6 +394,13 @@ export default async function handler(req, res) {
         // If listing was requested, return languages found in the dev assets bucket
         if (list === '1' || list === 1 || list === true) {
             if (source === 'repo') {
+                const includeFiles = ((req.method === 'GET' ? req.query.files : req.body?.files) || '').toString().trim().toLowerCase();
+                const listFilesRequested = includeFiles === '1' || includeFiles === 'true' || includeFiles === 'yes';
+                if (listFilesRequested || prefix) {
+                    const files = await listRepoFilesWithPrefix(prefix);
+                    res.status(200).json({ source: 'repo', prefix, files });
+                    return;
+                }
                 const languages = await listRepoLanguages();
                 res.status(200).json({ source: 'repo', languages });
                 return;

@@ -2000,7 +2000,7 @@
         class PartnerAudioDashboard {
             constructor() {
                 this.defaultLanguages = {
-                    'English (United States)': { lang_code: 'en-US', service: 'ElevenLabs', voice: 'Clara - Children\'s Storyteller' },
+                    'English (United States)': { lang_code: 'en-US', service: 'ElevenLabs', voice: 'Lily Wolff' },
                     'Spanish (Colombia)': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Melody - Ecommerce Voice', voice_id: 'bN1bDXgDIGX5lw0rtY2B' },
                     'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
@@ -5962,8 +5962,11 @@
                                         <button class="btn btn-secondary" data-audio-action="add-compare" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.addCurrentToCompare('${escapedItemId}')" ${hasCompareCandidate ? '' : 'disabled'} title="${hasCompareCandidate ? 'Add current generated/existing audio to comparison slots' : 'Generate or play existing audio before adding to compare'}">
                                             <i class="fas fa-layer-group"></i> Add to compare
                                         </button>
-                                        <button class="btn btn-success save-btn" data-audio-action="save" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Approve & save generated audio' : 'Generate audio before saving'}">
-                                            <i class="fas fa-check-circle"></i> Approve & Save
+                                        <button class="btn btn-success save-btn" data-audio-action="save" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio to draft bucket' : 'Generate audio before saving'}">
+                                            <i class="fas fa-save"></i> Save
+                                        </button>
+                                        <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and immediately approve it' : 'Generate audio before saving and approving'}">
+                                            <i class="fas fa-check-double"></i> Save &amp; Approve
                                         </button>
                                         ${this.renderCompareControlsHtml(itemId)}
                                     </div>
@@ -6319,7 +6322,7 @@
                 state.activeIndex = Number(slotIndex);
                 this.refreshCompareControlsForItem(itemId);
                 this.updateSaveButtonStates();
-                this.setStatus(`Compare slot #${Number(slotIndex) + 1} is now current for save & approve.`, 'success');
+                this.setStatus(`Compare slot #${Number(slotIndex) + 1} is now current for save actions.`, 'success');
             }
 
             clearCompareSlotsForItem(itemId) {
@@ -6339,8 +6342,10 @@
                     btn.disabled = btn.dataset.audioAction === 'add-compare' ? !hasCandidate : !isPending;
                     if (btn.dataset.audioAction === 'add-compare') {
                         btn.title = hasCandidate ? 'Add current generated/existing audio to comparison slots' : 'Generate or play existing audio before adding to compare';
+                    } else if (btn.dataset.audioAction === 'save-approve') {
+                        btn.title = isPending ? 'Save generated audio and immediately approve it' : 'Generate audio before saving and approving';
                     } else {
-                        btn.title = isPending ? 'Approve & save generated audio' : 'Generate audio before saving';
+                        btn.title = isPending ? 'Save generated audio to draft bucket' : 'Generate audio before saving';
                     }
                 });
             }
@@ -6933,7 +6938,33 @@
             findVoiceByName(voices, voiceName) {
                 const desiredName = String(voiceName || '').trim();
                 if (!desiredName) return null;
-                return voices.find(v => String(v?.name || '').trim() === desiredName) || null;
+                const exact = voices.find(v => String(v?.name || '').trim() === desiredName);
+                if (exact) return exact;
+
+                const normalizedDesired = desiredName.toLowerCase().replace(/\s+/g, ' ').trim();
+
+                const normalizedMatch = voices.find(v => {
+                    const candidate = String(v?.name || '').toLowerCase().replace(/\s+/g, ' ').trim();
+                    return candidate === normalizedDesired;
+                });
+                if (normalizedMatch) return normalizedMatch;
+
+                // Allow configured short aliases (e.g. "Lily Wolff") to match decorated
+                // provider names (e.g. "Lily Wolff - Expressive, Clear, ...") only when
+                // the match is unique, to avoid picking the wrong voice.
+                const tokenizedDesired = normalizedDesired
+                    .split(/[^a-z0-9]+/i)
+                    .filter(Boolean);
+                const aliasMatches = voices.filter(v => {
+                    const candidate = String(v?.name || '').toLowerCase();
+                    return tokenizedDesired.length > 0
+                        && tokenizedDesired.every(token => candidate.includes(token));
+                });
+                if (aliasMatches.length === 1) {
+                    return aliasMatches[0];
+                }
+
+                return null;
             }
 
             async resolveVoiceForRegeneration(itemId, configuredVoiceName, configuredVoiceId = '') {
@@ -6953,7 +6984,6 @@
                     };
                 }
 
-                const existingVoice = await this.getExistingGeneratedVoice(itemId);
                 const voices = await this.fetchAvailableVoices();
                 const configuredMatch = this.findVoiceByName(voices, configured);
                 if (configuredMatch?.voice_id) {
@@ -6964,27 +6994,13 @@
                     };
                 }
 
-                if (existingVoice) {
-                    const existingMatch = this.findVoiceByName(voices, existingVoice);
-                    if (existingMatch?.voice_id) {
-                        return {
-                            voiceName: existingVoice,
-                            voiceId: existingMatch.voice_id,
-                            source: 'existing'
-                        };
-                    }
-                }
-
                 const available = voices
                     .map(v => String(v?.name || '').trim())
                     .filter(Boolean)
                     .sort((a, b) => a.localeCompare(b));
                 const preview = available.slice(0, 12).join(', ');
-                const existingText = existingVoice
-                    ? ` Existing audio voice "${existingVoice}" is also unavailable.`
-                    : ' Existing audio does not contain a reusable voice tag.';
                 throw new Error(
-                    `Cannot regenerate audio: configured language voice "${configured}" is unavailable in the current ElevenLabs account.${existingText} No new audio was generated. Available voices (${available.length}): ${preview}${available.length > 12 ? ', ...' : ''}`
+                    `Cannot regenerate audio: configured language voice "${configured}" is unavailable in the current ElevenLabs account. No new audio was generated. Available voices (${available.length}): ${preview}${available.length > 12 ? ', ...' : ''}`
                 );
             }
 
@@ -7052,7 +7068,7 @@
 
                     if (this.isPendingGeneratedForItem(itemId)) {
                         this.setStatus(`Saving generated audio for ${itemId} before approval...`, 'loading');
-                        await this.saveAudio(itemId);
+                        await this.saveAndApproveAudio(itemId);
                         return;
                     }
                     
@@ -7206,10 +7222,14 @@
                         throw new Error('No generated audio to save. Please regenerate audio first.');
                     }
                     
-                    this.setStatus(`Saving and approving audio for ${itemId}...`, 'loading');
+                    this.setStatus(`Saving audio for ${itemId} to draft...`, 'loading');
                     
                     const item = this.data.find(entry => entry.item_id === itemId);
                     const itemLabel = item?.labels || item?.task || itemId;
+                    const baseId = this.extractBaseId(itemId || '');
+                    if (!baseId) {
+                        throw new Error(`Invalid item id: ${itemId}`);
+                    }
                     
                     const payload = {
                         audioBase64: this.latestGeneratedAudio.audioBase64,
@@ -7250,38 +7270,9 @@
                     }
                     const saveResult = await response.json().catch(() => ({}));
                     
-                    // After saving, immediately move to dev bucket (approve)
-                    const baseId = this.extractBaseId(itemId || '');
-                    if (!baseId) {
-                        throw new Error(`Invalid item id: ${itemId}`);
-                    }
-                    
-                    this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
-                    
-                    const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
-                    if (!audioPath) {
-                        throw new Error(`No draft audio file found for ${itemId}`);
-                    }
-                    
-                    // Move the file to dev bucket
-                    const moveResponse = await fetch('/api/move-audio-to-dev', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            bucket: 'levante-assets-draft',
-                            path: audioPath
-                        })
-                    });
-                    
-                    if (!moveResponse.ok) {
-                        const errorText = await moveResponse.text();
-                        throw new Error(errorText || 'Failed to move audio to approved bucket');
-                    }
                     const behaviorState = this.getAudioBehaviorState(itemId);
                     behaviorState.totalSaves += 1;
-                    await this.logApproverAudioEvent('save_success', itemId, {
+                    await this.logApproverAudioEvent('save_draft_success', itemId, {
                         service: String(this.latestGeneratedAudio?.service || 'ElevenLabs'),
                         modelId: String(this.latestGeneratedAudio?.modelId || ''),
                         voiceId: String(this.latestGeneratedAudio?.voiceId || ''),
@@ -7299,14 +7290,10 @@
                     this.pendingSaveKey = null;
                     this.latestGeneratedAudio = null;
                     this.clearCompareSlotsForItem(itemId);
-                    this.approvedItems.add(baseId);
-                    this.unapprovedItems.delete(baseId);
                     this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
-                    this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
                     
                     // Update UI
                     this.updateSaveButtonStates();
-                    await this.loadApprovalStatus();
                     await this.refreshItemsForCurrentTab();
                     await this.updateApprovalStats();
                     
@@ -7315,7 +7302,7 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Audio saved and approved for ${itemId}. Item moved to Approved tab.`, 'success');
+                    this.setStatus(`Audio saved to draft for ${itemId}. Click Approve to move it to approved bucket.`, 'success');
                 } catch (error) {
                     console.error('Save audio error:', error);
                     this.setStatus(`Error saving audio: ${error.message}`, 'error');

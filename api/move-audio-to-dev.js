@@ -29,6 +29,15 @@ function sanitizePath(value) {
     .join('/');
 }
 
+function parseAudioObjectPath(objectPath) {
+  const match = String(objectPath || '').match(/^audio\/([^/]+)\/(.+?)(?:_v\d{3})?\.mp3$/i);
+  if (!match) return null;
+  return {
+    language: match[1],
+    baseId: match[2]
+  };
+}
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -92,13 +101,39 @@ export default async function handler(req, res) {
     // Delete source file (move operation)
     await sourceFile.delete();
 
+    // Cleanup stale draft siblings for the same base item.
+    // This removes old canonical and versioned copies left behind in draft.
+    let cleanedDraftSiblings = 0;
+    const parsedPath = parseAudioObjectPath(sanitizedPath);
+    if (parsedPath) {
+      const siblingPrefix = `audio/${parsedPath.language}/${parsedPath.baseId}`;
+      const versionPattern = new RegExp(`^${siblingPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_v\\d{3}\\.mp3$`, 'i');
+      const [siblings] = await sourceBucket.getFiles({ prefix: siblingPrefix });
+      const deletions = siblings
+        .map((file) => file?.name)
+        .filter((name) => {
+          if (!name || !name.toLowerCase().endsWith('.mp3')) return false;
+          if (name === sanitizedPath) return false;
+          return name === `${siblingPrefix}.mp3` || versionPattern.test(name);
+        })
+        .map((name) => sourceBucket.file(name).delete().then(
+          () => ({ ok: true }),
+          () => ({ ok: false })
+        ));
+      if (deletions.length > 0) {
+        const results = await Promise.all(deletions);
+        cleanedDraftSiblings = results.filter((r) => r.ok).length;
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: `Moved ${sanitizedPath} from ${sourceBucketName} to ${TARGET_BUCKET}`,
       sourceBucket: sourceBucketName,
       targetBucket: TARGET_BUCKET,
       path: targetPath,
-      promotedFromVersionedPath: sanitizedPath !== targetPath
+      promotedFromVersionedPath: sanitizedPath !== targetPath,
+      cleanedDraftSiblings
     });
   } catch (error) {
     console.error('Error moving audio file:', error);
