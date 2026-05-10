@@ -567,6 +567,58 @@
             cursor: default;
         }
 
+        .task-approve-btn {
+            margin-left: 6px;
+            padding: 7px 12px;
+            border: none;
+            border-radius: 8px;
+            background: #da3d16;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .task-approve-btn:hover:not([disabled]) {
+            background: #bd2f0f;
+        }
+
+        .task-approve-btn[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .task-unapprove-btn {
+            margin-left: 6px;
+            padding: 7px 12px;
+            border: none;
+            border-radius: 8px;
+            background: #b45309;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .task-unapprove-btn:hover:not([disabled]) {
+            background: #92400e;
+        }
+
+        .task-unapprove-btn[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
         .common-tags-panel {
             margin: -8px 0 20px;
             padding: 12px;
@@ -659,6 +711,18 @@
         .common-tags-aux-btn:hover {
             background: #f8fafc;
             border-color: #94a3b8;
+        }
+
+        .common-tags-select {
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #334155;
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 220px;
+            max-width: 320px;
         }
 
         .common-tags-list {
@@ -1901,6 +1965,14 @@
                 <select id="taskFilterSelect" onchange="dashboard.handleTaskFilterChange(this.value)">
                     <option value="__all__">All tasks</option>
                 </select>
+                <button id="approveCurrentTaskBtn" class="task-approve-btn" type="button" onclick="dashboard.approveAllForCurrentTask()" disabled>
+                    <i class="fas fa-check-double"></i>
+                    Approve Task Audio
+                </button>
+                <button id="unapproveCurrentTaskBtn" class="task-unapprove-btn" type="button" onclick="dashboard.unapproveAllForCurrentTask()" disabled style="display: none;">
+                    <i class="fas fa-undo"></i>
+                    Unapprove All
+                </button>
                 <button id="finishedTaskBtn" class="task-finish-btn" type="button" onclick="dashboard.handleFinishedTaskClick()">
                     <i class="fas fa-check-circle"></i>
                     Finished with this task
@@ -1917,6 +1989,15 @@
                     </div>
                 </div>
                 <div class="common-tags-header-actions">
+                    <select id="commonTagsBulkSelect" class="common-tags-select" aria-label="Select common tag for bulk actions">
+                        <option value="">Select tag...</option>
+                    </select>
+                    <button type="button" id="applyTagToAllBtn" class="common-tags-aux-btn">
+                        <i class="fas fa-plus-circle"></i> Apply tag to all
+                    </button>
+                    <button type="button" id="unapplyTagToAllBtn" class="common-tags-aux-btn">
+                        <i class="fas fa-minus-circle"></i> Un-apply tag to all
+                    </button>
                     <button type="button" id="exportCommonTagsBtn" class="common-tags-aux-btn">
                         <i class="fas fa-file-export"></i> Export
                     </button>
@@ -2333,6 +2414,7 @@
                 const listEl = document.getElementById('commonTagsList');
                 if (!listEl) return;
                 const tags = Array.isArray(this.commonAudioTags) ? this.commonAudioTags : [];
+                this.refreshCommonTagBulkSelect();
                 if (!tags.length) {
                     listEl.innerHTML = `<div class="common-tags-empty">No saved tags yet.</div>`;
                     return;
@@ -2422,8 +2504,12 @@
                 this.renderCommonAudioTags();
                 const input = document.getElementById('commonTagInput');
                 const addBtn = document.getElementById('addCommonTagBtn');
+                const bulkSelect = document.getElementById('commonTagsBulkSelect');
+                const applyToAllBtn = document.getElementById('applyTagToAllBtn');
+                const unapplyToAllBtn = document.getElementById('unapplyTagToAllBtn');
                 const exportBtn = document.getElementById('exportCommonTagsBtn');
                 const importBtn = document.getElementById('importCommonTagsBtn');
+                this.refreshCommonTagBulkSelect();
                 if (addBtn && !addBtn.dataset.bound) {
                     addBtn.dataset.bound = '1';
                     addBtn.addEventListener('click', () => {
@@ -2443,6 +2529,18 @@
                         this.addCommonAudioTag(input.value);
                         input.value = '';
                     });
+                }
+                if (bulkSelect && !bulkSelect.dataset.bound) {
+                    bulkSelect.dataset.bound = '1';
+                    bulkSelect.addEventListener('change', () => this.refreshCommonTagBulkSelect());
+                }
+                if (applyToAllBtn && !applyToAllBtn.dataset.bound) {
+                    applyToAllBtn.dataset.bound = '1';
+                    applyToAllBtn.addEventListener('click', () => this.applySelectedCommonTagToDisplayedItems());
+                }
+                if (unapplyToAllBtn && !unapplyToAllBtn.dataset.bound) {
+                    unapplyToAllBtn.dataset.bound = '1';
+                    unapplyToAllBtn.addEventListener('click', () => this.unapplySelectedCommonTagFromDisplayedItems());
                 }
                 if (exportBtn && !exportBtn.dataset.bound) {
                     exportBtn.dataset.bound = '1';
@@ -2484,6 +2582,110 @@
                         }
                     });
                 }
+            }
+
+            refreshCommonTagBulkSelect() {
+                const select = document.getElementById('commonTagsBulkSelect');
+                const applyBtn = document.getElementById('applyTagToAllBtn');
+                const unapplyBtn = document.getElementById('unapplyTagToAllBtn');
+                if (!select) return;
+                const previous = String(select.value || '');
+                const tags = Array.isArray(this.commonAudioTags) ? this.commonAudioTags : [];
+                select.innerHTML = '<option value="">Select tag...</option>' + tags.map((tag) => {
+                    const escaped = this.escapeHtml(String(tag || '').trim());
+                    return `<option value="${escaped}">${escaped}</option>`;
+                }).join('');
+                if (previous && tags.includes(previous)) {
+                    select.value = previous;
+                } else {
+                    select.value = '';
+                }
+                const hasSelection = Boolean(String(select.value || '').trim());
+                if (applyBtn) applyBtn.disabled = !hasSelection;
+                if (unapplyBtn) unapplyBtn.disabled = !hasSelection;
+            }
+
+            getVisibleEnhancedTextInputs() {
+                let container = document.getElementById('itemsList');
+                if (this.currentTab === 'approved') {
+                    container = document.getElementById('itemsListApproved');
+                } else if (this.currentTab === 'noaudio') {
+                    container = document.getElementById('itemsListNoAudio');
+                }
+                if (!container) return [];
+                const inputs = Array.from(container.querySelectorAll('.audio-enhanced-input'));
+                return inputs.filter((input) => {
+                    const card = input.closest('.item-card, .item-card-compact');
+                    if (!card) return true;
+                    return card.style.display !== 'none';
+                });
+            }
+
+            getSelectedCommonTagForBulkAction() {
+                const select = document.getElementById('commonTagsBulkSelect');
+                const selected = String(select?.value || '').trim();
+                if (!selected) {
+                    this.setStatus('Select a common tag first.', 'warning');
+                    return '';
+                }
+                return selected;
+            }
+
+            applySelectedCommonTagToDisplayedItems() {
+                const tag = this.getSelectedCommonTagForBulkAction();
+                if (!tag) return;
+                const inputs = this.getVisibleEnhancedTextInputs();
+                if (!inputs.length) {
+                    this.setStatus('No enhanced audio fields are currently displayed.', 'warning');
+                    return;
+                }
+
+                let updated = 0;
+                inputs.forEach((input) => {
+                    const itemId = String(input.dataset?.itemId || '').trim();
+                    if (!itemId) return;
+                    const current = String(input.value || '').trim();
+                    const alreadyPrefixed = current === tag || current.startsWith(`${tag} `);
+                    if (alreadyPrefixed) return;
+                    const next = current ? `${tag} ${current}` : tag;
+                    input.value = next;
+                    this.handleEnhancedTextInput(itemId, next);
+                    updated++;
+                });
+
+                if (!updated) {
+                    this.setStatus(`Tag "${tag}" is already applied to all displayed items.`, 'info');
+                    return;
+                }
+                this.setStatus(`Applied tag "${tag}" to ${updated} displayed item${updated === 1 ? '' : 's'}.`, 'success');
+            }
+
+            unapplySelectedCommonTagFromDisplayedItems() {
+                const tag = this.getSelectedCommonTagForBulkAction();
+                if (!tag) return;
+                const inputs = this.getVisibleEnhancedTextInputs();
+                if (!inputs.length) {
+                    this.setStatus('No enhanced audio fields are currently displayed.', 'warning');
+                    return;
+                }
+
+                let updated = 0;
+                inputs.forEach((input) => {
+                    const itemId = String(input.dataset?.itemId || '').trim();
+                    if (!itemId) return;
+                    const current = String(input.value || '');
+                    if (!current.includes(tag)) return;
+                    const next = current.split(tag).join(' ').replace(/\s{2,}/g, ' ').trim();
+                    input.value = next;
+                    this.handleEnhancedTextInput(itemId, next);
+                    updated++;
+                });
+
+                if (!updated) {
+                    this.setStatus(`No displayed items contain tag "${tag}".`, 'info');
+                    return;
+                }
+                this.setStatus(`Removed tag "${tag}" from ${updated} displayed item${updated === 1 ? '' : 's'}.`, 'success');
             }
 
             ensureEnhancedTagContextMenu() {
@@ -3068,6 +3270,8 @@
                 taskFilter.style.visibility = 'visible';
                 taskFilter.style.opacity = '1';
                 select.style.display = 'block';
+                this.ensureTaskApproveButtonUI(taskFilter);
+                this.ensureTaskUnapproveButtonUI(taskFilter);
                 this.ensureFinishedTaskButtonUI(taskFilter);
 
                 return select;
@@ -3525,6 +3729,8 @@
                 const label = document.getElementById('refreshTimestamp');
                 const refreshBtn = document.getElementById('refreshDataBtn');
                 const approveAllBtn = document.getElementById('approveAllLanguageBtn');
+                const approveTaskBtn = this.ensureTaskApproveButtonUI();
+                const unapproveTaskBtn = this.ensureTaskUnapproveButtonUI();
 
                 if (refreshBtn) {
                     refreshBtn.disabled = !this.currentLanguage;
@@ -3538,6 +3744,28 @@
                         } else {
                             approveAllBtn.innerHTML = '<i class="fas fa-check-double"></i> Approve All Audio (Language)';
                         }
+                    }
+                }
+                if (approveTaskBtn) {
+                    const selectedTask = String(this.currentTaskFilter || '__all__');
+                    const hasTaskSelected = selectedTask !== '__all__';
+                    approveTaskBtn.style.display = this.currentTab === 'pending' ? 'inline-flex' : 'none';
+                    approveTaskBtn.disabled = !this.currentLanguage || !hasTaskSelected || this.currentTab !== 'pending' || this.bulkApproveInProgress;
+                    if (!this.bulkApproveInProgress) {
+                        approveTaskBtn.innerHTML = hasTaskSelected
+                            ? `<i class="fas fa-check-double"></i> Approve Task Audio (${this.escapeHtml(selectedTask)})`
+                            : '<i class="fas fa-check-double"></i> Approve Task Audio';
+                    }
+                }
+                if (unapproveTaskBtn) {
+                    const selectedTask = String(this.currentTaskFilter || '__all__');
+                    const hasTaskSelected = selectedTask !== '__all__';
+                    unapproveTaskBtn.style.display = this.currentTab === 'approved' ? 'inline-flex' : 'none';
+                    unapproveTaskBtn.disabled = !this.currentLanguage || !hasTaskSelected || this.currentTab !== 'approved' || this.bulkApproveInProgress;
+                    if (!this.bulkApproveInProgress) {
+                        unapproveTaskBtn.innerHTML = hasTaskSelected
+                            ? `<i class="fas fa-undo"></i> Unapprove All (${this.escapeHtml(selectedTask)})`
+                            : '<i class="fas fa-undo"></i> Unapprove All';
                     }
                 }
 
@@ -5606,8 +5834,7 @@
                         const text = this.getTextForItem(item, this.currentLangCode);
                         return text && text.trim();
                     });
-                    const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                    const pendingItems = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    const pendingItems = await this.filterItemsWithAudio(withTranslations);
                     if (!pendingItems.length) {
                         this.setStatus(`No pending audio items to approve for ${this.currentLanguage}.`, 'info');
                         return;
@@ -5715,6 +5942,325 @@
                     this.bulkApproveInProgress = false;
                     if (approveAllBtn) {
                         approveAllBtn.innerHTML = originalLabel || '<i class="fas fa-check-double"></i> Approve All Audio (Language)';
+                    }
+                    this.updateRefreshIndicator();
+                }
+            }
+
+            ensureTaskApproveButtonUI(taskFilterEl = null) {
+                const taskFilter = taskFilterEl || document.querySelector('.task-filter');
+                if (!taskFilter) return null;
+                let button = document.getElementById('approveCurrentTaskBtn');
+                if (!button) {
+                    button = document.createElement('button');
+                    button.id = 'approveCurrentTaskBtn';
+                    button.className = 'task-approve-btn';
+                    button.type = 'button';
+                    button.innerHTML = '<i class="fas fa-check-double"></i> Approve Task Audio';
+                    taskFilter.appendChild(button);
+                } else if (!taskFilter.contains(button)) {
+                    taskFilter.appendChild(button);
+                }
+                if (!button.dataset.boundClickHandler) {
+                    button.addEventListener('click', () => this.approveAllForCurrentTask());
+                    button.dataset.boundClickHandler = '1';
+                }
+                return button;
+            }
+
+            ensureTaskUnapproveButtonUI(taskFilterEl = null) {
+                const taskFilter = taskFilterEl || document.querySelector('.task-filter');
+                if (!taskFilter) return null;
+                let button = document.getElementById('unapproveCurrentTaskBtn');
+                if (!button) {
+                    button = document.createElement('button');
+                    button.id = 'unapproveCurrentTaskBtn';
+                    button.className = 'task-unapprove-btn';
+                    button.type = 'button';
+                    button.style.display = 'none';
+                    button.innerHTML = '<i class="fas fa-undo"></i> Unapprove All';
+                    taskFilter.appendChild(button);
+                } else if (!taskFilter.contains(button)) {
+                    taskFilter.appendChild(button);
+                }
+                if (!button.dataset.boundClickHandler) {
+                    button.addEventListener('click', () => this.unapproveAllForCurrentTask());
+                    button.dataset.boundClickHandler = '1';
+                }
+                return button;
+            }
+
+            async approveAllForCurrentTask() {
+                if (!this.currentLanguage || !this.currentLangCode) {
+                    this.setStatus('Select a language before task bulk approval.', 'error');
+                    return;
+                }
+                if (this.currentTab !== 'pending') {
+                    this.setStatus('Task bulk approve is available from the To Be Approved tab.', 'warning');
+                    return;
+                }
+                if (this.bulkApproveInProgress) {
+                    this.setStatus('Bulk approval is already running.', 'warning');
+                    return;
+                }
+                const selectedTask = String(this.currentTaskFilter || '__all__');
+                if (selectedTask === '__all__') {
+                    this.setStatus('Select a task before using Approve Task Audio.', 'warning');
+                    return;
+                }
+
+                const approveTaskBtn = document.getElementById('approveCurrentTaskBtn');
+                const originalLabel = approveTaskBtn ? approveTaskBtn.innerHTML : '';
+
+                try {
+                    const withTranslations = this.data.filter(item => {
+                        const text = this.getTextForItem(item, this.currentLangCode);
+                        return text && text.trim();
+                    });
+                    const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
+                    const pendingItems = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    if (!pendingItems.length) {
+                        this.setStatus(`No pending audio items to approve for task "${selectedTask}".`, 'info');
+                        return;
+                    }
+
+                    const confirmed = window.confirm(
+                        `Approve all ${pendingItems.length} pending audio items for task "${selectedTask}"?\n\nThis moves files from draft to approved bucket.`
+                    );
+                    if (!confirmed) return;
+
+                    await this.logApproverAudioEvent('bulk_approve_task_start', '__bulk_task__', {
+                        task: selectedTask,
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
+
+                    this.bulkApproveInProgress = true;
+                    if (approveTaskBtn) {
+                        approveTaskBtn.disabled = true;
+                        approveTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving task...';
+                    }
+
+                    let moved = 0;
+                    let skipped = 0;
+                    let failed = 0;
+
+                    for (let i = 0; i < pendingItems.length; i++) {
+                        const item = pendingItems[i];
+                        const itemId = item.item_id || '';
+                        const baseId = this.extractBaseId(itemId);
+                        if (!baseId) {
+                            skipped++;
+                            continue;
+                        }
+                        this.setStatus(`Task bulk approving ${i + 1}/${pendingItems.length}: ${itemId}`, 'loading');
+
+                        try {
+                            const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
+                            if (!audioPath) {
+                                skipped++;
+                                await this.logApproverAudioEvent('bulk_approve_task_item_skipped_no_audio', itemId, {
+                                    task: selectedTask,
+                                    hadPendingGeneratedAudio: false,
+                                    savedGeneratedAudio: false
+                                });
+                                continue;
+                            }
+
+                            const moveResponse = await fetch('/api/move-audio-to-dev', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    bucket: 'levante-assets-draft',
+                                    path: audioPath
+                                })
+                            });
+
+                            if (!moveResponse.ok) {
+                                failed++;
+                                await this.logApproverAudioEvent('bulk_approve_task_item_failed', itemId, {
+                                    task: selectedTask,
+                                    hadPendingGeneratedAudio: false,
+                                    savedGeneratedAudio: false
+                                });
+                                continue;
+                            }
+
+                            this.approvedItems.add(baseId);
+                            this.unapprovedItems.delete(baseId);
+                            this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+                            this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
+                            moved++;
+                            await this.logApproverAudioEvent('bulk_approve_task_item_success', itemId, {
+                                task: selectedTask,
+                                saveBucket: this.audioBuckets.dev,
+                                savePath: audioPath,
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
+                        } catch (error) {
+                            console.warn('Task bulk approve item failed:', itemId, error);
+                            failed++;
+                            await this.logApproverAudioEvent('bulk_approve_task_item_failed', itemId, {
+                                task: selectedTask,
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
+                        }
+                    }
+
+                    await this.logApproverAudioEvent('bulk_approve_task_summary', '__bulk_task__', {
+                        task: selectedTask,
+                        service: 'bulk-task-approval',
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
+
+                    await this.loadApprovalStatus();
+                    await this.refreshItemsForCurrentTab();
+                    await this.updateApprovalStats();
+                    if (this.currentSearchQuery) this.applySearchFilter(this.currentSearchQuery);
+
+                    this.setStatus(
+                        `Task bulk approve complete for "${selectedTask}": ${moved} moved, ${skipped} skipped, ${failed} failed.`,
+                        failed > 0 ? 'warning' : 'success'
+                    );
+                } catch (error) {
+                    console.error('Task bulk approve error:', error);
+                    this.setStatus(`Task bulk approve failed: ${error.message}`, 'error');
+                } finally {
+                    this.bulkApproveInProgress = false;
+                    if (approveTaskBtn) {
+                        approveTaskBtn.innerHTML = originalLabel || '<i class="fas fa-check-double"></i> Approve Task Audio';
+                    }
+                    this.updateRefreshIndicator();
+                }
+            }
+
+            async unapproveAllForCurrentTask() {
+                if (!this.currentLanguage || !this.currentLangCode) {
+                    this.setStatus('Select a language before bulk unapprove.', 'error');
+                    return;
+                }
+                if (this.currentTab !== 'approved') {
+                    this.setStatus('Unapprove All is available from the Approved tab.', 'warning');
+                    return;
+                }
+                if (this.bulkApproveInProgress) {
+                    this.setStatus('Bulk operation is already running.', 'warning');
+                    return;
+                }
+
+                const selectedTask = String(this.currentTaskFilter || '__all__');
+                if (selectedTask === '__all__') {
+                    this.setStatus('Select a task before using Unapprove All.', 'warning');
+                    return;
+                }
+
+                const unapproveTaskBtn = document.getElementById('unapproveCurrentTaskBtn');
+                const originalLabel = unapproveTaskBtn ? unapproveTaskBtn.innerHTML : '';
+
+                try {
+                    const withTranslations = this.data.filter(item => {
+                        const text = this.getTextForItem(item, this.currentLangCode);
+                        return text && text.trim();
+                    });
+                    const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
+                    const approvedItems = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    if (!approvedItems.length) {
+                        this.setStatus(`No approved audio items to unapprove for task "${selectedTask}".`, 'info');
+                        return;
+                    }
+
+                    const confirmed = window.confirm(
+                        `Unapprove all ${approvedItems.length} approved audio items for task "${selectedTask}"?\n\nThis moves files from approved bucket back to draft.`
+                    );
+                    if (!confirmed) return;
+
+                    await this.logApproverAudioEvent('bulk_unapprove_task_start', '__bulk_task__', {
+                        task: selectedTask,
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
+
+                    this.bulkApproveInProgress = true;
+                    if (unapproveTaskBtn) {
+                        unapproveTaskBtn.disabled = true;
+                        unapproveTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Unapproving...';
+                    }
+
+                    let moved = 0;
+                    let skipped = 0;
+                    let failed = 0;
+
+                    for (let i = 0; i < approvedItems.length; i++) {
+                        const item = approvedItems[i];
+                        const itemId = item.item_id || '';
+                        const baseId = this.extractBaseId(itemId);
+                        if (!baseId) {
+                            skipped++;
+                            continue;
+                        }
+                        this.setStatus(`Task bulk unapproving ${i + 1}/${approvedItems.length}: ${itemId}`, 'loading');
+
+                        try {
+                            const moveResult = await this.moveAudioToDraft(itemId, baseId);
+                            if (!moveResult || moveResult.alreadyMoved) {
+                                skipped++;
+                                await this.logApproverAudioEvent('bulk_unapprove_task_item_skipped', itemId, {
+                                    task: selectedTask,
+                                    hadPendingGeneratedAudio: false,
+                                    savedGeneratedAudio: false
+                                });
+                                continue;
+                            }
+
+                            this.approvedItems.delete(baseId);
+                            this.unapprovedItems.add(baseId);
+                            this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
+                            this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+                            moved++;
+                            await this.logApproverAudioEvent('bulk_unapprove_task_item_success', itemId, {
+                                task: selectedTask,
+                                saveBucket: this.audioBuckets.draft,
+                                savePath: moveResult.path || '',
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
+                        } catch (error) {
+                            console.warn('Task bulk unapprove item failed:', itemId, error);
+                            failed++;
+                            await this.logApproverAudioEvent('bulk_unapprove_task_item_failed', itemId, {
+                                task: selectedTask,
+                                hadPendingGeneratedAudio: false,
+                                savedGeneratedAudio: false
+                            });
+                        }
+                    }
+
+                    await this.logApproverAudioEvent('bulk_unapprove_task_summary', '__bulk_task__', {
+                        task: selectedTask,
+                        service: 'bulk-task-unapprove',
+                        hadPendingGeneratedAudio: false,
+                        savedGeneratedAudio: false
+                    });
+
+                    await this.loadApprovalStatus();
+                    await this.refreshItemsForCurrentTab();
+                    await this.updateApprovalStats();
+                    if (this.currentSearchQuery) this.applySearchFilter(this.currentSearchQuery);
+
+                    this.setStatus(
+                        `Task bulk unapprove complete for "${selectedTask}": ${moved} moved, ${skipped} skipped, ${failed} failed.`,
+                        failed > 0 ? 'warning' : 'success'
+                    );
+                } catch (error) {
+                    console.error('Task bulk unapprove error:', error);
+                    this.setStatus(`Task bulk unapprove failed: ${error.message}`, 'error');
+                } finally {
+                    this.bulkApproveInProgress = false;
+                    if (unapproveTaskBtn) {
+                        unapproveTaskBtn.innerHTML = originalLabel || '<i class="fas fa-undo"></i> Unapprove All';
                     }
                     this.updateRefreshIndicator();
                 }
