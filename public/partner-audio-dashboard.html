@@ -5101,6 +5101,53 @@
                 return info.paths.get(normalizedBaseId) || null;
             }
 
+            async resolvePlaybackSource(itemId, baseId) {
+                const normalizedBaseId = this.extractBaseId(baseId || itemId || '');
+                if (!normalizedBaseId) {
+                    return {
+                        bucket: this.currentTab === 'approved' ? this.audioBuckets.dev : this.audioBuckets.draft,
+                        path: null
+                    };
+                }
+
+                // For non-approved tabs, keep strict routing by tab.
+                if (this.currentTab !== 'approved') {
+                    const draftInfo = await this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode, { forceRefresh: true });
+                    return {
+                        bucket: this.audioBuckets.draft,
+                        path: draftInfo.paths.get(normalizedBaseId) || null
+                    };
+                }
+
+                // Approved tab: prefer the most current approved source.
+                const [draftInfo, devInfo] = await Promise.all([
+                    this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode, { forceRefresh: true }),
+                    this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode, { forceRefresh: true })
+                ]);
+                const draftPath = draftInfo.paths.get(normalizedBaseId) || null;
+                const devPath = devInfo.paths.get(normalizedBaseId) || null;
+                const draftUpdated = Number(draftInfo.updatedById?.get(normalizedBaseId) || 0);
+                const devUpdated = Number(devInfo.updatedById?.get(normalizedBaseId) || 0);
+                const isStagedApproved = this.getAllStagedApprovedIds(this.currentLangCode).has(normalizedBaseId);
+
+                // Staged approvals represent the newest approved intent; use draft when present.
+                if (isStagedApproved && draftPath) {
+                    return { bucket: this.audioBuckets.draft, path: draftPath };
+                }
+
+                // If both exist, choose the newest copy.
+                if (draftPath && devPath) {
+                    return draftUpdated >= devUpdated
+                        ? { bucket: this.audioBuckets.draft, path: draftPath }
+                        : { bucket: this.audioBuckets.dev, path: devPath };
+                }
+
+                if (draftPath) return { bucket: this.audioBuckets.draft, path: draftPath };
+                if (devPath) return { bucket: this.audioBuckets.dev, path: devPath };
+
+                return { bucket: this.audioBuckets.dev, path: null };
+            }
+
             async loadApprovalStatus() {
                 try {
                     const [draftInfo, devInfo] = await Promise.all([
@@ -7156,13 +7203,15 @@
                     this._activePlaybackProbe = playbackProbe;
                     let audioPath = null;
                     let audioUrl = '';
-                    const audioBucket = this.currentTab === 'approved'
+                    let audioBucket = this.currentTab === 'approved'
                         ? this.audioBuckets.dev
                         : this.audioBuckets.draft;
                     
-                    // First, try to find the actual file in the expected bucket only.
+                    // First, find the best source for playback based on tab and recency.
                     try {
-                        audioPath = await this.findAudioPath(audioBucket, this.currentLangCode, baseId, { forceRefresh: true });
+                        const source = await this.resolvePlaybackSource(itemId, baseId);
+                        audioBucket = source.bucket || audioBucket;
+                        audioPath = source.path || null;
                     } catch (listError) {
                         console.warn('Could not list audio files for playback', listError);
                     }
@@ -7659,7 +7708,7 @@
                 const requestData = {
                     text: text,
                     model_id: String(modelId || 'eleven_v3'),
-                    output_format: 'mp3_22050_32'
+                    output_format: 'mp3_44100_128'
                 };
                 
                 const response = await this.fetchElevenLabsProxy(`?voice_id=${voiceId}`, {
