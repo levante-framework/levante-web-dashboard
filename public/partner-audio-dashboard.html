@@ -5684,12 +5684,12 @@
                         if (approvedItemsList.length > 0) {
                             await this.switchTab('approved');
                             this.setStatus(
-                                `No items in To Be Approved for ${language}. Switched to Approved tab (${approvedItemsList.length} items in -dev).`,
+                                `No items in To Be Approved for ${language}. Switched to Approved tab (${approvedItemsList.length} items marked approved).`,
                                 'info'
                             );
                         } else {
                             this.setStatus(
-                                `Finished loading - 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved (-dev).`,
+                                `Finished loading - 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved.`,
                                 'info'
                             );
                         }
@@ -5960,7 +5960,7 @@
                     }
 
                     const confirmed = window.confirm(
-                        `Approve all ${pendingItems.length} pending audio items for ${this.currentLanguage}?\n\nThis marks items approved in the app. Audio will move to approved bucket when you finish each task.`
+                        `Approve all ${pendingItems.length} pending audio items for ${this.currentLanguage}?\n\nThis only marks items approved in the app. Promotion to the approved bucket happens when each task is finished.`
                     );
                     if (!confirmed) return;
 
@@ -6124,7 +6124,7 @@
                     }
 
                     const confirmed = window.confirm(
-                        `Approve all ${pendingItems.length} pending audio items for task "${selectedTask}"?\n\nThis marks items approved in the app. Audio will move to approved bucket when you click Finished with this task.`
+                        `Approve all ${pendingItems.length} pending audio items for task "${selectedTask}"?\n\nThis only marks items approved in the app. Promotion to the approved bucket happens when you click Finished with this task.`
                     );
                     if (!confirmed) return;
 
@@ -6383,7 +6383,7 @@
                     if (itemsWithAudio.length === 0) {
                         const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
                         this.setStatus(
-                            `Showing 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved (-dev).`,
+                            `Showing 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved.`,
                             'info'
                         );
                     } else {
@@ -6476,7 +6476,7 @@
                         return baseId && approvedItemIds.has(baseId);
                     });
                     
-                    console.log(`Found ${approvedItemsList.length} approved items in dev bucket (${excludedCount} excluded by timestamp/unapproved rule)`);
+                    console.log(`Found ${approvedItemsList.length} approved items (${excludedCount} excluded by timestamp/unapproved rule)`);
                     return approvedItemsList;
                 } catch (error) {
                     console.error('Error getting approved items from dev:', error);
@@ -7264,7 +7264,7 @@
                 } catch (error) {
                     console.error('Play audio error:', error);
                     this._activePlaybackProbe = null;
-                    const bucketLabel = this.currentTab === 'approved' ? 'approved (-dev)' : 'draft (-draft)';
+                    const bucketLabel = this.currentTab === 'approved' ? 'approved view' : 'draft view';
                     const errName = String(error?.name || '');
                     if (errName === 'NotAllowedError') {
                         this.showAudioPreviewPlayer(
@@ -7744,7 +7744,7 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Approved ${itemId}. It will be moved to approved bucket when you finish the task.`, 'success');
+                    this.setStatus(`Approved ${itemId}. It is marked approved for this task and will be promoted when the task is finished.`, 'success');
                 } catch (error) {
                     console.error('Approve audio error:', error);
                     await this.logApproverAudioEvent('approve_single_failed', itemId, {
