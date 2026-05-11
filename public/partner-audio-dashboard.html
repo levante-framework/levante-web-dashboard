@@ -16,20 +16,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
-        const DASHBOARD_BUILD_VERSION = '2026-04-23-ptbr-column-resolve-v8';
-        const CANONICAL_DASHBOARD_HOST = 'levante-partner-tools.vercel.app';
-        const ALLOWED_DASHBOARD_HOSTS = new Set([
-            'levante-partner-tools.vercel.app',
-            'levante-pitwall.vercel.app',
-        ]);
+        const DASHBOARD_BUILD_VERSION = '2026-05-11-task-staged-approval-v1';
 
-        // Force users onto the canonical, latest-hosted dashboard URL.
-        // This avoids stale deployment-pinned links (`?dpl=...`) and old deployment hosts.
+        // Keep users on the current host (including preview URLs), but strip
+        // stale deployment pinning (`?dpl=...`) so links stay stable.
         (function enforceCanonicalDashboardUrl() {
             try {
                 const current = new URL(window.location.href);
-                const host = String(current.hostname || '').toLowerCase();
-                const isLocalHost = host === 'localhost' || host === '127.0.0.1';
                 let shouldRedirect = false;
 
                 if (current.searchParams.has('dpl')) {
@@ -37,15 +30,9 @@
                     shouldRedirect = true;
                 }
 
-                const isVercelHost = host.endsWith('.vercel.app');
-                if (!isLocalHost && isVercelHost && !ALLOWED_DASHBOARD_HOSTS.has(host)) {
-                    current.hostname = CANONICAL_DASHBOARD_HOST;
-                    shouldRedirect = true;
-                }
-
                 if (shouldRedirect) {
                     current.searchParams.set('v', DASHBOARD_BUILD_VERSION);
-                    console.warn('Redirecting to canonical dashboard URL:', current.toString());
+                    console.warn('Redirecting to current-host dashboard URL:', current.toString());
                     window.location.replace(current.toString());
                 }
             } catch (error) {
