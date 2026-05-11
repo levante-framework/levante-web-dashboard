@@ -2101,6 +2101,8 @@
                 
                 this.allowedLanguage = null; // Will be set based on user's site
                 this.approvedItems = new Set(); // Track approved item IDs (already moved to dev)
+                this.devApprovedItems = new Set(); // Track items that are actually in dev bucket
+                this.stagedApprovedByLang = new Map(); // langCode -> Map(taskName -> Set(baseId))
                 this.unapprovedItems = new Set(); // Track explicitly unapproved items (to prevent re-adding)
                 this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0 };
                 this.currentTab = 'pending'; // Current tab: 'pending' or 'approved'
@@ -2333,6 +2335,134 @@
                 return normalized
                     ? `partnerAudioTaskFilter::${normalized}`
                     : 'partnerAudioTaskFilter::global';
+            }
+
+            getStagedApprovalsStorageKey(langCode) {
+                const normalized = this.normalizeEnhancedLangCode(langCode);
+                return normalized
+                    ? `partnerAudioStagedApprovals::${normalized}`
+                    : 'partnerAudioStagedApprovals::global';
+            }
+
+            getStagedApprovalTaskMap(langCode = this.currentLangCode) {
+                const key = this.normalizeEnhancedLangCode(langCode);
+                if (!this.stagedApprovedByLang.has(key)) {
+                    this.stagedApprovedByLang.set(key, new Map());
+                }
+                return this.stagedApprovedByLang.get(key);
+            }
+
+            loadStagedApprovals(langCode = this.currentLangCode) {
+                const key = this.normalizeEnhancedLangCode(langCode);
+                const taskMap = new Map();
+                try {
+                    const raw = localStorage.getItem(this.getStagedApprovalsStorageKey(langCode));
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                            Object.entries(parsed).forEach(([taskName, ids]) => {
+                                if (!Array.isArray(ids) || !taskName) return;
+                                const normalizedIds = ids
+                                    .map((id) => this.extractBaseId(id))
+                                    .filter(Boolean);
+                                if (normalizedIds.length > 0) {
+                                    taskMap.set(taskName, new Set(normalizedIds));
+                                }
+                            });
+                        }
+                    }
+                } catch (_) {
+                    // Ignore malformed local staged data.
+                }
+                this.stagedApprovedByLang.set(key, taskMap);
+                return taskMap;
+            }
+
+            saveStagedApprovals(langCode = this.currentLangCode) {
+                const taskMap = this.getStagedApprovalTaskMap(langCode);
+                const payload = {};
+                taskMap.forEach((idSet, taskName) => {
+                    if (!(idSet instanceof Set)) return;
+                    const ids = Array.from(idSet).filter(Boolean);
+                    if (ids.length > 0) payload[taskName] = ids;
+                });
+                const storageKey = this.getStagedApprovalsStorageKey(langCode);
+                try {
+                    if (Object.keys(payload).length === 0) {
+                        localStorage.removeItem(storageKey);
+                        return;
+                    }
+                    localStorage.setItem(storageKey, JSON.stringify(payload));
+                } catch (_) {
+                    // Ignore storage write failures.
+                }
+            }
+
+            getAllStagedApprovedIds(langCode = this.currentLangCode) {
+                const taskMap = this.getStagedApprovalTaskMap(langCode);
+                const ids = new Set();
+                taskMap.forEach((idSet) => {
+                    if (!(idSet instanceof Set)) return;
+                    idSet.forEach((id) => {
+                        if (id) ids.add(id);
+                    });
+                });
+                return ids;
+            }
+
+            getStagedApprovedIdsForTask(taskName, langCode = this.currentLangCode) {
+                const task = String(taskName || '').trim();
+                if (!task || task === '__all__') return new Set();
+                const taskMap = this.getStagedApprovalTaskMap(langCode);
+                return new Set(taskMap.get(task) || []);
+            }
+
+            findTaskNameForBaseId(baseId) {
+                const normalizedBaseId = this.extractBaseId(baseId);
+                if (!normalizedBaseId) return 'General';
+                const match = (Array.isArray(this.data) ? this.data : []).find((item) => {
+                    const itemBaseId = this.extractBaseId(item?.item_id || '');
+                    return itemBaseId && itemBaseId === normalizedBaseId;
+                });
+                return this.extractTaskName(match || { item_id: normalizedBaseId });
+            }
+
+            stageApprovedItem(baseId, taskName = '', langCode = this.currentLangCode) {
+                const normalizedBaseId = this.extractBaseId(baseId);
+                if (!normalizedBaseId) return false;
+                const resolvedTask = String(taskName || this.findTaskNameForBaseId(normalizedBaseId) || 'General').trim() || 'General';
+                const taskMap = this.getStagedApprovalTaskMap(langCode);
+                if (!taskMap.has(resolvedTask)) taskMap.set(resolvedTask, new Set());
+                const taskSet = taskMap.get(resolvedTask);
+                if (taskSet.has(normalizedBaseId)) return false;
+                taskSet.add(normalizedBaseId);
+                this.saveStagedApprovals(langCode);
+                return true;
+            }
+
+            unstageApprovedItem(baseId, langCode = this.currentLangCode) {
+                const normalizedBaseId = this.extractBaseId(baseId);
+                if (!normalizedBaseId) return false;
+                const taskMap = this.getStagedApprovalTaskMap(langCode);
+                let removed = false;
+                taskMap.forEach((idSet, taskName) => {
+                    if (!(idSet instanceof Set)) return;
+                    if (idSet.delete(normalizedBaseId)) {
+                        removed = true;
+                    }
+                    if (idSet.size === 0) {
+                        taskMap.delete(taskName);
+                    }
+                });
+                if (removed) {
+                    this.saveStagedApprovals(langCode);
+                }
+                return removed;
+            }
+
+            recomputeApprovedItems() {
+                const stagedIds = this.getAllStagedApprovedIds(this.currentLangCode);
+                this.approvedItems = new Set([...this.devApprovedItems, ...stagedIds]);
             }
 
             getEnhancedTextStorageKey(langCode) {
@@ -4990,7 +5120,7 @@
                         this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode),
                         this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
                     ]);
-                    this.approvedItems.clear();
+                    this.devApprovedItems.clear();
                     let approvedCount = 0;
                     devInfo.ids.forEach(baseId => {
                         const devUpdated = devInfo.updatedById?.get(baseId) || 0;
@@ -5000,10 +5130,11 @@
                             if (this.unapprovedItems.has(baseId)) {
                                 this.unapprovedItems.delete(baseId);
                             }
-                            this.approvedItems.add(baseId);
+                            this.devApprovedItems.add(baseId);
                             approvedCount++;
                         }
                     });
+                    this.recomputeApprovedItems();
                     console.log(`Loaded approval status with timestamp rule: ${approvedCount} approved items (dev newest).`);
                 } catch (error) {
                     console.warn('Could not load approval status:', error);
@@ -5480,6 +5611,7 @@
                 
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
+                this.loadStagedApprovals(this.currentLangCode);
                 this.loadCommonAudioTags();
                 this.renderCommonAudioTags();
                 this.resetNoAudioDebugInfo();
@@ -5841,7 +5973,7 @@
                     }
 
                     const confirmed = window.confirm(
-                        `Approve all ${pendingItems.length} pending audio items for ${this.currentLanguage}?\n\nThis moves files from draft to approved bucket.`
+                        `Approve all ${pendingItems.length} pending audio items for ${this.currentLanguage}?\n\nThis marks items approved in the app. Audio will move to approved bucket when you finish each task.`
                     );
                     if (!confirmed) return;
 
@@ -5856,7 +5988,7 @@
                         approveAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving...';
                     }
 
-                    let moved = 0;
+                    let staged = 0;
                     let skipped = 0;
                     let failed = 0;
 
@@ -5868,7 +6000,7 @@
                             skipped++;
                             continue;
                         }
-                        this.setStatus(`Bulk approving ${i + 1}/${pendingItems.length}: ${itemId}`, 'loading');
+                        this.setStatus(`Bulk staging ${i + 1}/${pendingItems.length}: ${itemId}`, 'loading');
 
                         try {
                             const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
@@ -5881,31 +6013,12 @@
                                 continue;
                             }
 
-                            const moveResponse = await fetch('/api/move-audio-to-dev', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    bucket: 'levante-assets-draft',
-                                    path: audioPath
-                                })
-                            });
-
-                            if (!moveResponse.ok) {
-                                failed++;
-                                await this.logApproverAudioEvent('bulk_approve_item_failed', itemId, {
-                                    hadPendingGeneratedAudio: false,
-                                    savedGeneratedAudio: false
-                                });
-                                continue;
-                            }
-
-                            this.approvedItems.add(baseId);
+                            this.stageApprovedItem(baseId, this.findTaskNameForBaseId(baseId), this.currentLangCode);
+                            this.recomputeApprovedItems();
                             this.unapprovedItems.delete(baseId);
-                            this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
-                            this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
-                            moved++;
-                            await this.logApproverAudioEvent('bulk_approve_item_success', itemId, {
-                                saveBucket: this.audioBuckets.dev,
+                            staged++;
+                            await this.logApproverAudioEvent('bulk_approve_item_staged', itemId, {
+                                saveBucket: this.audioBuckets.draft,
                                 savePath: audioPath,
                                 hadPendingGeneratedAudio: false,
                                 savedGeneratedAudio: false
@@ -5921,18 +6034,17 @@
                     }
 
                     await this.logApproverAudioEvent('bulk_approve_summary', '__bulk__', {
-                        service: 'bulk-approval',
+                        service: 'bulk-approval-staged',
                         hadPendingGeneratedAudio: false,
                         savedGeneratedAudio: false
                     });
 
-                    await this.loadApprovalStatus();
                     await this.refreshItemsForCurrentTab();
                     await this.updateApprovalStats();
                     if (this.currentSearchQuery) this.applySearchFilter(this.currentSearchQuery);
 
                     this.setStatus(
-                        `Bulk approve complete for ${this.currentLanguage}: ${moved} moved, ${skipped} skipped, ${failed} failed.`,
+                        `Bulk approve complete for ${this.currentLanguage}: ${staged} staged, ${skipped} skipped, ${failed} failed.`,
                         failed > 0 ? 'warning' : 'success'
                     );
                 } catch (error) {
@@ -6025,7 +6137,7 @@
                     }
 
                     const confirmed = window.confirm(
-                        `Approve all ${pendingItems.length} pending audio items for task "${selectedTask}"?\n\nThis moves files from draft to approved bucket.`
+                        `Approve all ${pendingItems.length} pending audio items for task "${selectedTask}"?\n\nThis marks items approved in the app. Audio will move to approved bucket when you click Finished with this task.`
                     );
                     if (!confirmed) return;
 
@@ -6041,7 +6153,7 @@
                         approveTaskBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Approving task...';
                     }
 
-                    let moved = 0;
+                    let staged = 0;
                     let skipped = 0;
                     let failed = 0;
 
@@ -6053,7 +6165,7 @@
                             skipped++;
                             continue;
                         }
-                        this.setStatus(`Task bulk approving ${i + 1}/${pendingItems.length}: ${itemId}`, 'loading');
+                        this.setStatus(`Task bulk staging ${i + 1}/${pendingItems.length}: ${itemId}`, 'loading');
 
                         try {
                             const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
@@ -6067,33 +6179,13 @@
                                 continue;
                             }
 
-                            const moveResponse = await fetch('/api/move-audio-to-dev', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    bucket: 'levante-assets-draft',
-                                    path: audioPath
-                                })
-                            });
-
-                            if (!moveResponse.ok) {
-                                failed++;
-                                await this.logApproverAudioEvent('bulk_approve_task_item_failed', itemId, {
-                                    task: selectedTask,
-                                    hadPendingGeneratedAudio: false,
-                                    savedGeneratedAudio: false
-                                });
-                                continue;
-                            }
-
-                            this.approvedItems.add(baseId);
+                            this.stageApprovedItem(baseId, selectedTask, this.currentLangCode);
+                            this.recomputeApprovedItems();
                             this.unapprovedItems.delete(baseId);
-                            this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
-                            this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
-                            moved++;
-                            await this.logApproverAudioEvent('bulk_approve_task_item_success', itemId, {
+                            staged++;
+                            await this.logApproverAudioEvent('bulk_approve_task_item_staged', itemId, {
                                 task: selectedTask,
-                                saveBucket: this.audioBuckets.dev,
+                                saveBucket: this.audioBuckets.draft,
                                 savePath: audioPath,
                                 hadPendingGeneratedAudio: false,
                                 savedGeneratedAudio: false
@@ -6111,18 +6203,17 @@
 
                     await this.logApproverAudioEvent('bulk_approve_task_summary', '__bulk_task__', {
                         task: selectedTask,
-                        service: 'bulk-task-approval',
+                        service: 'bulk-task-approval-staged',
                         hadPendingGeneratedAudio: false,
                         savedGeneratedAudio: false
                     });
 
-                    await this.loadApprovalStatus();
                     await this.refreshItemsForCurrentTab();
                     await this.updateApprovalStats();
                     if (this.currentSearchQuery) this.applySearchFilter(this.currentSearchQuery);
 
                     this.setStatus(
-                        `Task bulk approve complete for "${selectedTask}": ${moved} moved, ${skipped} skipped, ${failed} failed.`,
+                        `Task bulk approve complete for "${selectedTask}": ${staged} staged, ${skipped} skipped, ${failed} failed.`,
                         failed > 0 ? 'warning' : 'success'
                     );
                 } catch (error) {
@@ -6166,14 +6257,17 @@
                         return text && text.trim();
                     });
                     const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                    const approvedItems = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    const approvedItems = taskFilteredTranslations.filter((item) => {
+                        const baseId = this.extractBaseId(item.item_id || '');
+                        return baseId && this.approvedItems.has(baseId);
+                    });
                     if (!approvedItems.length) {
                         this.setStatus(`No approved audio items to unapprove for task "${selectedTask}".`, 'info');
                         return;
                     }
 
                     const confirmed = window.confirm(
-                        `Unapprove all ${approvedItems.length} approved audio items for task "${selectedTask}"?\n\nThis moves files from approved bucket back to draft.`
+                        `Unapprove all ${approvedItems.length} approved audio items for task "${selectedTask}"?\n\nStaged approvals are removed. Already-promoted audio is moved from approved bucket back to draft.`
                     );
                     if (!confirmed) return;
 
@@ -6190,6 +6284,7 @@
                     }
 
                     let moved = 0;
+                    let unstaged = 0;
                     let skipped = 0;
                     let failed = 0;
 
@@ -6204,29 +6299,38 @@
                         this.setStatus(`Task bulk unapproving ${i + 1}/${approvedItems.length}: ${itemId}`, 'loading');
 
                         try {
-                            const moveResult = await this.moveAudioToDraft(itemId, baseId);
-                            if (!moveResult || moveResult.alreadyMoved) {
-                                skipped++;
-                                await this.logApproverAudioEvent('bulk_unapprove_task_item_skipped', itemId, {
+                            if (this.unstageApprovedItem(baseId, this.currentLangCode)) {
+                                unstaged++;
+                                await this.logApproverAudioEvent('bulk_unapprove_task_item_unstaged', itemId, {
                                     task: selectedTask,
                                     hadPendingGeneratedAudio: false,
                                     savedGeneratedAudio: false
                                 });
+                            } else if (this.devApprovedItems.has(baseId)) {
+                                const moveResult = await this.moveAudioToDraft(itemId, baseId);
+                                if (!moveResult || moveResult.alreadyMoved) {
+                                    skipped++;
+                                    await this.logApproverAudioEvent('bulk_unapprove_task_item_skipped', itemId, {
+                                        task: selectedTask,
+                                        hadPendingGeneratedAudio: false,
+                                        savedGeneratedAudio: false
+                                    });
+                                    continue;
+                                }
+                                this.devApprovedItems.delete(baseId);
+                                moved++;
+                                await this.logApproverAudioEvent('bulk_unapprove_task_item_success', itemId, {
+                                    task: selectedTask,
+                                    saveBucket: this.audioBuckets.draft,
+                                    savePath: moveResult.path || '',
+                                    hadPendingGeneratedAudio: false,
+                                    savedGeneratedAudio: false
+                                });
+                            } else {
+                                skipped++;
                                 continue;
                             }
-
-                            this.approvedItems.delete(baseId);
                             this.unapprovedItems.add(baseId);
-                            this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
-                            this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
-                            moved++;
-                            await this.logApproverAudioEvent('bulk_unapprove_task_item_success', itemId, {
-                                task: selectedTask,
-                                saveBucket: this.audioBuckets.draft,
-                                savePath: moveResult.path || '',
-                                hadPendingGeneratedAudio: false,
-                                savedGeneratedAudio: false
-                            });
                         } catch (error) {
                             console.warn('Task bulk unapprove item failed:', itemId, error);
                             failed++;
@@ -6245,13 +6349,13 @@
                         savedGeneratedAudio: false
                     });
 
-                    await this.loadApprovalStatus();
+                    this.recomputeApprovedItems();
                     await this.refreshItemsForCurrentTab();
                     await this.updateApprovalStats();
                     if (this.currentSearchQuery) this.applySearchFilter(this.currentSearchQuery);
 
                     this.setStatus(
-                        `Task bulk unapprove complete for "${selectedTask}": ${moved} moved, ${skipped} skipped, ${failed} failed.`,
+                        `Task bulk unapprove complete for "${selectedTask}": ${unstaged} unstaged, ${moved} moved to draft, ${skipped} skipped, ${failed} failed.`,
                         failed > 0 ? 'warning' : 'success'
                     );
                 } catch (error) {
@@ -6499,7 +6603,7 @@
                                         <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play existing audio">
                                             <i class="fas fa-play"></i> Play
                                         </button>
-                                <button class="btn btn-approve" onclick="dashboard.approveAudio('${escapedItemId}')" title="Approve this audio and move to approved bucket">
+                                <button class="btn btn-approve" onclick="dashboard.approveAudio('${escapedItemId}')" title="Approve this audio in the current task (promotion happens when task is finished)">
                                     <i class="fas fa-check-circle"></i> Approve
                                 </button>
                                         <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generate new audio">
@@ -6511,7 +6615,7 @@
                                         <button class="btn btn-success save-btn" data-audio-action="save" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio to draft bucket' : 'Generate audio before saving'}">
                                             <i class="fas fa-save"></i> Save
                                         </button>
-                                        <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and immediately approve it' : 'Generate audio before saving and approving'}">
+                                        <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and approve it for this task (promotion happens when finished)' : 'Generate audio before saving and approving'}">
                                             <i class="fas fa-check-double"></i> Save &amp; Approve
                                         </button>
                                         ${this.renderCompareControlsHtml(itemId)}
@@ -7629,56 +7733,22 @@
                     // Resolve a real draft path only (no fabricated fallback).
                     const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
                     if (!audioPath) {
-                        // Self-heal stale state if already in dev.
-                        const devPath = await this.findAudioPath(this.audioBuckets.dev, this.currentLangCode, baseId, { forceRefresh: true });
-                        if (devPath) {
-                            this.unapprovedItems.delete(baseId);
-                            this.approvedItems.add(baseId);
-                            await this.logApproverAudioEvent('approve_single_already_in_dev', itemId, {
-                                saveBucket: this.audioBuckets.dev,
-                                savePath: devPath,
-                                hadPendingGeneratedAudio: false,
-                                savedGeneratedAudio: false
-                            });
-                            await this.refreshItemsForCurrentTab();
-                            await this.updateApprovalStats();
-                            this.setStatus(`${itemId} is already in approved bucket (${devPath}).`, 'success');
-                            return;
-                        }
                         throw new Error(`No draft audio file found for ${itemId}`);
                     }
-                    
-                    // Move the file from draft to dev bucket
-                    const moveResponse = await fetch('/api/move-audio-to-dev', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            bucket: 'levante-assets-draft',
-                            path: audioPath
-                        })
-                    });
-                    
-                    if (!moveResponse.ok) {
-                        const errorText = await moveResponse.text();
-                        throw new Error(errorText || 'Failed to move audio to approved bucket');
-                    }
-                    await this.logApproverAudioEvent('approve_single_success', itemId, {
-                        saveBucket: this.audioBuckets.dev,
+
+                    this.stageApprovedItem(baseId, this.findTaskNameForBaseId(baseId), this.currentLangCode);
+                    this.recomputeApprovedItems();
+                    await this.logApproverAudioEvent('approve_single_staged', itemId, {
+                        saveBucket: this.audioBuckets.draft,
                         savePath: audioPath,
                         hadPendingGeneratedAudio: false,
                         savedGeneratedAudio: false
                     });
                     
                     // Update state
-                    this.approvedItems.add(baseId);
                     this.unapprovedItems.delete(baseId); // Remove from unapproved if it was there
-                    this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
-                    this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
                     
                     // Update UI
-                    await this.loadApprovalStatus();
                     await this.refreshItemsForCurrentTab();
                     await this.updateApprovalStats();
                     
@@ -7687,7 +7757,7 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Approved ${itemId}. Audio moved to approved bucket.`, 'success');
+                    this.setStatus(`Approved ${itemId}. It will be moved to approved bucket when you finish the task.`, 'success');
                 } catch (error) {
                     console.error('Approve audio error:', error);
                     await this.logApproverAudioEvent('approve_single_failed', itemId, {
@@ -7848,7 +7918,7 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Audio saved to draft for ${itemId}. Click Approve to move it to approved bucket.`, 'success');
+                    this.setStatus(`Audio saved to draft for ${itemId}. Click Approve to stage it for task completion.`, 'success');
                 } catch (error) {
                     console.error('Save audio error:', error);
                     this.setStatus(`Error saving audio: ${error.message}`, 'error');
@@ -7870,117 +7940,10 @@
                         });
                         throw new Error('No generated audio to save. Please generate audio first.');
                     }
-                    
+
                     this.setStatus(`Saving and approving audio for ${itemId}...`, 'loading');
-                    
-                    const item = this.data.find(entry => entry.item_id === itemId);
-                    const itemLabel = item?.labels || item?.task || itemId;
-                    const baseId = this.extractBaseId(itemId || '');
-                    if (!baseId) {
-                        throw new Error(`Invalid item id: ${itemId}`);
-                    }
-                    
-                    // Step 1: Save audio to draft bucket
-                    const payload = {
-                        audioBase64: this.latestGeneratedAudio.audioBase64,
-                        langCode: this.currentLangCode,
-                        itemId: itemId,
-                        bucket: 'levante-assets-draft',
-                        versioning: true,
-                        tags: {
-                            title: itemId,
-                            artist: `Levante Framework - ${this.latestGeneratedAudio.service}`,
-                            album: itemLabel || this.currentLangCode,
-                            genre: 'Speech Synthesis',
-                            comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName} - ${this.currentLangCode}`,
-                            service: this.latestGeneratedAudio.service,
-                            voice: this.latestGeneratedAudio.voiceName,
-                            model_id: this.latestGeneratedAudio.modelId || 'eleven_v3',
-                            lang_code: this.currentLangCode,
-                            text: this.latestGeneratedAudio.text || '',
-                            original_translation_text: this.latestGeneratedAudio.originalTranslationText || '',
-                            audio_enhanced_text: this.latestGeneratedAudio.audioEnhancedText || '',
-                            used_audio_enhanced_text: this.latestGeneratedAudio.usedAudioEnhancedText ? 'true' : 'false',
-                            created: new Date().toISOString(),
-                            source: 'partner-dashboard'
-                        }
-                    };
-                    
-                    const saveResponse = await fetch('/api/save-audio', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-                    
-                    if (!saveResponse.ok) {
-                        const error = await saveResponse.json();
-                        throw new Error(error.message || 'Failed to save audio');
-                    }
-                    const saveResult = await saveResponse.json().catch(() => ({}));
-                    
-                    // Step 2: Immediately move to dev bucket
-                    this.setStatus(`Moving ${itemId} to approved bucket...`, 'loading');
-                    
-                    const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
-                    if (!audioPath) {
-                        throw new Error(`No draft audio file found for ${itemId}`);
-                    }
-                    
-                    // Move the file to dev bucket
-                    const moveResponse = await fetch('/api/move-audio-to-dev', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            bucket: 'levante-assets-draft',
-                            path: audioPath
-                        })
-                    });
-                    
-                    if (!moveResponse.ok) {
-                        const errorText = await moveResponse.text();
-                        throw new Error(errorText || 'Failed to move audio to approved bucket');
-                    }
-                    const behaviorState = this.getAudioBehaviorState(itemId);
-                    behaviorState.totalSaves += 1;
-                    await this.logApproverAudioEvent('save_success', itemId, {
-                        service: String(this.latestGeneratedAudio?.service || 'ElevenLabs'),
-                        modelId: String(this.latestGeneratedAudio?.modelId || ''),
-                        voiceId: String(this.latestGeneratedAudio?.voiceId || ''),
-                        voiceName: String(this.latestGeneratedAudio?.voiceName || ''),
-                        generatedTextLength: String(this.latestGeneratedAudio?.text || '').length,
-                        hadPendingGeneratedAudio: true,
-                        savedGeneratedAudio: true,
-                        saveBucket: String(saveResult?.bucket || this.audioBuckets.draft || ''),
-                        savePath: String(saveResult?.path || ''),
-                        saveVersion: saveResult?.version
-                    });
-                    behaviorState.regenerationsSinceLastSave = 0;
-                    
-                    // Step 3: Update state
-                    this.pendingSaveKey = null;
-                    this.latestGeneratedAudio = null;
-                    this.clearCompareSlotsForItem(itemId);
-                    this.approvedItems.add(baseId);
-                    this.unapprovedItems.delete(baseId); // Remove from unapproved if it was there
-                    this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
-                    this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
-                    
-                    // Update UI
-                    this.updateSaveButtonStates();
-                    await this.loadApprovalStatus();
-                    await this.refreshItemsForCurrentTab();
-                    await this.updateApprovalStats();
-                    
-                    // Apply search filter if active
-                    if (this.currentSearchQuery) {
-                        this.applySearchFilter(this.currentSearchQuery);
-                    }
-                    
-                    this.setStatus(`Audio saved and approved for ${itemId}. Item moved to Approved tab.`, 'success');
+                    await this.saveAudio(itemId);
+                    await this.approveAudio(itemId);
                 } catch (error) {
                     console.error('Save and approve audio error:', error);
                     this.setStatus(`Error saving and approving audio: ${error.message}`, 'error');
@@ -8004,16 +7967,21 @@
                     }
                     
                     this.setStatus(`Unapproving ${itemId}...`, 'loading');
-                    
-                    // Move audio file back from dev to draft bucket
-                    await this.moveAudioToDraft(itemId, baseId);
-                    
-                    // Update state
-                    this.approvedItems.delete(baseId);
+
+                    const wasStaged = this.unstageApprovedItem(baseId, this.currentLangCode);
+                    if (wasStaged) {
+                        this.recomputeApprovedItems();
+                    } else if (this.devApprovedItems.has(baseId)) {
+                        // Only move between buckets when this item had already been promoted.
+                        await this.moveAudioToDraft(itemId, baseId);
+                        this.devApprovedItems.delete(baseId);
+                        this.recomputeApprovedItems();
+                    } else {
+                        this.approvedItems.delete(baseId);
+                    }
                     this.unapprovedItems.add(baseId); // Track as unapproved
-                    
+
                     // Update UI
-                    await this.loadApprovalStatus();
                     await this.refreshItemsForCurrentTab();
                     await this.updateApprovalStats();
                     
@@ -8022,7 +7990,12 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Unapproved ${itemId}. Audio moved back to draft bucket.`, 'success');
+                    this.setStatus(
+                        wasStaged
+                            ? `Unapproved ${itemId}. Staged approval removed.`
+                            : `Unapproved ${itemId}. Audio moved back to draft bucket.`,
+                        'success'
+                    );
                 } catch (error) {
                     console.error('Unapprove audio error:', error);
                     this.setStatus(`Error unapproving audio: ${error.message}`, 'error');
@@ -8151,16 +8124,87 @@
                 }
             }
 
+            async promoteStagedApprovalsForTask(taskName) {
+                const selectedTask = String(taskName || '').trim();
+                const stagedIds = this.getStagedApprovedIdsForTask(selectedTask, this.currentLangCode);
+                const result = { moved: 0, skipped: 0, failed: 0 };
+                if (stagedIds.size === 0) return result;
+
+                for (const baseId of stagedIds) {
+                    const item = (Array.isArray(this.data) ? this.data : []).find((entry) => this.extractBaseId(entry?.item_id || '') === baseId);
+                    const itemId = String(item?.item_id || baseId);
+                    this.setStatus(`Finishing task "${selectedTask}" (${result.moved + result.skipped + result.failed + 1}/${stagedIds.size}): ${itemId}`, 'loading');
+                    try {
+                        const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
+                        if (!audioPath) {
+                            const devPath = await this.findAudioPath(this.audioBuckets.dev, this.currentLangCode, baseId, { forceRefresh: true });
+                            if (devPath) {
+                                this.devApprovedItems.add(baseId);
+                                this.unstageApprovedItem(baseId, this.currentLangCode);
+                                result.skipped++;
+                                continue;
+                            }
+                            result.failed++;
+                            await this.logApproverAudioEvent('task_finish_item_failed_missing_draft', itemId, { task: selectedTask });
+                            continue;
+                        }
+
+                        const moveResponse = await fetch('/api/move-audio-to-dev', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                bucket: 'levante-assets-draft',
+                                path: audioPath
+                            })
+                        });
+                        if (!moveResponse.ok) {
+                            result.failed++;
+                            await this.logApproverAudioEvent('task_finish_item_failed_move', itemId, { task: selectedTask });
+                            continue;
+                        }
+
+                        this.devApprovedItems.add(baseId);
+                        this.unstageApprovedItem(baseId, this.currentLangCode);
+                        this.unapprovedItems.delete(baseId);
+                        this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+                        this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, baseId);
+                        result.moved++;
+                        await this.logApproverAudioEvent('task_finish_item_promoted', itemId, {
+                            task: selectedTask,
+                            saveBucket: this.audioBuckets.dev,
+                            savePath: audioPath
+                        });
+                    } catch (error) {
+                        result.failed++;
+                        await this.logApproverAudioEvent('task_finish_item_failed_error', itemId, {
+                            task: selectedTask,
+                            message: String(error?.message || error || '')
+                        });
+                    }
+                }
+
+                this.recomputeApprovedItems();
+                return result;
+            }
+
             async handleFinishedTaskClick() {
                 const selectedTask = String(this.currentTaskFilter || '__all__');
                 if (selectedTask === '__all__') return;
                 const totalAudio = Number(this.currentTaskCompletionStats?.totalAudio || 0);
                 const approvedAudio = Number(this.currentTaskCompletionStats?.approvedAudio || 0);
+                if (totalAudio <= 0 || approvedAudio < totalAudio) {
+                    this.setStatus(`Approve all task audio before marking "${selectedTask}" finished.`, 'warning');
+                    return;
+                }
                 if (this.isTaskMarkedFinished(this.currentLangCode, selectedTask)) {
                     this.setStatus(`"${selectedTask}" is already marked finished.`, 'info');
                     return;
                 }
                 try {
+                    const promotionResult = await this.promoteStagedApprovalsForTask(selectedTask);
+                    if (promotionResult.failed > 0) {
+                        throw new Error(`Failed to promote ${promotionResult.failed} staged item(s). Resolve those and try again.`);
+                    }
                     const response = await fetch('/api/partner-task-finished', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -8181,8 +8225,8 @@
                     this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
                     const slackSent = payload?.slack?.sent === true;
                     this.setStatus(
-                        `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved)${slackSent ? ' and posted to Slack.' : '.'}`,
-                        'success'
+                        `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved). Promoted ${promotionResult.moved} staged item(s), ${promotionResult.skipped} already in approved bucket, ${promotionResult.failed} failed${slackSent ? ', and posted to Slack.' : '.'}`,
+                        promotionResult.failed > 0 ? 'warning' : 'success'
                     );
                 } catch (error) {
                     this.setStatus(`Could not mark task finished: ${error?.message || error}`, 'error');
