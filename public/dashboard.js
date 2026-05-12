@@ -4922,7 +4922,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     quality: 'medium',
                     output_format: 'mp3',
                     speed: 1,
-                    sample_rate: 24000
+                    sample_rate: 44100
                 };
                 
                 console.log('Calling PlayHT API with:', requestData);
@@ -4986,7 +4986,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 const requestData = {
                     text: text,
                     model_id: "eleven_multilingual_v3",
-                    output_format: "mp3_22050_32",
+                    output_format: "mp3_44100_128",
                     voice_settings: {
                         stability: this.elevenLabsStability,
                         style: this.elevenLabsStyle

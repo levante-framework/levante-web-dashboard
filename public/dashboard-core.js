@@ -1072,7 +1072,7 @@ class Dashboard {
             quality: 'medium',
             output_format: 'mp3',
             speed: 1,
-            sample_rate: 24000
+            sample_rate: 44100
         };
         
         console.log('Calling PlayHT API with:', requestData);
@@ -1125,7 +1125,7 @@ class Dashboard {
         const requestData = {
             text: text,
             model_id: "eleven_multilingual_v3",
-            output_format: "mp3_22050_32"
+            output_format: "mp3_44100_128"
         };
         
         console.log('Calling ElevenLabs API with:', requestData);
