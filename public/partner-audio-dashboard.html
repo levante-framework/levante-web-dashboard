@@ -2137,6 +2137,8 @@
                 this.enhancedTextLoadedLangs = new Set();
                 this.enhancedTextSyncQueue = new Map();
                 this.enhancedTextSyncTimer = null;
+                this.stagedApprovalSyncQueue = new Set();
+                this.stagedApprovalSyncTimer = null;
                 this.audioComparisonsByKey = new Map();
                 this.playedExistingAudioByKey = new Map();
                 this.missingEnhancedKeyLogs = new Set();
@@ -2365,6 +2367,79 @@
                 return taskMap;
             }
 
+            async loadStagedApprovalsFromServer(langCode = this.currentLangCode) {
+                const normalized = this.normalizeEnhancedLangCode(langCode);
+                if (!normalized) return this.getStagedApprovalTaskMap(langCode);
+                try {
+                    const params = new URLSearchParams({ langCode: normalized });
+                    const response = await fetch(`/api/partner-audio-staged-approvals?${params.toString()}`, {
+                        method: 'GET',
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) return this.getStagedApprovalTaskMap(langCode);
+                    const payload = await response.json().catch(() => ({}));
+                    if (!payload?.ok || !payload?.tasks || typeof payload.tasks !== 'object') {
+                        return this.getStagedApprovalTaskMap(langCode);
+                    }
+                    const taskMap = new Map();
+                    Object.entries(payload.tasks).forEach(([taskName, ids]) => {
+                        if (!taskName || !Array.isArray(ids)) return;
+                        const normalizedIds = ids
+                            .map((id) => this.extractBaseId(id))
+                            .filter(Boolean);
+                        if (normalizedIds.length > 0) {
+                            taskMap.set(taskName, new Set(normalizedIds));
+                        }
+                    });
+                    this.stagedApprovedByLang.set(normalized, taskMap);
+                    this.saveStagedApprovals(langCode);
+                    return taskMap;
+                } catch (_) {
+                    return this.getStagedApprovalTaskMap(langCode);
+                }
+            }
+
+            queueStagedApprovalsSync(langCode = this.currentLangCode) {
+                const normalized = this.normalizeEnhancedLangCode(langCode);
+                if (!normalized) return;
+                this.stagedApprovalSyncQueue.add(normalized);
+                if (this.stagedApprovalSyncTimer) clearTimeout(this.stagedApprovalSyncTimer);
+                this.stagedApprovalSyncTimer = setTimeout(() => {
+                    this.flushStagedApprovalsSyncQueue();
+                }, 500);
+            }
+
+            async flushStagedApprovalsSyncQueue() {
+                if (this.stagedApprovalSyncQueue.size === 0) return;
+                const langCodes = Array.from(this.stagedApprovalSyncQueue.values());
+                this.stagedApprovalSyncQueue.clear();
+                await Promise.all(langCodes.map((langCode) => this.persistStagedApprovalsToServer(langCode)));
+            }
+
+            async persistStagedApprovalsToServer(langCode = this.currentLangCode) {
+                const normalized = this.normalizeEnhancedLangCode(langCode);
+                if (!normalized) return;
+                const taskMap = this.getStagedApprovalTaskMap(langCode);
+                const tasks = {};
+                taskMap.forEach((idSet, taskName) => {
+                    if (!(idSet instanceof Set)) return;
+                    const ids = Array.from(idSet).filter(Boolean);
+                    if (ids.length > 0) tasks[taskName] = ids;
+                });
+                try {
+                    await fetch('/api/partner-audio-staged-approvals', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            langCode: normalized,
+                            tasks
+                        })
+                    });
+                } catch (_) {
+                    // Ignore sync failures; local state remains intact.
+                }
+            }
+
             saveStagedApprovals(langCode = this.currentLangCode) {
                 const taskMap = this.getStagedApprovalTaskMap(langCode);
                 const payload = {};
@@ -2383,6 +2458,7 @@
                 } catch (_) {
                     // Ignore storage write failures.
                 }
+                this.queueStagedApprovalsSync(langCode);
             }
 
             getAllStagedApprovedIds(langCode = this.currentLangCode) {
@@ -5656,6 +5732,7 @@
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
                 this.loadStagedApprovals(this.currentLangCode);
+                await this.loadStagedApprovalsFromServer(this.currentLangCode);
                 this.loadCommonAudioTags();
                 this.renderCommonAudioTags();
                 this.resetNoAudioDebugInfo();
