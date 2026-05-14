@@ -5281,9 +5281,6 @@
                 
                 const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
                 const total = taskFilteredTranslations.length;
-                // Keep "Total Approved" aligned to the active task/language filter scope.
-                // This avoids showing cross-task totals that can look inflated for the current view.
-                const totalApproved = taskApprovedAudioIds.size;
                 const noAudio = itemsWithoutAudio.length;
                 let approved = 0;
                 let pending = 0;
@@ -5299,6 +5296,9 @@
                         pending++;
                     }
                 });
+                // Keep standalone total aligned with the visible approved metric.
+                // This prevents confusing mismatches between "Approved" and "Total Approved".
+                const totalApproved = approved;
                 
                 this.approvalStats.total = total;
                 this.approvalStats.totalApproved = totalApproved;
