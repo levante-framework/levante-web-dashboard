@@ -98,14 +98,23 @@ export default async function handler(req, res) {
       await targetFile.setMetadata({ metadata: metadata.metadata });
     }
 
-    // Delete source file (move operation)
-    await sourceFile.delete();
+    // Delete source file (move operation). If deletion fails after a successful copy,
+    // we still return success so task completion is not blocked by cleanup permissions.
+    let sourceDeleted = true;
+    let sourceDeleteError = '';
+    try {
+      await sourceFile.delete();
+    } catch (deleteError) {
+      sourceDeleted = false;
+      sourceDeleteError = String(deleteError?.message || deleteError || '');
+      console.warn(`move-audio-to-dev: copied to ${TARGET_BUCKET} but could not delete source ${sanitizedPath}: ${sourceDeleteError}`);
+    }
 
     // Cleanup stale draft siblings for the same base item.
     // This removes old canonical and versioned copies left behind in draft.
     let cleanedDraftSiblings = 0;
     const parsedPath = parseAudioObjectPath(sanitizedPath);
-    if (parsedPath) {
+    if (parsedPath && sourceDeleted) {
       const siblingPrefix = `audio/${parsedPath.language}/${parsedPath.baseId}`;
       const versionPattern = new RegExp(`^${siblingPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_v\\d{3}\\.mp3$`, 'i');
       const [siblings] = await sourceBucket.getFiles({ prefix: siblingPrefix });
@@ -128,12 +137,16 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       success: true,
-      message: `Moved ${sanitizedPath} from ${sourceBucketName} to ${TARGET_BUCKET}`,
+      message: sourceDeleted
+        ? `Moved ${sanitizedPath} from ${sourceBucketName} to ${TARGET_BUCKET}`
+        : `Copied ${sanitizedPath} to ${TARGET_BUCKET}, but source delete failed`,
       sourceBucket: sourceBucketName,
       targetBucket: TARGET_BUCKET,
       path: targetPath,
       promotedFromVersionedPath: sanitizedPath !== targetPath,
-      cleanedDraftSiblings
+      cleanedDraftSiblings,
+      sourceDeleted,
+      sourceDeleteError
     });
   } catch (error) {
     console.error('Error moving audio file:', error);

@@ -8272,9 +8272,14 @@
                                 path: audioPath
                             })
                         });
-                        if (!moveResponse.ok) {
+                        const movePayload = await moveResponse.json().catch(() => ({}));
+                        if (!moveResponse.ok || movePayload?.success === false) {
                             result.failed++;
-                            await this.logApproverAudioEvent('task_finish_item_failed_move', itemId, { task: selectedTask });
+                            await this.logApproverAudioEvent('task_finish_item_failed_move', itemId, {
+                                task: selectedTask,
+                                status: moveResponse.status,
+                                message: String(movePayload?.message || movePayload?.error || `HTTP ${moveResponse.status}`)
+                            });
                             continue;
                         }
 
