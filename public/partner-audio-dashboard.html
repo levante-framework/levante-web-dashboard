@@ -5267,16 +5267,6 @@
                     this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
                 ]);
                 const combinedIds = new Set([...draftInfo.ids, ...devInfo.ids]);
-                const allTranslatedAudioIds = new Set();
-                const allTranslatedApprovedIds = new Set();
-                withTranslations.forEach(item => {
-                    const baseId = this.extractBaseId(item.item_id || '');
-                    if (!baseId || !combinedIds.has(baseId)) return;
-                    allTranslatedAudioIds.add(baseId);
-                    if (this.approvedItems.has(baseId)) {
-                        allTranslatedApprovedIds.add(baseId);
-                    }
-                });
 
                 const taskAudioIds = new Set();
                 const taskApprovedAudioIds = new Set();
@@ -5291,7 +5281,9 @@
                 
                 const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
                 const total = taskFilteredTranslations.length;
-                const totalApproved = allTranslatedApprovedIds.size;
+                // Keep "Total Approved" aligned to the active task/language filter scope.
+                // This avoids showing cross-task totals that can look inflated for the current view.
+                const totalApproved = taskApprovedAudioIds.size;
                 const noAudio = itemsWithoutAudio.length;
                 let approved = 0;
                 let pending = 0;
