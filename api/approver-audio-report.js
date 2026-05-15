@@ -3,6 +3,7 @@ import { Storage } from '@google-cloud/storage';
 const DEFAULT_BUCKET = String(process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft').trim();
 const LOG_PREFIX = 'logs/approver-audio-events';
 const ROLLUP_PREFIX = 'logs/approver-audio-rollups';
+const ROLLUP_SCHEMA_VERSION = 2;
 
 let storageClient = null;
 
@@ -336,6 +337,10 @@ async function discoverAllKnownDays(bucket) {
   return Array.from(days).sort((a, b) => a.localeCompare(b));
 }
 
+function sortDaysNewestFirst(days = []) {
+  return Array.from(new Set(days.filter(Boolean))).sort((a, b) => b.localeCompare(a));
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -367,7 +372,9 @@ export default async function handler(req, res) {
     const candidateDays = sinceDays > 0
       ? getDayRangeForSinceDays(sinceDays, now)
       : await discoverAllKnownDays(bucket);
-    const daysToProcess = candidateDays.filter((day) => !sinceDate || (Date.parse(`${day}T00:00:00.000Z`) + (24 * 60 * 60 * 1000)) >= sinceDate.getTime());
+    const daysToProcess = sortDaysNewestFirst(
+      candidateDays.filter((day) => !sinceDate || (Date.parse(`${day}T00:00:00.000Z`) + (24 * 60 * 60 * 1000)) >= sinceDate.getTime())
+    );
 
     const compaction = {
       ran: false,
@@ -391,8 +398,14 @@ export default async function handler(req, res) {
 
       if (isHistoricalDay && summaryPath && await fileExists(bucket, summaryPath)) {
         try {
-          dayRollup = await readJsonFile(bucket, summaryPath);
-          compaction.alreadyCompactedDays.push(day);
+          const parsedRollup = await readJsonFile(bucket, summaryPath);
+          const schemaVersion = Number(parsedRollup?.schemaVersion || 1);
+          if (schemaVersion === ROLLUP_SCHEMA_VERSION) {
+            dayRollup = parsedRollup;
+            compaction.alreadyCompactedDays.push(day);
+          } else {
+            dayRollup = null;
+          }
         } catch (error) {
           console.warn(`approver-audio-report: failed reading rollup ${summaryPath}`, error?.message || error);
           dayRollup = null;
@@ -408,6 +421,7 @@ export default async function handler(req, res) {
           if (summaryPath) {
             await bucket.file(summaryPath).save(JSON.stringify({
               ...dayRollup,
+              schemaVersion: ROLLUP_SCHEMA_VERSION,
               dayUtc: day,
               source: 'raw-daily-compaction',
               compactedAt: new Date().toISOString()
