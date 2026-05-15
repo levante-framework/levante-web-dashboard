@@ -45,7 +45,9 @@ function normalizeKeyParts(event) {
 function isApprovalEvent(type) {
   return type === 'save_success'
     || type === 'approve_single_success'
-    || type === 'bulk_approve_item_success';
+    || type === 'bulk_approve_item_success'
+    // Current staged-approval workflow emits final approval at task finish.
+    || type === 'task_finish_item_promoted';
 }
 
 function toPositiveInt(value, fallback) {
