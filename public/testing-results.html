@@ -623,7 +623,11 @@
       }
     ];
 
-    const DASHBOARD_BASE_URL = 'https://hs-levante-admin-dev--ai-tests-dctel36u.web.app';
+    const LEGACY_PREVIEW_BASE_URL = 'https://hs-levante-admin-dev--ai-tests-dctel36u.web.app';
+    const DASHBOARD_BASE_URL = 'https://hs-levante-admin-dev.web.app';
+    e2eCatalog.forEach((entry) => {
+      entry.runScript = entry.runScript.replaceAll(LEGACY_PREVIEW_BASE_URL, DASHBOARD_BASE_URL);
+    });
     const DASHBOARD_TESTING_URL = `${DASHBOARD_BASE_URL}/testing-results`;
     const RUNNER_API_BASE = '';
     const issueStateById = {};
