@@ -44,16 +44,30 @@ export default async function handler(req, res) {
             });
         };
 
+        const shouldRetryWithServerKey = (status, text) => {
+            if (status !== 400 && status !== 401) return false;
+            return /invalid_api_key|invalid api key|missing elevenlabs api key|unauthorized/i.test(String(text || ''));
+        };
+
         const fetchWithFallback = async (url, method, body = null, accept = 'application/json') => {
             let response = await requestWithKey(url, method, preferredApiKey, body, accept);
             const canRetryWithServerKey = (
-                response.status === 401 &&
+                (response.status === 400 || response.status === 401) &&
                 Boolean(serverApiKey) &&
                 preferredApiKey !== serverApiKey
             );
             if (canRetryWithServerKey) {
-                console.warn('elevenlabs-proxy: client key unauthorized, retrying with server key');
-                response = await requestWithKey(url, method, serverApiKey, body, accept);
+                let retry = false;
+                try {
+                    const firstErrorText = await response.clone().text();
+                    retry = shouldRetryWithServerKey(response.status, firstErrorText);
+                } catch (_) {
+                    retry = response.status === 401;
+                }
+                if (retry) {
+                    console.warn('elevenlabs-proxy: client key rejected, retrying with server key');
+                    response = await requestWithKey(url, method, serverApiKey, body, accept);
+                }
             }
             return response;
         };

@@ -7830,11 +7830,30 @@
                     output_format: 'mp3_44100_128'
                 };
                 
-                const response = await this.fetchElevenLabsProxy(`?voice_id=${voiceId}`, {
+                let response = await this.fetchElevenLabsProxy(`?voice_id=${voiceId}`, {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify(requestData)
                 });
+
+                // If a stale client-side key is present, retry once without it so server env key can be used.
+                if (!response.ok && elevenKey) {
+                    const errorPreview = await response.text().catch(() => '');
+                    const isInvalidKeyError = /invalid_api_key|invalid api key|missing elevenlabs api key|unauthorized/i.test(String(errorPreview || ''));
+                    if (isInvalidKeyError) {
+                        response = await this.fetchElevenLabsProxy(`?voice_id=${voiceId}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestData)
+                        });
+                    } else {
+                        response = new Response(errorPreview, {
+                            status: response.status,
+                            statusText: response.statusText,
+                            headers: response.headers
+                        });
+                    }
+                }
                 
                 if (!response.ok) {
                     const errorText = await response.text();
