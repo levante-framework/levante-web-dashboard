@@ -131,6 +131,8 @@ export default async function handler(req, res) {
       const itemId = String(req.body?.itemId || '').trim();
       const text = String(req.body?.text || '').trim();
       const updatedBy = String(req.body?.updatedBy || '').trim();
+      const userEdited = req.body?.userEdited === true;
+      const sourceTranslationText = String(req.body?.sourceTranslationText || '').trim();
       if (!langCode || !itemId) {
         return res.status(400).json({ ok: false, error: 'Missing required fields: langCode, itemId' });
       }
@@ -143,6 +145,8 @@ export default async function handler(req, res) {
           text,
           updatedAt: new Date().toISOString(),
           updatedBy: updatedBy || '',
+          userEdited,
+          sourceTranslationText,
         };
       }
       const objectPath = await writeLangPayload(storage, langCode, entries);

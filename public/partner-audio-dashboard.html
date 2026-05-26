@@ -3019,16 +3019,22 @@
 
             normalizeEnhancedEntry(raw) {
                 if (typeof raw === 'string') {
-                    return { text: raw, updatedAt: '', updatedBy: '' };
+                    return { text: raw, updatedAt: '', updatedBy: '', userEdited: false, sourceTranslationText: '' };
                 }
                 if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
                     return {
                         text: String(raw.text || '').trim(),
                         updatedAt: String(raw.updatedAt || '').trim(),
                         updatedBy: String(raw.updatedBy || '').trim(),
+                        userEdited: raw.userEdited === true || raw.isUserEdited === true,
+                        sourceTranslationText: String(raw.sourceTranslationText || raw.originalTranslationText || '').trim(),
                     };
                 }
-                return { text: '', updatedAt: '', updatedBy: '' };
+                return { text: '', updatedAt: '', updatedBy: '', userEdited: false, sourceTranslationText: '' };
+            }
+
+            normalizeEnhancedCompareText(value) {
+                return String(value || '').replace(/\s+/g, ' ').trim();
             }
 
             saveEnhancedTextState(langCode, state) {
@@ -3062,12 +3068,12 @@
             }
 
             getEnhancedTextForItem(itemId, fallbackText = '') {
-                const entry = this.getEnhancedEntryForItem(itemId);
+                const entry = this.getEnhancedEntryForItem(itemId, String(fallbackText || '').trim());
                 if (entry && entry.text) return entry.text;
                 return String(fallbackText || '');
             }
 
-            setEnhancedTextForItem(itemId, text) {
+            setEnhancedTextForItem(itemId, text, options = {}) {
                 if (!this.currentLangCode) return;
                 const keys = this.getEnhancedTextItemKeys(itemId);
                 if (!keys.length) return;
@@ -3080,7 +3086,9 @@
                     const entry = {
                         text: normalized,
                         updatedAt: new Date().toISOString(),
-                        updatedBy
+                        updatedBy,
+                        userEdited: options.userEdited === true,
+                        sourceTranslationText: String(options.sourceTranslationText || '').trim()
                     };
                     keys.forEach((key) => { state[key] = entry; });
                 }
@@ -3088,8 +3096,12 @@
             }
 
             handleEnhancedTextInput(itemId, value) {
-                this.setEnhancedTextForItem(itemId, value);
-                this.queueEnhancedTextServerSync(itemId, value);
+                const item = (Array.isArray(this.data) ? this.data : []).find((entry) => String(entry?.item_id || '').trim() === String(itemId || '').trim());
+                const sourceTranslationText = item
+                    ? String(this.getTextForItem(item, this.currentLangCode) || '').trim()
+                    : '';
+                this.setEnhancedTextForItem(itemId, value, { userEdited: true, sourceTranslationText });
+                this.queueEnhancedTextServerSync(itemId, value, { userEdited: true, sourceTranslationText });
             }
 
             openAudioTipsWindow() {
@@ -3147,8 +3159,10 @@
                     const rawId = input.dataset?.itemId || input.id?.replace('audioEnhanced_', '') || '';
                     const itemId = String(rawId || '').trim();
                     if (!itemId) return;
-                    const enhancedEntry = this.getEnhancedEntryForItem(itemId);
-                    const enhancedText = this.getEnhancedTextForItem(itemId, input.value || '');
+                    const item = (Array.isArray(this.data) ? this.data : []).find((entry) => String(entry?.item_id || '').trim() === itemId);
+                    const translatedText = item ? String(this.getTextForItem(item, this.currentLangCode) || '').trim() : String(input.value || '').trim();
+                    const enhancedEntry = this.getEnhancedEntryForItem(itemId, translatedText);
+                    const enhancedText = this.getEnhancedTextForItem(itemId, translatedText || '');
                     if (document.activeElement !== input && enhancedText !== input.value) {
                         input.value = enhancedText;
                     }
@@ -3162,7 +3176,7 @@
                 });
             }
 
-            queueEnhancedTextServerSync(itemId, text) {
+            queueEnhancedTextServerSync(itemId, text, options = {}) {
                 const langCode = this.normalizeEnhancedLangCode(this.currentLangCode);
                 const rawId = String(itemId || '').trim();
                 if (!langCode || !rawId) return;
@@ -3171,6 +3185,8 @@
                     itemId: rawId,
                     text: String(text || ''),
                     updatedBy: String(this.currentUserEmail || '').trim(),
+                    userEdited: options.userEdited === true,
+                    sourceTranslationText: String(options.sourceTranslationText || '').trim(),
                 });
                 if (this.enhancedTextSyncTimer) clearTimeout(this.enhancedTextSyncTimer);
                 this.enhancedTextSyncTimer = setTimeout(() => {
@@ -3192,6 +3208,8 @@
                                 itemId: entry.itemId,
                                 text: entry.text,
                                 updatedBy: entry.updatedBy || '',
+                                userEdited: entry.userEdited === true,
+                                sourceTranslationText: entry.sourceTranslationText || '',
                             })
                         });
                     } catch (_) {
@@ -3205,15 +3223,31 @@
                 return raw ? [raw] : [];
             }
 
-            getEnhancedEntryForItem(itemId) {
+            getEnhancedEntryForItem(itemId, currentTranslationText = '') {
                 if (!this.currentLangCode) return null;
                 const state = this.getEnhancedTextState(this.currentLangCode);
                 const keys = this.getEnhancedTextItemKeys(itemId);
+                const normalizedCurrentTranslation = this.normalizeEnhancedCompareText(currentTranslationText);
+                let stateChanged = false;
                 for (const key of keys) {
                     if (state[key] !== undefined) {
                         const entry = this.normalizeEnhancedEntry(state[key]);
-                        if (entry.text) return entry;
+                        if (entry.text && entry.userEdited === true) {
+                            const normalizedSourceTranslation = this.normalizeEnhancedCompareText(entry.sourceTranslationText);
+                            // If the underlying translation changed after the user edited enhanced text,
+                            // moot the enhanced override and fall back to the new translation.
+                            if (normalizedCurrentTranslation && normalizedSourceTranslation && normalizedCurrentTranslation !== normalizedSourceTranslation) {
+                                delete state[key];
+                                stateChanged = true;
+                                continue;
+                            }
+                            return entry;
+                        }
                     }
+                }
+                if (stateChanged) {
+                    this.saveEnhancedTextState(this.currentLangCode, state);
+                    this.queueEnhancedTextServerSync(itemId, '', { userEdited: false, sourceTranslationText: '' });
                 }
                 if (keys.length === 1) {
                     const logKey = `${String(this.currentLangCode)}::${keys[0]}`;
@@ -6669,7 +6703,7 @@
                     
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
-                    const enhancedEntry = this.getEnhancedEntryForItem(itemId);
+                    const enhancedEntry = this.getEnhancedEntryForItem(itemId, translatedText || '');
                     const enhancedText = this.getEnhancedTextForItem(itemId, translatedText || '');
                     const escapedTranslated = this.escapeHtml(translatedText || ''); // Ensure empty string if no translation
                     const escapedEnhancedText = this.escapeHtml(enhancedText || '');
@@ -7449,8 +7483,14 @@
                     if (!text) {
                         throw new Error(`No translation text available for ${itemId}`);
                     }
-                    this.setEnhancedTextForItem(itemId, text);
-                    this.queueEnhancedTextServerSync(itemId, text);
+                    if (textSource === 'enhanced') {
+                        this.setEnhancedTextForItem(itemId, text, { userEdited: true, sourceTranslationText: originalTranslationText });
+                        this.queueEnhancedTextServerSync(itemId, text, { userEdited: true, sourceTranslationText: originalTranslationText });
+                    } else {
+                        // Ensure translation-based generation does not pin stale enhanced text.
+                        this.setEnhancedTextForItem(itemId, '', { userEdited: false, sourceTranslationText: '' });
+                        this.queueEnhancedTextServerSync(itemId, '', { userEdited: false, sourceTranslationText: '' });
+                    }
                     
                     const sourceLabel = textSource === 'enhanced' ? 'audio-enhanced text' : 'translation text';
                     this.setStatus(`Generating audio for ${itemId} using ${sourceLabel}...`, 'loading');
