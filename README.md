@@ -180,6 +180,8 @@ See `.env.example` for a safe template.
 Required/optional keys used by current translation and AI features:
 
 - `CROWDIN_API_TOKEN` – Crowdin API token for translation export endpoints
+- `CROWDIN_DISTRIBUTION_HASH` – server-only Crowdin OTA distribution hash for the public `/translations` viewer
+- `REVALIDATE_SECRET` – server-only secret for `POST /api/revalidate-translations` manual cache reset
 - `LEVANTE_TRANSLATIONS_PROJECT_ID` – optional Crowdin project ID (defaults to `756721`)
 - `OPENAI_API_KEY` – enables AI-assisted translation judging
 - `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4.1`)
@@ -219,6 +221,38 @@ Returns the partner audio approval catalog as CSV.
 
 **Optional legacy source (off by default):**
 - Bucket-wide XLIFF scan/build path is only used when `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE=true`
+
+### `/translations` (public Crowdin OTA viewer)
+Server-rendered public route for approved translations from Crowdin CDN distribution.
+
+- Landing page: `/translations` (languages)
+- Language page: `/translations/{lang}` (files)
+- File page: `/translations/{lang}/{filePath}` (paginated rows, 100 per page)
+- Responses are rendered server-side and cached with `Cache-Control: public, max-age=300, s-maxage=86400`.
+- Route is marked `noindex,nofollow`.
+- Anti-copy controls (`user-select: none`, clipboard clearing on copy) are friction-only and not security.
+
+### `/api/revalidate-translations`
+Manual cache reset endpoint for the `/translations` viewer.
+
+- Method: `POST`
+- Header required: `x-revalidate-secret: <REVALIDATE_SECRET>`
+- Response: `{ revalidated: true, now: "<iso>" }`
+
+Example:
+```bash
+curl -X POST "https://levante-pitwall.vercel.app/api/revalidate-translations" \
+  -H "x-revalidate-secret: YOUR_REVALIDATE_SECRET"
+```
+
+Local example:
+```bash
+curl -X POST "http://localhost:3000/api/revalidate-translations" \
+  -H "x-revalidate-secret: $REVALIDATE_SECRET"
+```
+
+Security note:
+- `CROWDIN_DISTRIBUTION_HASH` is a secret. Do not commit it, do not expose it in client code, and do not prefix it with any public env naming convention.
 
 ### `/api/reverse-geocode`
 Finds nearest cities based on GPS coordinates.

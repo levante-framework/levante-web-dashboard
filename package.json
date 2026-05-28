@@ -20,6 +20,7 @@
     "deploy-bat": "deploy.bat",
     "test:partner-audio-regression": "node scripts/check-partner-audio-approval-regression.js",
     "test:partner-audio-regression:unit": "node --test scripts/check-partner-audio-approval-regression.test.js",
+    "test:translations-ota": "node --test scripts/crowdin-ota-client.test.js",
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
     "geocoder:build": "node scripts/geocoder/build-geocoder.js",
     "crowdin:screenshots:artifact": "node scripts/build-crowdin-screenshot-artifact.js",
@@ -63,6 +64,7 @@
   "author": "Levante Team",
   "license": "MIT",
   "dependencies": {
+    "@crowdin/ota-client": "^2.1.0",
     "@google-cloud/storage": "^7.19.0",
     "@google/generative-ai": "^0.24.1",
     "@levante-framework/levante-zod": "^1.0.6",

@@ -91,6 +91,12 @@
     "api/prolific-es-ar-pilot.js": {
       "maxDuration": 30,
       "includeFiles": "data/validation/{prolific-study-es-AR-pilot.csv,prolific-study-es-AR-targeted-43-plus-20-controls.csv}"
+    },
+    "api/translations.js": {
+      "maxDuration": 30
+    },
+    "api/revalidate-translations.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -145,6 +151,18 @@
     {
       "source": "/validation/prolific/es-ar-pilot-results",
       "destination": "/public/validation/prolific/es-ar-pilot-results.html"
+    },
+    {
+      "source": "/translations/:lang/:file*",
+      "destination": "/api/translations?lang=:lang&file=:file*"
+    },
+    {
+      "source": "/translations/:lang",
+      "destination": "/api/translations?lang=:lang"
+    },
+    {
+      "source": "/translations",
+      "destination": "/api/translations"
     },
     {
       "source": "/(.*)",
