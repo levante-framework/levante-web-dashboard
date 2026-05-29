@@ -8303,6 +8303,7 @@
                 const stagedIds = this.getStagedApprovedIdsForTask(selectedTask, this.currentLangCode);
                 const result = { moved: 0, skipped: 0, failed: 0 };
                 if (stagedIds.size === 0) return result;
+                let requestedTranslationCopy = false;
 
                 for (const baseId of stagedIds) {
                     const item = (Array.isArray(this.data) ? this.data : []).find((entry) => this.extractBaseId(entry?.item_id || '') === baseId);
@@ -8328,7 +8329,10 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 bucket: 'levante-assets-draft',
-                                path: audioPath
+                                path: audioPath,
+                                task: selectedTask,
+                                langCode: this.currentLangCode,
+                                copyTaskTranslations: !requestedTranslationCopy
                             })
                         });
                         const movePayload = await moveResponse.json().catch(() => ({}));
@@ -8340,6 +8344,9 @@
                                 message: String(movePayload?.message || movePayload?.error || `HTTP ${moveResponse.status}`)
                             });
                             continue;
+                        }
+                        if (!requestedTranslationCopy) {
+                            requestedTranslationCopy = true;
                         }
 
                         this.devApprovedItems.add(baseId);

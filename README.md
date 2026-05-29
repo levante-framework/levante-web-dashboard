@@ -187,8 +187,9 @@ Required/optional keys used by current translation and AI features:
 - `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4.1`)
 - `GCP_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` – JSON credentials for private GCS-backed APIs
 - `ASSETS_DRAFT_BUCKET` – optional draft assets bucket override used by partner audio APIs (defaults to `levante-assets-draft`)
-- `PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH` – optional CSV object path for `/api/partner-audio-translations` (defaults to `audio/item_bank_translations.csv`)
-- `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE` – optional toggle to enable legacy XLIFF bucket scanning fallback in `/api/partner-audio-translations` (`false` by default; set `true` only if needed)
+- `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE` – translation source mode for `/api/partner-audio-translations` (`task-json` default; legacy options: `csv`, `xliff`)
+- `PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH` – CSV object path used only when `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE=csv` (defaults to `audio/item_bank_translations.csv`)
+- `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE` – optional CSV-mode fallback toggle to allow legacy XLIFF scan/build when CSV is missing (`false` by default)
 - `AUDIT_DASHBOARD_BUCKET` – optional bucket override for the audit dashboard API (defaults to `levante-tools`)
 - `AUDIT_DASHBOARD_OBJECT` – optional object path override (defaults to `pitwall/audit-mini-dashboard/dashboard-data.json`)
 - `AUDIT_DASHBOARD_DOWNLOAD_PREFIX` – optional prefix for JSON download listing (defaults to `pitwall/audit-mini-dashboard/`)
@@ -215,12 +216,13 @@ Key dependencies:
 ### `/api/partner-audio-translations`
 Returns the partner audio approval catalog as CSV.
 
-**Default source order:**
-- `gs://<ASSETS_DRAFT_BUCKET>/<PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH>` (default `gs://levante-assets-draft/audio/item_bank_translations.csv`)
-- Public URL to the same object path when private GCS credentials are unavailable
+**Default source mode (`task-json`):**
+- Reads task-specific JSON files from `gs://<ASSETS_DRAFT_BUCKET>/**/itembank_by_task/*.json`
+- Does not fall back to other sources unless `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE` is changed
 
-**Optional legacy source (off by default):**
-- Bucket-wide XLIFF scan/build path is only used when `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE=true`
+**Legacy source modes (opt-in):**
+- `csv`: `gs://<ASSETS_DRAFT_BUCKET>/<PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH>` and public URL fallback
+- `xliff`: bucket-wide XLIFF scan/build from `**/main/itembank_by_task/*.xlf*`
 
 ### `/translations` (public Crowdin OTA viewer)
 Server-rendered public route for approved translations from Crowdin.

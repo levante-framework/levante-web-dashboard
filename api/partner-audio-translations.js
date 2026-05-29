@@ -1,7 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 
 const DEFAULT_DRAFT_BUCKET = process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
-
+const SOURCE_MODE = String(process.env.PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE || 'task-json').trim().toLowerCase();
 const OBJECT_PATH = process.env.PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH || 'audio/item_bank_translations.csv';
 const ENABLE_XLIFF_SOURCE = String(
   process.env.PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE || ''
@@ -79,6 +79,177 @@ function normalizeLangCode(value) {
   return LANG_ID_TO_CODE[lower] || code;
 }
 
+function toCsvValue(value) {
+  const s = String(value ?? '');
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildCsv(headers, rows) {
+  const lines = [headers.map(toCsvValue).join(',')];
+  rows.forEach((row) => {
+    lines.push(headers.map((h) => toCsvValue(row[h] || '')).join(','));
+  });
+  return `${lines.join('\n')}\n`;
+}
+
+async function listAllFiles(bucket) {
+  const out = [];
+  let pageToken = undefined;
+  do {
+    const [files, nextQuery] = await bucket.getFiles({
+      autoPaginate: false,
+      pageToken,
+      maxResults: 1000,
+    });
+    out.push(...files);
+    if (out.length >= MAX_SCAN_FILES) break;
+    pageToken = nextQuery && nextQuery.pageToken ? nextQuery.pageToken : undefined;
+  } while (pageToken);
+  return out;
+}
+
+function extractTaskFromJsonPath(pathValue) {
+  const normalized = normalizePath(pathValue);
+  const m = normalized.match(/(?:^|\/)itembank_by_task\/([^/]+)\.json$/i);
+  return m && m[1] ? String(m[1]).trim() : '';
+}
+
+function extractLangFromJsonPath(pathValue) {
+  const normalized = normalizePath(pathValue);
+  const segments = normalized.split('/').filter(Boolean);
+  const taskIdx = segments.findIndex((segment) => segment.toLowerCase() === 'itembank_by_task');
+  if (taskIdx <= 0) return '';
+  for (let i = taskIdx - 1; i >= 0; i -= 1) {
+    const segment = String(segments[i] || '').trim();
+    if (/^[a-z]{2}(?:[-_][a-z0-9]{2,8})?$/i.test(segment)) {
+      return normalizeLangCode(segment);
+    }
+  }
+  return '';
+}
+
+function normalizeItemId(rawKey) {
+  const raw = String(rawKey || '').trim();
+  if (!raw) return '';
+  if (raw.includes('::')) {
+    const suffix = raw.split('::').pop();
+    return String(suffix || raw).trim();
+  }
+  return raw;
+}
+
+function getRecordText(record) {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return '';
+  const candidates = [
+    record.translation,
+    record.target,
+    record.text,
+    record.value,
+    record.message,
+    record.content,
+  ];
+  const found = candidates.find((v) => typeof v === 'string' && String(v).trim());
+  return String(found || '').trim();
+}
+
+function collectJsonTranslationEntries(node, prefix = '') {
+  const out = [];
+  if (typeof node === 'string') {
+    if (prefix) out.push({ itemId: normalizeItemId(prefix), text: node.trim() });
+    return out;
+  }
+  if (Array.isArray(node)) {
+    node.forEach((entry, idx) => {
+      if (entry && typeof entry === 'object' && !Array.isArray(entry)) {
+        const itemId = normalizeItemId(entry.item_id || entry.itemId || entry.id || '');
+        const text = getRecordText(entry);
+        if (itemId && text) {
+          out.push({ itemId, text });
+          return;
+        }
+      }
+      const childPrefix = prefix ? `${prefix}.${idx}` : String(idx);
+      out.push(...collectJsonTranslationEntries(entry, childPrefix));
+    });
+    return out;
+  }
+  if (node && typeof node === 'object') {
+    Object.entries(node).forEach(([key, value]) => {
+      const childPrefix = prefix ? `${prefix}.${key}` : key;
+      out.push(...collectJsonTranslationEntries(value, childPrefix));
+    });
+  }
+  return out;
+}
+
+async function buildFromDraftTaskJson(storage, bucketName) {
+  const bucket = storage.bucket(bucketName);
+  const allFiles = await listAllFiles(bucket);
+  const jsonFiles = allFiles.filter((f) => {
+    const p = normalizePath(f?.name).toLowerCase();
+    if (!p.endsWith('.json')) return false;
+    return p.includes('/itembank_by_task/');
+  });
+  if (!jsonFiles.length) return null;
+
+  const byId = new Map();
+  const languages = new Set(['en-US']);
+  let parsedFiles = 0;
+
+  for (const file of jsonFiles) {
+    const pathValue = normalizePath(file?.name);
+    if (!pathValue) continue;
+    const task = extractTaskFromJsonPath(pathValue);
+    const langCode = extractLangFromJsonPath(pathValue);
+    if (!task || !langCode) continue;
+
+    let parsed;
+    try {
+      const [buf] = await file.download();
+      parsed = JSON.parse(buf.toString('utf8'));
+    } catch (_) {
+      continue;
+    }
+
+    const entries = collectJsonTranslationEntries(parsed);
+    if (!entries.length) continue;
+    parsedFiles += 1;
+    languages.add(langCode);
+
+    entries.forEach(({ itemId, text }) => {
+      if (!itemId || !text) return;
+      if (!byId.has(itemId)) {
+        byId.set(itemId, {
+          item_id: itemId,
+          task,
+          'en-US': '',
+        });
+      }
+      const row = byId.get(itemId);
+      if (!row.task) row.task = task;
+      if (langCode === 'en-US') {
+        row['en-US'] = text;
+      } else {
+        row[langCode] = text;
+      }
+    });
+  }
+
+  const rows = Array.from(byId.values());
+  if (!rows.length) return null;
+  rows.sort((a, b) => String(a.item_id || '').localeCompare(String(b.item_id || '')));
+  const langHeaders = Array.from(languages).filter((l) => l && l !== 'en-US').sort();
+  const headers = ['item_id', 'task', 'en-US', ...langHeaders];
+
+  return {
+    csvText: buildCsv(headers, rows),
+    source: `gcs://${bucketName}/**/itembank_by_task/*.json`,
+    rowCount: rows.length,
+    fileCount: parsedFiles,
+  };
+}
+
 function decodeEntities(text) {
   return String(text || '')
     .replace(/&lt;/g, '<')
@@ -140,54 +311,19 @@ function parseXliffUnits(xliffText) {
   return units;
 }
 
-function toCsvValue(value) {
-  const s = String(value ?? '');
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-function buildCsv(headers, rows) {
-  const lines = [headers.map(toCsvValue).join(',')];
-  rows.forEach((row) => {
-    lines.push(headers.map((h) => toCsvValue(row[h] || '')).join(','));
-  });
-  return `${lines.join('\n')}\n`;
-}
-
-function extractTaskFromPath(pathValue) {
+function extractTaskFromXliffPath(pathValue) {
   const normalized = normalizePath(pathValue);
   const m = normalized.match(/(?:^|\/)itembank_by_task\/([^/]+)\.xli?ff$/i);
   if (!m) return '';
   return String(m[1] || '').trim();
 }
 
-function extractLangFromPath(pathValue, xliffText) {
+function extractLangFromXliffPath(pathValue, xliffText) {
   const normalized = normalizePath(pathValue);
   const matchFromPath = normalized.match(/(?:^|\/)([a-z]{2}(?:-[A-Za-z0-9]{2,8})?)\/main\/itembank_by_task\//i);
-  if (matchFromPath && matchFromPath[1]) {
-    return normalizeLangCode(matchFromPath[1]);
-  }
+  if (matchFromPath && matchFromPath[1]) return normalizeLangCode(matchFromPath[1]);
   const headerMatch = String(xliffText || '').match(/\b(?:target-language|trgLang)\s*=\s*"([^"]+)"/i);
-  if (headerMatch && headerMatch[1]) {
-    return normalizeLangCode(headerMatch[1]);
-  }
-  return '';
-}
-
-async function listAllFiles(bucket) {
-  const out = [];
-  let pageToken = undefined;
-  do {
-    const [files, nextQuery] = await bucket.getFiles({
-      autoPaginate: false,
-      pageToken,
-      maxResults: 1000,
-    });
-    out.push(...files);
-    if (out.length >= MAX_SCAN_FILES) break;
-    pageToken = nextQuery && nextQuery.pageToken ? nextQuery.pageToken : undefined;
-  } while (pageToken);
-  return out;
+  return headerMatch && headerMatch[1] ? normalizeLangCode(headerMatch[1]) : '';
 }
 
 async function buildFromDraftItembankFolders(storage, bucketName) {
@@ -204,14 +340,13 @@ async function buildFromDraftItembankFolders(storage, bucketName) {
   const byId = new Map();
   const languages = new Set(['en-US']);
 
-  for (let i = 0; i < xliffFiles.length; i++) {
-    const file = xliffFiles[i];
+  for (const file of xliffFiles) {
     const pathValue = normalizePath(file?.name);
     if (!pathValue) continue;
-    const task = extractTaskFromPath(pathValue);
+    const task = extractTaskFromXliffPath(pathValue);
     const [buf] = await file.download();
     const text = buf.toString('utf8');
-    const langCode = extractLangFromPath(pathValue, text);
+    const langCode = extractLangFromXliffPath(pathValue, text);
     if (langCode) languages.add(langCode);
     const units = parseXliffUnits(text);
     if (!units.length) continue;
@@ -240,9 +375,13 @@ async function buildFromDraftItembankFolders(storage, bucketName) {
   return {
     csvText: buildCsv(headers, rows),
     source: `gcs://${bucketName}/**/main/itembank_by_task/*.xlf*`,
-    rowCount: rows.length,
-    fileCount: xliffFiles.length,
   };
+}
+
+function sourceModeLabel() {
+  if (SOURCE_MODE === 'csv') return 'csv';
+  if (SOURCE_MODE === 'xliff') return 'xliff';
+  return 'task-json';
 }
 
 export default async function handler(req, res) {
@@ -263,22 +402,35 @@ export default async function handler(req, res) {
     const tried = [];
 
     if (storage) {
-      // Default source: item bank CSV published in the draft audio bucket.
-      tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/${OBJECT_PATH}`);
-      const csvText = await readFromGcs(storage, DEFAULT_DRAFT_BUCKET, OBJECT_PATH);
-      if (csvText) {
-        memoryCache = {
-          expiresAt: Date.now() + CACHE_TTL_MS,
-          csvText,
-          source: `gcs://${DEFAULT_DRAFT_BUCKET}/${OBJECT_PATH}`,
-        };
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-store');
-        return res.status(200).send(csvText);
-      }
+      if (SOURCE_MODE === 'csv') {
+        tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/${OBJECT_PATH}`);
+        const csvText = await readFromGcs(storage, DEFAULT_DRAFT_BUCKET, OBJECT_PATH);
+        if (csvText) {
+          memoryCache = {
+            expiresAt: Date.now() + CACHE_TTL_MS,
+            csvText,
+            source: `gcs://${DEFAULT_DRAFT_BUCKET}/${OBJECT_PATH}`,
+          };
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store');
+          return res.status(200).send(csvText);
+        }
 
-      // Optional fallback source for legacy environments that still rely on XLIFF blobs.
-      if (ENABLE_XLIFF_SOURCE) {
+        if (ENABLE_XLIFF_SOURCE) {
+          tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/**/main/itembank_by_task/*.xlf*`);
+          const draftFolderResult = await buildFromDraftItembankFolders(storage, DEFAULT_DRAFT_BUCKET);
+          if (draftFolderResult?.csvText) {
+            memoryCache = {
+              expiresAt: Date.now() + CACHE_TTL_MS,
+              csvText: draftFolderResult.csvText,
+              source: draftFolderResult.source,
+            };
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.setHeader('Cache-Control', 'no-store');
+            return res.status(200).send(draftFolderResult.csvText);
+          }
+        }
+      } else if (SOURCE_MODE === 'xliff') {
         tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/**/main/itembank_by_task/*.xlf*`);
         const draftFolderResult = await buildFromDraftItembankFolders(storage, DEFAULT_DRAFT_BUCKET);
         if (draftFolderResult?.csvText) {
@@ -291,30 +443,45 @@ export default async function handler(req, res) {
           res.setHeader('Cache-Control', 'no-store');
           return res.status(200).send(draftFolderResult.csvText);
         }
+      } else {
+        tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/**/itembank_by_task/*.json`);
+        const taskJsonResult = await buildFromDraftTaskJson(storage, DEFAULT_DRAFT_BUCKET);
+        if (taskJsonResult?.csvText) {
+          memoryCache = {
+            expiresAt: Date.now() + CACHE_TTL_MS,
+            csvText: taskJsonResult.csvText,
+            source: taskJsonResult.source,
+          };
+          res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store');
+          return res.status(200).send(taskJsonResult.csvText);
+        }
       }
     }
 
-    // Public fallback for environments without configured GCS credentials.
-    const publicUrls = [
-      `https://storage.googleapis.com/${DEFAULT_DRAFT_BUCKET}/${OBJECT_PATH}`
-    ];
-    for (const url of publicUrls) {
-      tried.push(url);
-      const csvText = await readFromPublicUrl(url);
-      if (!csvText) continue;
-      memoryCache = {
-        expiresAt: Date.now() + CACHE_TTL_MS,
-        csvText,
-        source: url,
-      };
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).send(csvText);
+    if (SOURCE_MODE === 'csv') {
+      const publicUrls = [
+        `https://storage.googleapis.com/${DEFAULT_DRAFT_BUCKET}/${OBJECT_PATH}`
+      ];
+      for (const url of publicUrls) {
+        tried.push(url);
+        const csvText = await readFromPublicUrl(url);
+        if (!csvText) continue;
+        memoryCache = {
+          expiresAt: Date.now() + CACHE_TTL_MS,
+          csvText,
+          source: url,
+        };
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).send(csvText);
+      }
     }
 
     return res.status(404).json({
       ok: false,
       error: 'translations_not_found',
+      sourceMode: sourceModeLabel(),
       tried
     });
   } catch (error) {
