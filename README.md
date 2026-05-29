@@ -180,7 +180,7 @@ See `.env.example` for a safe template.
 Required/optional keys used by current translation and AI features:
 
 - `CROWDIN_API_TOKEN` – Crowdin API token for translation export endpoints
-- `CROWDIN_DISTRIBUTION_HASH` – server-only Crowdin OTA distribution hash for the public `/translations` viewer
+- `CROWDIN_DISTRIBUTION_HASH` – optional server-only Crowdin OTA distribution hash for the public `/translations` viewer (if omitted, viewer uses `CROWDIN_API_TOKEN`)
 - `REVALIDATE_SECRET` – server-only secret for `POST /api/revalidate-translations` manual cache reset
 - `LEVANTE_TRANSLATIONS_PROJECT_ID` – optional Crowdin project ID (defaults to `756721`)
 - `OPENAI_API_KEY` – enables AI-assisted translation judging
@@ -223,7 +223,11 @@ Returns the partner audio approval catalog as CSV.
 - Bucket-wide XLIFF scan/build path is only used when `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE=true`
 
 ### `/translations` (public Crowdin OTA viewer)
-Server-rendered public route for approved translations from Crowdin CDN distribution.
+Server-rendered public route for approved translations from Crowdin.
+
+Source priority:
+- Crowdin OTA distribution (`CROWDIN_DISTRIBUTION_HASH`) when configured
+- Crowdin API build/download fallback (`CROWDIN_API_TOKEN`, approved-only build) when distribution hash is not configured
 
 - Landing page: `/translations` (languages)
 - Language page: `/translations/{lang}` (files)

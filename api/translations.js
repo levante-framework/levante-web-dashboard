@@ -119,7 +119,7 @@ function renderLanguagesPage(languages) {
   </div>`;
   return baseShell({
     title: 'Public Translations Viewer',
-    subtitle: 'Approved translations served from Crowdin distribution (server-rendered, daily cache).',
+    subtitle: 'Approved translations served from Crowdin (OTA or API fallback), server-rendered with daily cache.',
     body,
   });
 }
