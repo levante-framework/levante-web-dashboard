@@ -8020,6 +8020,10 @@
                     if (!baseId) {
                         throw new Error(`Invalid item id: ${itemId}`);
                     }
+                    const fallbackTranslationText = String(this.getTextForItem(item, this.currentLangCode) || '').trim();
+                    const resolvedTagText = String(this.latestGeneratedAudio.text || '').trim() || fallbackTranslationText;
+                    const resolvedOriginalTranslationText = String(this.latestGeneratedAudio.originalTranslationText || '').trim() || fallbackTranslationText;
+                    const usedId3TextFallback = !String(this.latestGeneratedAudio.text || '').trim() && Boolean(fallbackTranslationText);
                     
                     const payload = {
                         audioBase64: this.latestGeneratedAudio.audioBase64,
@@ -8037,8 +8041,8 @@
                             voice: this.latestGeneratedAudio.voiceName,
                             model_id: this.latestGeneratedAudio.modelId || 'eleven_v3',
                             lang_code: this.currentLangCode,
-                            text: this.latestGeneratedAudio.text || '',
-                            original_translation_text: this.latestGeneratedAudio.originalTranslationText || '',
+                            text: resolvedTagText,
+                            original_translation_text: resolvedOriginalTranslationText,
                             audio_enhanced_text: this.latestGeneratedAudio.audioEnhancedText || '',
                             used_audio_enhanced_text: this.latestGeneratedAudio.usedAudioEnhancedText ? 'true' : 'false',
                             created: new Date().toISOString(),
@@ -8070,6 +8074,7 @@
                         generatedTextLength: String(this.latestGeneratedAudio?.text || '').length,
                         hadPendingGeneratedAudio: true,
                         savedGeneratedAudio: true,
+                        usedId3TextFallback,
                         saveBucket: String(saveResult?.bucket || this.audioBuckets.draft || ''),
                         savePath: String(saveResult?.path || ''),
                         saveVersion: saveResult?.version
