@@ -4158,6 +4158,17 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                  });
              }
 
+            setDataRowVisibility(row, isVisible) {
+                if (!row) return;
+                if (isVisible) {
+                    // Remove inline override so stylesheet controls normal row layout.
+                    row.style.removeProperty('display');
+                    return;
+                }
+                // styles.css sets `.data-row { display: flex !important; }`, so hiding must also be !important.
+                row.style.setProperty('display', 'none', 'important');
+            }
+
              filterTable(language, searchTerm) {
                  this.ensureLanguageFullyRendered(language);
                  const tableContent = document.getElementById(`table-${language}`);
@@ -4179,12 +4190,12 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                          itemEnglish.toLowerCase().includes(searchLower) ||
                          itemTask.toLowerCase().includes(searchLower);
 
-                     if (matches) {
-                         row.style.display = '';
-                         visibleCount++;
-                     } else {
-                         row.style.display = 'none';
-                     }
+                    if (matches) {
+                        this.setDataRowVisibility(row, true);
+                        visibleCount++;
+                    } else {
+                        this.setDataRowVisibility(row, false);
+                    }
                  });
 
                  // Update item count to show filtered results

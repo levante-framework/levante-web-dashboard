@@ -799,6 +799,7 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
         const nowIso = new Date().toISOString();
         if (typeof result.score === 'number') result.manualOverridePreviousScore = result.score;
         if (priorSource) result.manualOverridePreviousSource = priorSource;
+        if (typeof result.notes === 'string') result.manualOverridePreviousNotes = result.notes;
         result.manualApproved = true;
         result.manualApprovalUpdatedAt = nowIso;
         result.updated = nowIso;
@@ -828,6 +829,14 @@ function setManualApprovalForValidation(itemId, langCode, approved, rowEl = null
             } else {
                 delete result.scoreSource;
             }
+        }
+        const restoredNotes = result.manualOverridePreviousNotes;
+        if (typeof restoredNotes === 'string') {
+            result.notes = restoredNotes;
+            delete result.manualOverridePreviousNotes;
+        } else if (String(result.notes || '').trim().toLowerCase() === 'manually approved') {
+            // Clear approval marker so this row no longer behaves like manual-approved.
+            delete result.notes;
         }
         result.timestamp = nowIso;
     }
