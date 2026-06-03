@@ -66,11 +66,15 @@ export default async function handler(req, res) {
   const agent = ['oracle', 'vlm', 'child', 'wrong'].includes(body.agent) ? body.agent : 'oracle';
   const provider = ['gemini', 'openai', 'anthropic'].includes(body.provider) ? body.provider : 'gemini';
   const batchId = body.batchId ? String(body.batchId) : randomUUID();
+  // Optional: run a single task of the assignment (Pitwall fans an assignment out
+  // into one workflow run per task so each gets its own runner + "Running now" card).
+  const taskId = body.taskId ? String(body.taskId) : '';
 
   // workflow_dispatch inputs must be strings.
   const inputs = {
     assignment_id: assignmentId,
     assignment_name: assignmentName,
+    task_id: taskId,
     agent,
     provider,
     age_years: String(body.ageYears ?? 8),

@@ -282,6 +282,8 @@
       .runner-detail a { color: #67e8f9; }
       .runner-head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
       .btn.btn-sm { padding: 7px 12px; font-size: 0.8rem; }
+      .runner-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: rgba(226, 232, 240, 0.85); cursor: pointer; }
+      .runner-check input { accent-color: #4f86f7; }
       /* Running-now cards */
       .active-section { display: none; border-color: rgba(79, 134, 247, 0.45); }
       .active-section.show { display: block; }
@@ -338,6 +340,9 @@
             <option value="openai">openai</option>
             <option value="anthropic">anthropic</option>
           </select>
+          <label class="runner-check" title="Dispatch one workflow run per task so each runs on its own runner and gets its own card">
+            <input type="checkbox" id="runPerTask" checked /> One job per task (parallel)
+          </label>
           <button class="btn btn-run" id="runBtn"><i class="fas fa-play"></i> Run assignment</button>
         </div>
         <p class="runner-detail muted" id="runnerDetail">
@@ -629,6 +634,19 @@
           tick();
         }
 
+        const newBatchId = () => (crypto.randomUUID ? crypto.randomUUID() : `b-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
+        async function dispatchRun(payload) {
+          const res = await fetch('/api/qa-run-assignment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.dispatched) throw new Error(data.detail || data.error || 'Dispatch failed');
+          return data;
+        }
+
         $('#runBtn').addEventListener('click', async () => {
           const sel = $('#runAssignment');
           const opt = sel.selectedOptions[0];
@@ -637,17 +655,36 @@
           const provider = $('#runProvider').value;
           const name = opt?.dataset.name || sel.value;
           const btn = $('#runBtn');
+          const assignment = assignments.find((a) => a.id === sel.value);
+          const vlmBacked = agent === 'vlm' || agent === 'child';
+          // Tasks the runner can actually execute for this agent.
+          const runnableTasks = (assignment?.tasks || []).filter((t) => t.runnable && (!vlmBacked || t.hasVlm));
+          const perTask = $('#runPerTask').checked && runnableTasks.length > 1;
+
           btn.disabled = true;
           $('#runnerDetail').textContent = 'Dispatching…';
           try {
-            const res = await fetch('/api/qa-run-assignment', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ assignmentId: sel.value, assignmentName: name, agent, provider, batchLabel: name }),
-            });
-            const data = await res.json();
-            if (!res.ok || !data.dispatched) throw new Error(data.detail || data.error || 'Dispatch failed');
-            watchBatch(data.batchId, name, data.actionsUrl);
+            const batchId = newBatchId();
+            if (perTask) {
+              // Fan out: one workflow run per task, all sharing the batchId so the
+              // table groups them and each gets its own "Running now" card.
+              let ok = 0;
+              const failures = [];
+              for (const t of runnableTasks) {
+                try {
+                  await dispatchRun({ assignmentId: sel.value, assignmentName: name, taskId: t.taskId, agent, provider, batchId, batchLabel: name });
+                  ok++;
+                } catch (err) { failures.push(`${t.taskId}: ${err.message}`); }
+              }
+              if (!ok) throw new Error(failures[0] || 'All dispatches failed');
+              const actionsUrl = `https://github.com/levante-framework/levante-qa/actions/workflows/assignment-run.yml`;
+              $('#runnerDetail').innerHTML = `Dispatched <b>${ok}</b> task run(s) for <code>${esc(name)}</code>${failures.length ? ` · ${failures.length} failed` : ''} — each runs on its own runner.`;
+              watchBatch(batchId, name, actionsUrl);
+            } else {
+              // Single run for the whole assignment (all tasks on one runner).
+              const data = await dispatchRun({ assignmentId: sel.value, assignmentName: name, agent, provider, batchId, batchLabel: name });
+              watchBatch(data.batchId, name, data.actionsUrl);
+            }
           } catch (err) {
             $('#runnerDetail').textContent = `Could not start: ${err.message}`;
           } finally {
