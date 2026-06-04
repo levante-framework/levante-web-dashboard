@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>QA Runs · Pitwall</title>
+    <link href="./styles.css" rel="stylesheet" />
+    <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml" />
+    <link
+      crossorigin="anonymous"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      referrerpolicy="no-referrer"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        margin: 0;
+        background: radial-gradient(circle at top, rgba(79, 134, 247, 0.18), rgba(20, 26, 36, 0.96)),
+          linear-gradient(190deg, #0b0f17 0%, #0e1320 100%);
+        color: #e2e8f0;
+        min-height: 100vh;
+      }
+      .qa-container {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 40px 24px 80px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      .qa-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .qa-topbar h2 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #6fa0ff;
+        letter-spacing: 0.02em;
+      }
+      .qa-subtitle {
+        margin: 4px 0 0;
+        color: rgba(226, 232, 240, 0.75);
+        font-size: 0.95rem;
+      }
+      .qa-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .btn {
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        background: rgba(148, 163, 184, 0.14);
+        color: #67e8f9;
+        border-radius: 8px;
+        padding: 9px 16px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .btn:hover {
+        border-color: #4f86f7;
+      }
+      .qa-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 14px;
+      }
+      .stat-card {
+        background: rgba(20, 26, 36, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 14px;
+        padding: 16px 18px;
+      }
+      .stat-card .num {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #f8fafc;
+      }
+      .stat-card .lbl {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: rgba(148, 163, 184, 0.75);
+      }
+      .qa-section {
+        background: rgba(20, 26, 36, 0.92);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 18px;
+        padding: 22px 24px;
+        box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+      }
+      .filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .filters select,
+      .filters input {
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        color: #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 0.85rem;
+        font-family: inherit;
+      }
+      .table-wrapper {
+        overflow-x: auto;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1000px;
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        text-align: left;
+        font-size: 0.88rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      }
+      thead th {
+        background: linear-gradient(135deg, rgba(79, 134, 247, 0.9) 0%, rgba(111, 160, 255, 0.9) 100%);
+        color: #0e1320;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 0.72rem;
+        position: sticky;
+        top: 0;
+      }
+      tbody tr:nth-child(even) {
+        background: rgba(8, 18, 32, 0.6);
+      }
+      tbody tr:hover {
+        background: rgba(79, 134, 247, 0.1);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: capitalize;
+      }
+      .pill.passed { background: rgba(34, 197, 94, 0.16); color: #4ade80; }
+      .pill.failed,
+      .pill.error { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+      .pill.running,
+      .pill.provisioning { background: rgba(79, 134, 247, 0.16); color: #67e8f9; }
+      .pill.cancelled { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+      .tag-batch {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        background: rgba(250, 204, 21, 0.16);
+        color: #facc15;
+      }
+      .err-cell {
+        max-width: 280px;
+        color: #fca5a5;
+        font-size: 0.8rem;
+      }
+      .btn-details {
+        background: transparent;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: #67e8f9;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .empty-note {
+        color: rgba(226, 232, 240, 0.6);
+        text-align: center;
+        padding: 28px;
+      }
+      .muted { color: rgba(226, 232, 240, 0.55); }
+      /* Drawer */
+      .drawer-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.6);
+        display: none;
+      }
+      .drawer-backdrop.open { display: block; }
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100%;
+        width: min(720px, 94vw);
+        background: #0e1320;
+        border-left: 1px solid rgba(148, 163, 184, 0.3);
+        box-shadow: -20px 0 60px rgba(2, 6, 23, 0.6);
+        transform: translateX(100%);
+        transition: transform 0.18s ease;
+        display: flex;
+        flex-direction: column;
+      }
+      .drawer.open { transform: translateX(0); }
+      .drawer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .drawer-head h3 { margin: 0; font-size: 1.05rem; color: #f8fafc; }
+      .drawer-close { background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; }
+      .drawer-body { padding: 18px 20px; overflow: auto; }
+      .detail-grid { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 0.85rem; margin: 0 0 18px; }
+      .detail-grid dt { color: rgba(148, 163, 184, 0.75); }
+      .detail-grid dd { margin: 0; color: #e2e8f0; word-break: break-word; }
+      .artifact-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+      .artifact-tab {
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        color: #67e8f9;
+        border-radius: 6px;
+        font-size: 0.74rem;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .artifact-tab.active { border-color: #4f86f7; background: rgba(79, 134, 247, 0.18); }
+      pre.preview {
+        background: #0b0f17;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 10px;
+        padding: 14px;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: #cbd5e1;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 52vh;
+        overflow: auto;
+      }
+      code { color: #67e8f9; }
+      /* Run-an-assignment panel */
+      .runner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+      .runner-head h3 { margin: 0; font-size: 1.05rem; color: #6fa0ff; display: flex; align-items: center; gap: 10px; }
+      .runner-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      .runner-controls select {
+        background: rgba(2, 6, 23, 0.7);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        color: #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 0.85rem;
+        font-family: inherit;
+      }
+      .btn-run {
+        border: 1px solid rgba(79, 134, 247, 0.5);
+        background: rgba(79, 134, 247, 0.16);
+        color: #6fa0ff;
+      }
+      .btn-run:hover { border-color: #4f86f7; }
+      .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+      .runner-detail { margin: 12px 0 0; font-size: 0.82rem; }
+      .runner-detail a { color: #67e8f9; }
+      .runner-head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .btn.btn-sm { padding: 7px 12px; font-size: 0.8rem; }
+      .runner-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: rgba(226, 232, 240, 0.85); cursor: pointer; }
+      .runner-check input { accent-color: #4f86f7; }
+      /* Running-now cards */
+      .active-section { display: none; border-color: rgba(79, 134, 247, 0.45); }
+      .active-section.show { display: block; }
+      .active-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+      .active-card {
+        background: rgba(8, 18, 32, 0.7);
+        border: 1px solid rgba(79, 134, 247, 0.4);
+        border-radius: 14px;
+        padding: 14px 16px;
+      }
+      .active-card .ac-title { font-weight: 600; color: #f8fafc; font-size: 0.92rem; margin-bottom: 8px; word-break: break-word; }
+      .active-card .ac-meta { font-size: 0.78rem; color: rgba(148, 163, 184, 0.85); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .active-card .ac-meta a { color: #67e8f9; }
+    </style>
+  </head>
+  <body>
+    <div class="qa-container">
+      <div class="qa-topbar">
+        <div>
+          <h2><i class="fas fa-flask-vial"></i> QA Runs</h2>
+          <p class="qa-subtitle">
+            Oracle &amp; VLM task-runner history from
+            <code id="gcsUri">gs://levante-tools/levante-qa</code> · hs-levante-admin-dev
+          </p>
+        </div>
+        <div class="qa-actions">
+          <span id="sourceNote" class="muted"></span>
+          <button class="btn" id="refreshBtn"><i class="fas fa-rotate"></i> Refresh</button>
+        </div>
+      </div>
+
+      <div class="qa-cards" id="statCards"></div>
+
+      <div class="qa-section qa-runner">
+        <div class="runner-head">
+          <h3><i class="fas fa-rocket"></i> Run an assignment</h3>
+          <div class="runner-head-right">
+            <span id="runnerNote" class="muted"></span>
+            <button class="btn btn-sm" id="refreshAssignmentsBtn" title="Re-read the qa-tests site and refresh this list">
+              <i class="fas fa-rotate"></i> Refresh assignments
+            </button>
+          </div>
+        </div>
+        <div class="runner-controls">
+          <select id="runAssignment"><option value="">Select an assignment…</option></select>
+          <select id="runAgent">
+            <option value="oracle">Oracle</option>
+            <option value="vlm">VLM</option>
+            <option value="child">Child persona</option>
+            <option value="wrong">Wrong</option>
+          </select>
+          <select id="runProvider" hidden>
+            <option value="gemini">gemini</option>
+            <option value="openai">openai</option>
+            <option value="anthropic">anthropic</option>
+          </select>
+          <label class="runner-check" title="Dispatch one workflow run per task so each runs on its own runner and gets its own card">
+            <input type="checkbox" id="runPerTask" checked /> One job per task (parallel)
+          </label>
+          <button class="btn btn-run" id="runBtn"><i class="fas fa-play"></i> Run assignment</button>
+        </div>
+        <p class="runner-detail muted" id="runnerDetail">
+          Runs the assignment's tasks on GitHub Actions; results stream into the table below as they finish.
+        </p>
+      </div>
+
+      <div class="qa-section active-section" id="activeSection">
+        <div class="runner-head">
+          <h3><i class="fas fa-circle-notch fa-spin"></i> Running now</h3>
+          <span id="activeNote" class="muted"></span>
+        </div>
+        <div class="active-grid" id="activeGrid"></div>
+      </div>
+
+      <div class="qa-section">
+        <div class="filters">
+          <select id="filterStatus"><option value="">All statuses</option></select>
+          <select id="filterAgent"><option value="">All agents</option></select>
+          <select id="filterTask"><option value="">All tasks</option></select>
+          <select id="filterBatch"><option value="">All assignments</option></select>
+          <input type="search" id="filterText" placeholder="Search task / participant / error…" />
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Task</th>
+                <th>Agent</th>
+                <th>Lang</th>
+                <th>Age</th>
+                <th>Status</th>
+                <th>Accuracy</th>
+                <th>Trials</th>
+                <th>Errors</th>
+                <th>Duration</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="runsBody"></tbody>
+          </table>
+        </div>
+        <p class="empty-note" id="emptyNote" hidden>No QA runs recorded yet.</p>
+      </div>
+    </div>
+
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <aside class="drawer" id="drawer">
+      <div class="drawer-head">
+        <h3 id="drawerTitle">Run details</h3>
+        <button class="drawer-close" id="drawerClose"><i class="fas fa-xmark"></i></button>
+      </div>
+      <div class="drawer-body">
+        <dl class="detail-grid" id="drawerSummary"></dl>
+        <h4 style="margin: 0 0 8px; color: #f8fafc">Artifacts</h4>
+        <div class="artifact-tabs" id="drawerArtifacts"></div>
+        <pre class="preview" id="drawerPreview">Select an artifact to preview.</pre>
+      </div>
+    </aside>
+
+    <script>
+      (() => {
+        const $ = (s) => document.querySelector(s);
+        const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const fmtTime = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+        const fmtDur = (ms) => { if (ms == null) return '—'; const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
+        const acc = (a) => (a == null ? '—' : `${(a * 100).toFixed(1)}%`);
+        const agentLabel = (a, p) => a === 'child' ? `Child · ${p || ''}` : a === 'vlm' ? `VLM · ${p || ''}` : a === 'wrong' ? 'Wrong' : 'Oracle';
+
+        let allRuns = [];
+
+        function fillFilter(sel, values) {
+          const cur = sel.value;
+          [...sel.querySelectorAll('option:not(:first-child)')].forEach((o) => o.remove());
+          [...values].sort().forEach((v) => { const o = el('option'); o.value = v; o.textContent = v; sel.appendChild(o); });
+          sel.value = cur;
+        }
+
+        function renderStats(runs) {
+          const total = runs.length;
+          const passed = runs.filter((r) => r.status === 'passed').length;
+          const failed = runs.filter((r) => r.status === 'failed' || r.status === 'error').length;
+          const rate = total ? `${Math.round((passed / total) * 100)}%` : '—';
+          const cards = [
+            { num: total, lbl: 'Total runs' },
+            { num: passed, lbl: 'Passed' },
+            { num: failed, lbl: 'Failed / error' },
+            { num: rate, lbl: 'Pass rate' },
+          ];
+          $('#statCards').innerHTML = cards.map((c) => `<div class="stat-card"><div class="num">${c.num}</div><div class="lbl">${c.lbl}</div></div>`).join('');
+        }
+
+        function applyFilters() {
+          const st = $('#filterStatus').value;
+          const ag = $('#filterAgent').value;
+          const tk = $('#filterTask').value;
+          const bt = $('#filterBatch').value;
+          const q = $('#filterText').value.trim().toLowerCase();
+          const rows = allRuns.filter((r) => {
+            if (st && r.status !== st) return false;
+            if (ag && agentLabel(r.agent, r.provider) !== ag) return false;
+            if (tk && (r.taskLabel || r.task) !== tk) return false;
+            if (bt && (r.batchLabel || '') !== bt) return false;
+            if (q) {
+              const hay = [r.taskLabel, r.task, r.email, (r.errors || []).join(' '), r.batchLabel].join(' ').toLowerCase();
+              if (!hay.includes(q)) return false;
+            }
+            return true;
+          });
+          renderTable(rows);
+        }
+
+        function renderTable(rows) {
+          const body = $('#runsBody');
+          body.innerHTML = '';
+          $('#emptyNote').hidden = rows.length > 0;
+          rows.forEach((r) => {
+            const tr = el('tr');
+            const batch = r.batchLabel ? `<span class="tag-batch">${esc(r.batchLabel)}</span>` : '';
+            const errs = (r.errors && r.errors.length) ? r.errors.map(esc).join('<br>') : '—';
+            tr.innerHTML = `
+              <td>${fmtTime(r.startedAt)}</td>
+              <td>${esc(r.taskLabel || r.task)}${batch}</td>
+              <td>${esc(agentLabel(r.agent, r.provider))}</td>
+              <td>${esc(r.language || '—')}</td>
+              <td>${r.ageYears ?? '?'}y ${r.ageMonths ?? 0}m</td>
+              <td><span class="pill ${esc(r.status)}">${esc(r.status)}</span></td>
+              <td>${acc(r.accuracy)}</td>
+              <td>${r.nTrials || 0}</td>
+              <td class="err-cell">${errs}</td>
+              <td>${fmtDur(r.durationMs)}</td>
+              <td><button class="btn-details">Details</button></td>`;
+            tr.querySelector('.btn-details').addEventListener('click', () => openDrawer(r));
+            body.appendChild(tr);
+          });
+        }
+
+        async function openDrawer(r) {
+          $('#drawerBackdrop').classList.add('open');
+          $('#drawer').classList.add('open');
+          $('#drawerTitle').textContent = `${r.taskLabel || r.task} · ${agentLabel(r.agent, r.provider)}`;
+          const row = (k, v) => `<dt>${esc(k)}</dt><dd>${v}</dd>`;
+          $('#drawerSummary').innerHTML = [
+            row('When', `${fmtTime(r.startedAt)} → ${fmtTime(r.finishedAt)}`),
+            row('Status', `<span class="pill ${esc(r.status)}">${esc(r.status)}</span>`),
+            row('Accuracy', esc(acc(r.accuracy))),
+            row('Trials', esc(String(r.nTrials || 0))),
+            row('Duration', esc(fmtDur(r.durationMs))),
+            row('Age', esc(`${r.ageYears ?? '?'}y ${r.ageMonths ?? 0}m`)),
+            r.batchLabel ? row('Assignment', esc(r.batchLabel)) : '',
+            r.language ? row('Language', esc(r.language)) : '',
+            row('Participant', esc(r.email || '—')),
+            row('Run ID', `<code>${esc(r.runId)}</code>`),
+            row('Spec', `<code>${esc(r.spec || '—')}</code>`),
+            (r.errors && r.errors.length) ? row('Errors', r.errors.map(esc).join('<br>')) : '',
+          ].join('');
+          $('#drawerArtifacts').innerHTML = '<span class="muted">Loading artifacts…</span>';
+          $('#drawerPreview').textContent = 'Select an artifact to preview.';
+          try {
+            const res = await fetch(`/api/qa-runs?runId=${encodeURIComponent(r.runId)}`);
+            const data = await res.json();
+            const arts = data.artifacts || [];
+            if (!arts.length) {
+              $('#drawerArtifacts').innerHTML = '<span class="muted">No artifacts mirrored for this run.</span>';
+              $('#drawerPreview').textContent = '—';
+              return;
+            }
+            $('#drawerArtifacts').innerHTML = '';
+            arts.forEach((name, i) => {
+              const b = el('button', 'artifact-tab' + (i === 0 ? ' active' : ''));
+              b.textContent = name;
+              b.addEventListener('click', () => { document.querySelectorAll('.artifact-tab').forEach((x) => x.classList.remove('active')); b.classList.add('active'); loadArtifact(r.runId, name); });
+              $('#drawerArtifacts').appendChild(b);
+            });
+            loadArtifact(r.runId, arts[0]);
+          } catch (err) {
+            $('#drawerArtifacts').innerHTML = `<span class="muted">${esc(err.message)}</span>`;
+          }
+        }
+
+        async function loadArtifact(runId, name) {
+          const pre = $('#drawerPreview');
+          pre.textContent = 'Loading…';
+          try {
+            const res = await fetch(`/api/qa-runs?runId=${encodeURIComponent(runId)}&artifact=${encodeURIComponent(name)}&tail=40`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed');
+            const header = data.truncated ? `(last ${data.lines.length} of ${data.totalLines} lines)\n\n` : `(${data.lines.length} lines)\n\n`;
+            const pretty = data.lines.map((l) => { try { return JSON.stringify(JSON.parse(l), null, 2); } catch { return l; } }).join('\n\n---\n\n');
+            pre.textContent = header + pretty;
+          } catch (err) {
+            pre.textContent = `Could not load ${name}: ${err.message}`;
+          }
+        }
+
+        function closeDrawer() { $('#drawerBackdrop').classList.remove('open'); $('#drawer').classList.remove('open'); }
+        $('#drawerClose').addEventListener('click', closeDrawer);
+        $('#drawerBackdrop').addEventListener('click', closeDrawer);
+
+        ['#filterStatus', '#filterAgent', '#filterTask', '#filterBatch'].forEach((s) => $(s).addEventListener('change', applyFilters));
+        $('#filterText').addEventListener('input', applyFilters);
+        $('#refreshBtn').addEventListener('click', load);
+
+        async function load() {
+          $('#sourceNote').textContent = 'Loading…';
+          try {
+            const res = await fetch('/api/qa-runs');
+            const data = await res.json();
+            if (data.gcsUri) $('#gcsUri').textContent = data.gcsUri;
+            if (!res.ok) throw new Error(data.error || data.message || 'Failed to load');
+            allRuns = data.runs || [];
+            renderStats(allRuns);
+            fillFilter($('#filterStatus'), new Set(allRuns.map((r) => r.status).filter(Boolean)));
+            fillFilter($('#filterAgent'), new Set(allRuns.map((r) => agentLabel(r.agent, r.provider))));
+            fillFilter($('#filterTask'), new Set(allRuns.map((r) => r.taskLabel || r.task).filter(Boolean)));
+            fillFilter($('#filterBatch'), new Set(allRuns.map((r) => r.batchLabel).filter(Boolean)));
+            applyFilters();
+            const srcLabel = { gcs: 'live from GCS', empty: 'no runs.json yet', error: 'GCS read error', unavailable: 'GCS not configured' }[data.source] || data.source;
+            $('#sourceNote').textContent = `${allRuns.length} run(s) · ${srcLabel}`;
+          } catch (err) {
+            $('#sourceNote').textContent = '';
+            $('#statCards').innerHTML = '';
+            $('#runsBody').innerHTML = '';
+            $('#emptyNote').hidden = false;
+            $('#emptyNote').textContent = `Could not load run history: ${err.message}`;
+          }
+        }
+
+        // --- Run an assignment ---------------------------------------------
+        let assignments = [];
+        let assignmentsUpdatedAt = null;
+        let watchTimer = null;
+
+        async function loadAssignments() {
+          try {
+            const res = await fetch('/api/qa-assignments');
+            const data = await res.json();
+            assignments = data.assignments || [];
+            assignmentsUpdatedAt = data.updatedAt || null;
+            const sel = $('#runAssignment');
+            [...sel.querySelectorAll('option:not(:first-child)')].forEach((o) => o.remove());
+            assignments.forEach((a) => {
+              const o = el('option');
+              o.value = a.id;
+              o.dataset.name = a.name || a.id;
+              const n = a.runnableCount ?? (a.tasks || []).filter((t) => t.runnable).length;
+              o.textContent = `${a.name || a.id} (${n} task${n === 1 ? '' : 's'})`;
+              if (!n) o.disabled = true;
+              sel.appendChild(o);
+            });
+            if (data.source === 'gcs') {
+              $('#runnerNote').textContent = `${assignments.length} assignment(s)` + (data.updatedAt ? ` · updated ${fmtTime(data.updatedAt)}` : '');
+            } else if (data.source === 'empty') {
+              $('#runnerNote').textContent = 'no assignments published yet';
+            } else {
+              $('#runnerNote').textContent = 'assignment list unavailable';
+            }
+          } catch (err) {
+            $('#runnerNote').textContent = 'could not load assignments';
+          }
+        }
+
+        $('#runAgent').addEventListener('change', () => {
+          const a = $('#runAgent').value;
+          $('#runProvider').hidden = !(a === 'vlm' || a === 'child');
+        });
+
+        function watchBatch(batchId, label, actionsUrl) {
+          if (watchTimer) clearInterval(watchTimer);
+          const since = Date.now();
+          const tick = async () => {
+            await load();
+            const inBatch = allRuns.filter((r) => r.batchId === batchId);
+            const mins = Math.round((Date.now() - since) / 60000);
+            const link = actionsUrl ? ` · <a href="${esc(actionsUrl)}" target="_blank" rel="noopener">view workflow ↗</a>` : '';
+            if (inBatch.length) {
+              $('#filterBatch').value = label;
+              applyFilters();
+              const passed = inBatch.filter((r) => r.status === 'passed').length;
+              $('#runnerDetail').innerHTML = `Batch <code>${esc(label)}</code>: ${inBatch.length} run(s) recorded (${passed} passed)${link}`;
+            } else {
+              $('#runnerDetail').innerHTML = `Batch <code>${esc(label)}</code> dispatched — waiting for the runner to start (~1–2 min, ${mins}m elapsed)${link}`;
+            }
+            if (mins >= 45) clearInterval(watchTimer);
+          };
+          watchTimer = setInterval(tick, 20000);
+          tick();
+        }
+
+        const newBatchId = () => (crypto.randomUUID ? crypto.randomUUID() : `b-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+
+        async function dispatchRun(payload) {
+          const res = await fetch('/api/qa-run-assignment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.dispatched) throw new Error(data.detail || data.error || 'Dispatch failed');
+          return data;
+        }
+
+        $('#runBtn').addEventListener('click', async () => {
+          const sel = $('#runAssignment');
+          const opt = sel.selectedOptions[0];
+          if (!sel.value) { $('#runnerDetail').textContent = 'Pick an assignment first.'; return; }
+          const agent = $('#runAgent').value;
+          const provider = $('#runProvider').value;
+          const name = opt?.dataset.name || sel.value;
+          const btn = $('#runBtn');
+          const assignment = assignments.find((a) => a.id === sel.value);
+          const vlmBacked = agent === 'vlm' || agent === 'child';
+          // Tasks the runner can actually execute for this agent.
+          const runnableTasks = (assignment?.tasks || []).filter((t) => t.runnable && (!vlmBacked || t.hasVlm));
+          const perTask = $('#runPerTask').checked && runnableTasks.length > 1;
+
+          btn.disabled = true;
+          $('#runnerDetail').textContent = 'Dispatching…';
+          try {
+            const batchId = newBatchId();
+            if (perTask) {
+              // Fan out: one workflow run per task, all sharing the batchId so the
+              // table groups them and each gets its own "Running now" card.
+              let ok = 0;
+              const failures = [];
+              for (const t of runnableTasks) {
+                try {
+                  await dispatchRun({ assignmentId: sel.value, assignmentName: name, taskId: t.taskId, agent, provider, batchId, batchLabel: name });
+                  ok++;
+                } catch (err) { failures.push(`${t.taskId}: ${err.message}`); }
+              }
+              if (!ok) throw new Error(failures[0] || 'All dispatches failed');
+              const actionsUrl = `https://github.com/levante-framework/levante-qa/actions/workflows/assignment-run.yml`;
+              $('#runnerDetail').innerHTML = `Dispatched <b>${ok}</b> task run(s) for <code>${esc(name)}</code>${failures.length ? ` · ${failures.length} failed` : ''} — each runs on its own runner.`;
+              watchBatch(batchId, name, actionsUrl);
+            } else {
+              // Single run for the whole assignment (all tasks on one runner).
+              const data = await dispatchRun({ assignmentId: sel.value, assignmentName: name, agent, provider, batchId, batchLabel: name });
+              watchBatch(data.batchId, name, data.actionsUrl);
+            }
+          } catch (err) {
+            $('#runnerDetail').textContent = `Could not start: ${err.message}`;
+          } finally {
+            setTimeout(() => { btn.disabled = false; }, 4000);
+          }
+        });
+
+        // --- Refresh assignments (re-read qa-tests via CI, then poll cache) ---
+        $('#refreshAssignmentsBtn').addEventListener('click', async () => {
+          const btn = $('#refreshAssignmentsBtn');
+          const before = assignmentsUpdatedAt;
+          btn.disabled = true;
+          $('#runnerNote').textContent = 'refreshing from qa-tests…';
+          try {
+            const res = await fetch('/api/qa-refresh-assignments', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok || !data.dispatched) throw new Error(data.detail || data.error || 'Refresh failed');
+          } catch (err) {
+            $('#runnerNote').textContent = `refresh failed: ${err.message}`;
+            btn.disabled = false;
+            return;
+          }
+          // Poll the cache until publish-assignments.yml rewrites assignments.json.
+          const started = Date.now();
+          const poll = async () => {
+            await loadAssignments();
+            const changed = assignmentsUpdatedAt && assignmentsUpdatedAt !== before;
+            const mins = Math.round((Date.now() - started) / 60000);
+            if (changed) {
+              btn.disabled = false;
+              return;
+            }
+            if (Date.now() - started > 4 * 60000) {
+              $('#runnerNote').textContent = 'still refreshing — check back shortly';
+              btn.disabled = false;
+              return;
+            }
+            $('#runnerNote').textContent = `refreshing from qa-tests… (~1 min, ${mins}m elapsed)`;
+            setTimeout(poll, 6000);
+          };
+          setTimeout(poll, 6000);
+        });
+
+        // --- Running now (live GitHub Actions activity) --------------------
+        let prevActiveCount = 0;
+        function renderActive(runs) {
+          const section = $('#activeSection');
+          const grid = $('#activeGrid');
+          if (!runs.length) {
+            section.classList.remove('show');
+            grid.innerHTML = '';
+            $('#activeNote').textContent = '';
+            return;
+          }
+          section.classList.add('show');
+          $('#activeNote').textContent = `${runs.length} workflow run(s) active`;
+          grid.innerHTML = '';
+          runs.forEach((r) => {
+            const statusLabel = r.status === 'in_progress' ? 'Running' : (r.status === 'queued' ? 'Queued' : r.status);
+            const card = el('div', 'active-card');
+            card.innerHTML = `
+              <div class="ac-title">${esc(r.title)}</div>
+              <div class="ac-meta">
+                <span class="pill running"><i class="fas fa-circle-notch fa-spin"></i> ${esc(statusLabel)}</span>
+                <span>started ${fmtTime(r.createdAt)}</span>
+                ${r.htmlUrl ? `<a href="${esc(r.htmlUrl)}" target="_blank" rel="noopener">workflow ↗</a>` : ''}
+              </div>`;
+            grid.appendChild(card);
+          });
+        }
+
+        async function loadActiveRuns() {
+          try {
+            const res = await fetch('/api/qa-active-runs');
+            const data = await res.json();
+            const runs = data.runs || [];
+            renderActive(runs);
+            // When the active set shrinks, a run likely finished — refresh the table
+            // so newly mirrored task rows show up.
+            if (runs.length < prevActiveCount) load();
+            prevActiveCount = runs.length;
+          } catch {
+            /* leave previous cards in place on transient errors */
+          }
+        }
+
+        load();
+        loadAssignments();
+        loadActiveRuns();
+        setInterval(loadActiveRuns, 15000);
+      })();
+    </script>
+  </body>
+</html>

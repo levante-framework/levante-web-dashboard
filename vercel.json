@@ -97,6 +97,21 @@
     },
     "api/revalidate-translations.js": {
       "maxDuration": 10
+    },
+    "api/qa-runs.js": {
+      "maxDuration": 30
+    },
+    "api/qa-assignments.js": {
+      "maxDuration": 15
+    },
+    "api/qa-run-assignment.js": {
+      "maxDuration": 15
+    },
+    "api/qa-refresh-assignments.js": {
+      "maxDuration": 15
+    },
+    "api/qa-active-runs.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
