@@ -12,10 +12,11 @@ const path = require('path');
 
 const PREVIEW_FILE = path.join('.vercel', 'latest-preview-url.txt');
 const STAGING_ALIAS = process.env.VERCEL_STAGING_ALIAS || '';
-const PRIMARY_PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-pitwall.vercel.app';
+const PRIMARY_PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-cockpit.vercel.app';
 const LEGACY_PROD_ALIASES = (process.env.VERCEL_PROD_ALIASES
   ? process.env.VERCEL_PROD_ALIASES.split(',').map(alias => alias.trim()).filter(Boolean)
   : [
+      // Legacy alias kept so existing links keep resolving after the Cockpit rename.
       'levante-pitwall.vercel.app',
     ]
 );

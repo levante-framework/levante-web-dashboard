@@ -74,7 +74,7 @@ You need to grant the service account access to **both** Firebase projects. Sinc
 
 After adding permissions and redeploying:
 
-1. Go to: https://levante-pitwall.vercel.app/index.html
+1. Go to: https://levante-cockpit.vercel.app/index.html
 2. Click **"Compare Dev/Prod"** button
 3. Should work without authentication errors! 🎉
 

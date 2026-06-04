@@ -1,4 +1,4 @@
-# Levante Pitwall - Deployment Guide
+# Levante Cockpit - Deployment Guide
 
 ## Automatic Aliasing Setup
 
@@ -7,7 +7,7 @@ This project is configured with automatic aliasing so that every new deployment 
 ## Stable URLs
 
 Your dashboard is always available at:
-- **Primary**: https://levante-pitwall.vercel.app
+- **Primary**: https://levante-cockpit.vercel.app
 
 This URL automatically points to the latest production deployment.
 
@@ -145,7 +145,7 @@ If you see: `Error: Git author <email> must have access to the team...`
 
 ## Audio Validation Files
 
-The Pitwall dashboard includes an **Audio Validation** component that displays validation summaries by language. Validation result files are stored in **Google Cloud Storage** (GCS) for the deployed environment:
+The Cockpit dashboard includes an **Audio Validation** component that displays validation summaries by language. Validation result files are stored in **Google Cloud Storage** (GCS) for the deployed environment:
 
 - **Bucket**: `levante-dashboard-dev` (or `DASHBOARD_DATA_BUCKET` env var)
 - **Prefix**: `pitwall/audio-validation-results/`
@@ -163,11 +163,11 @@ export UPLOAD_TO_GCS=1
 node scripts/upload-audio-validation-files.js
 ```
 
-The deployed Pitwall will automatically list and load validation files from GCS.
+The deployed Cockpit will automatically list and load validation files from GCS.
 
 ## Next Steps
 
 After deployment, your dashboard will be available at:
-- https://levante-pitwall.vercel.app
+- https://levante-cockpit.vercel.app
 
 This URL will automatically point to your latest deployment! 

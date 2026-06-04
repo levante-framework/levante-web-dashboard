@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pitwall Data Audit Dashboard</title>
+  <title>Cockpit Data Audit Dashboard</title>
   <link href="./styles.css" rel="stylesheet"/>
   <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
   <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" referrerpolicy="no-referrer" rel="stylesheet"/>
@@ -42,7 +42,7 @@
       gap: 12px;
       flex-wrap: wrap;
     }
-    .back-to-pitwall {
+    .back-to-cockpit {
       display: inline-flex;
       align-items: center;
       gap: 8px;
@@ -56,7 +56,7 @@
       transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition);
       margin-bottom: 12px;
     }
-    .back-to-pitwall:hover {
+    .back-to-cockpit:hover {
       background: var(--accent);
       color: var(--accent-contrast);
       transform: translateY(-1px);
@@ -328,8 +328,8 @@
   <div class="wrap">
     <div class="top">
       <div>
-        <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
-        <h1><i class="fas fa-database"></i> Pitwall Data Audit Dashboard</h1>
+        <a class="back-to-cockpit" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Cockpit</a>
+        <h1><i class="fas fa-database"></i> Cockpit Data Audit Dashboard</h1>
         <div id="meta" class="sub">Loading latest audit snapshot...</div>
       </div>
     </div>
@@ -879,7 +879,7 @@
           ? `This dashboard requires membership in: ${error.requiredOrgs.join(', ')}.`
           : '';
         const cookieHint = authState.auth === 'success' && error.status === 401
-          ? 'Sign-in completed but no session cookie was found. Use the same Pitwall domain for login and dashboard, then try again.'
+          ? 'Sign-in completed but no session cookie was found. Use the same Cockpit domain for login and dashboard, then try again.'
           : '';
         showError(
           error.message,

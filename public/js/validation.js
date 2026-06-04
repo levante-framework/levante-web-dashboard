@@ -1674,7 +1674,7 @@ function exportValidationsToJSONFile() {
     const exportData = {
         metadata: {
             exported_at: new Date().toISOString(),
-            exported_by: 'Levante Pitwall Dashboard',
+            exported_by: 'Levante Cockpit Dashboard',
             version: '1.0',
             total_items: Object.keys(window.dashboard.validation_results).length,
             total_validations: totalValidations,

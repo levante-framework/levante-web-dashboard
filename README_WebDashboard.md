@@ -52,7 +52,7 @@ Changelog: `docs/dashboard-updates-2026-01.md`
 
 ## Files
 
-- `public/dashboard.html` - Main HTML interface
+- `public/dashboard-app.html` - Main HTML interface
 - `public/dashboard.js` - Core JavaScript functionality and API integrations
 - `public/config.js` - Configuration file with language and API settings
 - `README_WebDashboard.md` - This documentation file
@@ -83,7 +83,7 @@ ConfigHelper.setApiKey('elevenlabs', 'apiKey', 'your-elevenlabs-api-key');
 ### 3. Running the Dashboard
 
 1. Serve the files through a web server (due to CORS restrictions)
-2. Open `public/dashboard.html` in your browser (or just the root URL if using Vercel)
+2. Open `public/dashboard-app.html` in your browser (or just the root URL if using Vercel)
 3. Enter your API keys when prompted
 4. Start using the dashboard!
 
@@ -114,7 +114,7 @@ npx http-server
 php -S localhost:8000
 ```
 
-Then open `http://localhost:8000/public/dashboard.html`
+Then open `http://localhost:8000/public/dashboard-app.html`
 
 ## Usage
 
@@ -208,7 +208,7 @@ CONFIG.curatedVoices.playht['it'] = [
 
 ### Styling
 
-The dashboard uses CSS custom properties for easy theming. Modify the CSS variables in `public/dashboard.html`:
+The dashboard uses CSS custom properties for easy theming. Modify the CSS variables in `public/dashboard-app.html`:
 
 ```css
 :root {

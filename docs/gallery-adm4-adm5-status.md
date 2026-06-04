@@ -5,7 +5,7 @@
 **Last Updated:** January 12, 2025
 
 ### What's Working
-- ✅ Gallery is deployed and accessible at: https://levante-pitwall.vercel.app/gallery/locate-me/
+- ✅ Gallery is deployed and accessible at: https://levante-cockpit.vercel.app/gallery/locate-me/
 - ✅ ADM2/ADM3 boundaries display correctly for all countries
 - ✅ ADM4 boundaries display correctly for **India only** (uses GeoBoundaries API)
 - ✅ Geofabrik pack building script exists (`scripts/adm/build-geofabrik-packs.js`)

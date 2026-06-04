@@ -7701,8 +7701,9 @@
             getElevenLabsProxyFallbackBase() {
                 try {
                     const host = String(window.location.hostname || '').toLowerCase();
-                    const isPreview = host.endsWith('.vercel.app') && host !== 'levante-pitwall.vercel.app';
-                    return isPreview ? 'https://levante-pitwall.vercel.app' : '';
+                    const prodHosts = ['levante-cockpit.vercel.app', 'levante-pitwall.vercel.app'];
+                    const isPreview = host.endsWith('.vercel.app') && !prodHosts.includes(host);
+                    return isPreview ? 'https://levante-cockpit.vercel.app' : '';
                 } catch (_) {
                     return '';
                 }

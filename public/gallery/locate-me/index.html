@@ -56,8 +56,8 @@
       outline: 2px solid #facc15;
       outline-offset: 2px;
     }
-    /* Make Back-to-Pitwall match the rest of Pitwall pages */
-    .header-actions a.back-to-pitwall {
+    /* Make Back-to-Cockpit match the rest of Cockpit pages */
+    .header-actions a.back-to-cockpit {
       gap: 10px;
       padding: 10px 20px;
       border-radius: 999px;
@@ -70,7 +70,7 @@
       box-shadow: 0 18px 40px rgba(2, 6, 23, 0.5);
       transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
     }
-    .header-actions a.back-to-pitwall:hover {
+    .header-actions a.back-to-cockpit:hover {
       background: rgba(56, 189, 248, 0.85);
       color: #03101f;
       transform: translateY(-2px);
@@ -238,7 +238,7 @@
 <body>
   <header>
     <div class="header-actions">
-      <a class="back-to-pitwall" href="/index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+      <a class="back-to-cockpit" href="/index.html"><i class="fas fa-arrow-left"></i> Back to Cockpit</a>
       <a class="doc-link" href="/docs/locate-me-v2.html" target="_blank" rel="noopener noreferrer"><i class="fas fa-book-open"></i> Documentation</a>
     </div>
     <h1>📍 Locate Me Gallery</h1>
@@ -340,7 +340,7 @@
         console.error('Failed to load gallery data:', error);
         const isCorsError = error.message.includes('CORS') || error.message.includes('Failed to fetch') || window.location.protocol === 'file:';
         const errorMsg = isCorsError 
-          ? '<p style="text-align:center;padding:40px;color:#fca5a5;">⚠️ CORS Error: Cannot load gallery-data.json via file:// URL.<br><br>Please view this page via:<br><br><a href="https://levante-pitwall.vercel.app/gallery/locate-me/" style="color:#38bdf8;text-decoration:underline;">https://levante-pitwall.vercel.app/gallery/locate-me/</a><br><br>Or run a local server:<br><code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;">python3 -m http.server 8000 --directory public/gallery/locate-me</code></p>'
+          ? '<p style="text-align:center;padding:40px;color:#fca5a5;">⚠️ CORS Error: Cannot load gallery-data.json via file:// URL.<br><br>Please view this page via:<br><br><a href="https://levante-cockpit.vercel.app/gallery/locate-me/" style="color:#38bdf8;text-decoration:underline;">https://levante-cockpit.vercel.app/gallery/locate-me/</a><br><br>Or run a local server:<br><code style="background:rgba(0,0,0,0.3);padding:4px 8px;border-radius:4px;">python3 -m http.server 8000 --directory public/gallery/locate-me</code></p>'
           : `<p style="text-align:center;padding:40px;color:#71717a;">Failed to load gallery data: ${error.message}<br><br>Make sure gallery-data.json exists and is accessible.</p>`;
         document.getElementById('gallery').innerHTML = errorMsg;
       }

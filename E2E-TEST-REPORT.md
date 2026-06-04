@@ -2,7 +2,7 @@
 
 **Test Date:** 2026-03-11  
 **Test Marker:** `[E2E_TEST_1773265775191]`  
-**Target URL:** https://levante-pitwall.vercel.app/partner-audio-dashboard.html
+**Target URL:** https://levante-cockpit.vercel.app/partner-audio-dashboard.html
 
 ## Executive Summary
 
@@ -39,7 +39,7 @@ The production URL requires authentication before any functionality is accessibl
 
 ### Test Environment Analysis
 
-**URL Tested:** `https://levante-pitwall.vercel.app/partner-audio-dashboard.html`
+**URL Tested:** `https://levante-cockpit.vercel.app/partner-audio-dashboard.html`
 
 **Page Structure Identified:**
 - Language selector: `#languageSelect`

@@ -78,7 +78,7 @@ The service account needs access to both Firebase projects:
 
 After adding the environment variable and redeploying:
 
-1. Go to https://levante-pitwall.vercel.app/index.html
+1. Go to https://levante-cockpit.vercel.app/index.html
 2. Click **Compare Dev/Prod**
 3. It should work without prompting for login!
 

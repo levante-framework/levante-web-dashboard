@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--target-col", default="es-AR")
     p.add_argument(
         "--semantic-api-url",
-        default="https://levante-pitwall.vercel.app/api/translation-semantic-score",
+        default="https://levante-cockpit.vercel.app/api/translation-semantic-score",
         help="Semantic scoring endpoint URL.",
     )
     p.add_argument(

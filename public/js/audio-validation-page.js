@@ -46,7 +46,7 @@
 				body: JSON.stringify(summary)
 			});
 			if(!resp.ok){
-				// Non-fatal: Pitwall will just show "unavailable"
+				// Non-fatal: Cockpit will just show "unavailable"
 				console.warn('Failed to cache audio validation summary:', resp.status, await resp.text());
 			}
 		}catch(e){
@@ -262,7 +262,7 @@
 						results.value=Array.isArray(d)?d:[d];
 						const langs=new Set(results.value.map(x=>x.language).filter(Boolean));
 						displayLang.value=langs.size?Array.from(langs).join(', '):'';
-						// Publish a compact by-language summary so Pitwall can show “validation health”.
+						// Publish a compact by-language summary so Cockpit can show “validation health”.
 						publishSummaryForRows(results.value, selectedFile.value);
 					}catch(e){
 						error.value=String(e);

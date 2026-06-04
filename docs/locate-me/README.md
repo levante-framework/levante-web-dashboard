@@ -215,7 +215,7 @@ npm run deploy
 
 Deploy notes:
 - `scripts/deploy-and-alias.js` runs `scripts/apply-version.js` then deploys to Vercel and aliases:
-  - `levante-pitwall.vercel.app` (and others)
+  - `levante-cockpit.vercel.app` (and others)
 - Vercel function size limits are handled via:
   - `.vercelignore`
   - `vercel.json` `excludeFiles` for APIs that don’t need large `data/*` caches.

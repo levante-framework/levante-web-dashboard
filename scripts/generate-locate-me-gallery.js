@@ -14,7 +14,7 @@ const BASE_DELAY_MS = 800; // base backoff; jitter is added
 const CACHE_FILE = path.join(process.cwd(), 'data', 'gallery', 'overpass-cache.json');
 
 // Use deployment URL if alias isn't working yet
-const BASE_URL = process.env.BASE_URL || process.env.DEPLOYMENT_URL || 'https://levante-pitwall.vercel.app';
+const BASE_URL = process.env.BASE_URL || process.env.DEPLOYMENT_URL || 'https://levante-cockpit.vercel.app';
 const USE_GEOBOUNDARIES = process.env.USE_GEOBOUNDARIES === 'true' || process.env.USE_GEOBOUNDARIES === '1';
 const OUTPUT_DIR = path.join(process.cwd(), 'public', 'gallery', 'locate-me');
 const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');

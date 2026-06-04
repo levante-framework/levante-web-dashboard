@@ -5,7 +5,7 @@ This file contains important context and rules for working with the Levante Web 
 ## Gallery Administrative Boundaries System
 
 ### Current Status (January 2025)
-- ✅ **Gallery deployed**: https://levante-pitwall.vercel.app/gallery/locate-me/
+- ✅ **Gallery deployed**: https://levante-cockpit.vercel.app/gallery/locate-me/
 - ✅ **ADM2/ADM3 boundaries** work for all countries (GADM - reliable)
 - ✅ **ADM6/7/8/9/10 boundaries** available for many countries (OSM Geofabrik - very granular!)
 - ✅ **City boundaries** available from OSM (boundary=administrative + place=city/town)

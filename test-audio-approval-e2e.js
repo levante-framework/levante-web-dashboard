@@ -11,7 +11,7 @@
 const { chromium } = require('playwright');
 
 const TEST_MARKER = '[E2E_TEST_1773265775191]';
-const TARGET_URL = 'https://levante-pitwall.vercel.app/partner-audio-dashboard.html';
+const TARGET_URL = 'https://levante-cockpit.vercel.app/partner-audio-dashboard.html';
 
 async function runE2ETest() {
   console.log('=== Partner Audio Approval E2E Test ===');

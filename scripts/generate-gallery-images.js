@@ -60,7 +60,7 @@ function validateMapboxStaticImagesToken(token) {
     if (!token) return resolve(false);
     // Tiny request just to verify Static Images access.
     const url = `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/0,0,0/1x1?access_token=${encodeURIComponent(token)}`;
-    const referer = process.env.MAPBOX_REFERER || 'https://levante-pitwall.vercel.app/';
+    const referer = process.env.MAPBOX_REFERER || 'https://levante-cockpit.vercel.app/';
     const headers = {
       'Referer': referer,
       'User-Agent': 'Mozilla/5.0 (compatible; LevanteGalleryGenerator/1.0)'
@@ -1469,7 +1469,7 @@ function downloadMapboxStaticImage(point, polygons, adminArea, cityArea, outputP
     const zoom = calculateZoomForWidth(point.lat, 16.0934); // ~10 miles width
     // Some Mapbox tokens are configured with URL (referrer) restrictions. Server-side requests
     // don't include a Referer header by default, so allow specifying one.
-    const referer = process.env.MAPBOX_REFERER || 'https://levante-pitwall.vercel.app/';
+    const referer = process.env.MAPBOX_REFERER || 'https://levante-cockpit.vercel.app/';
     const requestHeaders = {
       'Referer': referer,
       'User-Agent': 'Mozilla/5.0 (compatible; LevanteGalleryGenerator/1.0)'

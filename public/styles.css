@@ -1,4 +1,4 @@
-/* Levante Pitwall Styles */
+/* Levante Cockpit Styles */
 /* Mission-control design tokens (colors, type, spacing, focus, motion). */
 @import url('./css/theme.css');
 
@@ -27,8 +27,8 @@ body { font-family: var(--font-sans); background: var(--color-bg); background-im
 .header .account-dropdown .dropdown-item.logout-btn:hover { background: var(--color-danger-soft); color: var(--text-primary); border-color: var(--color-danger); }
 .header .header-actions-left { position: absolute; left: 20px; top: 20px; z-index: 1001; }
 .header .header-actions-left .btn { background: var(--surface-3); border: 1px solid var(--accent-border); color: var(--text-primary); box-shadow: var(--shadow-sm); }
-.header .header-actions-left .back-to-pitwall { background: var(--surface-3); border: 1px solid var(--accent-border); color: var(--text-primary); box-shadow: var(--shadow-sm); }
-.header .header-actions-left .back-to-pitwall:hover { background: var(--accent); color: var(--accent-contrast); }
+.header .header-actions-left .back-to-cockpit { background: var(--surface-3); border: 1px solid var(--accent-border); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+.header .header-actions-left .back-to-cockpit:hover { background: var(--accent); color: var(--accent-contrast); }
 .header .header-actions-left .dropdown-menu { left: 0; right: auto; }
 .header .header-actions-left .dropdown { position: relative; }
 .header p { font-size: var(--fs-lg); color: var(--text-secondary); opacity: 1; }
@@ -171,7 +171,7 @@ body { font-family: var(--font-sans); background: var(--color-bg); background-im
 .save-btn:disabled { background: var(--surface-3); cursor: not-allowed; box-shadow: none; color: var(--text-muted); }
 .save-btn:hover:not(:disabled) { background: var(--accent-strong); transform: translateY(-1px); }
 
-.back-to-pitwall {
+.back-to-cockpit {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -187,13 +187,13 @@ body { font-family: var(--font-sans); background: var(--color-bg); background-im
     box-shadow: var(--shadow-sm);
     transition: transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition);
 }
-.back-to-pitwall:hover {
+.back-to-cockpit:hover {
     background: var(--accent);
     color: var(--accent-contrast);
     transform: translateY(-1px);
     box-shadow: var(--shadow-md);
 }
-.back-to-pitwall i {
+.back-to-cockpit i {
     font-size: 0.95rem;
 }
 

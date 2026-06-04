@@ -8,7 +8,7 @@ async function checkAuth() {
   const page = await context.newPage();
 
   try {
-    await page.goto('https://levante-pitwall.vercel.app/partner-audio-dashboard.html', { waitUntil: 'networkidle' });
+    await page.goto('https://levante-cockpit.vercel.app/partner-audio-dashboard.html', { waitUntil: 'networkidle' });
     await page.waitForTimeout(3000);
     
     const html = await page.content();

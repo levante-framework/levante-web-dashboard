@@ -380,7 +380,7 @@
 <body>
   <div class="testing-container">
     <div class="testing-topbar">
-      <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+      <a class="back-to-cockpit" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Cockpit</a>
       <h2><i class="fas fa-vials"></i> Testing Results</h2>
       <div class="testing-actions">
         <button class="btn btn-secondary" id="refreshIssuesBtn"><i class="fas fa-sync"></i> Refresh issues</button>
@@ -634,7 +634,7 @@
     const RUNNER_API_BASE = '';
     const issueStateById = {};
     const issueLinkById = {};
-    const localKey = 'pitwall:e2eResults';
+    const localKey = 'cockpit:e2eResults';
     const runningById = {};
     const bugsTableBody = document.getElementById('bugsTableBody');
     const tasksTableBody = document.getElementById('tasksTableBody');
@@ -860,7 +860,7 @@
       if (!runnerWarning) return;
       runnerWarning.style.display = 'flex';
       runnerWarning.innerHTML =
-        `<i class="fas fa-triangle-exclamation"></i> ${message || 'Remote runner unavailable. The workflow must be on main before Pitwall can dispatch runs.'}`;
+        `<i class="fas fa-triangle-exclamation"></i> ${message || 'Remote runner unavailable. The workflow must be on main before Cockpit can dispatch runs.'}`;
     }
 
     async function runTest(entryId) {
@@ -897,7 +897,7 @@
             if (authWarning) {
               authWarning.style.display = 'flex';
               authWarning.innerHTML =
-                '<i class="fas fa-triangle-exclamation"></i> Runner auth failed. Confirm Pitwall has E2E_RUNNER_TOKEN set.';
+                '<i class="fas fa-triangle-exclamation"></i> Runner auth failed. Confirm Cockpit has E2E_RUNNER_TOKEN set.';
             }
           }
           throw new Error(`Runner request failed: HTTP ${response.status} ${text}`);

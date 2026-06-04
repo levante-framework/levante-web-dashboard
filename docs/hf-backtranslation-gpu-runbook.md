@@ -133,8 +133,8 @@ npm run validation:backtranslate:benchmark -- \
 ```
 
 Important defaults:
-- Google baseline endpoint: `https://levante-pitwall.vercel.app/api/google-translate`
-- Semantic scorer endpoint: `https://levante-pitwall.vercel.app/api/translation-semantic-score`
+- Google baseline endpoint: `https://levante-cockpit.vercel.app/api/google-translate`
+- Semantic scorer endpoint: `https://levante-cockpit.vercel.app/api/translation-semantic-score`
 
 If you need a bearer key for Google endpoint auth:
 

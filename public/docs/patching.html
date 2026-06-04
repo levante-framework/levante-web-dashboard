@@ -109,13 +109,13 @@
     <div class="page-container">
         <a href="../index.html" class="back-link">
             <span>&larr;</span>
-            <span>Back to Pitwall</span>
+            <span>Back to Cockpit</span>
         </a>
 
         <div class="card">
             <h1>Patch &amp; Deploy Workflow</h1>
             <p>
-                Levante Pitwall now streamlines patch audio fixes—from auditioning draft takes to queuing approved versions for deployment.
+                Levante Cockpit now streamlines patch audio fixes—from auditioning draft takes to queuing approved versions for deployment.
                 Use this guide as the single reference for generating, reviewing, and promoting patched clips.
             </p>
 
@@ -155,8 +155,8 @@
             <h3>4. Site approval (research partner)</h3>
             <ul>
                 <li>Share the review link; researchers can preview, delete, or select the winning versions.</li>
-                <li>When they click <strong>Approve Selected</strong>, Pitwall copies the chosen clip(s) into <code>deploy/&lt;lang&gt;/&lt;itemId&gt;.mp3</code> (stripping the version suffix) and the dashboard flags them as <em>Approved by Site</em>.</li>
-                <li>The deploy copy records <code>siteApprovedSource</code>, <code>siteApprovedVersion</code>, and a timestamp so Pitwall can highlight which `_v###` draft was approved and mark newer drafts as needing re-approval.</li>
+                <li>When they click <strong>Approve Selected</strong>, Cockpit copies the chosen clip(s) into <code>deploy/&lt;lang&gt;/&lt;itemId&gt;.mp3</code> (stripping the version suffix) and the dashboard flags them as <em>Approved by Site</em>.</li>
+                <li>The deploy copy records <code>siteApprovedSource</code>, <code>siteApprovedVersion</code>, and a timestamp so Cockpit can highlight which `_v###` draft was approved and mark newer drafts as needing re-approval.</li>
                 <li>No repo or <code>levante-assets-dev</code> writes occur during this step—research partners only control what appears in the deploy queue.</li>
             </ul>
 
@@ -170,7 +170,7 @@
                         <li><strong>Ready to push</strong> (green) — the clip has been marked with <strong>Okay to Push</strong> and is queued for promotion.</li>
                     </ul>
                 </li>
-                <li>Select one or more green/yellow rows and click <strong>Okay to Push</strong>. Pitwall writes the selection to <code>gs://&lt;draft-bucket&gt;/deploy-queue/queue.json</code> (the bucket defaults to <code>levante-assets-draft</code> and can be overridden via <code>ASSETS_DRAFT_BUCKET</code> / <code>AUDIO_DEPLOY_QUEUE_PREFIX</code>). No copies to the repo or <code>levante-assets-dev</code> are performed here.</li>
+                <li>Select one or more green/yellow rows and click <strong>Okay to Push</strong>. Cockpit writes the selection to <code>gs://&lt;draft-bucket&gt;/deploy-queue/queue.json</code> (the bucket defaults to <code>levante-assets-draft</code> and can be overridden via <code>ASSETS_DRAFT_BUCKET</code> / <code>AUDIO_DEPLOY_QUEUE_PREFIX</code>). No copies to the repo or <code>levante-assets-dev</code> are performed here.</li>
             </ul>
 
             <h3>6. Promote flagged audio (automation / engineering)</h3>

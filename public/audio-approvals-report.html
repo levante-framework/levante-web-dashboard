@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pitwall Audio Approvals Report</title>
+  <title>Cockpit Audio Approvals Report</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link href="./styles.css" rel="stylesheet"/>
   <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
@@ -37,8 +37,8 @@
     .box { border: 1px solid var(--border-subtle); border-radius: 8px; padding: 8px; background: var(--surface-2); white-space: pre-wrap; word-break: break-word; color: var(--text-primary); }
     .box b { display: block; margin-bottom: 6px; font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
     .status { margin-top: 2px; font-size: 13px; }
-    .back-to-pitwall { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--accent-border); color: var(--accent); padding: 8px 14px; border-radius: 999px; text-decoration: none; font-weight: 600; transition: all .2s ease; }
-    .back-to-pitwall:hover { background: var(--accent); color: var(--accent-contrast); transform: translateY(-1px); }
+    .back-to-cockpit { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--accent-border); color: var(--accent); padding: 8px 14px; border-radius: 999px; text-decoration: none; font-weight: 600; transition: all .2s ease; }
+    .back-to-cockpit:hover { background: var(--accent); color: var(--accent-contrast); transform: translateY(-1px); }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .diff { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -46,7 +46,7 @@
   <div class="wrap">
     <div class="top">
       <div>
-        <a class="back-to-pitwall" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Pitwall</a>
+        <a class="back-to-cockpit" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Cockpit</a>
         <h1><i class="fas fa-chart-column"></i> Audio Approvals Report</h1>
         <div class="muted" id="metaLine">Loading...</div>
       </div>

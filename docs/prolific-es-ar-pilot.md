@@ -49,7 +49,7 @@ Your task is to judge whether the translation preserves the same meaning and int
 
 Use this as the Prolific external study URL:
 
-`https://levante-pitwall.vercel.app/validation/prolific/es-ar-pilot`
+`https://levante-cockpit.vercel.app/validation/prolific/es-ar-pilot`
 
 Enable Prolific URL parameters so participants arrive with:
 - `PROLIFIC_PID`
@@ -94,10 +94,10 @@ Pilot responses are collected by:
 - `POST /api/prolific-es-ar-pilot?mode=submit`
 
 Live monitoring:
-- `https://levante-pitwall.vercel.app/validation/prolific/es-ar-pilot-results`
+- `https://levante-cockpit.vercel.app/validation/prolific/es-ar-pilot-results`
 
 CSV export endpoint (import-ready columns):
-- `https://levante-pitwall.vercel.app/api/prolific-es-ar-pilot?mode=export_csv`
+- `https://levante-cockpit.vercel.app/api/prolific-es-ar-pilot?mode=export_csv`
 
 Save downloaded CSV to:
 - `data/validation/prolific-responses-es-AR.csv`

@@ -6,7 +6,7 @@ Web dashboard application for managing Levante audio content, translations, and 
 
 - **Audio Approval Dashboard** – Review and approve audio content
 - **Partner Audio Dashboard** – Partner-facing audio management interface
-- **Pitwall** – Real-time monitoring and analytics
+- **Cockpit** – Real-time monitoring and analytics
   - **Audio Validation (ASR)** – Quantitative metrics per language (pass rates, needs review counts)
   - **Audio Validation by Language** – Detailed breakdown table showing validation status by language
   - **Asset Audit** – Compare files between `levante-assets-dev` and `levante-assets-prod` GCS buckets
@@ -247,7 +247,7 @@ Manual cache reset endpoint for the `/translations` viewer.
 
 Example:
 ```bash
-curl -X POST "https://levante-pitwall.vercel.app/api/revalidate-translations" \
+curl -X POST "https://levante-cockpit.vercel.app/api/revalidate-translations" \
   -H "x-revalidate-secret: YOUR_REVALIDATE_SECRET"
 ```
 
@@ -306,11 +306,11 @@ Compares files between `levante-assets-dev` and `levante-assets-prod` GCS bucket
 
 **Example:**
 ```bash
-curl "https://levante-pitwall.vercel.app/api/asset-audit?prefix=audio/&exclude=pt-PT&checksum=false"
+curl "https://levante-cockpit.vercel.app/api/asset-audit?prefix=audio/&exclude=pt-PT&checksum=false"
 ```
 
 ### `/api/audit-dashboard-data`
-Loads private Firestore audit dashboard JSON from GCS for the Pitwall page `public/audit-dashboard.html`.
+Loads private Firestore audit dashboard JSON from GCS for the Cockpit page `public/audit-dashboard.html`.
 
 **Auth behavior (default):**
 - Requires valid GitHub session cookie (`levante_auth_session`)
@@ -325,7 +325,7 @@ Loads private Firestore audit dashboard JSON from GCS for the Pitwall page `publ
 
 **Example:**
 ```bash
-curl "https://levante-pitwall.vercel.app/api/audit-dashboard-data"
+curl "https://levante-cockpit.vercel.app/api/audit-dashboard-data"
 ```
 
 ### `/api/audit-dashboard-files`
@@ -337,8 +337,8 @@ Lists/downloads JSON report files for the audit dashboard download menu (OAuth +
 
 **Examples:**
 ```bash
-curl "https://levante-pitwall.vercel.app/api/audit-dashboard-files?action=list"
-curl "https://levante-pitwall.vercel.app/api/audit-dashboard-files?action=download&path=pitwall/audit-mini-dashboard/dashboard-data.json"
+curl "https://levante-cockpit.vercel.app/api/audit-dashboard-files?action=list"
+curl "https://levante-cockpit.vercel.app/api/audit-dashboard-files?action=download&path=pitwall/audit-mini-dashboard/dashboard-data.json"
 ```
 
 ### `/api/adm-pack`
@@ -350,14 +350,14 @@ Loads administrative boundary packs from GCS bucket (`levante-assets-draft/maps/
 
 **Example:**
 ```bash
-curl "https://levante-pitwall.vercel.app/api/adm-pack?country=ca&file=adm6-geofabrik.json.gz"
+curl "https://levante-cockpit.vercel.app/api/adm-pack?country=ca&file=adm6-geofabrik.json.gz"
 ```
 
 ## Audio Validation
 
-The Pitwall dashboard includes comprehensive audio validation reporting:
+The Cockpit dashboard includes comprehensive audio validation reporting:
 
-### Pitwall Integration
+### Cockpit Integration
 
 - **Status Pill**: Shows overall pass rate and needs review count
 - **By-Language Table**: Displays validation metrics per language (pass %, needs review count, average similarity)
@@ -370,7 +370,7 @@ The Pitwall dashboard includes comprehensive audio validation reporting:
    ./scripts/generate-audio-validation.sh <language-code>
    ```
 
-2. **Upload to GCS** (for deployed Pitwall):
+2. **Upload to GCS** (for deployed Cockpit):
    ```bash
    export UPLOAD_TO_GCS=1
    ./scripts/generate-audio-validation.sh <language-code>
@@ -378,7 +378,7 @@ The Pitwall dashboard includes comprehensive audio validation reporting:
    node scripts/upload-audio-validation-files.js
    ```
 
-3. **View in Pitwall**: Open the deployed Pitwall → Audio Validation section shows the latest summary
+3. **View in Cockpit**: Open the deployed Cockpit → Audio Validation section shows the latest summary
 
 See `README_VALIDATION.md` for detailed validation system documentation.
 
@@ -420,7 +420,7 @@ For a chronological log of January 2026 dashboard updates, see `docs/dashboard-u
 - Folder tree view with expand/collapse functionality
 - Text filtering and exclude patterns support
 - Automatically filters out 0-byte files and empty folders
-- Accessible via Pitwall → "Audit Asset Files" button
+- Accessible via Cockpit → "Audit Asset Files" button
 
 ### Boundary Pack Storage (January 2025)
 - Moved geofabrik boundary packs (ADM6-10) to GCS bucket (`levante-assets-draft/maps/boundaries/`)
@@ -430,7 +430,7 @@ For a chronological log of January 2026 dashboard updates, see `docs/dashboard-u
 - US ADM6-10 state-specific packs also stored in GCS
 
 ### Audio Validation
-- Added Pitwall component with quantitative metrics (pass rates, needs review counts per language)
+- Added Cockpit component with quantitative metrics (pass rates, needs review counts per language)
 - GCS-backed storage for validation files and summaries (deployed environment)
 - Automatic summary publishing when loading validation files
 

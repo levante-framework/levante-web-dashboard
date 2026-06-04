@@ -44,6 +44,6 @@ if [[ "${UPLOAD_TO_GCS:-0}" == "1" ]]; then
   node "$ROOT_DIR/scripts/upload-audio-validation-files.js"
 fi
 
-echo "✅ Done. Open Pitwall → Audio Validation, select the newest file, and Load."
+echo "✅ Done. Open Cockpit → Audio Validation, select the newest file, and Load."
 
 

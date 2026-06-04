@@ -5,33 +5,33 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>
-   Levante Pitwall Home
+   Levante Cockpit Home
   </title>
 <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
 <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" referrerpolicy="no-referrer" rel="stylesheet"/>
 <link href="./styles.css" rel="stylesheet"/>
 <style>
     body { background: var(--color-bg); background-image: radial-gradient(circle at 0% 0%, rgba(12, 126, 155, 0.08), transparent 42%), radial-gradient(circle at 100% 100%, rgba(181, 120, 26, 0.06), transparent 42%); background-attachment: fixed; color: var(--text-primary); font-family: var(--font-sans); font-size: var(--fs-base); line-height: var(--lh-normal); min-height: 100vh; }
-        .pitwall-container { max-width: 1280px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 32px; }
-        .pitwall-header { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 40px; color: var(--text-primary); box-shadow: var(--shadow-md); position: relative; overflow: hidden; isolation: isolate; }
-        .pitwall-header::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, var(--accent-soft), transparent 60%); opacity: 1; pointer-events: none; }
-        .pitwall-header-main { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
-        .pitwall-header-left { display: flex; align-items: center; gap: 28px; flex: 1 1 auto; min-width: 0; }
-        .pitwall-hero-image { width: 220px; max-width: 32%; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35); object-fit: cover; }
-        .pitwall-title-block { display: flex; flex-direction: column; gap: 8px; }
-        .pitwall-flag-image { width: 180px; max-width: 22%; min-width: 120px; filter: drop-shadow(0 18px 40px rgba(3, 12, 28, 0.55)); }
-        .pitwall-header h1 { font-size: var(--fs-3xl); margin: 0 0 12px; font-weight: var(--fw-semibold); letter-spacing: -0.01em; color: var(--text-primary); }
-        .pitwall-header p { font-size: var(--fs-lg); margin: 0; max-width: 640px; line-height: var(--lh-normal); color: var(--text-secondary); }
+        .cockpit-container { max-width: 1280px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 32px; }
+        .cockpit-header { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 40px; color: var(--text-primary); box-shadow: var(--shadow-md); position: relative; overflow: hidden; isolation: isolate; }
+        .cockpit-header::after { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, var(--accent-soft), transparent 60%); opacity: 1; pointer-events: none; }
+        .cockpit-header-main { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+        .cockpit-header-left { display: flex; align-items: center; gap: 28px; flex: 1 1 auto; min-width: 0; }
+        .cockpit-hero-image { width: 220px; max-width: 32%; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.25); box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35); object-fit: cover; }
+        .cockpit-title-block { display: flex; flex-direction: column; gap: 8px; }
+        .cockpit-flag-image { width: 180px; max-width: 22%; min-width: 120px; filter: drop-shadow(0 18px 40px rgba(3, 12, 28, 0.55)); }
+        .cockpit-header h1 { font-size: var(--fs-3xl); margin: 0 0 12px; font-weight: var(--fw-semibold); letter-spacing: -0.01em; color: var(--text-primary); }
+        .cockpit-header p { font-size: var(--fs-lg); margin: 0; max-width: 640px; line-height: var(--lh-normal); color: var(--text-secondary); }
         @media (max-width: 960px) {
-            .pitwall-header-main { flex-direction: column; align-items: flex-start; gap: 20px; }
-            .pitwall-header-left { flex-direction: column; align-items: flex-start; gap: 18px; width: 100%; }
-            .pitwall-hero-image { width: 100%; max-width: none; border-radius: 16px; }
-            .pitwall-flag-image { align-self: flex-end; width: 140px; max-width: 40%; }
+            .cockpit-header-main { flex-direction: column; align-items: flex-start; gap: 20px; }
+            .cockpit-header-left { flex-direction: column; align-items: flex-start; gap: 18px; width: 100%; }
+            .cockpit-hero-image { width: 100%; max-width: none; border-radius: 16px; }
+            .cockpit-flag-image { align-self: flex-end; width: 140px; max-width: 40%; }
         }
-        .pitwall-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; position: relative; z-index: 1; }
-        .pitwall-actions a { background: var(--surface-3); border: 1px solid var(--accent-border); color: var(--text-primary); padding: 12px 22px; border-radius: var(--radius-pill); font-weight: 600; letter-spacing: 0.01em; text-decoration: none; display: inline-flex; gap: 10px; align-items: center; transition: transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition); box-shadow: var(--shadow-sm); }
-        .pitwall-actions a:hover { background: var(--accent); color: var(--accent-contrast); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-        .pitwall-action-btn:hover { background: var(--accent) !important; color: var(--accent-contrast) !important; transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .cockpit-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; position: relative; z-index: 1; }
+        .cockpit-actions a { background: var(--surface-3); border: 1px solid var(--accent-border); color: var(--text-primary); padding: 12px 22px; border-radius: var(--radius-pill); font-weight: 600; letter-spacing: 0.01em; text-decoration: none; display: inline-flex; gap: 10px; align-items: center; transition: transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition); box-shadow: var(--shadow-sm); }
+        .cockpit-actions a:hover { background: var(--accent); color: var(--accent-contrast); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+        .cockpit-action-btn:hover { background: var(--accent) !important; color: var(--accent-contrast) !important; transform: translateY(-1px); box-shadow: var(--shadow-md); }
         /* Modal styles */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75); z-index: 10000; backdrop-filter: blur(4px); }
         .modal-overlay.active { display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -112,10 +112,10 @@
         .deployment-check-item.experimental:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); }
         .deployment-check-cta { margin-top: auto; font-size: 0.82rem; color: var(--accent); font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
         @media (max-width: 720px) {
-            .pitwall-header { padding: 28px; }
-            .pitwall-header h1 { font-size: 2.2rem; }
-            .pitwall-actions { flex-direction: column; align-items: stretch; }
-            .pitwall-actions a { justify-content: center; }
+            .cockpit-header { padding: 28px; }
+            .cockpit-header h1 { font-size: 2.2rem; }
+            .cockpit-actions { flex-direction: column; align-items: stretch; }
+            .cockpit-actions a { justify-content: center; }
         }
 
         /* ===== Mission-control shell ===== */
@@ -138,6 +138,29 @@
         .nav-item.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
         .nav-item.active i { color: var(--accent); }
         .main { grid-area: main; padding: var(--space-5) var(--space-6) var(--space-8); display: flex; flex-direction: column; gap: var(--space-5); max-width: 1500px; width: 100%; box-sizing: border-box; }
+        .hero-banner { position: relative; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-md); isolation: isolate; cursor: zoom-in; }
+        .hero-banner .hero-img { display: block; width: 100%; height: 300px; object-fit: cover; object-position: center 38%; }
+        .hero-zoom-hint { position: absolute; top: var(--space-4); right: var(--space-4); z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-pill, 999px); background: rgba(6, 14, 24, 0.55); border: 1px solid rgba(245, 251, 254, 0.28); color: #f5fbfe; font-size: var(--fs-sm); letter-spacing: 0.02em; backdrop-filter: blur(4px); opacity: 0.85; transition: opacity var(--transition, 180ms ease), background var(--transition, 180ms ease); }
+        .hero-banner:hover .hero-zoom-hint, .hero-banner:focus-visible .hero-zoom-hint { opacity: 1; background: rgba(6, 14, 24, 0.7); }
+        .hero-banner:focus-visible { outline: var(--focus-ring, 0 0 0 3px rgba(12,126,155,0.35)); outline-offset: 2px; }
+        .hero-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: var(--space-6); background: linear-gradient(180deg, rgba(6, 14, 24, 0) 35%, rgba(6, 14, 24, 0.82) 100%); }
+        .hero-overlay .crumb { color: rgba(245, 251, 254, 0.78); font-size: var(--fs-sm); letter-spacing: 0.04em; margin-bottom: 6px; }
+        .hero-overlay h1 { margin: 0; font-size: var(--fs-3xl); font-weight: var(--fw-semibold); color: #f5fbfe; display: flex; align-items: center; gap: 12px; letter-spacing: -0.01em; }
+        .hero-overlay p.lead { margin: 10px 0 0; color: rgba(245, 251, 254, 0.92); font-size: var(--fs-lg); max-width: 680px; line-height: var(--lh-normal); }
+        @media (max-width: 720px) {
+            .hero-banner .hero-img { height: 220px; }
+            .hero-overlay { padding: var(--space-4); }
+            .hero-overlay h1 { font-size: var(--fs-2xl); }
+            .hero-zoom-hint .hint-label { display: none; }
+        }
+        .image-lightbox { position: fixed; inset: 0; z-index: 5000; display: none; align-items: center; justify-content: center; padding: var(--space-5); background: rgba(4, 9, 16, 0.88); cursor: zoom-out; }
+        .image-lightbox.open { display: flex; }
+        .image-lightbox img { max-width: 96vw; max-height: 92vh; width: auto; height: auto; border-radius: var(--radius-lg, 12px); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); cursor: default; }
+        .image-lightbox .lightbox-close { position: absolute; top: var(--space-5); right: var(--space-5); width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(245, 251, 254, 0.3); background: rgba(6, 14, 24, 0.6); color: #f5fbfe; font-size: 22px; line-height: 1; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background var(--transition, 180ms ease); }
+        .image-lightbox .lightbox-close:hover { background: rgba(6, 14, 24, 0.85); }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-zoom-hint, .image-lightbox .lightbox-close { transition: none; }
+        }
         .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
         .page-head .crumb { color: var(--text-muted); font-size: var(--fs-sm); margin-bottom: 4px; letter-spacing: 0.04em; }
         .page-head h1 { margin: 0; font-size: var(--fs-2xl); font-weight: var(--fw-semibold); color: var(--text-primary); display: flex; align-items: center; gap: 12px; }
@@ -155,7 +178,7 @@
 <div class="app">
 <div class="cmd-brand"><span class="logo">L</span><span>LEVANTE<small>RESEARCH CONSOLE</small></span></div>
 <header class="cmdbar">
-<span class="cmd-title">Pitwall · QA &amp; release operations</span>
+<span class="cmd-title">Cockpit · QA &amp; release operations</span>
 <span class="cmd-spacer"></span>
 <button class="btn btn-secondary" type="button" onclick="openTasksComparison()"><i class="fas fa-code-branch"></i> Compare Dev/Prod</button>
 <button class="btn btn-secondary" type="button" onclick="window.location.reload()"><i class="fas fa-rotate"></i> Refresh</button>
@@ -195,13 +218,14 @@
 </div>
 </nav>
 <main class="main">
-<div class="page-head">
-<div>
+<section class="hero-banner" role="button" tabindex="0" aria-label="View hero image at full size" onclick="openHeroLightbox()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openHeroLightbox();}">
+<img class="hero-img" src="./images/levante-hero.jpg" alt="LEVANTE research mission control overlooking Earth"/>
+<span class="hero-zoom-hint"><i class="fas fa-expand"></i><span class="hint-label">View full size</span></span>
+<div class="hero-overlay">
 <div class="crumb">Operations / Overview</div>
-<h1><i class="fas fa-flag-checkered"></i> Levante Pitwall</h1>
-<p class="lead">Our starting point for translation QA, audio patching, and supporting tools. Jump to a dashboard or a Stats card to get started.</p>
+<h1>Levante Cockpit</h1>
 </div>
-</div>
+</section>
 <section class="deployment-checklist">
 <div class="deployment-checklist-header">
 <h2 class="deployment-checklist-title"><i class="fas fa-flag-checkered"></i> Pre-Deployment Checklist</h2>
@@ -356,7 +380,7 @@
 <a href="./audio-validation.html">
 <i class="fas fa-wave-square"></i>
 <h3>Audio Validation (ASR)</h3>
-<p>Review Whisper/ASR validation results, regenerate low-quality clips, and publish a by-language health snapshot back to Pitwall.</p>
+<p>Review Whisper/ASR validation results, regenerate low-quality clips, and publish a by-language health snapshot back to Cockpit.</p>
 <div class="card-footer">
 <span>Open validation report</span>
 <i class="fas fa-arrow-right"></i>
@@ -593,7 +617,7 @@
     };
 
     try {
-      const response = await fetch('/api/pitwall-stats', { cache: 'no-cache' });
+      const response = await fetch('/api/cockpit-stats', { cache: 'no-cache' });
       if (!response.ok) throw new Error(`status ${response.status}`);
       const data = await response.json();
 
@@ -758,7 +782,7 @@
         if (issuesDetailEl) issuesDetailEl.textContent = 'Priority issues pulled from levante-framework/project #1';
       }
     } catch (error) {
-      console.warn('Failed to load pitwall stats:', error);
+      console.warn('Failed to load cockpit stats:', error);
       setError(draftsEl, draftsDetailEl, 'Draft summary unavailable');
       if (coverageEl) coverageEl.innerHTML = `<span class="warning-text">Missing Tags: --</span>`;
       if (coverageDetailEl) coverageDetailEl.textContent = 'Audio coverage summary unavailable';
@@ -1056,6 +1080,41 @@
       window.history.replaceState({}, document.title, clean);
     }
   });
+</script>
+<div class="image-lightbox" id="heroLightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Hero image, full size">
+<button type="button" class="lightbox-close" id="heroLightboxClose" aria-label="Close full-size image">&times;</button>
+<img src="./images/levante-hero.jpg" alt="LEVANTE research mission control overlooking Earth, full size"/>
+</div>
+<script>
+  (function () {
+    const lightbox = document.getElementById('heroLightbox');
+    if (!lightbox) return;
+    const closeBtn = document.getElementById('heroLightboxClose');
+    let lastFocused = null;
+
+    window.openHeroLightbox = function () {
+      lastFocused = document.activeElement;
+      lightbox.classList.add('open');
+      lightbox.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    };
+
+    function closeHeroLightbox() {
+      lightbox.classList.remove('open');
+      lightbox.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    }
+
+    closeBtn.addEventListener('click', closeHeroLightbox);
+    lightbox.addEventListener('click', function (e) {
+      if (e.target === lightbox) closeHeroLightbox();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lightbox.classList.contains('open')) closeHeroLightbox();
+    });
+  })();
 </script>
 </body>
 </html>

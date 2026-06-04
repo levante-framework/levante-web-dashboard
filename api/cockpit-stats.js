@@ -190,7 +190,7 @@ async function fetchGithubIssueSummary() {
 
   const headers = {
     'Content-Type': 'application/json',
-    'User-Agent': 'Levante-Pitwall',
+    'User-Agent': 'Levante-Cockpit',
     'Authorization': `Bearer ${token}`
   };
 
@@ -298,7 +298,7 @@ export default async function handler(req, res) {
       githubIssues: githubSummary
     });
   } catch (error) {
-    console.error('pitwall-stats error:', error);
+    console.error('cockpit-stats error:', error);
     res.status(500).json({ error: 'Internal error', message: error.message });
   }
 }

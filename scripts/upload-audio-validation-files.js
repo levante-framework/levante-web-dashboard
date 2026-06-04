@@ -2,7 +2,7 @@
 
 /**
  * Upload local audio validation JSON files (data/validation/*.json) to the dashboard data bucket
- * so the deployed Pitwall can list/load them.
+ * so the deployed Cockpit can list/load them.
  *
  * Defaults:
  * - bucket: DASHBOARD_DATA_BUCKET (or levante-dashboard-dev)

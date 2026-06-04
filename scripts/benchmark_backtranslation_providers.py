@@ -38,12 +38,12 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--google-api-url",
-        default="https://levante-pitwall.vercel.app/api/google-translate",
+        default="https://levante-cockpit.vercel.app/api/google-translate",
         help="Baseline endpoint matching current validation path.",
     )
     p.add_argument(
         "--semantic-api-url",
-        default="https://levante-pitwall.vercel.app/api/translation-semantic-score",
+        default="https://levante-cockpit.vercel.app/api/translation-semantic-score",
     )
     p.add_argument("--google-api-key", default="", help="Optional bearer key for google API endpoint.")
     p.add_argument("--output-prefix", default="data/validation/backtranslation-provider-benchmark-es-AR")

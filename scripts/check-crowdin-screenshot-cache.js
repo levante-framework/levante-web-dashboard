@@ -26,7 +26,7 @@ function isCachedShot(shot) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  const artifactUrl = args.url || 'https://levante-pitwall.vercel.app/api/crowdin-screenshot-artifact';
+  const artifactUrl = args.url || 'https://levante-cockpit.vercel.app/api/crowdin-screenshot-artifact';
   console.log(`Checking screenshot artifact cache coverage: ${artifactUrl}`);
   const response = await fetch(artifactUrl, { headers: { 'Cache-Control': 'no-cache' } });
   if (!response.ok) {

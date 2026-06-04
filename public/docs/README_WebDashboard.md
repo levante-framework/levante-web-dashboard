@@ -1,4 +1,4 @@
-# Levante Pitwall Dashboard (Web Version)
+# Levante Cockpit Dashboard (Web Version)
 
 A modern web-based dashboard for comparing and generating TTS audio across multiple languages using PlayHT and ElevenLabs services.
 
@@ -50,7 +50,7 @@ Changelog: `docs/dashboard-updates-2026-01.md`
 
 ## Files
 
-- `dashboard.html` - Main HTML interface
+- `dashboard-app.html` - Main HTML interface
 - `dashboard.js` - Core JavaScript functionality and API integrations
 - `config.js` - Configuration file with language and API settings
 - `README_WebDashboard.md` - This documentation file
@@ -81,7 +81,7 @@ ConfigHelper.setApiKey('elevenlabs', 'apiKey', 'your-elevenlabs-api-key');
 ### 3. Running the Dashboard
 
 1. Serve the files through a web server (due to CORS restrictions)
-2. Open `dashboard.html` in your browser
+2. Open `dashboard-app.html` in your browser
 3. Enter your API keys when prompted
 4. Start using the dashboard!
 
@@ -102,7 +102,7 @@ npx http-server
 php -S localhost:8000
 ```
 
-Then open `http://localhost:8000/dashboard.html`
+Then open `http://localhost:8000/dashboard-app.html`
 
 ## Usage
 
@@ -196,7 +196,7 @@ CONFIG.curatedVoices.playht['it'] = [
 
 ### Styling
 
-The dashboard uses CSS custom properties for easy theming. Modify the CSS variables in `dashboard.html`:
+The dashboard uses CSS custom properties for easy theming. Modify the CSS variables in `dashboard-app.html`:
 
 ```css
 :root {

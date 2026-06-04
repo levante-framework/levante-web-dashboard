@@ -1,5 +1,5 @@
 /**
- * Configuration file for the Levante Pitwall
+ * Configuration file for the Levante Cockpit
  * JavaScript equivalent of utilities/config.py
  */
 

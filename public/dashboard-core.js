@@ -554,7 +554,7 @@ class Dashboard {
             const exportData = {
                 validation_results: this.validation_results,
                 metadata: {
-                    saved_by: 'Levante Pitwall Dashboard',
+                    saved_by: 'Levante Cockpit Dashboard',
                     version: '1.0',
                     total_items: Object.keys(this.validation_results).length,
                     languages: Object.keys(this.languages),

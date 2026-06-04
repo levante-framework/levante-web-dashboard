@@ -477,9 +477,9 @@ The **Audio Validation System** complements translation validation by verifying 
 - Identify timing inconsistencies
 - Verify speed adjustments work as expected
 
-### Pitwall Integration
+### Cockpit Integration
 
-The **Pitwall** dashboard (`index.html`) includes an **Audio Validation (ASR)** component that displays:
+The **Cockpit** dashboard (`index.html`) includes an **Audio Validation (ASR)** component that displays:
 
 - **Status Pill**: Overall pass rate percentage and needs review count
 - **By-Language Table**: Detailed breakdown showing:
@@ -492,7 +492,7 @@ The **Pitwall** dashboard (`index.html`) includes an **Audio Validation (ASR)** 
 **How It Works:**
 1. When you load a validation file on the Audio Validation page, it automatically publishes a summary to `/api/audio-validation-summary?key=latest`
 2. The summary is stored in GCS (`levante-dashboard-dev/pitwall/audio-validation-summary/latest.json`)
-3. The Pitwall dashboard fetches and displays this summary on page load
+3. The Cockpit dashboard fetches and displays this summary on page load
 4. The summary includes overall metrics plus per-language breakdowns
 
 **Storage:**
@@ -508,7 +508,7 @@ From the `levante-web-dashboard` repo:
 # Generate validation and import into dashboard
 ./scripts/generate-audio-validation.sh es-CO
 
-# With auto-upload to GCS (for deployed Pitwall)
+# With auto-upload to GCS (for deployed Cockpit)
 export UPLOAD_TO_GCS=1
 ./scripts/generate-audio-validation.sh de
 ```
@@ -537,7 +537,7 @@ gs://levante-dashboard-dev/pitwall/audio-validation-results/validation-{language
 
 ### Uploading Validation Files to GCS
 
-For the deployed Pitwall to access validation files, upload them to GCS:
+For the deployed Cockpit to access validation files, upload them to GCS:
 
 ```bash
 # Automatic upload (during generation)
