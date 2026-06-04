@@ -168,14 +168,6 @@
       "destination": "/public/validation/prolific/es-ar-pilot-results.html"
     },
     {
-      "source": "/qa-runs.html",
-      "destination": "/public/testing-results.html"
-    },
-    {
-      "source": "/qa-runs",
-      "destination": "/public/testing-results.html"
-    },
-    {
       "source": "/translations/:lang/:file*",
       "destination": "/api/translations?lang=:lang&file=:file*"
     },

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>QA Runs · Pitwall</title>
+    <title>QA Runs · Levante Cockpit</title>
     <link href="./styles.css" rel="stylesheet" />
     <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml" />
     <link
@@ -14,11 +14,10 @@
     />
     <style>
       body {
-        font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        font-family: var(--font-sans);
         margin: 0;
-        background: radial-gradient(circle at top, rgba(79, 134, 247, 0.18), rgba(20, 26, 36, 0.96)),
-          linear-gradient(190deg, #0b0f17 0%, #0e1320 100%);
-        color: #e2e8f0;
+        background: var(--color-bg);
+        color: var(--text-primary);
         min-height: 100vh;
       }
       .qa-container {
@@ -43,12 +42,13 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        color: #6fa0ff;
+        color: var(--text-primary);
         letter-spacing: 0.02em;
       }
+      .qa-topbar h2 i { color: var(--accent); }
       .qa-subtitle {
         margin: 4px 0 0;
-        color: rgba(226, 232, 240, 0.75);
+        color: var(--text-secondary);
         font-size: 0.95rem;
       }
       .qa-actions {
@@ -58,10 +58,10 @@
         flex-wrap: wrap;
       }
       .btn {
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        background: rgba(148, 163, 184, 0.14);
-        color: #67e8f9;
-        border-radius: 8px;
+        border: 1px solid var(--border-default);
+        background: var(--surface-1);
+        color: var(--accent);
+        border-radius: var(--radius-sm);
         padding: 9px 16px;
         font-size: 0.85rem;
         font-weight: 600;
@@ -69,7 +69,8 @@
         font-family: inherit;
       }
       .btn:hover {
-        border-color: #4f86f7;
+        border-color: var(--accent);
+        background: var(--surface-3);
       }
       .qa-cards {
         display: grid;
@@ -77,28 +78,29 @@
         gap: 14px;
       }
       .stat-card {
-        background: rgba(20, 26, 36, 0.92);
-        border: 1px solid rgba(148, 163, 184, 0.24);
-        border-radius: 14px;
+        background: var(--surface-1);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
         padding: 16px 18px;
+        box-shadow: var(--shadow-sm);
       }
       .stat-card .num {
         font-size: 1.8rem;
         font-weight: 700;
-        color: #f8fafc;
+        color: var(--text-primary);
       }
       .stat-card .lbl {
         font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: rgba(148, 163, 184, 0.75);
+        color: var(--text-muted);
       }
       .qa-section {
-        background: rgba(20, 26, 36, 0.92);
-        border: 1px solid rgba(148, 163, 184, 0.24);
-        border-radius: 18px;
+        background: var(--surface-1);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
         padding: 22px 24px;
-        box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+        box-shadow: var(--shadow-md);
       }
       .filters {
         display: flex;
@@ -108,18 +110,18 @@
       }
       .filters select,
       .filters input {
-        background: rgba(2, 6, 23, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        color: #e2e8f0;
-        border-radius: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
         padding: 8px 10px;
         font-size: 0.85rem;
         font-family: inherit;
       }
       .table-wrapper {
         overflow-x: auto;
-        border-radius: 14px;
-        border: 1px solid rgba(148, 163, 184, 0.22);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
       }
       table {
         width: 100%;
@@ -131,22 +133,25 @@
         padding: 12px 14px;
         text-align: left;
         font-size: 0.88rem;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        border-bottom: 1px solid var(--border-subtle);
       }
       thead th {
-        background: linear-gradient(135deg, rgba(79, 134, 247, 0.9) 0%, rgba(111, 160, 255, 0.9) 100%);
-        color: #0e1320;
+        background: var(--surface-2);
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.06em;
         font-size: 0.72rem;
         position: sticky;
         top: 0;
       }
+      tbody tr {
+        cursor: pointer;
+      }
       tbody tr:nth-child(even) {
-        background: rgba(8, 18, 32, 0.6);
+        background: var(--surface-2);
       }
       tbody tr:hover {
-        background: rgba(79, 134, 247, 0.1);
+        background: var(--accent-soft);
       }
       .pill {
         display: inline-flex;
@@ -158,12 +163,12 @@
         font-weight: 700;
         text-transform: capitalize;
       }
-      .pill.passed { background: rgba(34, 197, 94, 0.16); color: #4ade80; }
+      .pill.passed { background: var(--color-success-soft); color: var(--color-success); }
       .pill.failed,
-      .pill.error { background: rgba(239, 68, 68, 0.16); color: #f87171; }
+      .pill.error { background: var(--color-danger-soft); color: var(--color-danger); }
       .pill.running,
-      .pill.provisioning { background: rgba(79, 134, 247, 0.16); color: #67e8f9; }
-      .pill.cancelled { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
+      .pill.provisioning { background: var(--accent-soft); color: var(--accent-strong); }
+      .pill.cancelled { background: var(--surface-3); color: var(--text-muted); }
       .tag-batch {
         display: inline-block;
         margin-left: 6px;
@@ -171,35 +176,35 @@
         border-radius: 999px;
         font-size: 0.68rem;
         font-weight: 700;
-        background: rgba(250, 204, 21, 0.16);
-        color: #facc15;
+        background: var(--color-warning-soft);
+        color: var(--color-warning);
       }
       .err-cell {
         max-width: 280px;
-        color: #fca5a5;
+        color: var(--color-danger);
         font-size: 0.8rem;
       }
       .btn-details {
         background: transparent;
-        border: 1px solid rgba(148, 163, 184, 0.4);
-        color: #67e8f9;
-        border-radius: 6px;
+        border: 1px solid var(--border-default);
+        color: var(--accent);
+        border-radius: var(--radius-sm);
         font-size: 0.75rem;
         padding: 5px 10px;
         cursor: pointer;
         font-family: inherit;
       }
       .empty-note {
-        color: rgba(226, 232, 240, 0.6);
+        color: var(--text-muted);
         text-align: center;
         padding: 28px;
       }
-      .muted { color: rgba(226, 232, 240, 0.55); }
+      .muted { color: var(--text-muted); }
       /* Drawer */
       .drawer-backdrop {
         position: fixed;
         inset: 0;
-        background: rgba(2, 6, 23, 0.6);
+        background: rgba(15, 23, 42, 0.45);
         display: none;
       }
       .drawer-backdrop.open { display: block; }
@@ -209,9 +214,9 @@
         right: 0;
         height: 100%;
         width: min(720px, 94vw);
-        background: #0e1320;
-        border-left: 1px solid rgba(148, 163, 184, 0.3);
-        box-shadow: -20px 0 60px rgba(2, 6, 23, 0.6);
+        background: var(--surface-1);
+        border-left: 1px solid var(--border-default);
+        box-shadow: var(--shadow-lg);
         transform: translateX(100%);
         transition: transform 0.18s ease;
         display: flex;
@@ -223,80 +228,86 @@
         align-items: center;
         justify-content: space-between;
         padding: 18px 20px;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        border-bottom: 1px solid var(--border-subtle);
       }
-      .drawer-head h3 { margin: 0; font-size: 1.05rem; color: #f8fafc; }
-      .drawer-close { background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; }
+      .drawer-head h3 { margin: 0; font-size: 1.05rem; color: var(--text-primary); }
+      .drawer-close { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
       .drawer-body { padding: 18px 20px; overflow: auto; }
       .detail-grid { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 0.85rem; margin: 0 0 18px; }
-      .detail-grid dt { color: rgba(148, 163, 184, 0.75); }
-      .detail-grid dd { margin: 0; color: #e2e8f0; word-break: break-word; }
+      .detail-grid dt { color: var(--text-muted); }
+      .detail-grid dd { margin: 0; color: var(--text-primary); word-break: break-word; }
       .artifact-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
       .artifact-tab {
-        background: rgba(2, 6, 23, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        color: #67e8f9;
-        border-radius: 6px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-default);
+        color: var(--accent);
+        border-radius: var(--radius-sm);
         font-size: 0.74rem;
         padding: 5px 10px;
         cursor: pointer;
         font-family: inherit;
       }
-      .artifact-tab.active { border-color: #4f86f7; background: rgba(79, 134, 247, 0.18); }
+      .artifact-tab.active { border-color: var(--accent); background: var(--accent-soft); }
       pre.preview {
-        background: #0b0f17;
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 10px;
+        background: var(--surface-3);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
         padding: 14px;
-        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-family: var(--font-mono);
         font-size: 0.78rem;
         line-height: 1.5;
-        color: #cbd5e1;
+        color: var(--text-primary);
         white-space: pre-wrap;
         word-break: break-word;
         max-height: 52vh;
         overflow: auto;
       }
-      code { color: #67e8f9; }
+      code { color: var(--accent); }
+      pre.preview.failure {
+        background: var(--color-danger-soft);
+        border-color: var(--color-danger-border);
+        color: var(--text-primary);
+      }
       /* Run-an-assignment panel */
       .runner-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-      .runner-head h3 { margin: 0; font-size: 1.05rem; color: #6fa0ff; display: flex; align-items: center; gap: 10px; }
+      .runner-head h3 { margin: 0; font-size: 1.05rem; color: var(--text-primary); display: flex; align-items: center; gap: 10px; }
+      .runner-head h3 i { color: var(--accent); }
       .runner-controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
       .runner-controls select {
-        background: rgba(2, 6, 23, 0.7);
-        border: 1px solid rgba(148, 163, 184, 0.3);
-        color: #e2e8f0;
-        border-radius: 8px;
+        background: var(--surface-2);
+        border: 1px solid var(--border-default);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
         padding: 8px 10px;
         font-size: 0.85rem;
         font-family: inherit;
       }
       .btn-run {
-        border: 1px solid rgba(79, 134, 247, 0.5);
-        background: rgba(79, 134, 247, 0.16);
-        color: #6fa0ff;
+        border: 1px solid var(--accent-border);
+        background: var(--accent-soft);
+        color: var(--accent-strong);
       }
-      .btn-run:hover { border-color: #4f86f7; }
+      .btn-run:hover { border-color: var(--accent); }
       .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
       .runner-detail { margin: 12px 0 0; font-size: 0.82rem; }
-      .runner-detail a { color: #67e8f9; }
+      .runner-detail a { color: var(--accent); }
       .runner-head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
       .btn.btn-sm { padding: 7px 12px; font-size: 0.8rem; }
-      .runner-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: rgba(226, 232, 240, 0.85); cursor: pointer; }
-      .runner-check input { accent-color: #4f86f7; }
+      .runner-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; }
+      .runner-check input { accent-color: var(--accent); }
       /* Running-now cards */
-      .active-section { display: none; border-color: rgba(79, 134, 247, 0.45); }
+      .active-section { display: none; border-color: var(--accent-border); }
       .active-section.show { display: block; }
       .active-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
       .active-card {
-        background: rgba(8, 18, 32, 0.7);
-        border: 1px solid rgba(79, 134, 247, 0.4);
-        border-radius: 14px;
+        background: var(--surface-2);
+        border: 1px solid var(--accent-border);
+        border-radius: var(--radius-lg);
         padding: 14px 16px;
       }
-      .active-card .ac-title { font-weight: 600; color: #f8fafc; font-size: 0.92rem; margin-bottom: 8px; word-break: break-word; }
-      .active-card .ac-meta { font-size: 0.78rem; color: rgba(148, 163, 184, 0.85); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-      .active-card .ac-meta a { color: #67e8f9; }
+      .active-card .ac-title { font-weight: 600; color: var(--text-primary); font-size: 0.92rem; margin-bottom: 8px; word-break: break-word; }
+      .active-card .ac-meta { font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .active-card .ac-meta a { color: var(--accent); }
     </style>
   </head>
   <body>
@@ -398,7 +409,11 @@
       </div>
       <div class="drawer-body">
         <dl class="detail-grid" id="drawerSummary"></dl>
-        <h4 style="margin: 0 0 8px; color: #f8fafc">Artifacts</h4>
+        <div id="drawerFailure" hidden>
+          <h4 style="margin: 0 0 8px; color: var(--color-danger)">Failure</h4>
+          <pre class="preview failure" id="drawerFailureText"></pre>
+        </div>
+        <h4 style="margin: 0 0 8px; color: var(--text-primary)">Artifacts</h4>
         <div class="artifact-tabs" id="drawerArtifacts"></div>
         <pre class="preview" id="drawerPreview">Select an artifact to preview.</pre>
       </div>
@@ -409,6 +424,7 @@
         const $ = (s) => document.querySelector(s);
         const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h != null) n.innerHTML = h; return n; };
         const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const stripAnsi = (s) => String(s ?? '').replace(/\u001b\[[0-9;]*m/g, '');
         const fmtTime = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? '—' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
         const fmtDur = (ms) => { if (ms == null) return '—'; const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`; };
         const acc = (a) => (a == null ? '—' : `${(a * 100).toFixed(1)}%`);
@@ -477,7 +493,9 @@
               <td class="err-cell">${errs}</td>
               <td>${fmtDur(r.durationMs)}</td>
               <td><button class="btn-details">Details</button></td>`;
-            tr.querySelector('.btn-details').addEventListener('click', () => openDrawer(r));
+            tr.title = 'Click for run details';
+            tr.addEventListener('click', () => openDrawer(r));
+            tr.querySelector('.btn-details').addEventListener('click', (e) => { e.stopPropagation(); openDrawer(r); });
             body.appendChild(tr);
           });
         }
@@ -501,6 +519,13 @@
             row('Spec', `<code>${esc(r.spec || '—')}</code>`),
             (r.errors && r.errors.length) ? row('Errors', r.errors.map(esc).join('<br>')) : '',
           ].join('');
+          const failText = stripAnsi(r.failureDetail || (r.errors || []).join('\n')).trim();
+          if (failText) {
+            $('#drawerFailureText').textContent = failText;
+            $('#drawerFailure').hidden = false;
+          } else {
+            $('#drawerFailure').hidden = true;
+          }
           $('#drawerArtifacts').innerHTML = '<span class="muted">Loading artifacts…</span>';
           $('#drawerPreview').textContent = 'Select an artifact to preview.';
           try {

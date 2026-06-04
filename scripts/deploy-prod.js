@@ -18,6 +18,8 @@ const ADDITIONAL_PROD_ALIASES = (process.env.VERCEL_PROD_ALIASES
   : [
       'levante-web-dashboard.vercel.app',
       'levante-partner-tools.vercel.app',
+      // Legacy alias kept for backward compatibility with old Pitwall links.
+      'levante-pitwall.vercel.app',
     ]
 );
 

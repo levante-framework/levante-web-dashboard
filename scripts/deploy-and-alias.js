@@ -171,7 +171,9 @@ async function runVercelDeployWithRetry(cwd, maxAttempts = 3) {
     const aliases = [
       'levante-cockpit.vercel.app',
       'levante-web-dashboard.vercel.app',
-      'levante-partner-tools.vercel.app'
+      'levante-partner-tools.vercel.app',
+      // Legacy alias kept for backward compatibility with old Pitwall links.
+      'levante-pitwall.vercel.app'
     ];
 
     for (const alias of aliases) {
