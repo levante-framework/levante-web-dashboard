@@ -170,8 +170,7 @@ async function runVercelDeployWithRetry(cwd, maxAttempts = 3) {
     const deploymentHost = new URL(deploymentUrl).host;
     const aliases = [
       'levante-cockpit.vercel.app',
-      // Legacy alias kept so existing links keep resolving after the Cockpit rename.
-      'levante-pitwall.vercel.app',
+      'levante-web-dashboard.vercel.app',
       'levante-partner-tools.vercel.app'
     ];
 

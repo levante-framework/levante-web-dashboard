@@ -13,11 +13,11 @@ const path = require('path');
 const PREVIEW_FILE = path.join('.vercel', 'latest-preview-url.txt');
 const STAGING_ALIAS = process.env.VERCEL_STAGING_ALIAS || '';
 const PRIMARY_PROD_ALIAS = process.env.VERCEL_PROD_ALIAS || 'levante-cockpit.vercel.app';
-const LEGACY_PROD_ALIASES = (process.env.VERCEL_PROD_ALIASES
+const ADDITIONAL_PROD_ALIASES = (process.env.VERCEL_PROD_ALIASES
   ? process.env.VERCEL_PROD_ALIASES.split(',').map(alias => alias.trim()).filter(Boolean)
   : [
-      // Legacy alias kept so existing links keep resolving after the Cockpit rename.
-      'levante-pitwall.vercel.app',
+      'levante-web-dashboard.vercel.app',
+      'levante-partner-tools.vercel.app',
     ]
 );
 
@@ -112,7 +112,7 @@ function aliasDeployment(url, alias) {
 }
 
 function promoteDeployment(deploymentUrl) {
-  const aliasSet = new Set([PRIMARY_PROD_ALIAS, ...LEGACY_PROD_ALIASES.filter(Boolean)]);
+  const aliasSet = new Set([PRIMARY_PROD_ALIAS, ...ADDITIONAL_PROD_ALIASES.filter(Boolean)]);
   if (!aliasSet.size) {
     console.error('❌ No production aliases configured. Set VERCEL_PROD_ALIAS or VERCEL_PROD_ALIASES.');
     process.exit(1);

@@ -4,25 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Translation Dashboard with Validation - Mockup</title>
+    <link rel="stylesheet" href="./css/theme.css" />
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: var(--font-sans);
             margin: 20px;
-            background-color: #f5f5f5;
+            background-color: var(--color-bg);
+            color: var(--text-primary);
         }
         
         .dashboard-container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: var(--surface-1);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
             overflow: hidden;
         }
         
         .header {
-            background: #2c3e50;
-            color: white;
+            background: var(--surface-2);
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-subtle);
             padding: 20px;
         }
         
@@ -42,43 +45,48 @@
         
         select, input, button {
             padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-sm);
             font-size: 14px;
         }
         
+        select, input {
+            background: var(--surface-1);
+            color: var(--text-primary);
+        }
+        
         button {
-            background: #3498db;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             cursor: pointer;
             transition: background 0.3s;
         }
         
         button:hover {
-            background: #2980b9;
+            background: var(--accent-strong);
         }
         
         .validation-button {
-            background: #9b59b6;
+            background: var(--accent-strong);
         }
         
         .validation-button:hover {
-            background: #8e44ad;
+            background: var(--accent);
         }
         
         /* NEW: Validation Panel */
         .validation-panel {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
+            background: var(--surface-2);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
             margin: 15px 20px;
             overflow: hidden;
         }
         
         .validation-header {
-            background: #6c757d;
-            color: white;
+            background: var(--surface-3);
+            color: var(--text-primary);
             padding: 12px 15px;
             cursor: pointer;
             display: flex;
@@ -103,18 +111,18 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
+            background: var(--surface-1);
         }
         
         th, td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-subtle);
             padding: 12px;
             text-align: left;
             vertical-align: top;
         }
         
         th {
-            background: #f8f9fa;
+            background: var(--surface-2);
             font-weight: bold;
             position: sticky;
             top: 0;
@@ -135,26 +143,26 @@
             cursor: pointer;
         }
         
-        .status-good { background: #28a745; }
-        .status-warning { background: #ffc107; }
-        .status-error { background: #dc3545; }
-        .status-pending { background: #6c757d; }
+        .status-good { background: var(--color-success); }
+        .status-warning { background: var(--color-warning); }
+        .status-error { background: var(--color-danger); }
+        .status-pending { background: var(--text-muted); }
         
         .validate-btn {
-            background: #6f42c1;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             padding: 4px 8px;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
             cursor: pointer;
         }
         
         /* NEW: Back-translation comparison */
         .back-translation {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 4px;
+            background: var(--color-warning-soft);
+            border: 1px solid var(--color-warning-border);
+            border-radius: var(--radius-sm);
             padding: 10px;
             margin-top: 8px;
             font-size: 13px;
@@ -162,12 +170,12 @@
         
         .similarity-score {
             font-weight: bold;
-            color: #495057;
+            color: var(--text-secondary);
         }
         
-        .score-high { color: #28a745; }
-        .score-medium { color: #ffc107; }
-        .score-low { color: #dc3545; }
+        .score-high { color: var(--color-success); }
+        .score-medium { color: var(--color-warning); }
+        .score-low { color: var(--color-danger); }
         
         .text-comparison {
             display: grid;
@@ -177,25 +185,25 @@
         }
         
         .comparison-section {
-            background: white;
+            background: var(--surface-1);
             padding: 8px;
-            border-radius: 3px;
-            border: 1px solid #dee2e6;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
         }
         
         .comparison-label {
             font-weight: bold;
             font-size: 11px;
-            color: #6c757d;
+            color: var(--text-muted);
             margin-bottom: 4px;
             text-transform: uppercase;
         }
         
         /* Highlight differences */
         .diff-highlight {
-            background: #ffeaa7;
+            background: var(--color-warning-soft);
             padding: 2px 4px;
-            border-radius: 2px;
+            border-radius: var(--radius-sm);
         }
         
         .audio-controls {
@@ -205,21 +213,21 @@
         }
         
         .play-btn {
-            background: #28a745;
-            color: white;
+            background: var(--color-success);
+            color: var(--text-inverse);
             border: none;
             padding: 6px 10px;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 12px;
         }
         
         .generate-btn {
-            background: #007bff;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             padding: 6px 10px;
-            border-radius: 3px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-size: 12px;
         }
@@ -241,17 +249,17 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(15, 23, 42, 0.5);
         }
         
         .modal-content {
-            background-color: white;
+            background-color: var(--surface-1);
             margin: 5% auto;
             padding: 0;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             width: 90%;
             max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-lg);
             animation: modalFadeIn 0.3s;
         }
         
@@ -261,10 +269,10 @@
         }
         
         .modal-header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-muted) 100%);
+            color: var(--accent-contrast);
             padding: 20px;
-            border-radius: 8px 8px 0 0;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
             position: relative;
         }
         
@@ -274,7 +282,7 @@
         }
         
         .close {
-            color: white;
+            color: var(--accent-contrast);
             float: right;
             font-size: 28px;
             font-weight: bold;
@@ -301,22 +309,22 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: #333;
+            color: var(--text-primary);
         }
         
         .credential-group input {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
+            border: 2px solid var(--border-default);
+            border-radius: var(--radius-sm);
             font-size: 14px;
             transition: border-color 0.3s;
         }
         
         .credential-group input:focus {
             outline: none;
-            border-color: #4facfe;
-            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+            border-color: var(--accent);
+            box-shadow: var(--focus-ring);
         }
         
         .credentials-buttons {
@@ -325,7 +333,7 @@
             justify-content: flex-end;
             margin-top: 25px;
             padding-top: 20px;
-            border-top: 1px solid #e1e5e9;
+            border-top: 1px solid var(--border-subtle);
         }
         
         .btn {
@@ -342,30 +350,31 @@
         }
         
         .btn-primary {
-            background: #007bff;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
         }
         
         .btn-primary:hover {
-            background: #0056b3;
+            background: var(--accent-strong);
         }
         
         .btn-success {
-            background: #28a745;
-            color: white;
+            background: var(--color-success);
+            color: var(--text-inverse);
         }
         
         .btn-success:hover {
-            background: #1e7e34;
+            filter: brightness(0.92);
         }
         
         .btn-secondary {
-            background: #6c757d;
-            color: white;
+            background: var(--surface-3);
+            color: var(--text-primary);
+            border: 1px solid var(--border-default);
         }
         
         .btn-secondary:hover {
-            background: #545b62;
+            background: var(--surface-2);
         }
     </style>
 </head>
@@ -409,7 +418,7 @@
             <button class="validation-button" onclick="validateSelected()">Validate Selected</button>
             <button class="validation-button" onclick="validateAll()">Validate All</button>
             
-            <div class="control-group" style="border-left: 2px solid #6c757d; padding-left: 15px;">
+            <div class="control-group" style="border-left: 2px solid var(--border-default); padding-left: 15px;">
                 <button onclick="openCredentialsModal()">
                     <i class="fas fa-key"></i> Manage Credentials
                 </button>
@@ -425,20 +434,20 @@
             <div class="validation-content" id="validationSummary">
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center;">
                     <div>
-                        <div style="font-size: 24px; font-weight: bold; color: #28a745;">156</div>
-                        <div style="color: #6c757d;">Good (>85%)</div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--color-success);">156</div>
+                        <div style="color: var(--text-muted);">Good (>85%)</div>
                     </div>
                     <div>
-                        <div style="font-size: 24px; font-weight: bold; color: #ffc107;">23</div>
-                        <div style="color: #6c757d;">Warning (70-85%)</div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--color-warning);">23</div>
+                        <div style="color: var(--text-muted);">Warning (70-85%)</div>
                     </div>
                     <div>
-                        <div style="font-size: 24px; font-weight: bold; color: #dc3545;">8</div>
-                        <div style="color: #6c757d;">Needs Review (<70%)</div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--color-danger);">8</div>
+                        <div style="color: var(--text-muted);">Needs Review (<70%)</div>
                     </div>
                     <div>
-                        <div style="font-size: 24px; font-weight: bold; color: #6c757d;">45</div>
-                        <div style="color: #6c757d;">Not Validated</div>
+                        <div style="font-size: 24px; font-weight: bold; color: var(--text-muted);">45</div>
+                        <div style="color: var(--text-muted);">Not Validated</div>
                     </div>
                 </div>
             </div>
@@ -455,7 +464,7 @@
                         <th style="width: 300px;">English (Original)</th>
                         <th style="width: 300px;">Spanish (es-CO) 
                             <!-- NEW: Validation Status in Header -->
-                            <span style="float: right; font-size: 12px; color: #6c757d;">Validation</span>
+                            <span style="float: right; font-size: 12px; color: var(--text-muted);">Validation</span>
                         </th>
                         <th style="width: 120px;">Audio</th>
                     </tr>
@@ -558,7 +567,7 @@
                                         <div><span class="diff-highlight">the oak</span></div>
                                     </div>
                                 </div>
-                                <div style="margin-top: 8px; font-size: 12px; color: #856404; background: #fff3cd; padding: 6px; border-radius: 3px;">
+                                <div style="margin-top: 8px; font-size: 12px; color: var(--color-warning); background: var(--color-warning-soft); padding: 6px; border-radius: var(--radius-sm);">
                                     ⚠️ Low similarity detected. Consider reviewing this translation.
                                 </div>
                             </div>

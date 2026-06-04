@@ -6,9 +6,9 @@
             <span class="close" onclick="closeItemsByFileModal()">&times;</span>
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-            <p id="itemsByFileMessage" style="color: #666; margin-bottom: 12px;"></p>
+            <p id="itemsByFileMessage" style="color: var(--text-muted); margin-bottom: 12px;"></p>
             <table id="itemsByFileTable" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                <thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Count</th><th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">File path</th></tr></thead>
+                <thead><tr><th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Count</th><th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">File path</th></tr></thead>
                 <tbody id="itemsByFileBody"></tbody>
             </table>
         </div>
@@ -23,13 +23,13 @@
             <span class="close" onclick="closeReviewHistoryModal()">&times;</span>
         </div>
         <div class="modal-body" style="max-height: 72vh; overflow-y: auto;">
-            <p id="reviewHistoryMessage" style="color: #666; margin-bottom: 12px;"></p>
+            <p id="reviewHistoryMessage" style="color: var(--text-muted); margin-bottom: 12px;"></p>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9em; color:#37474f;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9em; color:var(--text-secondary);">
                     <input type="checkbox" id="reviewHistoryChangesOnly" onchange="renderReviewHistoryRows()" style="cursor:pointer;">
                     Changes only
                 </label>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9em; color:#37474f;">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9em; color:var(--text-secondary);">
                     <input type="checkbox" id="reviewHistoryLatestChangeOnly" onchange="renderReviewHistoryRows()" style="cursor:pointer;">
                     Latest change per item only
                 </label>
@@ -37,10 +37,10 @@
             <table id="reviewHistoryTable" style="width: 100%; border-collapse: collapse; font-size: 0.88em; display: none;">
                 <thead>
                     <tr>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Snapshot</th>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Item ID</th>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Reason</th>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Updated</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Snapshot</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Item ID</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Reason</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Updated</th>
                     </tr>
                 </thead>
                 <tbody id="reviewHistoryBody"></tbody>
@@ -57,7 +57,7 @@
             <span class="close" onclick="closeCrowdinFilesModal()">&times;</span>
         </div>
         <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-            <p id="crowdinFilesMessage" style="color: #666; margin-bottom: 12px;"></p>
+            <p id="crowdinFilesMessage" style="color: var(--text-muted); margin-bottom: 12px;"></p>
             <ul id="crowdinFilesList" style="margin: 0; padding-left: 20px; font-family: monospace; font-size: 0.9em;"></ul>
         </div>
     </div>
@@ -116,7 +116,7 @@
                     <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-bottom:12px;">
                         <button class="btn btn-success btn-compact" :disabled="saving" @click="saveConfig"><i class="fas fa-save"></i> {{ saving ? 'Saving...' : 'Save' }}</button>
                     </div>
-                    <div class="info-section" style="border:1px dashed #ddd; padding:12px; border-radius:8px; margin-bottom:12px;">
+                    <div class="info-section" style="border:1px dashed var(--border-subtle); padding:12px; border-radius:var(--radius-md); margin-bottom:12px;">
                         <h3 style="display:flex; align-items:center; gap:8px;">Add Language</h3>
                         <div class="info-grid">
                             <div class="info-item">
@@ -473,14 +473,14 @@
             <span class="close" onclick="closePendingItemsModal()">&times;</span>
         </div>
         <div class="modal-body" style="max-height: 72vh; overflow-y: auto;">
-            <p id="pendingItemsMessage" style="color: #666; margin-bottom: 12px;"></p>
+            <p id="pendingItemsMessage" style="color: var(--text-muted); margin-bottom: 12px;"></p>
             <table id="pendingItemsTable" style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
                 <thead>
                     <tr>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Item ID</th>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Source (English)</th>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Current translation</th>
-                        <th style="text-align:left; padding:6px; border-bottom:1px solid #ddd;">Source file</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Item ID</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Source (English)</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Current translation</th>
+                        <th style="text-align:left; padding:6px; border-bottom:1px solid var(--border-subtle);">Source file</th>
                     </tr>
                 </thead>
                 <tbody id="pendingItemsBody"></tbody>
@@ -493,11 +493,11 @@
 <div id="unsavedValidationModal" class="modal" style="display: none;">
     <div class="modal-content" style="max-width: 480px;">
         <div class="modal-header">
-            <h2><i class="fas fa-exclamation-triangle" style="color:#f57c00;"></i> Unsaved validation changes</h2>
+            <h2><i class="fas fa-exclamation-triangle" style="color:var(--color-warning);"></i> Unsaved validation changes</h2>
             <span class="close" id="unsavedValidationModalClose" title="Stay on this tab">&times;</span>
         </div>
         <div class="modal-body">
-            <p id="unsavedValidationModalText" style="margin: 0 0 12px 0; color: #37474f; line-height: 1.45;">
+            <p id="unsavedValidationModalText" style="margin: 0 0 12px 0; color: var(--text-secondary); line-height: 1.45;">
                 You have unsaved validation changes (scores, approvals, needs review, notes, etc.).
                 Save them to shared storage, discard them and revert to your last saved state, or stay on this tab.
             </p>

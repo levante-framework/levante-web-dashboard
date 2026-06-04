@@ -6,11 +6,14 @@
     <title>Starlink Events Map - Levante Locations</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="./css/theme.css" />
     <style>
         body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: var(--font-sans);
+            background: var(--color-bg);
+            color: var(--text-primary);
         }
         #map {
             height: 100vh;
@@ -20,36 +23,41 @@
             position: absolute;
             top: 10px;
             right: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            background: var(--surface-1);
+            color: var(--text-primary);
+            padding: var(--space-4);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
             z-index: 1000;
             max-width: 300px;
         }
         .info h3 {
             margin: 0 0 10px 0;
-            font-size: 16px;
-            color: #1976d2;
+            font-size: var(--fs-lg);
+            color: var(--accent);
         }
         .info p {
             margin: 5px 0;
-            font-size: 14px;
-            color: #666;
+            font-size: var(--fs-sm);
+            color: var(--text-secondary);
         }
         .legend {
             position: absolute;
             bottom: 30px;
             right: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            background: var(--surface-1);
+            color: var(--text-primary);
+            padding: var(--space-4);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
             z-index: 1000;
         }
         .legend h4 {
             margin: 0 0 10px 0;
-            font-size: 14px;
+            font-size: var(--fs-sm);
+            color: var(--text-primary);
         }
         .legend-item {
             display: flex;
@@ -61,16 +69,18 @@
             height: 20px;
             border-radius: 50%;
             margin-right: 10px;
-            border: 2px solid #333;
+            border: 2px solid var(--border-strong);
         }
         .location-legend {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            background: var(--surface-1);
+            color: var(--text-primary);
+            padding: var(--space-4);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
             z-index: 1000;
             max-width: 280px;
             max-height: calc(100vh - 40px);
@@ -78,27 +88,27 @@
         }
         .location-legend h3 {
             margin: 0 0 15px 0;
-            font-size: 16px;
-            border-bottom: 2px solid #eee;
+            font-size: var(--fs-lg);
+            border-bottom: 1px solid var(--border-subtle);
             padding-bottom: 10px;
-            color: #1976d2;
+            color: var(--accent);
         }
         .location-legend-item {
             display: flex;
             align-items: center;
             padding: 8px;
             margin: 5px 0;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color var(--transition-fast);
             position: relative;
         }
         .location-legend-item:hover {
-            background-color: #f5f5f5;
+            background-color: var(--surface-3);
         }
         .location-legend-item.active {
-            background-color: #e3f2fd;
-            border-left: 3px solid #2196f3;
+            background-color: var(--accent-soft);
+            border-left: 3px solid var(--accent);
         }
         .location-number {
             width: 24px;
@@ -114,27 +124,28 @@
         }
         .location-name {
             flex: 1;
-            font-size: 13px;
+            font-size: var(--fs-sm);
             font-weight: 500;
+            color: var(--text-primary);
         }
         .location-count {
-            font-size: 11px;
-            color: #666;
+            font-size: var(--fs-xs);
+            color: var(--text-muted);
             margin-left: auto;
         }
         .tooltip {
             position: absolute;
-            background: #333;
-            color: white;
+            background: var(--text-primary);
+            color: var(--text-inverse);
             padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: var(--radius-sm);
+            font-size: var(--fs-xs);
             pointer-events: none;
             z-index: 2000;
             white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-md);
             opacity: 0;
-            transition: opacity 0.2s;
+            transition: opacity var(--transition-fast);
         }
         .tooltip.visible {
             opacity: 1;
@@ -147,7 +158,7 @@
             transform: translateX(-50%);
             border-width: 5px 5px 0;
             border-style: solid;
-            border-color: #333 transparent transparent;
+            border-color: var(--text-primary) transparent transparent;
         }
     </style>
 </head>

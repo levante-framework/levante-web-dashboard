@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEVANTE Framework Translation Pipeline</title>
+    <link rel="stylesheet" href="./css/theme.css" />
     <style>
         /* Reset and Base Styles */
         * {
@@ -13,9 +14,9 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
+            font-family: var(--font-sans);
+            background: var(--color-bg);
+            color: var(--text-primary);
             overflow: hidden;
         }
 
@@ -31,10 +32,10 @@
             padding: 60px;
             height: 100vh;
             overflow-y: auto;
-            background: white;
+            background: var(--surface-1);
             margin: 20px;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
         }
 
         .slide.active {
@@ -43,22 +44,22 @@
 
         /* Typography */
         h1 {
-            color: #667eea;
+            color: var(--accent);
             font-size: 2.5em;
             margin-bottom: 20px;
             text-align: center;
-            border-bottom: 3px solid #667eea;
+            border-bottom: 3px solid var(--accent);
             padding-bottom: 15px;
         }
 
         h2 {
-            color: #764ba2;
+            color: var(--accent-strong);
             font-size: 2em;
             margin: 30px 0 15px 0;
         }
 
         h3 {
-            color: #555;
+            color: var(--text-secondary);
             font-size: 1.3em;
             margin: 20px 0 10px 0;
         }
@@ -77,19 +78,19 @@
         }
 
         .nav-btn {
-            background: #667eea;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             padding: 15px 20px;
             margin: 0 5px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             font-size: 16px;
             transition: all 0.3s;
         }
 
         .nav-btn:hover {
-            background: #764ba2;
+            background: var(--accent-strong);
             transform: translateY(-2px);
         }
 
@@ -97,9 +98,11 @@
             position: fixed;
             bottom: 30px;
             left: 30px;
-            background: rgba(255,255,255,0.9);
+            background: var(--surface-translucent);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
             padding: 10px 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             font-weight: bold;
             z-index: 1000;
         }
@@ -111,9 +114,9 @@
             align-items: center;
             margin: 30px 0;
             padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
+            background: var(--surface-2);
+            border-radius: var(--radius-md);
+            border: 2px solid var(--border-subtle);
         }
 
         .flow-row {
@@ -125,21 +128,21 @@
         }
 
         .flow-box {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: var(--accent-contrast);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: var(--radius-md);
             min-width: 200px;
             text-align: center;
             margin: 0 20px;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: var(--shadow-md);
             transition: all 0.3s;
             position: relative;
         }
 
         .flow-box:hover {
             transform: translateY(-5px);
-            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+            box-shadow: var(--shadow-lg);
         }
 
         .flow-box h4 {
@@ -159,14 +162,14 @@
 
         .flow-arrow {
             font-size: 2em;
-            color: #667eea;
+            color: var(--accent);
             margin: 0 15px;
             animation: pulse 2s infinite;
         }
 
         .flow-arrow-down {
             font-size: 2em;
-            color: #667eea;
+            color: var(--accent);
             margin: 10px 0;
             animation: bounce 2s infinite;
         }
@@ -207,9 +210,9 @@
         }
 
         .process-step {
-            background: white;
-            border: 3px solid #667eea;
-            border-radius: 15px;
+            background: var(--surface-1);
+            border: 3px solid var(--accent);
+            border-radius: var(--radius-lg);
             padding: 15px;
             min-width: 200px;
             text-align: center;
@@ -218,13 +221,13 @@
         }
 
         .process-step:hover {
-            border-color: #764ba2;
+            border-color: var(--accent-strong);
             transform: scale(1.05);
         }
 
         .process-step .step-number {
-            background: #667eea;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border-radius: 50%;
             width: 30px;
             height: 30px;
@@ -240,22 +243,22 @@
 
         /* Code blocks */
         .code-block {
-            background: #2d3748;
-            color: #e2e8f0;
+            background: var(--surface-3);
+            color: var(--text-primary);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             margin: 15px 0;
-            font-family: 'Monaco', 'Consolas', monospace;
+            font-family: var(--font-mono);
             overflow-x: auto;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--accent);
         }
 
         .code-block .command {
-            color: #68d391;
+            color: var(--color-success);
         }
 
         .code-block .comment {
-            color: #a0aec0;
+            color: var(--text-muted);
             font-style: italic;
         }
 
@@ -264,14 +267,14 @@
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
         }
 
         .language-matrix th {
-            background: #667eea;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             padding: 15px;
             text-align: center;
         }
@@ -279,25 +282,25 @@
         .language-matrix td {
             padding: 12px;
             text-align: center;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         .language-matrix tr:nth-child(even) {
-            background: #f8f9fa;
+            background: var(--surface-2);
         }
 
         .coverage-bar {
-            background: #e2e8f0;
+            background: var(--surface-3);
             height: 8px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             overflow: hidden;
             margin: 5px 0;
         }
 
         .coverage-fill {
             height: 100%;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+            border-radius: var(--radius-sm);
             transition: width 2s ease-in-out;
         }
 
@@ -310,21 +313,21 @@
         }
 
         .architecture-layer {
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
+            background: var(--surface-1);
+            border: 2px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
             padding: 20px;
             text-align: center;
             transition: all 0.3s;
         }
 
         .architecture-layer:hover {
-            border-color: #667eea;
+            border-color: var(--accent);
             transform: translateY(-5px);
         }
 
         .architecture-layer h4 {
-            color: #667eea;
+            color: var(--accent);
             margin-bottom: 15px;
             font-size: 1.3em;
         }
@@ -338,56 +341,56 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--surface-1);
             padding: 25px;
-            border-radius: 15px;
+            border-radius: var(--radius-lg);
             text-align: center;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-            border-left: 5px solid #667eea;
+            box-shadow: var(--shadow-md);
+            border-left: 5px solid var(--accent);
             transition: all 0.3s;
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
         }
 
         .stat-number {
             font-size: 2.5em;
             font-weight: bold;
-            color: #667eea;
+            color: var(--accent);
             display: block;
         }
 
         .stat-label {
-            color: #666;
+            color: var(--text-muted);
             font-size: 0.9em;
             margin-top: 5px;
         }
 
         /* Interactive Elements */
         .interactive-demo {
-            background: #f8f9fa;
-            border: 2px dashed #667eea;
-            border-radius: 10px;
+            background: var(--surface-2);
+            border: 2px dashed var(--accent-border);
+            border-radius: var(--radius-md);
             padding: 20px;
             margin: 20px 0;
             text-align: center;
         }
 
         .demo-button {
-            background: #667eea;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             padding: 12px 25px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             margin: 10px;
             transition: all 0.3s;
         }
 
         .demo-button:hover {
-            background: #764ba2;
+            background: var(--accent-strong);
             transform: scale(1.05);
         }
 
@@ -404,7 +407,7 @@
             top: 0;
             bottom: 0;
             width: 4px;
-            background: #667eea;
+            background: var(--accent);
             transform: translateX(-50%);
         }
 
@@ -424,11 +427,11 @@
         }
 
         .timeline-content {
-            background: white;
+            background: var(--surface-1);
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border: 2px solid var(--border-subtle);
         }
 
         .timeline-marker {
@@ -436,7 +439,7 @@
             left: 50%;
             width: 20px;
             height: 20px;
-            background: #667eea;
+            background: var(--accent);
             border-radius: 50%;
             transform: translateX(-50%);
             z-index: 2;
@@ -488,7 +491,7 @@
                     </ul>
                 </div>
             </div>
-            <p style="text-align: center; font-style: italic; color: #666; font-size: 1.2em;">
+            <p style="text-align: center; font-style: italic; color: var(--text-muted); font-size: 1.2em;">
                 For Developers Working on LEVANTE Translation Systems
             </p>
         </div>
@@ -788,9 +791,9 @@
         <div class="slide">
             <h1>GCP Bucket Deployment Strategy</h1>
             <div class="flow-diagram">
-                <h3 style="text-align: center; color: #667eea;">Development Environment</h3>
+                <h3 style="text-align: center; color: var(--accent);">Development Environment</h3>
                 <div class="flow-row">
-                    <div class="flow-box" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <div class="flow-box" style="background: linear-gradient(135deg, var(--accent), var(--accent-strong));">
                         <h4>levante-dashboard-dev</h4>
                         <ul>
                             <li>• item-bank-translations.csv</li>
@@ -811,7 +814,7 @@
                 
                 <div class="flow-arrow-down">↓ Sync after validation</div>
                 
-                <h3 style="text-align: center; color: #667eea;">Production Environment</h3>
+                <h3 style="text-align: center; color: var(--accent);">Production Environment</h3>
                 <div class="flow-row">
                     <div class="flow-box" style="background: linear-gradient(135deg, #ff7b7b, #ff9a56);">
                         <h4>levante-dashboard-prod</h4>
@@ -1107,9 +1110,9 @@
                 </div>
             </div>
             
-            <div style="text-align: center; margin: 50px 0; padding: 30px; background: #f8f9fa; border-radius: 15px;">
-                <h2 style="color: #667eea;">Thank You!</h2>
-                <p style="font-size: 1.2em; color: #666; margin: 20px 0;">
+            <div style="text-align: center; margin: 50px 0; padding: 30px; background: var(--surface-2); border-radius: var(--radius-lg);">
+                <h2 style="color: var(--accent);">Thank You!</h2>
+                <p style="font-size: 1.2em; color: var(--text-muted); margin: 20px 0;">
                     Questions and discussion welcome
                 </p>
                 <div class="interactive-demo">

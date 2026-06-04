@@ -139,7 +139,7 @@
         .nav-item.active i { color: var(--accent); }
         .main { grid-area: main; padding: var(--space-5) var(--space-6) var(--space-8); display: flex; flex-direction: column; gap: var(--space-5); max-width: 1500px; width: 100%; box-sizing: border-box; }
         .hero-banner { position: relative; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-md); isolation: isolate; cursor: zoom-in; }
-        .hero-banner .hero-img { display: block; width: 100%; height: 300px; object-fit: cover; object-position: center 38%; }
+        .hero-banner .hero-img { display: block; width: 100%; height: 340px; object-fit: cover; object-position: center 38%; }
         .hero-zoom-hint { position: absolute; top: var(--space-4); right: var(--space-4); z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius-pill, 999px); background: rgba(6, 14, 24, 0.55); border: 1px solid rgba(245, 251, 254, 0.28); color: #f5fbfe; font-size: var(--fs-sm); letter-spacing: 0.02em; backdrop-filter: blur(4px); opacity: 0.85; transition: opacity var(--transition, 180ms ease), background var(--transition, 180ms ease); }
         .hero-banner:hover .hero-zoom-hint, .hero-banner:focus-visible .hero-zoom-hint { opacity: 1; background: rgba(6, 14, 24, 0.7); }
         .hero-banner:focus-visible { outline: var(--focus-ring, 0 0 0 3px rgba(12,126,155,0.35)); outline-offset: 2px; }
@@ -148,7 +148,7 @@
         .hero-overlay h1 { margin: 0; font-size: var(--fs-3xl); font-weight: var(--fw-semibold); color: #f5fbfe; display: flex; align-items: center; gap: 12px; letter-spacing: -0.01em; }
         .hero-overlay p.lead { margin: 10px 0 0; color: rgba(245, 251, 254, 0.92); font-size: var(--fs-lg); max-width: 680px; line-height: var(--lh-normal); }
         @media (max-width: 720px) {
-            .hero-banner .hero-img { height: 220px; }
+            .hero-banner .hero-img { height: 260px; }
             .hero-overlay { padding: var(--space-4); }
             .hero-overlay h1 { font-size: var(--fs-2xl); }
             .hero-zoom-hint .hint-label { display: none; }
@@ -197,6 +197,7 @@
 <li><a class="nav-item" href="./audio-coverage.html"><i class="fas fa-music"></i> Audio Coverage</a></li>
 <li><a class="nav-item" href="./audio-validation.html"><i class="fas fa-wave-square"></i> Audio Validation</a></li>
 <li><a class="nav-item" href="./testing-results.html"><i class="fas fa-vials"></i> Testing Results</a></li>
+<li><a class="nav-item" href="./qa-runs.html"><i class="fas fa-list-check"></i> QA Runs</a></li>
 <li><a class="nav-item" href="./task-template.html"><i class="fas fa-clipboard-check"></i> Validate Task</a></li>
 </ul>
 </div>

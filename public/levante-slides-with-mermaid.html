@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEVANTE Framework Translation Pipeline</title>
+    <link rel="stylesheet" href="./css/theme.css" />
     <style>
         /* Reset and Base Styles */
         * {
@@ -13,9 +14,9 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
+            font-family: var(--font-sans);
+            background: var(--color-bg);
+            color: var(--text-primary);
             overflow: hidden;
         }
 
@@ -31,10 +32,10 @@
             padding: 60px;
             height: 100vh;
             overflow-y: auto;
-            background: white;
+            background: var(--surface-1);
             margin: 20px;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
         }
 
         .slide.active {
@@ -43,22 +44,22 @@
 
         /* Typography */
         h1 {
-            color: #667eea;
+            color: var(--accent);
             font-size: 2.5em;
             margin-bottom: 20px;
             text-align: center;
-            border-bottom: 3px solid #667eea;
+            border-bottom: 3px solid var(--accent);
             padding-bottom: 15px;
         }
 
         h2 {
-            color: #764ba2;
+            color: var(--accent-strong);
             font-size: 2em;
             margin: 30px 0 15px 0;
         }
 
         h3 {
-            color: #555;
+            color: var(--text-secondary);
             font-size: 1.3em;
             margin: 20px 0 10px 0;
         }
@@ -77,19 +78,19 @@
         }
 
         .nav-btn {
-            background: #667eea;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             padding: 15px 20px;
             margin: 0 5px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             font-size: 16px;
             transition: all 0.3s;
         }
 
         .nav-btn:hover {
-            background: #764ba2;
+            background: var(--accent-strong);
             transform: translateY(-2px);
         }
 
@@ -97,47 +98,49 @@
             position: fixed;
             bottom: 30px;
             left: 30px;
-            background: rgba(255,255,255,0.9);
+            background: var(--surface-translucent);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
             padding: 10px 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             font-weight: bold;
             z-index: 1000;
         }
 
         /* Mermaid Styles */
         .mermaid {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+            background: var(--surface-1);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
             padding: 20px;
             margin: 20px 0;
             overflow: auto;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+            box-shadow: var(--shadow-md);
         }
 
         /* Interactive Elements */
         .interactive-demo {
-            background: #f8f9fa;
-            border: 2px dashed #667eea;
-            border-radius: 10px;
+            background: var(--surface-2);
+            border: 2px dashed var(--accent-border);
+            border-radius: var(--radius-md);
             padding: 20px;
             margin: 20px 0;
             text-align: center;
         }
 
         .demo-button {
-            background: #667eea;
-            color: white;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             padding: 12px 25px;
-            border-radius: 8px;
+            border-radius: var(--radius-md);
             cursor: pointer;
             margin: 10px;
             transition: all 0.3s;
         }
 
         .demo-button:hover {
-            background: #764ba2;
+            background: var(--accent-strong);
             transform: scale(1.05);
         }
 
@@ -180,7 +183,7 @@
 <div class="slide active">
   <h1>LEVANTE Framework Translation Pipeline</h1>
   <div style="text-align: center; margin: 50px 0;">
-                <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 30px; border-radius: 15px; display: inline-block; margin: 20px; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);">
+                <div style="background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--accent-contrast); padding: 30px; border-radius: var(--radius-lg); display: inline-block; margin: 20px; box-shadow: var(--shadow-md);">
       <h3>A Comprehensive Data Flow Overview</h3>
                     <ul style="text-align: left; list-style: none; margin-top: 20px;">
                         <li>• Translation Pipeline Architecture</li>
@@ -190,7 +193,7 @@
       </ul>
     </div>
   </div>
-  <p style="text-align: center; font-style: italic; color: #666; font-size: 1.2em;">
+  <p style="text-align: center; font-style: italic; color: var(--text-muted); font-size: 1.2em;">
     For Developers Working on LEVANTE Translation Systems
   </p>
 </div>
@@ -316,8 +319,8 @@ flowchart TD
             <h1>Contact & Resources</h1>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin: 30px 0;">
-                <div style="background: white; border: 2px solid #e2e8f0; border-radius: 15px; padding: 20px; text-align: center;">
-                    <h4 style="color: #667eea; margin-bottom: 15px;">Repository Links</h4>
+                <div style="background: var(--surface-1); border: 2px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
+                    <h4 style="color: var(--accent); margin-bottom: 15px;">Repository Links</h4>
                     <ul style="text-align: left; list-style: none;">
                         <li><strong>levante_translations:</strong><br>github.com/levante-framework/levante_translations</li>
                         <li><strong>levante-dashboard:</strong><br>github.com/levante-framework/levante-dashboard</li>
@@ -325,8 +328,8 @@ flowchart TD
                     </ul>
                 </div>
                 
-                <div style="background: white; border: 2px solid #e2e8f0; border-radius: 15px; padding: 20px; text-align: center;">
-                    <h4 style="color: #667eea; margin-bottom: 15px;">Live Deployments</h4>
+                <div style="background: var(--surface-1); border: 2px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
+                    <h4 style="color: var(--accent); margin-bottom: 15px;">Live Deployments</h4>
                     <ul style="text-align: left; list-style: none;">
                         <li><strong>Web Dashboard:</strong><br>audio-dashboard-levante.vercel.app</li>
                         <li><strong>Production Dashboard:</strong><br>platform.levante-network.org</li>
@@ -334,8 +337,8 @@ flowchart TD
                     </ul>
                 </div>
                 
-                <div style="background: white; border: 2px solid #e2e8f0; border-radius: 15px; padding: 20px; text-align: center;">
-                    <h4 style="color: #667eea; margin-bottom: 15px;">Support Resources</h4>
+                <div style="background: var(--surface-1); border: 2px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; text-align: center;">
+                    <h4 style="color: var(--accent); margin-bottom: 15px;">Support Resources</h4>
                     <ul style="text-align: left; list-style: none;">
                         <li>README files in each repository</li>
                         <li>GitHub Issues for bug reports</li>
@@ -345,9 +348,9 @@ flowchart TD
 </div>
 </div>
 
-            <div style="text-align: center; margin: 50px 0; padding: 30px; background: #f8f9fa; border-radius: 15px;">
-                <h2 style="color: #667eea;">Thank You!</h2>
-                <p style="font-size: 1.2em; color: #666; margin: 20px 0;">
+            <div style="text-align: center; margin: 50px 0; padding: 30px; background: var(--surface-2); border-radius: var(--radius-lg);">
+                <h2 style="color: var(--accent);">Thank You!</h2>
+                <p style="font-size: 1.2em; color: var(--text-muted); margin: 20px 0;">
                     Questions and discussion welcome
                 </p>
                 <div class="interactive-demo">
