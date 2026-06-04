@@ -9,15 +9,17 @@
     <link rel="stylesheet" href="./styles.css">
     <style>
         :root {
-            color-scheme: light dark;
+            color-scheme: light;
         }
 
         body {
             font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background:
-                radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)),
-                linear-gradient(190deg, #020617 0%, #0b1220 100%);
-            color: #e2e8f0;
+            background: var(--color-bg);
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(12,126,155,0.08), transparent 42%),
+                radial-gradient(circle at 100% 100%, rgba(181,120,26,0.06), transparent 42%);
+            background-attachment: fixed;
+            color: var(--text-primary);
             margin: 0;
             padding: 0;
         }
@@ -45,7 +47,7 @@
             margin: 0 0 10px;
             font-weight: 600;
             letter-spacing: 0.03em;
-            color: #f8fafc;
+            color: var(--text-primary);
         }
 
         .actions-bar {
@@ -84,44 +86,44 @@
         }
 
         .approve-button {
-            background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%);
-            color: #0b1220;
-            box-shadow: 0 15px 35px rgba(255, 123, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: var(--accent);
+            color: var(--accent-contrast);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-subtle);
         }
 
         .approve-button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 22px 45px rgba(255, 123, 0, 0.45);
+            box-shadow: var(--shadow-lg);
         }
 
         .log-button {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.9) 0%, rgba(14, 165, 233, 0.98) 100%);
-            color: #03101f;
-            box-shadow: 0 15px 36px rgba(56, 189, 248, 0.32);
-            border: 1px solid rgba(56, 189, 248, 0.45);
+            background: var(--accent-soft);
+            color: var(--accent);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--accent-border);
         }
 
         .log-button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 22px 46px rgba(56, 189, 248, 0.48);
+            box-shadow: var(--shadow-md);
         }
 
         .delete-button {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.92) 0%, rgba(127, 29, 29, 0.95) 100%);
-            color: #fef2f2;
-            box-shadow: 0 15px 35px rgba(239, 68, 68, 0.32);
-            border: 1px solid rgba(248, 113, 113, 0.4);
+            background: var(--color-danger);
+            color: var(--accent-contrast);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-danger-border);
         }
 
         .delete-button:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 22px 45px rgba(239, 68, 68, 0.45);
+            box-shadow: var(--shadow-lg);
         }
 
         .folder-info {
             font-size: 0.95rem;
-            color: rgba(148, 198, 255, 0.75);
+            color: var(--text-secondary);
             letter-spacing: 0.05em;
             text-transform: uppercase;
         }
@@ -131,28 +133,28 @@
             padding: 14px 20px;
             margin-bottom: 22px;
             font-size: 0.95rem;
-            background: rgba(3, 12, 28, 0.85);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            box-shadow: 0 18px 45px rgba(2, 6, 23, 0.45);
+            background: var(--surface-2);
+            color: var(--accent);
+            border: 1px solid var(--accent-border);
+            box-shadow: var(--shadow-md);
         }
 
         .status.error {
-            background: rgba(76, 29, 36, 0.75);
-            color: #fca5a5;
-            border-color: rgba(248, 113, 113, 0.4);
+            background: var(--color-danger-soft);
+            color: var(--color-danger);
+            border-color: var(--color-danger-border);
         }
 
         .status.success {
-            background: rgba(13, 148, 136, 0.22);
-            color: #5eead4;
-            border-color: rgba(45, 212, 191, 0.4);
+            background: var(--color-success-soft);
+            color: var(--color-success);
+            border-color: var(--color-success-border);
         }
 
         .status.loading {
-            background: rgba(120, 53, 15, 0.35);
-            color: #fdba74;
-            border-color: rgba(251, 191, 36, 0.35);
+            background: var(--color-warning-soft);
+            color: var(--color-warning);
+            border-color: var(--color-warning-border);
         }
 
         .activity-log-panel {
@@ -160,9 +162,9 @@
             margin-bottom: 22px;
             padding: 18px 22px;
             border-radius: 18px;
-            background: rgba(4, 11, 24, 0.82);
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            box-shadow: 0 22px 58px rgba(2, 6, 23, 0.5);
+            background: var(--surface-1);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-md);
         }
 
         .activity-log-panel.is-open {
@@ -182,13 +184,13 @@
             font-size: 1rem;
             letter-spacing: 0.05em;
             text-transform: uppercase;
-            color: #f8fafc;
+            color: var(--text-primary);
         }
 
         .activity-log-close {
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            background: rgba(15, 23, 42, 0.6);
-            color: #e2e8f0;
+            border: 1px solid var(--border-default);
+            background: var(--surface-3);
+            color: var(--text-primary);
             width: 36px;
             height: 36px;
             border-radius: 50%;
@@ -198,9 +200,9 @@
         }
 
         .activity-log-close:hover {
-            background: rgba(56, 189, 248, 0.25);
-            color: #03101f;
-            border-color: rgba(56, 189, 248, 0.45);
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: var(--accent-border);
         }
 
         .activity-log-list {
@@ -220,48 +222,48 @@
             gap: 12px;
             padding: 10px 14px;
             border-radius: 14px;
-            border: 1px solid rgba(56, 189, 248, 0.18);
-            background: rgba(8, 24, 46, 0.75);
+            border: 1px solid var(--border-subtle);
+            background: var(--surface-2);
             font-size: 0.9rem;
-            color: #e2e8f0;
+            color: var(--text-primary);
         }
 
         .activity-log-item .log-time {
             font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
             font-size: 0.8rem;
-            color: rgba(148, 163, 184, 0.75);
+            color: var(--text-secondary);
             letter-spacing: 0.05em;
         }
 
         .activity-log-item.success {
-            border-color: rgba(34, 197, 94, 0.3);
-            background: rgba(6, 78, 59, 0.4);
+            border-color: var(--color-success-border);
+            background: var(--color-success-soft);
         }
 
         .activity-log-item.error {
-            border-color: rgba(248, 113, 113, 0.4);
-            background: rgba(76, 29, 36, 0.45);
+            border-color: var(--color-danger-border);
+            background: var(--color-danger-soft);
         }
 
         .activity-log-item.warning {
-            border-color: rgba(251, 191, 36, 0.4);
-            background: rgba(120, 53, 15, 0.45);
+            border-color: var(--color-warning-border);
+            background: var(--color-warning-soft);
         }
 
         .activity-log-empty {
             font-size: 0.9rem;
-            color: rgba(148, 163, 184, 0.7);
+            color: var(--text-secondary);
             padding: 12px 0;
             text-align: center;
         }
 
         .share-content {
-            background: rgba(4, 11, 24, 0.82);
+            background: var(--surface-1);
             border-radius: 18px;
-            box-shadow: 0 28px 70px rgba(2, 6, 23, 0.55);
+            box-shadow: var(--shadow-md);
             padding: 24px 28px;
             overflow-x: auto;
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            border: 1px solid var(--border-subtle);
         }
 
         table {
@@ -273,7 +275,7 @@
         th, td {
             padding: 12px 14px;
             text-align: left;
-            border-bottom: 1px solid rgba(56, 189, 248, 0.12);
+            border-bottom: 1px solid var(--border-subtle);
         }
 
         th:first-child,
@@ -288,33 +290,33 @@
         }
 
         th {
-            background: rgba(56, 189, 248, 0.12);
+            background: var(--accent-soft);
             font-weight: 600;
-            color: #f8fafc;
+            color: var(--text-primary);
             letter-spacing: 0.08em;
             text-transform: uppercase;
         }
 
         tr:hover {
-            background: rgba(59, 130, 246, 0.12);
+            background: var(--surface-3);
         }
 
         code {
-            background: rgba(15, 23, 42, 0.8);
+            background: var(--surface-3);
             padding: 3px 8px;
             border-radius: 6px;
             font-size: 0.9rem;
-            color: #93c5fd;
+            color: var(--accent);
         }
 
         .empty-state {
             padding: 36px 0;
             text-align: center;
-            color: rgba(148, 163, 184, 0.75);
+            color: var(--text-secondary);
         }
 
         .download-link {
-            color: #38bdf8;
+            color: var(--accent);
             text-decoration: none;
             font-weight: 600;
             letter-spacing: 0.03em;
@@ -337,9 +339,9 @@
             font-size: 0.78rem;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            background: rgba(148, 163, 184, 0.18);
-            color: rgba(203, 213, 225, 0.85);
-            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: var(--surface-3);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
         }
 
         .pill-subtext {
@@ -347,51 +349,51 @@
             font-size: 0.68rem;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: rgba(203, 213, 225, 0.7);
+            color: var(--text-muted);
         }
 
         .site-approval-pill.is-approved,
 .status-pill.status-approved {
-            background: rgba(250, 204, 21, 0.22);
-            color: #fef08a;
-            border-color: rgba(250, 204, 21, 0.4);
-            box-shadow: 0 8px 18px rgba(250, 204, 21, 0.25);
+            background: var(--color-success-soft);
+            color: var(--color-success);
+            border-color: var(--color-success-border);
+            box-shadow: var(--shadow-sm);
         }
 
         .site-approval-pill.is-approved .pill-subtext,
 .status-pill.status-approved .pill-subtext {
-            color: rgba(254, 240, 138, 0.85);
+            color: var(--color-success);
         }
 
         .site-approval-pill.is-stale,
         .status-pill.status-stale {
-            background: rgba(251, 191, 36, 0.22);
-            color: #fde68a;
-            border-color: rgba(251, 191, 36, 0.4);
-            box-shadow: 0 8px 18px rgba(251, 191, 36, 0.25);
+            background: var(--color-warning-soft);
+            color: var(--color-warning);
+            border-color: var(--color-warning-border);
+            box-shadow: var(--shadow-sm);
         }
 
         .site-approval-pill.is-stale .pill-subtext,
         .status-pill.status-stale .pill-subtext {
-            color: rgba(253, 230, 138, 0.8);
+            color: var(--color-warning);
         }
 
         .status-pill.status-not-approved {
-            background: rgba(239, 68, 68, 0.2);
-            color: #fecaca;
-            border-color: rgba(239, 68, 68, 0.35);
-            box-shadow: 0 8px 18px rgba(239, 68, 68, 0.25);
+            background: var(--color-danger-soft);
+            color: var(--color-danger);
+            border-color: var(--color-danger-border);
+            box-shadow: var(--shadow-sm);
         }
 
         .status-pill.status-not-approved .pill-subtext {
-            color: rgba(254, 202, 202, 0.8);
+            color: var(--color-danger);
         }
 
         .status-pill.status-ready {
-            background: rgba(34, 197, 94, 0.22);
-            color: #bbf7d0;
-            border-color: rgba(34, 197, 94, 0.38);
-            box-shadow: 0 8px 18px rgba(34, 197, 94, 0.25);
+            background: var(--color-success-soft);
+            color: var(--color-success);
+            border-color: var(--color-success-border);
+            box-shadow: var(--shadow-sm);
         }
 
         audio {
@@ -403,7 +405,7 @@
         .approval-note {
             margin-top: 26px;
             font-size: 0.9rem;
-            color: rgba(148, 163, 184, 0.85);
+            color: var(--text-secondary);
             letter-spacing: 0.04em;
             text-transform: none;
         }

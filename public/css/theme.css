@@ -1,0 +1,164 @@
+/* =====================================================================
+   LEVANTE Mission Control — Design Tokens & Global Base
+   ---------------------------------------------------------------------
+   Central source of truth for colors, typography, spacing, radii, focus,
+   and motion. Loaded by styles.css via @import, so any page that links
+   styles.css inherits these tokens automatically.
+
+   Theme intent: calm, light, low-glare research operations console
+   (soft cool-gray background, near-white surfaces). Cyan is the single
+   primary accent. Amber/red are used ONLY for alerts/exceptional states.
+   ===================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Base surfaces (soft cool paper/slate, never pure white) ---- */
+  --color-bg:            #e9edf3; /* app background */
+  --color-bg-deep:       #e1e6ee; /* page edges / nav rail */
+  --surface-1:           #fbfcfe; /* primary panels, cards (near-white) */
+  --surface-2:           #f2f5f9; /* raised panels, headers, command bar */
+  --surface-3:           #e7ecf3; /* hover / active / inputs */
+  --surface-translucent: rgba(251, 252, 254, 0.92);
+
+  /* ---- Borders & dividers (subtle alpha, minimal hard lines) ---- */
+  --border-subtle:  rgba(15, 23, 42, 0.10);
+  --border-default: rgba(15, 23, 42, 0.16);
+  --border-strong:  rgba(15, 23, 42, 0.26);
+
+  /* ---- Text (dark slate + cool grays, never pure black) ---- */
+  --text-primary:   #1f2733;
+  --text-secondary: #51607a;
+  --text-muted:     #6b7688;
+  --text-inverse:   #f5fbfe; /* text on accent / dark fills */
+
+  /* ---- Primary accent: cyan (telemetry + selection), AA on light ---- */
+  --accent:          #0c7e9b;
+  --accent-strong:   #0a6a82; /* hover / focus / active emphasis */
+  --accent-muted:    #2a93ad;
+  --accent-soft:     rgba(12, 126, 155, 0.12); /* tinted backgrounds */
+  --accent-border:   rgba(12, 126, 155, 0.34);
+  --accent-contrast: #f5fbfe; /* text on solid accent */
+
+  /* ---- Alert / status colors (restrained, alert-only usage) ---- */
+  --color-success:        #1f9d63;
+  --color-success-soft:   rgba(31, 157, 99, 0.14);
+  --color-success-border: rgba(31, 157, 99, 0.38);
+
+  --color-warning:        #b5781a; /* amber, darkened for AA on light */
+  --color-warning-soft:   rgba(181, 120, 26, 0.14);
+  --color-warning-border: rgba(181, 120, 26, 0.38);
+
+  --color-danger:         #c5453f; /* restrained red */
+  --color-danger-soft:    rgba(197, 69, 63, 0.12);
+  --color-danger-border:  rgba(197, 69, 63, 0.38);
+
+  --color-info:           var(--accent);
+  --color-info-soft:      var(--accent-soft);
+  --color-info-border:    var(--accent-border);
+
+  /* ---- Typography ---- */
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", "Consolas", "Monaco",
+               "Courier New", monospace;
+
+  --fs-xs:   0.8125rem; /* 13px — captions/badges only, not body */
+  --fs-sm:   0.9375rem; /* 15px */
+  --fs-base: 1rem;      /* 16px — minimum body size */
+  --fs-lg:   1.125rem;  /* 18px */
+  --fs-xl:   1.375rem;  /* 22px */
+  --fs-2xl:  1.75rem;   /* 28px */
+  --fs-3xl:  2.25rem;   /* 36px */
+
+  --lh-tight:   1.25;
+  --lh-normal:  1.5;
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+  --tracking-wide: 0.04em;
+
+  /* ---- Spacing scale ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  /* ---- Radii ---- */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-pill: 999px;
+
+  /* ---- Shadows (restrained, no colored glow) ---- */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.14);
+
+  /* ---- Motion ---- */
+  --transition-fast: 120ms ease;
+  --transition:      180ms ease;
+
+  /* ---- Focus ---- */
+  --focus-ring-color: var(--accent);
+  --focus-ring:       0 0 0 3px rgba(12, 126, 155, 0.35);
+  --focus-offset:     2px;
+
+  /* ---- Layout ---- */
+  --content-max: 1400px;
+}
+
+/* ---------------------------------------------------------------------
+   Global base — applied wherever theme.css is loaded.
+   Kept intentionally light so it does not fight existing page styles.
+   --------------------------------------------------------------------- */
+
+/* Visible, consistent keyboard focus on all interactive elements. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-sm);
+}
+
+/* Calm text selection in the accent family. */
+::selection {
+  background: rgba(12, 126, 155, 0.20);
+  color: var(--text-primary);
+}
+
+/* Themed scrollbars to match the slate surfaces. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* Respect reduced-motion: tone down all animation/transition. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

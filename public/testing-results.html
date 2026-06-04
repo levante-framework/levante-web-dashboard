@@ -19,9 +19,11 @@
       font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)),
-        linear-gradient(190deg, #020617 0%, #0b1220 100%);
-      color: #e2e8f0;
+      background: var(--color-bg);
+      background-image: radial-gradient(circle at 0% 0%, rgba(12, 126, 155, 0.08), transparent 42%),
+        radial-gradient(circle at 100% 100%, rgba(181, 120, 26, 0.06), transparent 42%);
+      background-attachment: fixed;
+      color: var(--text-primary);
       min-height: 100vh;
     }
     .testing-container {
@@ -46,12 +48,12 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      color: #ffb347;
+      color: var(--accent);
       letter-spacing: 0.02em;
     }
     .testing-subtitle {
       margin: 0;
-      color: rgba(226, 232, 240, 0.75);
+      color: var(--text-secondary);
       font-size: 0.95rem;
     }
     .testing-actions {
@@ -61,11 +63,11 @@
       flex-wrap: wrap;
     }
     .testing-section {
-      background: rgba(9, 17, 31, 0.92);
-      border: 1px solid rgba(0, 160, 222, 0.24);
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
       border-radius: 18px;
       padding: 24px 26px;
-      box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+      box-shadow: var(--shadow-lg);
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -80,7 +82,7 @@
     .section-header h3 {
       margin: 0;
       font-size: 1.35rem;
-      color: #f8fafc;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
       gap: 10px;
@@ -89,13 +91,13 @@
       font-size: 0.85rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: rgba(148, 198, 255, 0.75);
+      color: var(--text-secondary);
     }
     .table-wrapper {
       overflow-x: auto;
       border-radius: 16px;
-      border: 1px solid rgba(0, 160, 222, 0.22);
-      box-shadow: inset 0 0 24px rgba(2, 6, 23, 0.4);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-sm);
     }
     table {
       width: 100%;
@@ -107,23 +109,23 @@
       padding: 14px 16px;
       text-align: left;
       font-size: 0.92rem;
-      border-bottom: 1px solid rgba(0, 160, 222, 0.16);
+      border-bottom: 1px solid var(--border-subtle);
     }
     thead th {
-      background: linear-gradient(135deg, rgba(255, 111, 0, 0.9) 0%, rgba(255, 179, 71, 0.9) 100%);
-      color: #0b1220;
+      background: var(--accent);
+      color: var(--accent-contrast);
       text-transform: uppercase;
       letter-spacing: 0.08em;
       font-size: 0.78rem;
     }
     tbody tr {
-      background: rgba(6, 14, 26, 0.88);
+      background: var(--surface-1);
     }
     tbody tr:nth-child(even) {
-      background: rgba(8, 18, 32, 0.88);
+      background: var(--surface-2);
     }
     tbody tr:hover {
-      background: rgba(255, 123, 0, 0.12);
+      background: var(--accent-soft);
     }
     .result-pill {
       display: inline-flex;
@@ -138,27 +140,27 @@
       border: 1px solid transparent;
     }
     .result-pass {
-      background: rgba(34, 197, 94, 0.15);
-      color: #34d399;
-      border-color: rgba(34, 197, 94, 0.4);
+      background: var(--color-success-soft);
+      color: var(--color-success);
+      border-color: var(--color-success-border);
     }
     .result-fail {
-      background: rgba(248, 113, 113, 0.16);
-      color: #f87171;
-      border-color: rgba(248, 113, 113, 0.4);
+      background: var(--color-danger-soft);
+      color: var(--color-danger);
+      border-color: var(--color-danger-border);
     }
     .result-unknown {
-      background: rgba(148, 163, 184, 0.18);
-      color: rgba(226, 232, 240, 0.75);
-      border-color: rgba(148, 163, 184, 0.4);
+      background: var(--surface-3);
+      color: var(--text-secondary);
+      border-color: var(--border-default);
     }
     .result-running {
-      background: rgba(250, 204, 21, 0.18);
-      color: #facc15;
-      border-color: rgba(250, 204, 21, 0.4);
+      background: var(--color-warning-soft);
+      color: var(--color-warning);
+      border-color: var(--color-warning-border);
     }
     .issue-link {
-      color: #38bdf8;
+      color: var(--accent);
       text-decoration: none;
       font-weight: 600;
     }
@@ -176,29 +178,29 @@
       font-size: 0.8rem;
     }
     .details-button {
-      background: rgba(0, 160, 222, 0.2);
-      color: #e2e8f0;
-      border: 1px solid rgba(0, 160, 222, 0.45);
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent-border);
     }
     .details-button:hover {
-      background: rgba(0, 160, 222, 0.45);
-      color: #03101f;
+      background: var(--accent);
+      color: var(--accent-contrast);
     }
     .inline-note {
       font-size: 0.8rem;
-      color: rgba(148, 163, 184, 0.75);
+      color: var(--text-muted);
     }
     .testing-warning {
-      background: rgba(250, 204, 21, 0.12);
-      border: 1px solid rgba(250, 204, 21, 0.4);
-      color: #fde68a;
+      background: var(--color-warning-soft);
+      border: 1px solid var(--color-warning-border);
+      color: var(--color-warning);
       padding: 12px 16px;
       border-radius: 12px;
       font-size: 0.9rem;
       display: flex;
       align-items: center;
       gap: 10px;
-      box-shadow: 0 16px 30px rgba(2, 6, 23, 0.35);
+      box-shadow: var(--shadow-md);
     }
     .signin-form {
       display: flex;
@@ -206,30 +208,30 @@
       gap: 12px;
     }
     .signin-form input {
-      background: rgba(7, 13, 24, 0.9);
-      border: 1px solid rgba(255, 123, 0, 0.3);
+      background: var(--surface-3);
+      border: 1px solid var(--border-default);
       border-radius: 8px;
       padding: 12px;
-      color: #f8fafc;
+      color: var(--text-primary);
       font-size: 1rem;
     }
     .signin-form input:focus {
       outline: none;
-      border-color: rgba(255, 123, 0, 0.7);
+      border-color: var(--accent-border);
     }
     .signin-form button {
-      background: rgba(255, 123, 0, 0.85);
+      background: var(--accent);
       border: none;
       border-radius: 8px;
       padding: 12px;
-      color: #06141f;
+      color: var(--accent-contrast);
       font-weight: 600;
       cursor: pointer;
       font-size: 1rem;
       transition: background 0.2s;
     }
     .signin-form button:hover {
-      background: rgba(255, 123, 0, 1);
+      background: var(--accent-strong);
     }
     .signin-form button:disabled {
       opacity: 0.6;
@@ -238,7 +240,7 @@
     .signin-divider {
       text-align: center;
       margin: 8px 0;
-      color: rgba(203, 213, 225, 0.6);
+      color: var(--text-muted);
       position: relative;
     }
     .signin-divider::before,
@@ -248,7 +250,7 @@
       top: 50%;
       width: 40%;
       height: 1px;
-      background: rgba(255, 123, 0, 0.2);
+      background: var(--border-default);
     }
     .signin-divider::before {
       left: 0;
@@ -257,11 +259,11 @@
       right: 0;
     }
     .signin-google-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 123, 0, 0.3);
+      background: var(--surface-3);
+      border: 1px solid var(--border-default);
       border-radius: 8px;
       padding: 12px;
-      color: #f8fafc;
+      color: var(--text-primary);
       font-weight: 600;
       cursor: pointer;
       font-size: 1rem;
@@ -272,14 +274,14 @@
       transition: background 0.2s;
     }
     .signin-google-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--border-subtle);
     }
     .signin-error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: var(--color-danger-soft);
+      border: 1px solid var(--color-danger-border);
       border-radius: 8px;
       padding: 10px 12px;
-      color: #fca5a5;
+      color: var(--color-danger);
       font-size: 0.9rem;
       display: none;
     }
@@ -301,10 +303,10 @@
       padding: 0;
       width: min(720px, 95%);
       border-radius: 20px;
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      background: radial-gradient(circle at top, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.98));
-      box-shadow: 0 28px 70px rgba(2, 6, 23, 0.55);
-      color: #e2e8f0;
+      border: 1px solid var(--accent-border);
+      background: var(--surface-1);
+      box-shadow: var(--shadow-lg);
+      color: var(--text-primary);
       animation: modalFadeIn 0.28s ease forwards;
     }
     .modal-header {
@@ -313,13 +315,13 @@
       justify-content: space-between;
       gap: 16px;
       padding: 24px 28px 18px;
-      border-bottom: 1px solid rgba(56, 189, 248, 0.18);
-      background: linear-gradient(180deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0) 100%);
+      border-bottom: 1px solid var(--accent-border);
+      background: var(--accent-soft);
     }
     .modal-header h3 {
       margin: 0;
       font-size: 1.4rem;
-      color: #f8fafc;
+      color: var(--text-primary);
     }
     .modal-body {
       padding: 22px 28px 26px;
@@ -328,10 +330,10 @@
       gap: 16px;
     }
     .modal-body code {
-      background: rgba(2, 10, 22, 0.74);
+      background: var(--surface-3);
       padding: 4px 8px;
       border-radius: 6px;
-      color: #93c5fd;
+      color: var(--accent);
     }
     .modal-row {
       display: grid;
@@ -340,16 +342,16 @@
       font-size: 0.9rem;
     }
     .modal-row span {
-      color: rgba(148, 163, 184, 0.8);
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
       font-size: 0.75rem;
       padding-top: 2px;
     }
     .modal-close {
-      background: rgba(15, 23, 42, 0.55);
-      border: 1px solid rgba(148, 197, 255, 0.4);
-      color: #e2e8f0;
+      background: var(--surface-3);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
       width: 36px;
       height: 36px;
       border-radius: 50%;
@@ -358,9 +360,9 @@
       transition: all 0.2s ease;
     }
     .modal-close:hover {
-      background: rgba(59, 130, 246, 0.35);
-      color: #0f172a;
-      border-color: rgba(125, 211, 252, 0.65);
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent-border);
     }
     @media (max-width: 720px) {
       .testing-container {

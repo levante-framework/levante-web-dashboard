@@ -1,6 +1,6 @@
 {
   // Theme - Light
-  "workbench.colorTheme": "Light+",
+  "workbench.colorTheme": "Default Light+",
   
   // Panel layout
   "workbench.panel.defaultLocation": "bottom",

@@ -1,0 +1,67 @@
+---
+description: LEVANTE static dashboard theming and UI refactor rules
+globs:
+  - "**/*.html"
+  - "**/*.css"
+  - "**/*.scss"
+  - "**/*.js"
+alwaysApply: true
+---
+
+You are modifying the LEVANTE static dashboard site deployed on Vercel.
+
+## Product intent
+- Treat the site as a research operations console, not a marketing page.
+- Visual metaphor: mission control / pit wall / research dashboard.
+- Prioritize readability, hierarchy, stability, and accessibility.
+
+## Design rules
+- Light, low-glare palette: soft cool-gray background with near-white layered surfaces.
+- Never use pure white (#FFFFFF) or pure black (#000000).
+- Use one main accent color (cyan, dark enough for WCAG AA on light) for active/selected states.
+- Use amber or red only for alerts/warnings/exception states.
+- Avoid heavy gradients, neon glow, HUD elements, LCARS-style grids.
+- Avoid tiny labels and cramped panels.
+- Prefer calm spacing, consistent card structures, and minimal chrome.
+
+## Layout rules
+- Keep global navigation and header spatially stable across pages.
+- Avoid big layout jumps between views.
+- Prefer a small number of high-value panels over many noisy widgets.
+- Preserve a clear content hierarchy on each page.
+
+## Component rules (static version)
+- Introduce design tokens via CSS custom properties in a central stylesheet.
+- Use shared classes for cards, panels, headers, badges, tables, and buttons.
+- Reuse these utility / component classes across all HTML files.
+- Do not introduce a new CSS framework unless explicitly asked.
+
+## Typography
+- Minimum body size 16px.
+- Use a clear sans-serif stack.
+- Maintain heading hierarchy (h1–h3) and concise labels.
+
+## Data viz / infographics
+- If charts/images exist, ensure color palettes fit the theme.
+- Do not rely on color alone for meaning.
+- Prefer legible labels and captions.
+
+## Accessibility
+- Maintain visible keyboard focus states on links and controls.
+- Meet WCAG AA contrast for text and controls where feasible.
+- Respect prefers-reduced-motion (disable or tone down animations).
+- Ensure clickable/tappable targets are reasonably sized.
+
+## Code change rules
+- Start with an audit before refactoring styles.
+- Add design tokens in a dedicated theme CSS file.
+- Avoid inline styles unless absolutely necessary.
+- Keep HTML semantic (headings, landmarks, lists).
+- Separate pure visual changes from content or logic changes.
+
+## Output expectations
+For each task:
+1. List files to inspect.
+2. State a short implementation plan.
+3. Edit a minimal set of files.
+4. Summarize changes and note follow-ups.

@@ -12,24 +12,24 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 	<style>
 		.page-container { padding: 16px; }
-		.panel { background:#fff; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.1); padding:16px; resize:both; overflow:auto; min-height:300px; }
+		.panel { background:var(--surface-1); border-radius:10px; box-shadow:var(--shadow-md); padding:16px; resize:both; overflow:auto; min-height:300px; }
 		.panel-header { display:flex; align-items:center; gap:10px; justify-content:space-between; margin-bottom:10px; cursor:default; }
-		.panel-title { font-size:18px; font-weight:700; color:#333; display:flex; align-items:center; gap:8px; }
+		.panel-title { font-size:18px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px; }
 		.controls { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 		.data-table { width:100%; border-collapse:collapse; font-size:12px; }
-		.data-table th { background:#4facfe; color:#fff; padding:8px; text-align:left; position:sticky; top:0; }
-		.data-table td { padding:8px; border-bottom:1px solid #eee; vertical-align:top; }
-		.data-table tr:hover { background:#f8f9fa; }
-		.row-highlight { background:#fff7cc !important; outline:2px solid #f59e0b; outline-offset:-2px; }
-		.audio-path { font-family:monospace; font-size:11px; color:#6c757d; }
+		.data-table th { background:var(--accent); color:var(--accent-contrast); padding:8px; text-align:left; position:sticky; top:0; }
+		.data-table td { padding:8px; border-bottom:1px solid var(--border-subtle); vertical-align:top; }
+		.data-table tr:hover { background:var(--surface-3); }
+		.row-highlight { background:var(--color-warning-soft) !important; outline:2px solid var(--color-warning); outline-offset:-2px; }
+		.audio-path { font-family:monospace; font-size:11px; color:var(--text-secondary); }
 		.text-cell { white-space:normal; word-wrap:break-word; }
-		.badge { padding:2px 6px; border-radius:12px; font-size:11px; background:#eef; color:#334; }
+		.badge { padding:2px 6px; border-radius:12px; font-size:11px; background:var(--accent-soft); color:var(--text-primary); }
 		.regen-menu { position: relative; display: inline-block; }
-		.regen-dropdown { position:absolute; right:0; top:100%; background:#fff; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1); min-width:160px; z-index:10; }
-		.regen-dropdown button { display:block; width:100%; text-align:left; padding:6px 10px; background:#fff; border:none; cursor:pointer; font-size:12px; }
-		.regen-dropdown button:hover { background:#f1f1f1; }
+		.regen-dropdown { position:absolute; right:0; top:100%; background:var(--surface-1); border:1px solid var(--border-default); border-radius:6px; box-shadow:var(--shadow-md); min-width:160px; z-index:10; }
+		.regen-dropdown button { display:block; width:100%; text-align:left; padding:6px 10px; background:var(--surface-1); border:none; cursor:pointer; font-size:12px; }
+		.regen-dropdown button:hover { background:var(--surface-3); }
 		.durations-cell { font-size:11px; line-height:1.2; }
-		.duration-badge { display:block; padding:1px 4px; border-radius:8px; background:#eef; color:#334; margin-bottom:2px; white-space:nowrap; width:max-content; }
+		.duration-badge { display:block; padding:1px 4px; border-radius:8px; background:var(--accent-soft); color:var(--text-primary); margin-bottom:2px; white-space:nowrap; width:max-content; }
 	</style>
 </head>
 <body>
@@ -39,7 +39,7 @@
 				<div class="panel-title"><i class="fas fa-wave-square"></i> Audio Validation</div>
 				<div class="controls">
 					<label for="searchBox">Search</label>
-					<input id="searchBox" v-model="search" @keyup.enter="doSearch" placeholder="Search filename or expected…" style="padding:6px 8px; border:1px solid #ddd; border-radius:6px;" />
+					<input id="searchBox" v-model="search" @keyup.enter="doSearch" placeholder="Search filename or expected…" style="padding:6px 8px; border:1px solid var(--border-default); border-radius:6px;" />
 					<button class="btn btn-compact" @click="doSearch" title="Search"><i class="fas fa-search"></i></button>
 					<button class="btn btn-compact" @click="nextSearch" title="Next result"><i class="fas fa-arrow-down"></i></button>
 					<label for="validationFile" style="margin-left:16px;">Results file:</label>
@@ -53,8 +53,8 @@
 					<span class="badge" v-if="summary">Avg: {{ (summary.avg*100).toFixed(1) }}%</span>
 				</div>
 			</div>
-			<div v-if="error" style="color:#b71c1c; margin-bottom:8px;">{{ error }}</div>
-			<div style="border:1px solid #eee; border-radius:8px; overflow:auto; max-height:70vh;">
+			<div v-if="error" style="color:var(--color-danger); margin-bottom:8px;">{{ error }}</div>
+			<div style="border:1px solid var(--border-subtle); border-radius:8px; overflow:auto; max-height:70vh;">
 				<table class="data-table" style="table-layout: fixed;">
 					<colgroup>
 						<col style="width: 13%">
@@ -98,7 +98,7 @@
 										<i class="fas fa-magic"></i>
 									</button>
 									<div class="regen-dropdown" v-if="regenOpenId===rowId(r)">
-										<div style="font-size:11px; color:#6b7280; padding:6px 10px; text-transform:uppercase;">speed</div>
+										<div style="font-size:11px; color:var(--text-secondary); padding:6px 10px; text-transform:uppercase;">speed</div>
 										<button @click="chooseRegen(r,'default')">default</button>
 										<button @click="chooseRegen(r,'speed_0_9')">.9 speed</button>
 										<button @click="chooseRegen(r,'speed_0_7')">.7 speed</button>

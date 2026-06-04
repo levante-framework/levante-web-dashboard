@@ -9,75 +9,75 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <link href="./styles.css" rel="stylesheet"/>
 <style>
-    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%); color: #e2e8f0; min-height: 100vh; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: var(--color-bg); background-image: radial-gradient(circle at 0% 0%, rgba(12,126,155,0.08), transparent 42%), radial-gradient(circle at 100% 100%, rgba(181,120,26,0.06), transparent 42%); background-attachment: fixed; color: var(--text-primary); min-height: 100vh; }
     .preflight-container { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 28px; }
-    .preflight-header { background: linear-gradient(135deg, rgba(255, 111, 0, 0.92) 0%, rgba(255, 166, 77, 0.85) 55%, rgba(9, 17, 31, 0.92) 100%); border-radius: 22px; padding: 36px; position: relative; overflow: hidden; box-shadow: 0 32px 80px rgba(255, 123, 0, 0.28); }
-    .preflight-header::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 78% 12%, rgba(0, 160, 222, 0.75), transparent 55%), linear-gradient(160deg, rgba(255, 255, 255, 0.18), transparent 72%); opacity: 0.9; pointer-events: none; mix-blend-mode: screen; }
+    .preflight-header { background: linear-gradient(135deg, var(--accent-soft) 0%, var(--surface-2) 60%); border: 1px solid var(--accent-border); border-radius: 22px; padding: 36px; position: relative; overflow: hidden; box-shadow: var(--shadow-md); }
+    .preflight-header::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 78% 12%, rgba(12, 126, 155, 0.10), transparent 55%); opacity: 0.9; pointer-events: none; }
     .preflight-header-content { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 18px; }
     .header-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-    .preflight-header h1 { margin: 0; font-size: 2.4rem; font-weight: 600; letter-spacing: 0.01em; color: #030c1c; text-shadow: 0 14px 36px rgba(0, 0, 0, 0.32); display: flex; align-items: center; gap: 14px; }
-    .preflight-header p { margin: 0; max-width: 720px; font-size: 1rem; color: rgba(3, 13, 28, 0.78); line-height: 1.6; }
-    .refresh-btn { border: none; border-radius: 999px; padding: 10px 20px; background: rgba(3, 12, 28, 0.86); color: #fcebd6; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 16px 38px rgba(3, 12, 28, 0.45); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
-    .refresh-btn:hover { transform: translateY(-2px); background: rgba(255, 123, 0, 0.92); color: #03101f; box-shadow: 0 22px 50px rgba(255, 123, 0, 0.42); }
-    .report-card { background: rgba(9, 17, 31, 0.92); border-radius: 20px; border: 1px solid rgba(0, 160, 222, 0.28); box-shadow: 0 30px 72px rgba(2, 6, 23, 0.5); padding: 28px; display: flex; flex-direction: column; gap: 24px; }
-    .report-card .section { background: rgba(3, 12, 28, 0.82); border: 1px solid rgba(56, 189, 248, 0.22); border-radius: 18px; padding: 20px 24px; box-shadow: 0 24px 52px rgba(2, 6, 23, 0.45); }
-    h1, h2, h3 { color: #f8fafc !important; letter-spacing: 0.03em; }
-    h2 { font-size: 1.25rem !important; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: #ffb347 !important; }
-    h3 { font-size: 0.95rem !important; color: #e2e8f0 !important; }
-    p, .small, .code { color: rgba(226, 232, 240, 0.8) !important; }
-    .code { background: rgba(3, 12, 28, 0.8); padding: 4px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; }
-    .table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: 0 26px 60px rgba(2, 6, 23, 0.5); }
-    .table th, .table td { border: 1px solid rgba(56, 189, 248, 0.18) !important; padding: 12px 16px !important; font-size: 0.9rem !important; text-align: left; }
+    .preflight-header h1 { margin: 0; font-size: 2.4rem; font-weight: 600; letter-spacing: 0.01em; color: var(--text-primary); display: flex; align-items: center; gap: 14px; }
+    .preflight-header p { margin: 0; max-width: 720px; font-size: 1rem; color: var(--text-secondary); line-height: 1.6; }
+    .refresh-btn { border: none; border-radius: 999px; padding: 10px 20px; background: var(--accent); color: var(--accent-contrast); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+    .refresh-btn:hover { transform: translateY(-2px); background: var(--accent-strong); color: var(--accent-contrast); box-shadow: var(--shadow-md); }
+    .report-card { background: var(--surface-1); border-radius: 20px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-md); padding: 28px; display: flex; flex-direction: column; gap: 24px; }
+    .report-card .section { background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: 18px; padding: 20px 24px; box-shadow: var(--shadow-sm); }
+    h1, h2, h3 { color: var(--text-primary) !important; letter-spacing: 0.03em; }
+    h2 { font-size: 1.25rem !important; display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent) !important; }
+    h3 { font-size: 0.95rem !important; color: var(--text-primary) !important; }
+    p, .small, .code { color: var(--text-secondary) !important; }
+    .code { background: var(--surface-3); padding: 4px 8px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; }
+    .table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
+    .table th, .table td { border: 1px solid var(--border-subtle) !important; padding: 12px 16px !important; font-size: 0.9rem !important; text-align: left; }
     .table .select-col { width: 42px; text-align: center !important; padding: 0 8px !important; }
-    .table thead th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%) !important; color: #03101f !important; text-transform: uppercase; letter-spacing: 0.08em; position: sticky; top: 0; z-index: 2; }
-    .table td { background: rgba(7, 13, 24, 0.9) !important; color: #f1f5f9 !important; }
-    .table tr:hover td { background: rgba(255, 123, 0, 0.12) !important; }
+    .table thead th { background: var(--accent) !important; color: var(--accent-contrast) !important; text-transform: uppercase; letter-spacing: 0.08em; position: sticky; top: 0; z-index: 2; }
+    .table td { background: var(--surface-1) !important; color: var(--text-primary) !important; }
+    .table tr:hover td { background: var(--accent-soft) !important; }
     .language-row-inactive { opacity: 0.55; }
-    .language-selection-placeholder { font-style: italic; color: #94a3b8; text-align: left; }
-    .language-selection-note { margin-top: 6px; font-size: 0.85rem; color: #94a3b8; }
+    .language-selection-placeholder { font-style: italic; color: var(--text-muted); text-align: left; }
+    .language-selection-note { margin-top: 6px; font-size: 0.85rem; color: var(--text-muted); }
     .language-checkbox { cursor: pointer; }
     .table .select-col { width: 36px; text-align: center !important; padding: 0 8px !important; }
     .language-checkbox { width: 16px; height: 16px; cursor: pointer; }
     .language-row-inactive { opacity: 0.6; }
-    .language-selection-placeholder { font-style: italic; color: #94a3b8; text-align: left; }
+    .language-selection-placeholder { font-style: italic; color: var(--text-muted); text-align: left; }
     .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
-    .badge.ok { background: rgba(34, 197, 94, 0.18); color: #bbf7d0; }
-    .badge.warn { background: rgba(255, 159, 64, 0.22); color: #ffedd5; }
-    .badge.err { background: rgba(248, 113, 113, 0.22); color: #fecaca; }
-    .stoplight { border-radius: 999px; padding: 6px 16px !important; border: 1px solid rgba(56, 189, 248, 0.32) !important; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; box-shadow: 0 16px 38px rgba(2, 6, 23, 0.45); background: rgba(7, 13, 24, 0.9); color: #f8fafc; }
-    .stoplight.go { background: rgba(34, 197, 94, 0.24) !important; color: #bbf7d0 !important; border-color: rgba(34, 197, 94, 0.42) !important; }
-    .stoplight.diff { background: rgba(255, 159, 64, 0.28) !important; color: #ffedd5 !important; border-color: rgba(255, 159, 64, 0.5) !important; cursor: pointer; }
-    .stoplight.diff:hover { background: rgba(255, 159, 64, 0.42) !important; }
-    .stoplight.fail { background: rgba(248, 113, 113, 0.32) !important; color: #fecaca !important; border-color: rgba(248, 113, 113, 0.5) !important; }
-    .stoplight.loading { background: rgba(15, 23, 42, 0.85) !important; color: #f8fafc !important; border-color: rgba(148, 163, 184, 0.4) !important; }
-    .warning-icon { color: #ffb347; cursor: pointer; margin-left: 6px; font-size: 0.9rem; }
-    .info-icon { color: #38bdf8; cursor: pointer; margin-left: 6px; font-size: 0.8rem; }
-    .report-card button { padding: 6px 12px !important; border-radius: 10px !important; border: 1px solid rgba(56, 189, 248, 0.35) !important; background: rgba(3, 12, 28, 0.78) !important; color: #f8fafc !important; font-weight: 600 !important; letter-spacing: 0.05em !important; cursor: pointer !important; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
-    .report-card button:hover { transform: translateY(-1px); background: rgba(56, 189, 248, 0.92) !important; color: #03101f !important; box-shadow: 0 16px 36px rgba(56, 189, 248, 0.35); }
-    .report-card .link { color: #38bdf8 !important; cursor: pointer; }
+    .badge.ok { background: var(--color-success-soft); color: var(--color-success); }
+    .badge.warn { background: var(--color-warning-soft); color: var(--color-warning); }
+    .badge.err { background: var(--color-danger-soft); color: var(--color-danger); }
+    .stoplight { border-radius: 999px; padding: 6px 16px !important; border: 1px solid var(--border-default) !important; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; box-shadow: var(--shadow-sm); background: var(--surface-2); color: var(--text-primary); }
+    .stoplight.go { background: var(--color-success-soft) !important; color: var(--color-success) !important; border-color: var(--color-success-border) !important; }
+    .stoplight.diff { background: var(--color-warning-soft) !important; color: var(--color-warning) !important; border-color: var(--color-warning-border) !important; cursor: pointer; }
+    .stoplight.diff:hover { background: var(--color-warning-soft) !important; }
+    .stoplight.fail { background: var(--color-danger-soft) !important; color: var(--color-danger) !important; border-color: var(--color-danger-border) !important; }
+    .stoplight.loading { background: var(--surface-2) !important; color: var(--text-secondary) !important; border-color: var(--border-default) !important; }
+    .warning-icon { color: var(--color-warning); cursor: pointer; margin-left: 6px; font-size: 0.9rem; }
+    .info-icon { color: var(--accent); cursor: pointer; margin-left: 6px; font-size: 0.8rem; }
+    .report-card button { padding: 6px 12px !important; border-radius: 10px !important; border: 1px solid var(--border-default) !important; background: var(--surface-2) !important; color: var(--text-primary) !important; font-weight: 600 !important; letter-spacing: 0.05em !important; cursor: pointer !important; transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease; }
+    .report-card button:hover { transform: translateY(-1px); background: var(--accent) !important; color: var(--accent-contrast) !important; box-shadow: var(--shadow-md); }
+    .report-card .link { color: var(--accent) !important; cursor: pointer; }
     .report-card .link:hover { text-decoration: underline; }
-    .report-card .footer { color: rgba(226, 232, 240, 0.75); font-size: 0.85rem; }
+    .report-card .footer { color: var(--text-secondary); font-size: 0.85rem; }
     .report-card .footer .badge { margin-left: 6px; }
-    .modal .modal-content { background: rgba(9, 17, 31, 0.95); color: #f8fafc; border-radius: 18px; border: 1px solid rgba(56, 189, 248, 0.35); }
-    .modal .modal-header { border-bottom: 1px solid rgba(56, 189, 248, 0.25); }
-    .modal .modal-title { color: #ffb347; }
-    .modal .close { color: #f8fafc; }
-    .modal .modal-body { color: #f8fafc; }
-    .modal .modal-body h4 { color: #ffb347 !important; font-weight: 600; margin-top: 20px; margin-bottom: 12px; }
-    .modal .modal-body p { color: #e2e8f0 !important; line-height: 1.6; }
-    .modal .modal-body strong { color: #f8fafc !important; font-weight: 600; }
-    .modal .modal-body small { color: #cbd5e1 !important; }
-    .modal .modal-body .diff-value { color: #ffb347 !important; font-weight: 700; font-size: 1.2em; }
+    .modal .modal-content { background: var(--surface-1); color: var(--text-primary); border-radius: 18px; border: 1px solid var(--border-default); }
+    .modal .modal-header { border-bottom: 1px solid var(--border-subtle); }
+    .modal .modal-title { color: var(--accent); }
+    .modal .close { color: var(--text-primary); }
+    .modal .modal-body { color: var(--text-primary); }
+    .modal .modal-body h4 { color: var(--accent) !important; font-weight: 600; margin-top: 20px; margin-bottom: 12px; }
+    .modal .modal-body p { color: var(--text-secondary) !important; line-height: 1.6; }
+    .modal .modal-body strong { color: var(--text-primary) !important; font-weight: 600; }
+    .modal .modal-body small { color: var(--text-muted) !important; }
+    .modal .modal-body .diff-value { color: var(--accent) !important; font-weight: 700; font-size: 1.2em; }
     .modal .modal-body .diff-section { margin-bottom: 24px; }
     .modal .modal-body .diff-comparison { display: flex; align-items: center; gap: 16px; margin: 12px 0; }
-    .modal .modal-body .diff-item { flex: 1; text-align: center; padding: 12px; background: rgba(7, 13, 24, 0.6); border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); }
-    .modal .modal-body .diff-item strong { color: #ffb347 !important; display: block; margin-bottom: 8px; }
-    .modal .modal-body .diff-arrow { color: #ffb347; font-size: 1.5em; font-weight: bold; }
-    #p0IssuesList, #p1IssuesList { background: rgba(7, 13, 24, 0.92) !important; border: 1px solid rgba(56, 189, 248, 0.22) !important; color: #f8fafc !important; }
+    .modal .modal-body .diff-item { flex: 1; text-align: center; padding: 12px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--border-subtle); }
+    .modal .modal-body .diff-item strong { color: var(--accent) !important; display: block; margin-bottom: 8px; }
+    .modal .modal-body .diff-arrow { color: var(--accent); font-size: 1.5em; font-weight: bold; }
+    #p0IssuesList, #p1IssuesList { background: var(--surface-2) !important; border: 1px solid var(--border-subtle) !important; color: var(--text-primary) !important; }
     #bucketInfoTable table { background: transparent !important; }
-    #bucketInfoTable table thead th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%) !important; color: #03101f !important; }
-    #bucketInfoTable table td { background: rgba(7, 13, 24, 0.9) !important; color: #f1f5f9 !important; border: 1px solid rgba(56, 189, 248, 0.18) !important; }
-    .language-selection-note { margin-top: 4px; color: #cbd5e1; font-style: italic; }
+    #bucketInfoTable table thead th { background: var(--accent) !important; color: var(--accent-contrast) !important; }
+    #bucketInfoTable table td { background: var(--surface-1) !important; color: var(--text-primary) !important; border: 1px solid var(--border-subtle) !important; }
+    .language-selection-note { margin-top: 4px; color: var(--text-muted); font-style: italic; }
     @media (max-width: 768px) {
         .preflight-header { padding: 28px; }
         .preflight-header h1 { font-size: 2rem; }
@@ -107,8 +107,8 @@
 <th rowspan="2" class="select-col"><input type="checkbox" id="languageSelectAll" aria-label="Select all languages" /></th>
 <th rowspan="2">Language</th>
 <th rowspan="2">Code</th>
-<th colspan="4" style="text-align: center; background: #f8f9fa;">Dev Environment</th>
-<th colspan="4" style="text-align: center; background: #f8f9fa;">Prod Environment</th>
+<th colspan="4" style="text-align: center; background: var(--surface-2);">Dev Environment</th>
+<th colspan="4" style="text-align: center; background: var(--surface-2);">Prod Environment</th>
 </tr>
 <tr>
 <th>Item Bank</th>
@@ -143,13 +143,13 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Bucket: <span class="code" id="visualBucket"></span> · Prefix: <span class="code" id="visualPrefix">visual/</span></p>
 <p class="small" id="visualSummary">Loading…</p>
-<p class="small"><span class="link" id="visualDetails" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
+<p class="small"><span class="link" id="visualDetails" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Fix It</button></p>
 </div>
 <div id="visualAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Bucket: <span class="code" id="visualBucketProd"></span> · Prefix: <span class="code" id="visualPrefixProd">visual/</span></p>
 <p class="small" id="visualSummaryProd">Loading…</p>
-<p class="small"><span class="link" id="visualDetailsProd" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Fix It</button></p>
+<p class="small"><span class="link" id="visualDetailsProd" style="display:none; margin-right:12px;">Show missing PNG → WEBP list</span><button id="visualFixBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Fix It</button></p>
 </div>
 </div>
 </div>
@@ -163,13 +163,13 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Bucket: <span class="code" id="audioBucket"></span> · Prefix: <span class="code" id="audioPrefix">audio/</span></p>
 <p class="small" id="audioSummary">Loading…</p>
-<p class="small"><span class="link" id="audioDetails" style="display:none; margin-right:12px;">Show audio coverage details</span><button id="audioCoverageBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">View Coverage</button></p>
+<p class="small"><span class="link" id="audioDetails" style="display:none; margin-right:12px;">Show audio coverage details</span><button id="audioCoverageBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">View Coverage</button></p>
 </div>
 <div id="audioAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Bucket: <span class="code" id="audioBucketProd"></span> · Prefix: <span class="code" id="audioPrefixProd">audio/</span></p>
 <p class="small" id="audioSummaryProd">Loading…</p>
-<p class="small"><span class="link" id="audioDetailsProd" style="display:none; margin-right:12px;">Show audio coverage details</span><button id="audioCoverageBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">View Coverage</button></p>
+<p class="small"><span class="link" id="audioDetailsProd" style="display:none; margin-right:12px;">Show audio coverage details</span><button id="audioCoverageBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">View Coverage</button></p>
 </div>
 </div>
 </div>
@@ -183,13 +183,13 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Bucket: <span class="code" id="coreTasksBucket"></span> · Prefix: <span class="code" id="coreTasksPrefix">corpus/</span></p>
 <p class="small" id="coreTasksSummary">Loading…</p>
-<p class="small"><span class="link" id="coreTasksDetails" style="display:none; margin-right:12px;">Show corpus details</span><button id="coreTasksValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<p class="small"><span class="link" id="coreTasksDetails" style="display:none; margin-right:12px;">Show corpus details</span><button id="coreTasksValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 <div id="coreTasksAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Bucket: <span class="code" id="coreTasksBucketProd"></span> · Prefix: <span class="code" id="coreTasksPrefixProd">corpus/</span></p>
 <p class="small" id="coreTasksSummaryProd">Loading…</p>
-<p class="small"><span class="link" id="coreTasksDetailsProd" style="display:none; margin-right:12px;">Show corpus details</span><button id="coreTasksValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<p class="small"><span class="link" id="coreTasksDetailsProd" style="display:none; margin-right:12px;">Show corpus details</span><button id="coreTasksValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 </div>
 </div>
@@ -203,13 +203,13 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Source: <span class="code" id="translationCompletenessSource">item_bank_translations.csv</span></p>
 <p class="small" id="translationCompletenessSummary">Loading…</p>
-<p class="small"><span class="link" id="translationCompletenessDetails" style="display:none; margin-right:12px;">Show missing translations</span><button id="translationCompletenessValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<p class="small"><span class="link" id="translationCompletenessDetails" style="display:none; margin-right:12px;">Show missing translations</span><button id="translationCompletenessValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 <div id="translationCompletenessAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Source: <span class="code" id="translationCompletenessSourceProd">item_bank_translations.csv</span></p>
 <p class="small" id="translationCompletenessSummaryProd">Loading…</p>
-<p class="small"><span class="link" id="translationCompletenessDetailsProd" style="display:none; margin-right:12px;">Show missing translations</span><button id="translationCompletenessValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<p class="small"><span class="link" id="translationCompletenessDetailsProd" style="display:none; margin-right:12px;">Show missing translations</span><button id="translationCompletenessValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 </div>
 </div>
@@ -223,13 +223,13 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Scope: <span class="code" id="assetIntegrityScope">All assets</span></p>
 <p class="small" id="assetIntegritySummary">Loading…</p>
-<p class="small"><span class="link" id="assetIntegrityDetails" style="display:none; margin-right:12px;">Show integrity issues</span><button id="assetIntegrityValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<p class="small"><span class="link" id="assetIntegrityDetails" style="display:none; margin-right:12px;">Show integrity issues</span><button id="assetIntegrityValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 <div id="assetIntegrityAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Scope: <span class="code" id="assetIntegrityScopeProd">All assets</span></p>
 <p class="small" id="assetIntegritySummaryProd">Loading…</p>
-<p class="small"><span class="link" id="assetIntegrityDetailsProd" style="display:none; margin-right:12px;">Show integrity issues</span><button id="assetIntegrityValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<p class="small"><span class="link" id="assetIntegrityDetailsProd" style="display:none; margin-right:12px;">Show integrity issues</span><button id="assetIntegrityValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 </div>
 </div>
@@ -243,15 +243,15 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Dev</h3>
 <p class="small">Scope: <span class="code" id="configValidationScope">Environment &amp; API configs</span></p>
 <p class="small" id="configValidationSummary">Loading…</p>
-<div class="small" id="configValidationInlineIssues" style="display:none; margin:6px 0 10px 0; padding:8px; border-radius:6px; background:rgba(255, 183, 77, 0.12); border:1px solid rgba(255, 183, 77, 0.35); color:#ffedd5;"></div>
-<p class="small"><span class="link" id="configValidationDetails" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<div class="small" id="configValidationInlineIssues" style="display:none; margin:6px 0 10px 0; padding:8px; border-radius:6px; background:var(--color-warning-soft); border:1px solid var(--color-warning-border); color:var(--color-warning);"></div>
+<p class="small"><span class="link" id="configValidationDetails" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 <div id="configValidationAuditProd" style="flex:1; min-width:280px;">
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Prod</h3>
 <p class="small">Scope: <span class="code" id="configValidationScopeProd">Environment &amp; API configs</span></p>
 <p class="small" id="configValidationSummaryProd">Loading…</p>
-<div class="small" id="configValidationInlineIssuesProd" style="display:none; margin:6px 0 10px 0; padding:8px; border-radius:6px; background:rgba(255, 183, 77, 0.12); border:1px solid rgba(255, 183, 77, 0.35); color:#ffedd5;"></div>
-<p class="small"><span class="link" id="configValidationDetailsProd" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Validate</button></p>
+<div class="small" id="configValidationInlineIssuesProd" style="display:none; margin:6px 0 10px 0; padding:8px; border-radius:6px; background:var(--color-warning-soft); border:1px solid var(--color-warning-border); color:var(--color-warning);"></div>
+<p class="small"><span class="link" id="configValidationDetailsProd" style="display:none; margin-right:12px;">Show config issues</span><button id="configValidationValidateBtnProd" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Validate</button></p>
 </div>
 </div>
 </div>
@@ -265,7 +265,7 @@
 <h3 style="font-size:14px; margin:0 0 6px 0; color:#374151;">Project Board</h3>
 <p class="small">Source: <span class="code" id="githubIssuesSource">levante-framework/projects/1</span></p>
 <p class="small" id="githubIssuesSummary">Loading…</p>
-<p class="small"><span class="link" id="githubIssuesDetails" style="display:none; margin-right:12px;">Show issue details</span><button id="githubIssuesRefreshBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:#0d6efd; color:white; cursor:pointer;">Refresh</button></p>
+<p class="small"><span class="link" id="githubIssuesDetails" style="display:none; margin-right:12px;">Show issue details</span><button id="githubIssuesRefreshBtn" style="display:none; padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; background:var(--accent); color:var(--accent-contrast); cursor:pointer;">Refresh</button></p>
 </div>
 </div>
 <div id="githubIssuesLists" style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-top:16px;">
@@ -772,11 +772,11 @@
 				body.innerHTML = `
 					<div class="diff-section">
 						<p>Total files: <strong>${total}</strong></p>
-						<div style="max-height:320px; overflow-y:auto; background:#0f172a; border-radius:6px; border:1px solid rgba(148,163,184,0.3); padding:12px;">
+						<div style="max-height:320px; overflow-y:auto; background:var(--surface-2); border-radius:6px; border:1px solid var(--border-subtle); padding:12px;">
 							<ol style="padding-left:16px; margin:0;">${listHtml}</ol>
 						</div>
 						${remainder > 0 ? `<p style="margin-top:8px;">…and ${remainder} more not shown to keep things snappy.</p>` : ''}
-						<p style="font-size:12px; color:#94a3b8; margin-top:12px;">Tip: Use the bucket explorer for the full list if needed.</p>
+						<p style="font-size:12px; color:var(--text-muted); margin-top:12px;">Tip: Use the bucket explorer for the full list if needed.</p>
 					</div>
 				`;
 			});
@@ -836,7 +836,7 @@
 					detailedContent = await getConfigValidationDifferences();
 				}
 			} catch (error) {
-				detailedContent = `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+				detailedContent = `<div style="color: var(--color-danger); padding: 12px; background: var(--color-danger-soft); border-radius: 4px; border-left: 4px solid var(--color-danger);">
 					<strong>Error loading detailed information:</strong> ${error.message}
 				</div>`;
 			}
@@ -856,14 +856,14 @@
 							<span class="diff-value">${prodValue}</span>
 						</div>
 					</div>
-					<div style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.15); border-radius: 4px; border-left: 4px solid #f59e0b; color: #fef3c7;">
-						<strong style="color: #fbbf24 !important;">Difference:</strong> <span style="color: #f59e0b !important; font-weight: 600;">${Math.abs(devValue - prodValue)}</span> ${devValue > prodValue ? '(Dev has more)' : '(Prod has more)'}
+					<div style="margin-top: 12px; padding: 8px; background: var(--color-warning-soft); border-radius: 4px; border-left: 4px solid var(--color-warning); color: var(--text-primary);">
+						<strong style="color: var(--color-warning) !important;">Difference:</strong> <span style="color: var(--color-warning) !important; font-weight: 600;">${Math.abs(devValue - prodValue)}</span> ${devValue > prodValue ? '(Dev has more)' : '(Prod has more)'}
 					</div>
 				</div>
 				${detailedContent}
 				<div class="diff-section">
-					<h4 style="color: #ffb347 !important;">Recommendation</h4>
-					<p style="color: #e2e8f0 !important; line-height: 1.6;">${getRecommendation(buttonId, devValue, prodValue)}</p>
+					<h4 style="color: var(--accent) !important;">Recommendation</h4>
+					<p style="color: var(--text-secondary) !important; line-height: 1.6;">${getRecommendation(buttonId, devValue, prodValue)}</p>
 				</div>
 			`;
 
@@ -901,25 +901,25 @@
 					<div class="diff-section">
 						<h4>Detailed Analysis</h4>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-							<div style="padding: 12px; background: rgba(14, 165, 233, 0.15); border-radius: 6px; border-left: 4px solid #0ea5e9; color: #e0f2fe;">
-								<strong style="color: #7dd3fc !important;">Dev Only</strong><br>
-								<span class="diff-value" style="color: #0ea5e9 !important;">${devOnly.length}</span> files<br>
-								<small style="color: #bae6fd !important;">PNGs in dev that don't need conversion in prod</small>
+							<div style="padding: 12px; background: var(--accent-soft); border-radius: 6px; border-left: 4px solid var(--accent); color: var(--text-primary);">
+								<strong style="color: var(--accent) !important;">Dev Only</strong><br>
+								<span class="diff-value" style="color: var(--accent) !important;">${devOnly.length}</span> files<br>
+								<small style="color: var(--text-secondary) !important;">PNGs in dev that don't need conversion in prod</small>
 							</div>
-							<div style="padding: 12px; background: rgba(34, 197, 94, 0.15); border-radius: 6px; border-left: 4px solid #22c55e; color: #dcfce7;">
-								<strong style="color: #86efac !important;">Prod Only</strong><br>
-								<span class="diff-value" style="color: #22c55e !important;">${prodOnly.length}</span> files<br>
-								<small style="color: #bbf7d0 !important;">PNGs in prod that don't need conversion in dev</small>
+							<div style="padding: 12px; background: var(--color-success-soft); border-radius: 6px; border-left: 4px solid var(--color-success); color: var(--text-primary);">
+								<strong style="color: var(--color-success) !important;">Prod Only</strong><br>
+								<span class="diff-value" style="color: var(--color-success) !important;">${prodOnly.length}</span> files<br>
+								<small style="color: var(--text-secondary) !important;">PNGs in prod that don't need conversion in dev</small>
 							</div>
 						</div>
-						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
-							<strong style="color: #fbbf24 !important;">Common Issues</strong><br>
-							<span class="diff-value" style="color: #f59e0b !important;">${common.length}</span> files need conversion in both environments
+						<div style="padding: 12px; background: var(--color-warning-soft); border-radius: 6px; border-left: 4px solid var(--color-warning); color: var(--text-primary);">
+							<strong style="color: var(--color-warning) !important;">Common Issues</strong><br>
+							<span class="diff-value" style="color: var(--color-warning) !important;">${common.length}</span> files need conversion in both environments
 						</div>
 						${devOnly.length > 0 ? `
 							<div style="margin-top: 12px;">
-								<strong style="color: #ffb347 !important;">Files only needing conversion in Dev (first 10):</strong><br>
-								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+								<strong style="color: var(--accent) !important;">Files only needing conversion in Dev (first 10):</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: var(--surface-2); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: var(--text-primary); border: 1px solid var(--border-subtle);">
 									${devOnly.slice(0, 10).map(f => `• ${f}`).join('<br>')}
 									${devOnly.length > 10 ? `<br>... and ${devOnly.length - 10} more files` : ''}
 								</div>
@@ -927,8 +927,8 @@
 						` : ''}
 						${prodOnly.length > 0 ? `
 							<div style="margin-top: 12px;">
-								<strong style="color: #ffb347 !important;">Files only needing conversion in Prod (first 10):</strong><br>
-								<div style="max-height: 150px; overflow-y: auto; background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+								<strong style="color: var(--accent) !important;">Files only needing conversion in Prod (first 10):</strong><br>
+								<div style="max-height: 150px; overflow-y: auto; background: var(--surface-2); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: var(--text-primary); border: 1px solid var(--border-subtle);">
 									${prodOnly.slice(0, 10).map(f => `• ${f}`).join('<br>')}
 									${prodOnly.length > 10 ? `<br>... and ${prodOnly.length - 10} more files` : ''}
 								</div>
@@ -937,7 +937,7 @@
 					</div>
 				`;
 			} catch (error) {
-				return `<div style="color: #dc2626;">Error loading visual differences: ${error.message}</div>`;
+				return `<div style="color: var(--color-danger);">Error loading visual differences: ${error.message}</div>`;
 			}
 		}
 		
@@ -960,33 +960,33 @@
 					<div class="diff-section">
 						<h4>Language Analysis</h4>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-							<div style="padding: 12px; background: rgba(14, 165, 233, 0.15); border-radius: 6px; border-left: 4px solid #0ea5e9; color: #e0f2fe;">
-								<strong style="color: #7dd3fc !important;">Dev Only</strong><br>
-								<span class="diff-value" style="color: #0ea5e9 !important;">${devOnly.length}</span> languages<br>
-								<small style="color: #bae6fd !important;">Available in dev but not in prod</small>
+							<div style="padding: 12px; background: var(--accent-soft); border-radius: 6px; border-left: 4px solid var(--accent); color: var(--text-primary);">
+								<strong style="color: var(--accent) !important;">Dev Only</strong><br>
+								<span class="diff-value" style="color: var(--accent) !important;">${devOnly.length}</span> languages<br>
+								<small style="color: var(--text-secondary) !important;">Available in dev but not in prod</small>
 							</div>
-							<div style="padding: 12px; background: rgba(34, 197, 94, 0.15); border-radius: 6px; border-left: 4px solid #22c55e; color: #dcfce7;">
-								<strong style="color: #86efac !important;">Prod Only</strong><br>
-								<span class="diff-value" style="color: #22c55e !important;">${prodOnly.length}</span> languages<br>
-								<small style="color: #bbf7d0 !important;">Available in prod but not in dev</small>
+							<div style="padding: 12px; background: var(--color-success-soft); border-radius: 6px; border-left: 4px solid var(--color-success); color: var(--text-primary);">
+								<strong style="color: var(--color-success) !important;">Prod Only</strong><br>
+								<span class="diff-value" style="color: var(--color-success) !important;">${prodOnly.length}</span> languages<br>
+								<small style="color: var(--text-secondary) !important;">Available in prod but not in dev</small>
 							</div>
 						</div>
-						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
-							<strong style="color: #fbbf24 !important;">Common Languages</strong><br>
-							<span class="diff-value" style="color: #f59e0b !important;">${common.length}</span> languages available in both environments
+						<div style="padding: 12px; background: var(--color-warning-soft); border-radius: 6px; border-left: 4px solid var(--color-warning); color: var(--text-primary);">
+							<strong style="color: var(--color-warning) !important;">Common Languages</strong><br>
+							<span class="diff-value" style="color: var(--color-warning) !important;">${common.length}</span> languages available in both environments
 						</div>
 						${devOnly.length > 0 ? `
 							<div style="margin-top: 12px;">
-								<strong style="color: #ffb347 !important;">Languages only in Dev:</strong><br>
-								<div style="background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+								<strong style="color: var(--accent) !important;">Languages only in Dev:</strong><br>
+								<div style="background: var(--surface-2); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: var(--text-primary); border: 1px solid var(--border-subtle);">
 									${devOnly.map(l => `• ${l}`).join('<br>')}
 								</div>
 							</div>
 						` : ''}
 						${prodOnly.length > 0 ? `
 							<div style="margin-top: 12px;">
-								<strong style="color: #ffb347 !important;">Languages only in Prod:</strong><br>
-								<div style="background: rgba(7, 13, 24, 0.6); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #cbd5e1; border: 1px solid rgba(56, 189, 248, 0.2);">
+								<strong style="color: var(--accent) !important;">Languages only in Prod:</strong><br>
+								<div style="background: var(--surface-2); padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px; color: var(--text-primary); border: 1px solid var(--border-subtle);">
 									${prodOnly.map(l => `• ${l}`).join('<br>')}
 								</div>
 							</div>
@@ -994,7 +994,7 @@
 					</div>
 				`;
 			} catch (error) {
-				return `<div style="color: #dc2626;">Error loading audio differences: ${error.message}</div>`;
+				return `<div style="color: var(--color-danger);">Error loading audio differences: ${error.message}</div>`;
 			}
 		}
 		
@@ -1009,14 +1009,14 @@
 				const totalDiffs = Number(cmp?.summary?.total || (devOnly.length + prodOnly.length + newerInDev.length + newerInProd.length));
 				const common = Math.max(0, Number(cmp?.summary?.identicalCount || 0));
 
-				const renderCategory = (title, files, color = '#ffb347') => {
+				const renderCategory = (title, files, color = 'var(--accent)') => {
 					if (!Array.isArray(files) || files.length === 0) return '';
 					const escaped = title.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 					const payload = encodeURIComponent(JSON.stringify(files));
 					return `
 						<div style="margin-top: 10px;">
 							<button
-								style="padding:6px 10px; border:1px solid rgba(148,163,184,0.35); border-radius:8px; background: rgba(2,6,23,0.7); color:${color}; cursor:pointer; font-weight:600;"
+								style="padding:6px 10px; border:1px solid var(--border-subtle); border-radius:8px; background: var(--surface-2); color:${color}; cursor:pointer; font-weight:600;"
 								data-title="${escaped}"
 								data-coretasks-list="${payload}">
 								${title}: ${files.length} file${files.length === 1 ? '' : 's'} (click to view)
@@ -1035,35 +1035,35 @@
 					<div class="diff-section">
 						<h4>CSV File Analysis</h4>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-							<div style="padding: 12px; background: rgba(14, 165, 233, 0.15); border-radius: 6px; border-left: 4px solid #0ea5e9; color: #e0f2fe;">
-								<strong style="color: #7dd3fc !important;">Dev Only</strong><br>
-								<span class="diff-value" style="color: #0ea5e9 !important;">${devOnly.length}</span> CSV files<br>
-								<small style="color: #bae6fd !important;">Present in dev but not in prod</small>
+							<div style="padding: 12px; background: var(--accent-soft); border-radius: 6px; border-left: 4px solid var(--accent); color: var(--text-primary);">
+								<strong style="color: var(--accent) !important;">Dev Only</strong><br>
+								<span class="diff-value" style="color: var(--accent) !important;">${devOnly.length}</span> CSV files<br>
+								<small style="color: var(--text-secondary) !important;">Present in dev but not in prod</small>
 							</div>
-							<div style="padding: 12px; background: rgba(34, 197, 94, 0.15); border-radius: 6px; border-left: 4px solid #22c55e; color: #dcfce7;">
-								<strong style="color: #86efac !important;">Prod Only</strong><br>
-								<span class="diff-value" style="color: #22c55e !important;">${prodOnly.length}</span> CSV files<br>
-								<small style="color: #bbf7d0 !important;">Present in prod but not in dev</small>
+							<div style="padding: 12px; background: var(--color-success-soft); border-radius: 6px; border-left: 4px solid var(--color-success); color: var(--text-primary);">
+								<strong style="color: var(--color-success) !important;">Prod Only</strong><br>
+								<span class="diff-value" style="color: var(--color-success) !important;">${prodOnly.length}</span> CSV files<br>
+								<small style="color: var(--text-secondary) !important;">Present in prod but not in dev</small>
 							</div>
 						</div>
-						<div style="padding: 12px; background: rgba(245, 158, 11, 0.15); border-radius: 6px; border-left: 4px solid #f59e0b; color: #fef3c7;">
-							<strong style="color: #fbbf24 !important;">Common Files</strong><br>
-							<span class="diff-value" style="color: #f59e0b !important;">${common}</span> CSV files identical in both environments
+						<div style="padding: 12px; background: var(--color-warning-soft); border-radius: 6px; border-left: 4px solid var(--color-warning); color: var(--text-primary);">
+							<strong style="color: var(--color-warning) !important;">Common Files</strong><br>
+							<span class="diff-value" style="color: var(--color-warning) !important;">${common}</span> CSV files identical in both environments
 						</div>
-						<div style="margin-top: 12px; padding: 10px; background: rgba(15,23,42,0.65); border-left: 4px solid rgba(125,211,252,0.6); border-radius: 6px; color:#cbd5e1;">
+						<div style="margin-top: 12px; padding: 10px; background: var(--surface-2); border-left: 4px solid var(--accent-border); border-radius: 6px; color:var(--text-secondary);">
 							<strong>Status reason:</strong> ${statusReason}
 						</div>
-						<div style="margin-top: 12px; padding: 8px; background: rgba(15,23,42,0.55); border-radius: 6px; border:1px solid rgba(56,189,248,0.2);">
-							<strong style="color: #7dd3fc !important;">Diff categories (total ${totalDiffs})</strong>
-							${renderCategory('Dev-only CSVs', devOnly, '#7dd3fc')}
-							${renderCategory('Prod-only CSVs', prodOnly, '#86efac')}
-							${renderCategory('Dev-newer CSVs', newerInDev, '#fbbf24')}
-							${renderCategory('Prod-newer CSVs', newerInProd, '#fca5a5')}
+						<div style="margin-top: 12px; padding: 8px; background: var(--surface-2); border-radius: 6px; border:1px solid var(--border-subtle);">
+							<strong style="color: var(--accent) !important;">Diff categories (total ${totalDiffs})</strong>
+							${renderCategory('Dev-only CSVs', devOnly, 'var(--accent)')}
+							${renderCategory('Prod-only CSVs', prodOnly, 'var(--color-success)')}
+							${renderCategory('Dev-newer CSVs', newerInDev, 'var(--color-warning)')}
+							${renderCategory('Prod-newer CSVs', newerInProd, 'var(--color-danger)')}
 						</div>
 					</div>
 				`;
 			} catch (error) {
-				return `<div style="color: #dc2626;">Error loading core tasks differences: ${error.message}</div>`;
+				return `<div style="color: var(--color-danger);">Error loading core tasks differences: ${error.message}</div>`;
 			}
 		}
 		
@@ -1101,7 +1101,7 @@
 					</div>
 				`;
 			} catch (error) {
-				return `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+				return `<div style="color: var(--color-danger); padding: 12px; background: var(--color-danger-soft); border-radius: 4px; border-left: 4px solid var(--color-danger);">
 					<strong>Error:</strong> ${error.message}
 				</div>`;
 			}
@@ -1141,7 +1141,7 @@
 					</div>
 				`;
 			} catch (error) {
-				return `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+				return `<div style="color: var(--color-danger); padding: 12px; background: var(--color-danger-soft); border-radius: 4px; border-left: 4px solid var(--color-danger);">
 					<strong>Error:</strong> ${error.message}
 				</div>`;
 			}
@@ -1240,7 +1240,7 @@
 					</div>
 				`;
 			} catch (error) {
-				return `<div style="color: #dc2626; padding: 12px; background: #fef2f2; border-radius: 4px; border-left: 4px solid #dc2626;">
+				return `<div style="color: var(--color-danger); padding: 12px; background: var(--color-danger-soft); border-radius: 4px; border-left: 4px solid var(--color-danger);">
 					<strong>Error:</strong> ${error.message}
 				</div>`;
 			}
@@ -3286,7 +3286,7 @@
 							</a> - ${issue.title}
 						</div>
 						<div style="display: flex; gap: 8px; align-items: center;">
-							<span class="badge warn" style="background: #3b82f6; color: white;">P1</span>
+							<span class="badge warn" style="background: var(--accent); color: var(--accent-contrast);">P1</span>
 							<span style="font-size: 12px; color: #6b7280;">${issue.status}</span>
 						</div>
 					</div>
@@ -3344,7 +3344,7 @@
 					<div style="border: 1px solid #3b82f6; border-radius: 6px; padding: 16px; background: #dbeafe; margin: 16px 0;">
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
 							<div>
-								<strong style="color: #1e40af;">Priority:</strong> <span class="badge warn" style="background: #3b82f6; color: white;">P1 (High)</span>
+								<strong style="color: #1e40af;">Priority:</strong> <span class="badge warn" style="background: var(--accent); color: var(--accent-contrast);">P1 (High)</span>
 							</div>
 							<div>
 								<strong style="color: #1e40af;">Status:</strong> ${issue.status}
@@ -3366,7 +3366,7 @@
 							<div>🔄 Updated: ${new Date(issue.updated_at).toLocaleDateString()}</div>
 						</div>
 						<div style="text-align: center; margin-top: 16px;">
-							<a href="${issue.url}" target="_blank" style="background: #0d6efd; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">View on GitHub →</a>
+							<a href="${issue.url}" target="_blank" style="background: var(--accent); color: var(--accent-contrast); padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">View on GitHub →</a>
 						</div>
 					</div>
 				</div>
@@ -3409,7 +3409,7 @@
 							<div>🔄 Updated: ${new Date(issue.updated_at).toLocaleDateString()}</div>
 						</div>
 						<div style="text-align: center; margin-top: 16px;">
-							<a href="${issue.url}" target="_blank" style="background: #0d6efd; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">View on GitHub →</a>
+							<a href="${issue.url}" target="_blank" style="background: var(--accent); color: var(--accent-contrast); padding: 8px 16px; border-radius: 6px; text-decoration: none; font-weight: 600;">View on GitHub →</a>
 						</div>
 					</div>
 				</div>
@@ -3567,7 +3567,7 @@
 					${checks.map(check => `
 						<div style="padding: 8px; border: 1px solid #e5e7eb; border-radius: 4px; margin-bottom: 8px;">
 							<div style="display: flex; align-items: center; gap: 8px;">
-								<span style="width: 8px; height: 8px; border-radius: 50%; background: ${check.status === 'valid' ? '#059669' : check.status === 'warning' ? '#d97706' : '#dc2626'};"></span>
+								<span style="width: 8px; height: 8px; border-radius: 50%; background: ${check.status === 'valid' ? 'var(--color-success)' : check.status === 'warning' ? 'var(--color-warning)' : 'var(--color-danger)'};"></span>
 								<strong>${check.name}</strong>
 								<span style="font-size: 12px; color: #6b7280;">(${check.status})</span>
 							</div>

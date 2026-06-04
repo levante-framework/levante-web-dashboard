@@ -3320,6 +3320,10 @@
                 const raw = String(rawTask || '').trim();
                 const id = String(itemId || '').trim().toLowerCase();
 
+                if (this.isNonTaskBucketName(raw)) {
+                    return this.normalizeTaskName('', itemId);
+                }
+
                 if (!raw) {
                     if (id.startsWith('vocab-')) return 'Vocabulary';
                     if (id.startsWith('trog-')) return 'Sentence Understanding';
@@ -3364,6 +3368,15 @@
                 return raw;
             }
 
+            isNonTaskBucketName(taskName) {
+                const normalized = String(taskName || '')
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[_-]+/g, ' ')
+                    .replace(/\s+/g, ' ');
+                return normalized === 'item bank translations' || normalized === 'itembank translations';
+            }
+
             extractTaskName(item) {
                 if (!item || typeof item !== 'object') return 'General';
                 const itemId = String(item.item_id || '').trim();
@@ -3403,15 +3416,34 @@
             getTaskFilterOptions(items) {
                 const taskSet = new Set();
                 (Array.isArray(items) ? items : []).forEach((item) => {
-                    taskSet.add(this.extractTaskName(item));
+                    const taskName = this.extractTaskName(item);
+                    if (!this.isNonTaskBucketName(taskName)) {
+                        taskSet.add(taskName);
+                    }
                 });
                 return Array.from(taskSet).sort((a, b) => a.localeCompare(b));
             }
 
             applyTaskFilterToItems(items) {
                 const list = Array.isArray(items) ? items : [];
-                if (!this.currentTaskFilter || this.currentTaskFilter === '__all__') return list;
-                return list.filter((item) => this.extractTaskName(item) === this.currentTaskFilter);
+                const selectedTask = this.getSelectedTaskFilter();
+                if (!selectedTask || selectedTask === '__all__') return list;
+                return list.filter((item) => this.extractTaskName(item) === selectedTask);
+            }
+
+            getSelectedTaskFilter() {
+                const select = document.getElementById('taskFilterSelect');
+                if (select) {
+                    const value = String(select.value || '__all__');
+                    const isKnownOption = Array.from(select.options || []).some((option) => option.value === value);
+                    if (isKnownOption) {
+                        const normalizedValue = this.isNonTaskBucketName(value) ? '__all__' : value;
+                        this.currentTaskFilter = normalizedValue;
+                        return normalizedValue;
+                    }
+                }
+                const fallback = String(this.currentTaskFilter || '__all__');
+                return this.isNonTaskBucketName(fallback) ? '__all__' : fallback;
             }
 
             ensureSearchContainerUI() {
@@ -3529,7 +3561,7 @@
                 const button = this.ensureFinishedTaskButtonUI();
                 if (!button) return;
 
-                const selectedTask = String(this.currentTaskFilter || '__all__');
+                const selectedTask = this.getSelectedTaskFilter();
                 const totalAudio = Number(stats.totalAudio || 0);
                 const approvedAudio = Number(stats.approvedAudio || 0);
                 this.currentTaskCompletionStats = { totalAudio, approvedAudio };
@@ -3629,9 +3661,10 @@
                 const options = this.getTaskFilterOptions(items);
                 const storageKey = this.getTaskFilterStorageKey(this.currentLangCode);
                 const saved = String(localStorage.getItem(storageKey) || '__all__');
+                const sanitizedSaved = this.isNonTaskBucketName(saved) ? '__all__' : saved;
                 const requested = this.currentTaskFilter && this.currentTaskFilter !== '__all__'
                     ? this.currentTaskFilter
-                    : saved;
+                    : sanitizedSaved;
                 const hasRequested = requested !== '__all__' && options.includes(requested);
                 this.currentTaskFilter = hasRequested ? requested : '__all__';
 
@@ -3974,7 +4007,7 @@
                     }
                 }
                 if (approveTaskBtn) {
-                    const selectedTask = String(this.currentTaskFilter || '__all__');
+                    const selectedTask = this.getSelectedTaskFilter();
                     const hasTaskSelected = selectedTask !== '__all__';
                     approveTaskBtn.style.display = this.currentTab === 'pending' ? 'inline-flex' : 'none';
                     approveTaskBtn.disabled = !this.currentLanguage || !hasTaskSelected || this.currentTab !== 'pending' || this.bulkApproveInProgress;
@@ -3985,7 +4018,7 @@
                     }
                 }
                 if (unapproveTaskBtn) {
-                    const selectedTask = String(this.currentTaskFilter || '__all__');
+                    const selectedTask = this.getSelectedTaskFilter();
                     const hasTaskSelected = selectedTask !== '__all__';
                     unapproveTaskBtn.style.display = this.currentTab === 'approved' ? 'inline-flex' : 'none';
                     unapproveTaskBtn.disabled = !this.currentLanguage || !hasTaskSelected || this.currentTab !== 'approved' || this.bulkApproveInProgress;
@@ -6262,7 +6295,7 @@
                     this.setStatus('Bulk approval is already running.', 'warning');
                     return;
                 }
-                const selectedTask = String(this.currentTaskFilter || '__all__');
+                const selectedTask = this.getSelectedTaskFilter();
                 if (selectedTask === '__all__') {
                     this.setStatus('Select a task before using Approve Task Audio.', 'warning');
                     return;
@@ -6389,7 +6422,7 @@
                     return;
                 }
 
-                const selectedTask = String(this.currentTaskFilter || '__all__');
+                const selectedTask = this.getSelectedTaskFilter();
                 if (selectedTask === '__all__') {
                     this.setStatus('Select a task before using Unapprove All.', 'warning');
                     return;
@@ -8379,7 +8412,7 @@
             }
 
             async handleFinishedTaskClick() {
-                const selectedTask = String(this.currentTaskFilter || '__all__');
+                const selectedTask = this.getSelectedTaskFilter();
                 if (selectedTask === '__all__') return;
                 const totalAudio = Number(this.currentTaskCompletionStats?.totalAudio || 0);
                 const approvedAudio = Number(this.currentTaskCompletionStats?.approvedAudio || 0);

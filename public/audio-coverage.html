@@ -10,37 +10,37 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="./config.js"></script>
 <style>
-    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: radial-gradient(circle at top, rgba(255, 150, 34, 0.18), rgba(15, 23, 42, 0.96)), linear-gradient(190deg, #020617 0%, #0b1220 100%); color: #e2e8f0; min-height: 100vh; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: var(--color-bg); background-image: radial-gradient(circle at 0% 0%, rgba(12,126,155,0.08), transparent 42%), radial-gradient(circle at 100% 100%, rgba(181,120,26,0.06), transparent 42%); background-attachment: fixed; color: var(--text-primary); min-height: 100vh; }
     .coverage-container { max-width: 1200px; margin: 0 auto; padding: 40px 24px 80px; display: flex; flex-direction: column; gap: 24px; }
     .coverage-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
     .coverage-topbar h2 { margin: 0; }
-    h2 { font-size: 2rem; font-weight: 600; display: flex; align-items: center; gap: 12px; color: #ffb347; letter-spacing: 0.02em; }
-    p { margin: 0; color: rgba(226, 232, 240, 0.75); font-size: 0.95rem; }
+    h2 { font-size: 2rem; font-weight: 600; display: flex; align-items: center; gap: 12px; color: var(--accent); letter-spacing: 0.02em; }
+    p { margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
     .source-row { display: flex; flex-wrap: wrap; gap: 16px; }
-    .source-card { flex: 1; min-width: 280px; background: rgba(9, 17, 31, 0.92); border: 1px solid rgba(0, 160, 222, 0.24); border-radius: 16px; padding: 20px 24px; box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45); }
-    .source-title { font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #f8fafc; margin-bottom: 12px; }
+    .source-card { flex: 1; min-width: 280px; background: var(--surface-1); border: 1px solid var(--accent-border); border-radius: 16px; padding: 20px 24px; box-shadow: var(--shadow-md); }
+    .source-title { font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-primary); margin-bottom: 12px; }
     .source-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-    .pill { border-radius: 999px; border: 1px solid rgba(148, 198, 255, 0.3); padding: 6px 14px; background: rgba(3, 12, 28, 0.85); color: #dbeafe; cursor: pointer; font-weight: 600; letter-spacing: 0.05em; transition: all 0.2s ease; }
-    .pill:hover { background: rgba(255, 123, 0, 0.85); color: #0b1220; box-shadow: 0 10px 24px rgba(255, 123, 0, 0.28); border-color: rgba(255, 123, 0, 0.55); }
-    .pill.active { background: #ff6f00; color: #0b1220; border-color: rgba(255, 123, 0, 0.65); box-shadow: 0 12px 28px rgba(255, 123, 0, 0.35); }
-    .rescan-btn { background: #00a0de !important; color: #031422 !important; border-color: rgba(0, 160, 222, 0.45) !important; box-shadow: 0 12px 28px rgba(0, 160, 222, 0.35); }
-    .rescan-btn:hover { background: #00bafc !important; }
-    .source-detail { display: flex; align-items: center; gap: 10px; color: rgba(203, 213, 225, 0.75); font-size: 0.9rem; }
-    .source-detail label { font-weight: 600; color: #f8fafc; }
-    #bucketInput { width: 280px; padding: 8px 12px; border: 1px solid rgba(0, 160, 222, 0.3); border-radius: 10px; background: rgba(3, 12, 28, 0.85); color: #e2e8f0; }
-    #bucketInput:disabled { background: rgba(9, 17, 31, 0.6); color: rgba(148, 163, 184, 0.6); cursor: not-allowed; }
-    .hint { color: rgba(148, 198, 255, 0.7); font-size: 0.75rem; }
-    .grid-table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: 0 30px 70px rgba(2, 6, 23, 0.55); margin-top: 12px; }
+    .pill { border-radius: 999px; border: 1px solid var(--border-default); padding: 6px 14px; background: var(--surface-2); color: var(--text-primary); cursor: pointer; font-weight: 600; letter-spacing: 0.05em; transition: all 0.2s ease; }
+    .pill:hover { background: var(--accent); color: var(--accent-contrast); box-shadow: var(--shadow-md); border-color: var(--accent-border); }
+    .pill.active { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent-border); box-shadow: var(--shadow-md); }
+    .rescan-btn { background: var(--accent) !important; color: var(--accent-contrast) !important; border-color: var(--accent-border) !important; box-shadow: var(--shadow-md); }
+    .rescan-btn:hover { background: var(--accent-strong) !important; }
+    .source-detail { display: flex; align-items: center; gap: 10px; color: var(--text-secondary); font-size: 0.9rem; }
+    .source-detail label { font-weight: 600; color: var(--text-primary); }
+    #bucketInput { width: 280px; padding: 8px 12px; border: 1px solid var(--border-default); border-radius: 10px; background: var(--surface-3); color: var(--text-primary); }
+    #bucketInput:disabled { background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; }
+    .hint { color: var(--text-muted); font-size: 0.75rem; }
+    .grid-table { width: 100%; border-collapse: collapse; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-lg); margin-top: 12px; }
     .grid-table th, .grid-table td { padding: 14px 16px; font-size: 0.95rem; text-align: left; }
-    .grid-table th { background: linear-gradient(135deg, #ff6f00 0%, #ffb347 100%); color: #0b1220; text-transform: uppercase; letter-spacing: 0.08em; }
-    .grid-table td { background: rgba(9, 17, 31, 0.92); border-bottom: 1px solid rgba(0, 160, 222, 0.2); }
-    .grid-table tr:hover td { background: rgba(255, 123, 0, 0.12); }
+    .grid-table th { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%); color: var(--accent-contrast); text-transform: uppercase; letter-spacing: 0.08em; }
+    .grid-table td { background: var(--surface-1); border-bottom: 1px solid var(--border-subtle); }
+    .grid-table tr:hover td { background: var(--accent-soft); }
     .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
-    .chip.ok { background: rgba(14, 169, 96, 0.15); color: #0ea960; }
-    .chip.missing { background: rgba(220, 38, 38, 0.15); color: #ffb347; }
-    #summary { font-size: 0.95rem; color: rgba(226, 232, 240, 0.75); }
-    #coverageTable tbody tr td:nth-child(4) { font-weight: 600; color: #ffb347; }
-    code { background: rgba(2, 10, 22, 0.74); padding: 4px 8px; border-radius: 6px; color: #93c5fd; }
+    .chip.ok { background: var(--color-success-soft); color: var(--color-success); }
+    .chip.missing { background: var(--color-danger-soft); color: var(--color-danger); }
+    #summary { font-size: 0.95rem; color: var(--text-secondary); }
+    #coverageTable tbody tr td:nth-child(4) { font-weight: 600; color: var(--color-danger); }
+    code { background: var(--surface-3); padding: 4px 8px; border-radius: 6px; color: var(--accent); }
     @media (max-width: 720px) {
       .coverage-container { padding: 32px 16px 60px; }
       .grid-table th, .grid-table td { padding: 12px; font-size: 0.85rem; }
@@ -55,40 +55,40 @@
     }
     .modal-card {
       width: min(560px, 92%); max-height: 86vh; display: flex; flex-direction: column;
-      background: linear-gradient(165deg, rgba(15, 23, 42, 0.98) 0%, rgba(2, 6, 23, 0.94) 100%);
-      border: 1px solid rgba(148, 197, 255, 0.35); border-radius: 18px; color: #f8fafc;
-      box-shadow: 0 40px 85px rgba(2, 6, 23, 0.65); overflow: hidden;
+      background: var(--surface-1);
+      border: 1px solid var(--border-default); border-radius: 18px; color: var(--text-primary);
+      box-shadow: var(--shadow-lg); overflow: hidden;
     }
     .modal-header {
       display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
-      padding: 24px 28px 18px; border-bottom: 1px solid rgba(148, 197, 255, 0.25);
-      background: linear-gradient(180deg, rgba(56, 189, 248, 0.28) 0%, rgba(15, 23, 42, 0.2) 45%, rgba(15, 23, 42, 0) 100%);
+      padding: 24px 28px 18px; border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(180deg, var(--accent-soft) 0%, transparent 100%);
     }
-    .modal-title { margin: 0; font-size: 1.55rem; font-weight: 600; color: #f8fafc; letter-spacing: 0.03em; }
-    .modal-subtitle { margin: 6px 0 0; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(148, 163, 184, 0.78); }
-    .modal-subtitle span { color: #38bdf8; font-weight: 700; }
+    .modal-title { margin: 0; font-size: 1.55rem; font-weight: 600; color: var(--text-primary); letter-spacing: 0.03em; }
+    .modal-subtitle { margin: 6px 0 0; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+    .modal-subtitle span { color: var(--accent); font-weight: 700; }
     .modal-close {
-      background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(148, 197, 255, 0.4); color: #e2e8f0;
+      background: var(--surface-3); border: 1px solid var(--border-default); color: var(--text-primary);
       width: 36px; height: 36px; border-radius: 50%; font-size: 20px; cursor: pointer; transition: all 0.2s ease;
     }
-    .modal-close:hover { background: rgba(59, 130, 246, 0.35); color: #0f172a; border-color: rgba(125, 211, 252, 0.65); }
-    .modal-body { padding: 20px 28px 24px; display: flex; flex-direction: column; gap: 18px; color: #f1f5f9; }
-    .modal-stat { margin: 0; font-size: 0.95rem; font-weight: 600; color: #fee2b6; }
-    .modal-stat span { color: rgba(191, 219, 254, 0.82); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
-    .modal-section h4 { margin: 0 0 10px; font-size: 1rem; font-weight: 600; color: #f8fafc; letter-spacing: 0.04em; }
-    .modal-scroll { max-height: 320px; overflow-y: auto; border: 1px solid rgba(148, 197, 255, 0.28); border-radius: 14px; padding: 12px; background: rgba(10, 21, 36, 0.92); }
+    .modal-close:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
+    .modal-body { padding: 20px 28px 24px; display: flex; flex-direction: column; gap: 18px; color: var(--text-primary); }
+    .modal-stat { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+    .modal-stat span { color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 6px; }
+    .modal-section h4 { margin: 0 0 10px; font-size: 1rem; font-weight: 600; color: var(--text-primary); letter-spacing: 0.04em; }
+    .modal-scroll { max-height: 320px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 14px; padding: 12px; background: var(--surface-2); }
     .modal-placeholder, .modal-error, .modal-success { margin: 0; font-size: 0.95rem; }
-    .modal-placeholder { color: rgba(199, 210, 254, 0.78); }
-    .modal-error { color: #f87171; font-weight: 600; }
-    .modal-success { color: #34d399; font-weight: 600; }
+    .modal-placeholder { color: var(--text-secondary); }
+    .modal-error { color: var(--color-danger); font-weight: 600; }
+    .modal-success { color: var(--color-success); font-weight: 600; }
     .missing-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
     .missing-list li {
-      padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.45); background: rgba(14, 33, 53, 0.9);
-      font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace; font-size: 0.9rem; color: #f1f5f9; letter-spacing: 0.02em;
+      padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border-default); background: var(--surface-3);
+      font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace; font-size: 0.9rem; color: var(--text-primary); letter-spacing: 0.02em;
     }
-    .missing-list li .missing-created { display: block; margin-top: 4px; font-size: 0.72rem; color: rgba(191, 219, 254, 0.75); letter-spacing: 0.04em; }
-    .modal-note { margin: 4px 0 0; font-size: 0.78rem; color: rgba(191, 219, 254, 0.78); }
-    .modal-note strong { color: #fde68a; }
+    .missing-list li .missing-created { display: block; margin-top: 4px; font-size: 0.72rem; color: var(--text-secondary); letter-spacing: 0.04em; }
+    .modal-note { margin: 4px 0 0; font-size: 0.78rem; color: var(--text-secondary); }
+    .modal-note strong { color: var(--accent); }
 
 </style>
 </head>
@@ -671,7 +671,7 @@
         const tr = document.createElement('tr');
         const missingCount = missingPerLang.get(row.lang) ?? 0;
         const missingCell = missingCount > 0 ? 
-          `<td style="cursor: pointer; color: #2563eb; text-decoration: underline;" 
+          `<td style="cursor: pointer; color: var(--accent); text-decoration: underline;" 
                onclick="showMissingAudioDetails('${row.lang}', '${row.voice}', ${missingCount})"
                title="Click to see missing audio details">
                ${missingCount}
@@ -681,7 +681,7 @@
         // Add info icon for "Not available" entries
         const hasNoTag = row.voice && row.voice.includes('Not available');
         const voiceCell = hasNoTag && row.files && row.files.length > 0
-          ? `<td>${row.voice} <span class="info-icon" onclick="showNoTagDetails(${idx})" title="Click to see file details" style="color: #0d6efd; cursor: pointer; margin-left: 5px; font-size: 12px;">ℹ️</span></td>`
+          ? `<td>${row.voice} <span class="info-icon" onclick="showNoTagDetails(${idx})" title="Click to see file details" style="color: var(--accent); cursor: pointer; margin-left: 5px; font-size: 12px;">ℹ️</span></td>`
           : `<td>${row.voice}</td>`;
         
         tr.innerHTML = `<td>${row.lang}</td>${voiceCell}<td>${row.count}</td>${missingCell}`;
@@ -695,7 +695,7 @@
       if (noFiles.length) {
         // Separator row
         const sep = document.createElement('tr');
-        sep.innerHTML = `<td colspan="4" style="background:#f7f7f7; color:#666; font-weight:bold; text-align:center;">Languages with no files</td>`;
+        sep.innerHTML = `<td colspan="4" style="background:var(--surface-2); color:var(--text-secondary); font-weight:bold; text-align:center;">Languages with no files</td>`;
         tbody.appendChild(sep);
 
         // Sort no-files languages alphabetically

@@ -103,7 +103,7 @@
             </div>
             <div class="controls-section" id="voiceToolsSection">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-                    <label style="margin: 0; font-weight: 600; color: #e2e8f0;"><i class="fas fa-volume-up"></i> Voice Tools:</label>
+                    <label style="margin: 0; font-weight: 600; color: var(--text-primary);"><i class="fas fa-volume-up"></i> Voice Tools:</label>
                     <button
                         type="button"
                         id="toggleVoiceToolsBtn"
@@ -209,7 +209,7 @@
             <!-- Translation Validation Panel -->
             <div class="validation-panel">
                 <div class="validation-header" onclick="toggleValidationPanel()">
-                    <span><i class="fas fa-check-circle"></i> Translation Validation <span style="font-weight: normal; color: #6c757d; font-size: 0.9em;">(counts &amp; report inside)</span></span>
+                    <span><i class="fas fa-check-circle"></i> Translation Validation <span style="font-weight: normal; color: var(--text-secondary); font-size: 0.9em;">(counts &amp; report inside)</span></span>
                     <span class="collapse-icon">▲</span>
                 </div>
                 <div class="validation-content expanded" id="validationContent">
@@ -230,10 +230,10 @@
                         <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
                             <i class="fas fa-save"></i> Save Reviews
                         </button>
-                        <button id="loadValidations" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="loadValidationsFromShared()" title="Sync latest validation results from shared team storage">
+                        <button id="loadValidations" class="btn btn-compact" style="background: var(--accent); color: var(--accent-contrast); border: 1px solid var(--accent-strong);" onclick="loadValidationsFromShared()" title="Sync latest validation results from shared team storage">
                             <i class="fas fa-cloud-download-alt"></i> Load Reviews
                         </button>
-                        <button id="exportValidations" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f; display: none;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
+                        <button id="exportValidations" class="btn btn-compact" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-default); display: none;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
                         </button>
                         <button class="btn btn-warning btn-compact" style="display: none;" onclick="clearCacheAndReload()" title="Clear localStorage cache and reload data">
@@ -243,28 +243,28 @@
                     </div>
                     
                     <!-- Validation Summary -->
-                    <div id="validationSummary" style="border-top: 1px solid #e0e0e0; padding-top: 15px;">
+                    <div id="validationSummary" style="border-top: 1px solid var(--border-subtle); padding-top: 15px;">
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;">
-                            <h4 style="margin: 0; color: #333; font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
+                            <h4 style="margin: 0; color: var(--text-primary); font-size: 1.1em;"><i class="fas fa-chart-bar"></i> Validation Summary</h4>
                             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                                <button type="button" class="btn btn-compact" style="background: #5e35b1; color: white; border: 1px solid #4527a0;" onclick="showCrowdinFilesModal()" title="List CSV files from the last Crowdin export we used">
+                                <button type="button" class="btn btn-compact" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-default);" onclick="showCrowdinFilesModal()" title="List CSV files from the last Crowdin export we used">
                                     <i class="fas fa-file-csv"></i> Crowdin files
                                 </button>
-                                <button type="button" id="validationSummaryViewReportBtn" class="btn btn-compact" style="background: #1565c0; color: white; border: 1px solid #0d47a1;" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
+                                <button type="button" id="validationSummaryViewReportBtn" class="btn btn-compact" style="background: var(--accent); color: var(--accent-contrast); border: 1px solid var(--accent-strong);" onclick="showValidationSummaryReport()" title="Open the validation summary report (per-language breakdown and item table)">
                                     <i class="fas fa-chart-bar"></i> View report
                                 </button>
-                                <button type="button" id="validationSummaryReviewTableBtn" class="btn btn-compact" style="background: #455a64; color: white; border: 1px solid #37474f;" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
+                                <button type="button" id="validationSummaryReviewTableBtn" class="btn btn-compact" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-default);" onclick="openValidationReviewTableForCurrentLanguage()" title="Open review table for current language (sort by score, set Needs Review and Reason, download CSV)">
                                     <i class="fas fa-list-alt"></i> Review table
                                 </button>
-                                <select id="reviewTablePathFilter" title="Filter review table by filepath" onchange="if(typeof setValidationSummaryLoading==='function') setValidationSummaryLoading(true); if(window.dashboard) window.dashboard.populateDataTable(); if(document.getElementById('validationReviewTableModal').style.display==='block'){ refreshReviewTableRowsFromDashboard(); sortReviewTableRows(); renderValidationReviewTableBody(); document.getElementById('validationReviewTableEmpty').style.display=_reviewTableRows.length===0?'block':'none'; document.getElementById('validationReviewTable').style.display=_reviewTableRows.length===0?'none':'table'; }" style="padding: 6px 10px; border-radius: 4px; border: 1px solid #37474f; background: #fff; font-size: 0.9em;">
+                                <select id="reviewTablePathFilter" title="Filter review table by filepath" onchange="if(typeof setValidationSummaryLoading==='function') setValidationSummaryLoading(true); if(window.dashboard) window.dashboard.populateDataTable(); if(document.getElementById('validationReviewTableModal').style.display==='block'){ refreshReviewTableRowsFromDashboard(); sortReviewTableRows(); renderValidationReviewTableBody(); document.getElementById('validationReviewTableEmpty').style.display=_reviewTableRows.length===0?'block':'none'; document.getElementById('validationReviewTable').style.display=_reviewTableRows.length===0?'none':'table'; }" style="padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-default); background: var(--surface-1); font-size: 0.9em;">
                                     <option value="all">All</option>
                                     <option value="tasks">Tasks</option>
                                     <option value="surveys">Surveys</option>
                                 </select>
-                                <button type="button" id="validationSummaryDownloadCsv" class="btn btn-compact" style="background: #2e7d32; color: white; border: 1px solid #1b5e20;" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Back Translation, Outcome)">
+                                <button type="button" id="validationSummaryDownloadCsv" class="btn btn-compact" style="background: var(--color-success); color: var(--text-inverse); border: 1px solid var(--color-success-border);" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Back Translation, Outcome)">
                                     <i class="fas fa-download"></i> Download
                                 </button>
-                                <span id="validationSharedSyncLabel" style="color:#6c757d; font-size:0.88em; font-weight:600; white-space:nowrap; background:#f1f3f4; border:1px solid #d7dce1; border-radius:12px; padding:4px 8px;" title="Latest successful shared validation sync timestamp">
+                                <span id="validationSharedSyncLabel" style="color:var(--text-secondary); font-size:0.88em; font-weight:600; white-space:nowrap; background:var(--surface-2); border:1px solid var(--border-subtle); border-radius:12px; padding:4px 8px;" title="Latest successful shared validation sync timestamp">
                                     Shared sync: never
                                 </span>
                             </div>
@@ -272,39 +272,39 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-top: 12px;">
                             <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 18px; font-weight: bold; color: #28a745;" id="goodCount">0</span>
-                                    <span style="color: #6c757d; font-size: 0.9em;">Good</span>
+                                    <span style="font-size: 18px; font-weight: bold; color: var(--color-success);" id="goodCount">0</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Good</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 18px; font-weight: bold; color: #ffc107;" id="warningCount">0</span>
-                                    <span style="color: #6c757d; font-size: 0.9em;">Warning</span>
+                                    <span style="font-size: 18px; font-weight: bold; color: var(--color-warning);" id="warningCount">0</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Warning</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 18px; font-weight: bold; color: #dc3545;" id="errorCount">0</span>
-                                    <span style="color: #6c757d; font-size: 0.9em;">Poor Match</span>
+                                    <span style="font-size: 18px; font-weight: bold; color: var(--color-danger);" id="errorCount">0</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Poor Match</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 18px; font-weight: bold; color: #dc3545;" id="needsReviewCount">0</span>
-                                    <span style="color: #6c757d; font-size: 0.9em;">Need Review</span>
+                                    <span style="font-size: 18px; font-weight: bold; color: var(--color-danger);" id="needsReviewCount">0</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Need Review</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 18px; font-weight: bold; color: #2e7d32;" id="approvedCount">0</span>
-                                    <span style="color: #6c757d; font-size: 0.9em;">Approved</span>
+                                    <span style="font-size: 18px; font-weight: bold; color: var(--color-success);" id="approvedCount">0</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Approved</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <span
-                                        style="font-size: 18px; font-weight: bold; color: #6c757d; cursor: pointer; text-decoration: underline dotted;"
+                                        style="font-size: 18px; font-weight: bold; color: var(--text-secondary); cursor: pointer; text-decoration: underline dotted;"
                                         id="pendingCount"
                                         onclick="openPendingItemsModalForCurrentLanguage()"
                                         title="Show pending items for current language/filter"
                                     >0</span>
                                     <span
-                                        style="color: #6c757d; font-size: 0.9em; cursor: pointer;"
+                                        style="color: var(--text-secondary); font-size: 0.9em; cursor: pointer;"
                                         onclick="openPendingItemsModalForCurrentLanguage()"
                                         title="Show pending items for current language/filter"
                                     >Pending</span>
                                 </div>
-                                <span id="validationSummaryLoadingLabel" style="display: none; color: #6c757d; font-size: 0.85em; font-style: italic;">
+                                <span id="validationSummaryLoadingLabel" style="display: none; color: var(--text-secondary); font-size: 0.85em; font-style: italic;">
                                     Rendering...
                                 </span>
                                 <button type="button" class="btn btn-link btn-compact" style="padding: 4px 8px; font-size: 0.85em;" onclick="showItemsByFileModal()" title="Show how many items (for current filter) come from each Crowdin file">Total Files</button>

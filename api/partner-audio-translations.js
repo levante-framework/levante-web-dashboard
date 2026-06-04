@@ -1,8 +1,28 @@
 import { Storage } from '@google-cloud/storage';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
-const DEFAULT_DRAFT_BUCKET = process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
+function sanitizeEnvString(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '');
+}
+
+function sanitizeBucketName(value, fallback) {
+  const cleaned = sanitizeEnvString(value)
+    .replace(/\\[nrt]/g, '')
+    .replace(/\s+/g, '');
+  return cleaned || fallback;
+}
+
+function sanitizeObjectPath(value, fallback) {
+  const cleaned = sanitizeEnvString(value).replace(/\\[nr]/g, '').replace(/^\/+/, '');
+  return cleaned || fallback;
+}
+
+const DEFAULT_DRAFT_BUCKET = sanitizeBucketName(process.env.ASSETS_DRAFT_BUCKET, 'levante-assets-draft');
 const SOURCE_MODE = String(process.env.PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE || 'task-json').trim().toLowerCase();
-const OBJECT_PATH = process.env.PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH || 'audio/item_bank_translations.csv';
+const OBJECT_PATH = sanitizeObjectPath(process.env.PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH, 'audio/item_bank_translations.csv');
 const ENABLE_XLIFF_SOURCE = String(
   process.env.PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE || ''
 ).trim().toLowerCase() === 'true';
@@ -33,6 +53,8 @@ let memoryCache = {
   csvText: '',
   source: '',
 };
+let taskIndexCache = null;
+let taskOverrideCache = null;
 
 function getStorageClient() {
   const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -70,6 +92,15 @@ async function readFromPublicUrl(url) {
 
 function normalizePath(value) {
   return String(value || '').replace(/\\/g, '/').trim();
+}
+
+function hasItembankSegment(pathValue) {
+  const normalized = normalizePath(pathValue).toLowerCase();
+  return normalized.includes('/itembank/');
+}
+
+function looksLikeLangSegment(segment) {
+  return /^[a-z]{2}(?:[-_][a-z0-9]{2,8})?$/i.test(String(segment || '').trim());
 }
 
 function normalizeLangCode(value) {
@@ -111,18 +142,29 @@ async function listAllFiles(bucket) {
 
 function extractTaskFromJsonPath(pathValue) {
   const normalized = normalizePath(pathValue);
-  const m = normalized.match(/(?:^|\/)itembank_by_task\/([^/]+)\.json$/i);
-  return m && m[1] ? String(m[1]).trim() : '';
+  const itemBankMatch = normalized.match(/(?:^|\/)itembank\/(?:[^/]+\/)?([^/]+)\.json$/i);
+  if (itemBankMatch && itemBankMatch[1]) return String(itemBankMatch[1]).trim();
+  const basenameMatch = normalized.match(/([^/]+)\.json$/i);
+  return basenameMatch && basenameMatch[1] ? String(basenameMatch[1]).trim() : '';
 }
 
 function extractLangFromJsonPath(pathValue) {
   const normalized = normalizePath(pathValue);
   const segments = normalized.split('/').filter(Boolean);
-  const taskIdx = segments.findIndex((segment) => segment.toLowerCase() === 'itembank_by_task');
-  if (taskIdx <= 0) return '';
-  for (let i = taskIdx - 1; i >= 0; i -= 1) {
-    const segment = String(segments[i] || '').trim();
-    if (/^[a-z]{2}(?:[-_][a-z0-9]{2,8})?$/i.test(segment)) {
+  const itembankIdx = segments.findIndex((segment) => String(segment || '').toLowerCase() === 'itembank');
+  if (itembankIdx <= 0) return '';
+
+  // Support both .../<lang>/itembank/... and .../itembank/<lang>/... layouts.
+  const probeOrder = [];
+  for (let distance = 1; distance < segments.length; distance += 1) {
+    const before = itembankIdx - distance;
+    const after = itembankIdx + distance;
+    if (before >= 0) probeOrder.push(before);
+    if (after < segments.length) probeOrder.push(after);
+  }
+  for (const idx of probeOrder) {
+    const segment = String(segments[idx] || '').trim();
+    if (looksLikeLangSegment(segment)) {
       return normalizeLangCode(segment);
     }
   }
@@ -139,6 +181,101 @@ function normalizeItemId(rawKey) {
   return raw;
 }
 
+function normalizeTaskName(rawTask) {
+  return String(rawTask || '').trim();
+}
+
+function normalizeLookupId(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function getExistingTaskIndex() {
+  if (taskIndexCache) return taskIndexCache;
+  const taskIndex = new Map();
+  try {
+    const jsonPath = path.join(process.cwd(), 'public', 'data', 'existing-tasks.json');
+    const parsed = JSON.parse(readFileSync(jsonPath, 'utf8'));
+    const tasks = Array.isArray(parsed?.tasks) ? parsed.tasks : [];
+    tasks.forEach((taskEntry) => {
+      const taskName = normalizeTaskName(taskEntry?.taskName || taskEntry?.registryKey || '');
+      if (!taskName) return;
+      const candidates = [
+        ...(Array.isArray(taskEntry?.requiredAudioIds) ? taskEntry.requiredAudioIds : []),
+        ...(Array.isArray(taskEntry?.translationKeys) ? taskEntry.translationKeys : []),
+      ];
+      candidates.forEach((rawId) => {
+        const id = normalizeLookupId(rawId);
+        if (id) taskIndex.set(id, taskName);
+      });
+    });
+  } catch (_) {
+    // Optional enrichment source; ignore parse/read failures.
+  }
+  taskIndexCache = taskIndex;
+  return taskIndexCache;
+}
+
+function getTaskOverrideRules() {
+  if (taskOverrideCache) return taskOverrideCache;
+  const parsed = { exact: new Map(), prefix: [] };
+  try {
+    const overridesPath = path.join(process.cwd(), 'public', 'data', 'item-task-overrides.json');
+    const raw = JSON.parse(readFileSync(overridesPath, 'utf8'));
+    const exactEntries = raw?.exact && typeof raw.exact === 'object' ? Object.entries(raw.exact) : [];
+    exactEntries.forEach(([id, task]) => {
+      const key = normalizeLookupId(id);
+      const taskName = normalizeTaskName(task);
+      if (key && taskName) parsed.exact.set(key, taskName);
+    });
+
+    const prefixEntries = raw?.prefix && typeof raw.prefix === 'object' ? Object.entries(raw.prefix) : [];
+    parsed.prefix = prefixEntries
+      .map(([prefix, task]) => ({ prefix: normalizeLookupId(prefix), task: normalizeTaskName(task) }))
+      .filter((entry) => entry.prefix && entry.task)
+      .sort((a, b) => b.prefix.length - a.prefix.length);
+  } catch (_) {
+    // Optional enrichment source; ignore parse/read failures.
+  }
+  taskOverrideCache = parsed;
+  return taskOverrideCache;
+}
+
+function inferTaskFromItemId(itemId) {
+  const normalizedId = normalizeLookupId(itemId);
+  if (!normalizedId) return '';
+  const rules = getTaskOverrideRules();
+  if (rules.exact.has(normalizedId)) {
+    return rules.exact.get(normalizedId);
+  }
+  for (const rule of rules.prefix) {
+    if (normalizedId.startsWith(rule.prefix)) {
+      return rule.task;
+    }
+  }
+  // Final lightweight fallback: simple noun-like keys are usually vocabulary items.
+  if (/^[a-z]+(?:fem|plural)?$/.test(normalizedId)) {
+    return 'vocab';
+  }
+  return '';
+}
+
+function inferTaskFromPrefix(prefix) {
+  const raw = String(prefix || '').trim();
+  if (!raw) return '';
+  const segments = raw.split('.').map((seg) => String(seg || '').trim()).filter(Boolean);
+  if (!segments.length) return '';
+  for (let i = segments.length - 1; i >= 0; i -= 1) {
+    const segment = segments[i];
+    if (/^\d+$/.test(segment)) continue;
+    if (['translations', 'itembank', 'items', 'data', 'records'].includes(segment.toLowerCase())) continue;
+    return normalizeTaskName(segment);
+  }
+  return '';
+}
+
 function getRecordText(record) {
   if (!record || typeof record !== 'object' || Array.isArray(record)) return '';
   const candidates = [
@@ -153,10 +290,30 @@ function getRecordText(record) {
   return String(found || '').trim();
 }
 
+function getRecordTask(record, fallbackTask = '', itemId = '') {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return normalizeTaskName(fallbackTask);
+  const normalizedItemId = String(itemId || '').trim().toLowerCase();
+  const candidates = [
+    record.task,
+    record.labels,
+    record.taskName,
+    record.task_name,
+  ];
+  const found = candidates.find((v) => {
+    if (typeof v !== 'string') return false;
+    const value = String(v || '').trim();
+    if (!value) return false;
+    if (normalizedItemId && value.toLowerCase() === normalizedItemId) return false;
+    return true;
+  });
+  return normalizeTaskName(found || fallbackTask || '');
+}
+
 function collectJsonTranslationEntries(node, prefix = '') {
   const out = [];
+  const contextualTask = inferTaskFromPrefix(prefix);
   if (typeof node === 'string') {
-    if (prefix) out.push({ itemId: normalizeItemId(prefix), text: node.trim() });
+    if (prefix) out.push({ itemId: normalizeItemId(prefix), text: node.trim(), task: contextualTask });
     return out;
   }
   if (Array.isArray(node)) {
@@ -165,7 +322,7 @@ function collectJsonTranslationEntries(node, prefix = '') {
         const itemId = normalizeItemId(entry.item_id || entry.itemId || entry.id || '');
         const text = getRecordText(entry);
         if (itemId && text) {
-          out.push({ itemId, text });
+          out.push({ itemId, text, task: getRecordTask(entry, contextualTask, itemId) });
           return;
         }
       }
@@ -189,7 +346,7 @@ async function buildFromDraftTaskJson(storage, bucketName) {
   const jsonFiles = allFiles.filter((f) => {
     const p = normalizePath(f?.name).toLowerCase();
     if (!p.endsWith('.json')) return false;
-    return p.includes('/itembank_by_task/');
+    return hasItembankSegment(p);
   });
   if (!jsonFiles.length) return null;
 
@@ -217,17 +374,27 @@ async function buildFromDraftTaskJson(storage, bucketName) {
     parsedFiles += 1;
     languages.add(langCode);
 
-    entries.forEach(({ itemId, text }) => {
+    const existingTaskIndex = getExistingTaskIndex();
+    entries.forEach(({ itemId, text, task: entryTaskRaw }) => {
       if (!itemId || !text) return;
+      const normalizedItemId = normalizeLookupId(itemId);
+      let entryTask = normalizeTaskName(entryTaskRaw || '');
+      if (entryTask && normalizeLookupId(entryTask) === normalizedItemId) {
+        entryTask = '';
+      }
+      const fileTask = normalizeTaskName(task || '');
+      const mappedTask = existingTaskIndex.get(normalizedItemId) || '';
+      const overrideTask = inferTaskFromItemId(itemId);
+      const finalTask = normalizeTaskName(mappedTask || entryTask || overrideTask || fileTask);
       if (!byId.has(itemId)) {
         byId.set(itemId, {
           item_id: itemId,
-          task,
+          task: finalTask,
           'en-US': '',
         });
       }
       const row = byId.get(itemId);
-      if (!row.task) row.task = task;
+      if (!row.task) row.task = finalTask;
       if (langCode === 'en-US') {
         row['en-US'] = text;
       } else {
@@ -244,7 +411,7 @@ async function buildFromDraftTaskJson(storage, bucketName) {
 
   return {
     csvText: buildCsv(headers, rows),
-    source: `gcs://${bucketName}/**/itembank_by_task/*.json`,
+    source: `gcs://${bucketName}/**/itembank/**/*.json`,
     rowCount: rows.length,
     fileCount: parsedFiles,
   };
@@ -444,7 +611,7 @@ export default async function handler(req, res) {
           return res.status(200).send(draftFolderResult.csvText);
         }
       } else {
-        tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/**/itembank_by_task/*.json`);
+        tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/**/itembank/**/*.json`);
         const taskJsonResult = await buildFromDraftTaskJson(storage, DEFAULT_DRAFT_BUCKET);
         if (taskJsonResult?.csvText) {
           memoryCache = {
