@@ -264,9 +264,10 @@
                                 <button type="button" id="validationSummaryDownloadCsv" class="btn btn-compact" style="background: var(--color-success); color: var(--text-inverse); border: 1px solid var(--color-success-border);" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Back Translation, Outcome)">
                                     <i class="fas fa-download"></i> Download
                                 </button>
-                                <button type="button" id="validationSharedSyncBtn" onclick="forceSharedSyncNow()" title="Click to pull the latest shared validation data now" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.88em; font-weight:600; white-space:nowrap; background:var(--surface-2); border:1px solid var(--border-subtle); border-radius:12px; padding:4px 10px;">
+                                <button type="button" id="validationSharedSyncBtn" onclick="forceSharedSyncNow()" title="Click to pull the latest shared validation data now" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:0.88em; font-weight:600; white-space:nowrap; background:var(--accent); color:var(--accent-contrast); border:1px solid var(--accent-strong); border-radius:12px; padding:4px 10px;">
                                     <i id="validationSharedSyncIcon" class="fas fa-rotate"></i>
-                                    <span id="validationSharedSyncLabel" style="color:var(--text-secondary);">Shared sync: never</span>
+                                    <span>Sync now</span>
+                                    <span id="validationSharedSyncLabel" style="color:var(--accent-contrast); opacity:0.85; font-weight:500; border-left:1px solid rgba(255,255,255,0.35); padding-left:8px;">Last: never</span>
                                 </button>
                             </div>
                         </div>
@@ -607,21 +608,21 @@
             const el = document.getElementById('validationSharedSyncLabel');
             if (!el) return;
             if (!ts) {
-                el.textContent = isError ? 'Shared sync: failed' : 'Shared sync: never';
-                el.style.color = isError ? '#c62828' : '#6c757d';
+                el.textContent = isError ? 'Last: failed' : 'Last: never';
+                el.style.color = isError ? '#ffd7d7' : 'var(--accent-contrast)';
                 return;
             }
             const d = new Date(ts);
             if (Number.isNaN(d.getTime())) {
-                el.textContent = 'Shared sync: unknown';
-                el.style.color = '#6c757d';
+                el.textContent = 'Last: unknown';
+                el.style.color = 'var(--accent-contrast)';
                 return;
             }
             const dateText = d.toLocaleString();
             const src = String(source || '').toLowerCase();
             const srcLabel = src === 'gcs' ? 'GCS' : src === 'memory' ? 'memory fallback' : (source ? String(source) : '');
-            el.textContent = 'Shared sync: ' + dateText + (srcLabel ? ' (' + srcLabel + ')' : '');
-            el.style.color = src === 'memory' ? '#ef6c00' : '#2e7d32';
+            el.textContent = 'Last: ' + dateText + (srcLabel ? ' (' + srcLabel + ')' : '');
+            el.style.color = src === 'memory' ? '#ffe2b6' : 'var(--accent-contrast)';
             el.title = 'Latest successful shared sync: ' + dateText + (srcLabel ? ' via ' + srcLabel : '');
         }
 
