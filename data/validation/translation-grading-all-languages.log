@@ -1,0 +1,9 @@
+Loaded 7139 source-target pairs across 13 target columns.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2870.96it/s]
+[1mBertModel LOAD REPORT[0m from: sentence-transformers/LaBSE
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m

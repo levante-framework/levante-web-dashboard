@@ -321,6 +321,42 @@ python scripts/embedding_translation_validation.py \
 - CSV with per-row similarity/status (`pass` / `review` / `fail`)
 - Optional JSON summary (distribution percentiles and counts)
 
+## Experimental: Tiered Translation Grading Pipeline
+
+New script:
+
+- `scripts/translation_grading_pipeline.py`
+
+This pipeline is designed for a frontier-model grading workflow:
+
+1. Cross-lingual consistency outlier signal (LaBSE / multilingual-e5).
+2. Optional reference-free QE signal (COMET-Kiwi / xCOMET if installed).
+3. Optional Gemini direct assessment (LLM-as-judge with task/ambiguity context).
+4. Unified review triage output.
+
+Quick start:
+
+```bash
+python scripts/translation_grading_pipeline.py \
+  --input-mode csv \
+  --input-csv data/validation/crowdin-xliff-merged.csv \
+  --item-id-col item_id \
+  --source-col en \
+  --target-cols "es-CO,fr-CA,de-DE,nl"
+```
+
+To grade directly against the same Crowdin-approved export flow used by the dashboard:
+
+```bash
+python scripts/translation_grading_pipeline.py \
+  --input-mode crowdin \
+  --crowdin-base-url https://levante-cockpit.vercel.app \
+  --source-col en \
+  --target-cols "de,es-CO,fr-CA,pt-BR"
+```
+
+See `docs/translation-grading-pipeline.md` for full usage and options.
+
 ### Multi-Dataset Model Compare (Surveys + Item Bank)
 
 Use this script to compare multiple embedding models across surveys and item bank in one run:
