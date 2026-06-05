@@ -264,9 +264,10 @@
                                 <button type="button" id="validationSummaryDownloadCsv" class="btn btn-compact" style="background: var(--color-success); color: var(--text-inverse); border: 1px solid var(--color-success-border);" onclick="downloadNeedsReviewCSVForCurrentLanguage()" title="Download CSV of items needing review for current language (Item ID, Source, Language, Translation, Reason, Back Translation, Outcome)">
                                     <i class="fas fa-download"></i> Download
                                 </button>
-                                <span id="validationSharedSyncLabel" style="color:var(--text-secondary); font-size:0.88em; font-weight:600; white-space:nowrap; background:var(--surface-2); border:1px solid var(--border-subtle); border-radius:12px; padding:4px 8px;" title="Latest successful shared validation sync timestamp">
-                                    Shared sync: never
-                                </span>
+                                <button type="button" id="validationSharedSyncBtn" onclick="forceSharedSyncNow()" title="Click to pull the latest shared validation data now" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.88em; font-weight:600; white-space:nowrap; background:var(--surface-2); border:1px solid var(--border-subtle); border-radius:12px; padding:4px 10px;">
+                                    <i id="validationSharedSyncIcon" class="fas fa-rotate"></i>
+                                    <span id="validationSharedSyncLabel" style="color:var(--text-secondary);">Shared sync: never</span>
+                                </button>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-top: 12px;">
@@ -586,6 +587,21 @@
         let _reviewTableRows = [];
         let _reviewTableSortBy = 'score';
         let _reviewTableSortDir = 1;
+        let _validationSharedSyncInFlight = false;
+        let _validationLastAutoSyncMs = 0;
+
+        function setValidationSharedSyncBusy(isBusy) {
+            const btn = document.getElementById('validationSharedSyncBtn');
+            const icon = document.getElementById('validationSharedSyncIcon');
+            if (btn) btn.disabled = !!isBusy;
+            if (icon) icon.className = isBusy ? 'fas fa-spinner fa-spin' : 'fas fa-rotate';
+        }
+
+        function clearValidationSharedLanguageCache() {
+            const dash = window.dashboard;
+            if (!dash || !dash.loadedValidationLanguageCodes || typeof dash.loadedValidationLanguageCodes.clear !== 'function') return;
+            dash.loadedValidationLanguageCodes.clear();
+        }
 
         function setValidationSharedSyncLabel(ts, isError, source) {
             const el = document.getElementById('validationSharedSyncLabel');
@@ -613,6 +629,7 @@
             const dash = window.dashboard;
             if (!dash || typeof dash.loadFromSharedStorage !== 'function') return false;
             try {
+                clearValidationSharedLanguageCache();
                 const loaded = await dash.loadFromSharedStorage('', { force: true });
                 if (loaded) {
                     if (typeof dash.populateDataTable === 'function') dash.populateDataTable();
@@ -628,6 +645,27 @@
                 setValidationSharedSyncLabel('', true);
                 return false;
             }
+        }
+
+        async function forceSharedSyncNow(options = {}) {
+            if (_validationSharedSyncInFlight) return false;
+            _validationSharedSyncInFlight = true;
+            setValidationSharedSyncBusy(true);
+            try {
+                return await syncValidationStateFromShared();
+            } finally {
+                _validationSharedSyncInFlight = false;
+                setValidationSharedSyncBusy(false);
+            }
+        }
+
+        function maybeAutoRefreshSharedValidation() {
+            if (document.visibilityState === 'hidden') return;
+            if (_validationSharedSyncInFlight) return;
+            const now = Date.now();
+            if (now - _validationLastAutoSyncMs < 15000) return;
+            _validationLastAutoSyncMs = now;
+            forceSharedSyncNow({ silent: true });
         }
 
         async function openValidationReviewTableForCurrentLanguage() {
@@ -1337,6 +1375,8 @@
             const source = localStorage.getItem('validation_shared_last_sync_source') || '';
             setValidationSharedSyncLabel(last, false, source);
             initializeVoiceToolsCollapsedState();
+            window.addEventListener('focus', maybeAutoRefreshSharedValidation);
+            document.addEventListener('visibilitychange', maybeAutoRefreshSharedValidation);
         });
 
         function downloadNeedsReviewCSVWithTranslations(langCode) {
