@@ -407,7 +407,11 @@
         
         const res = await fetchJson(`/api/read-tags?${params.toString()}`);
         const voice = (res.id3Tags && res.id3Tags.voice) || 'Not available';
-        const voiceLabel = item.isChildSurvey ? `Child-Survey: ${voice}` : voice;
+        const isNoTag = !voice || voice === 'Not available';
+        const note = String(res.note || res?.id3Tags?.note || '');
+        const isLegacyPath = /legacy top-level path/i.test(note);
+        const normalizedVoiceLabel = isNoTag ? 'Missing voice tag' : voice;
+        const voiceLabel = item.isChildSurvey ? `Child-Survey: ${normalizedVoiceLabel}` : normalizedVoiceLabel;
         const created = res.metadata?.created || res.id3Tags?.created || null;
         const shortname = `${item.lang}/${item.id}.mp3`;
         return { 
@@ -415,6 +419,8 @@
           lang: item.lang, 
           id: item.id, 
           voice: voiceLabel, 
+          isNoTag,
+          isLegacyPath,
           isChildSurvey: item.isChildSurvey,
           shortname,
           created
@@ -426,31 +432,35 @@
 
     function groupCounts(records){
       const map = new Map();
-      const filesMap = new Map(); // Store file details for "Not available" entries
+      const filesMap = new Map(); // Store file details for missing voice tag entries
       for(const r of records){
         if(!r.ok) continue;
         const key = `${r.lang}||${r.voice}`;
         map.set(key, (map.get(key)||0)+1);
         
-        // Store file details for "Not available" entries
-        if (r.voice && r.voice.includes('Not available')) {
+        // Store file details for missing voice tag entries
+        if (r.isNoTag) {
           if (!filesMap.has(key)) {
             filesMap.set(key, []);
           }
           filesMap.get(key).push({
             shortname: r.shortname,
             created: r.created,
-            id: r.id
+            id: r.id,
+            isLegacyPath: Boolean(r.isLegacyPath)
           });
         }
       }
       return Array.from(map.entries()).map(([k,v])=>{ 
         const [lang,voice]=k.split('||'); 
+        const rowFiles = filesMap.get(k) || [];
         return {
           lang,
           voice,
           count:v,
-          files: filesMap.get(k) || []
+          files: rowFiles,
+          isNoTag: rowFiles.length > 0,
+          legacyCount: rowFiles.filter(file => file.isLegacyPath).length
         }; 
       });
     }
@@ -536,7 +546,7 @@
 
       const total = allItems.length;
       let processed = 0;
-      const updateSummary = (okCount, errCount, noTagCount = 0) => {
+      const updateSummary = (okCount, errCount, noTagCount = 0, legacyPathCount = 0) => {
         const filterChip = requestedLangs && requestedLangs.length
           ? `<span class="chip ok">Selected: ${requestedLangs.length}</span>`
           : '';
@@ -546,7 +556,8 @@
           `<span class="chip ok">Progress: ${processed}/${total}</span>`+
           `<span class="chip ok">Files scanned: ${okCount}</span>`+
           `<span class="chip missing">Missing/Errors: ${errCount}</span>`+
-          `<span class="chip missing">No-tag files: ${noTagCount}</span>`;
+          `<span class="chip missing">Missing voice tag: ${noTagCount}</span>`+
+          `<span class="chip ok">Legacy path files: ${legacyPathCount}</span>`;
       };
 
       // Bounded concurrency to avoid overwhelming serverless/API
@@ -589,8 +600,9 @@
       const grouped = groupCounts(results);
 
       // Count files that exist but have no ID3 voice tag
-      const noTagCount = results.reduce((acc, r) => acc + (r && r.ok && (!r.voice || r.voice === 'Not available') ? 1 : 0), 0);
-      updateSummary(results.filter(r=>r && r.ok).length, results.filter(r=>!r || !r.ok).length, noTagCount);
+      const noTagCount = results.reduce((acc, r) => acc + (r && r.ok && r.isNoTag ? 1 : 0), 0);
+      const legacyPathCount = results.reduce((acc, r) => acc + (r && r.ok && r.isLegacyPath ? 1 : 0), 0);
+      updateSummary(results.filter(r=>r && r.ok).length, results.filter(r=>!r || !r.ok).length, noTagCount, legacyPathCount);
 
       // Ensure every language listed in summary appears in the detail table.
       // If a language has 0 found files, add a placeholder row with any info we have (missing/errors count).
@@ -661,9 +673,9 @@
       withFiles.sort((a,b)=>{
         const byLang = a.lang.localeCompare(b.lang);
         if (byLang !== 0) return byLang;
-        const aIsNA = a.voice === 'Not available';
-        const bIsNA = b.voice === 'Not available';
-        if (aIsNA !== bIsNA) return aIsNA ? 1 : -1; // push "Not available" to bottom within language
+        const aIsNA = Boolean(a.isNoTag);
+        const bIsNA = Boolean(b.isNoTag);
+        if (aIsNA !== bIsNA) return aIsNA ? 1 : -1; // push missing voice-tag rows to bottom within language
         const byCount = b.count - a.count;
         if (byCount !== 0) return byCount;
         return a.voice.localeCompare(b.voice);
@@ -678,10 +690,11 @@
              </td>` :
           `<td>${missingCount}</td>`;
         
-        // Add info icon for "Not available" entries
-        const hasNoTag = row.voice && row.voice.includes('Not available');
-        const voiceCell = hasNoTag && row.files && row.files.length > 0
-          ? `<td>${row.voice} <span class="info-icon" onclick="showNoTagDetails(${idx})" title="Click to see file details" style="color: var(--accent); cursor: pointer; margin-left: 5px; font-size: 12px;">ℹ️</span></td>`
+        // Add info icon for missing voice-tag entries
+        const hasNoTag = Boolean(row.isNoTag && row.files && row.files.length > 0);
+        const legacyHint = row.legacyCount > 0 ? ` <span title="${row.legacyCount} file(s) came from legacy top-level path" style="color: var(--text-secondary); font-size: 12px;">(legacy path: ${row.legacyCount})</span>` : '';
+        const voiceCell = hasNoTag
+          ? `<td>${row.voice}${legacyHint} <span class="info-icon" onclick="showNoTagDetails(${idx})" title="Click to see file details" style="color: var(--accent); cursor: pointer; margin-left: 5px; font-size: 12px;">ℹ️</span></td>`
           : `<td>${row.voice}</td>`;
         
         tr.innerHTML = `<td>${row.lang}</td>${voiceCell}<td>${row.count}</td>${missingCell}`;
@@ -832,7 +845,7 @@
 
       const card = document.createElement('div');
       card.className = 'modal-card';
-      const fileLabel = row.voice && row.voice !== 'Not available' ? row.voice : 'Unspecified';
+      const fileLabel = row.voice && row.voice !== 'Missing voice tag' ? row.voice : 'Unspecified';
       const formatDate = (dateStr) => {
         if (!dateStr) return null;
         try {
@@ -845,7 +858,8 @@
       const itemsMarkup = row.files.map(file => {
         const label = file.shortname || file.id || 'Unknown file';
         const created = formatDate(file.created);
-        return `<li>${label}${created ? `<span class="missing-created">Created: ${created}</span>` : ''}</li>`;
+        const legacy = file.isLegacyPath ? ' <span class="missing-created">Source: legacy top-level path</span>' : '';
+        return `<li>${label}${created ? `<span class="missing-created">Created: ${created}</span>` : ''}${legacy}</li>`;
       }).join('');
 
       card.innerHTML = `
