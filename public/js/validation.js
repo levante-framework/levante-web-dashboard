@@ -1012,14 +1012,19 @@ async function validateAll() {
     const jobs = [];
     let skippedAlreadyValidated = 0;
     let skippedMissingTranslation = 0;
+    let queuedStaleForRevalidation = 0;
     visibleRows.forEach(row => {
         const itemId = String(row.dataset.itemId || '');
         if (!itemId) return;
         const existing = getValidationResult(dashboard, itemId, langCode);
-        const alreadyValidated = existing && typeof existing.score === 'number';
+        const requiresRevalidation = existing?.requiresRevalidation === true;
+        const alreadyValidated = existing && typeof existing.score === 'number' && !requiresRevalidation;
         if (alreadyValidated && !forceAll) {
             skippedAlreadyValidated++;
             return;
+        }
+        if (requiresRevalidation && !forceAll) {
+            queuedStaleForRevalidation++;
         }
         const item = itemById.get(itemId);
         if (!item) return;
@@ -1043,7 +1048,7 @@ async function validateAll() {
         if (forceAll) {
             alert('No translations available to validate in the current language/filter.');
         } else {
-            alert('No pending translations to validate in the current language/filter (or translations are missing).');
+            alert('No pending or stale translations to validate in the current language/filter (or translations are missing).');
         }
         return;
     }
@@ -1054,9 +1059,12 @@ async function validateAll() {
     const actionLabel = forceAll ? 're-validate' : 'validate';
     const skippedCount = forceAll ? 0 : skippedAlreadyValidated;
     const skippedMissing = forceAll ? 0 : skippedMissingTranslation;
+    const staleLabel = (!forceAll && queuedStaleForRevalidation > 0)
+        ? `, ${queuedStaleForRevalidation} stale row(s) queued`
+        : '';
     if (confirm(
         `This will ${actionLabel} ${jobs.length} ${currentLanguage.toUpperCase()} translations ` +
-        `(${skippedCount} already validated skipped${skippedMissing ? `, ${skippedMissing} missing translation skipped` : ''}).\n` +
+        `(${skippedCount} already validated skipped${staleLabel}${skippedMissing ? `, ${skippedMissing} missing translation skipped` : ''}).\n` +
         `Mode: ${speedMode.toUpperCase()} | Concurrency: ${concurrency} | Delay: ${perItemDelayMs}ms\n\nContinue?`
     )) {
         if (forceAll) {
@@ -1145,8 +1153,11 @@ async function validateAll() {
                         'warning'
                     );
                 } else {
+                    const staleDoneLabel = !forceAll && queuedStaleForRevalidation > 0
+                        ? ` (${queuedStaleForRevalidation} stale row(s) refreshed)`
+                        : '';
                     dashboard.setStatus(
-                        `✅ Validation complete: ${total} ${doneLabel} ${currentLanguage.toUpperCase()} items in ${speedMode.toUpperCase()} mode (AI: ${src.ai}, Calculated: ${src.calculated}, Errors: ${src.error})`,
+                        `✅ Validation complete: ${total} ${doneLabel} ${currentLanguage.toUpperCase()} items${staleDoneLabel} in ${speedMode.toUpperCase()} mode (AI: ${src.ai}, Calculated: ${src.calculated}, Errors: ${src.error})`,
                         'success'
                     );
                 }
