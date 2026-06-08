@@ -7395,13 +7395,30 @@
                         playbackProbe.fetchOk = true;
                     }
                     const audioBase64 = await this.convertBlobToBase64(blob);
+                    let existingVoiceName = '';
+                    try {
+                        const metadataParams = new URLSearchParams({
+                            bucket: audioBucket,
+                            path: audioPath
+                        });
+                        const metadataResponse = await fetch(`/api/audio-metadata?${metadataParams.toString()}`, {
+                            method: 'GET'
+                        });
+                        if (metadataResponse.ok) {
+                            const metadataPayload = await metadataResponse.json().catch(() => ({}));
+                            existingVoiceName = String(metadataPayload?.voice || '').trim();
+                        }
+                    } catch (_) {
+                        // Non-fatal: fallback label remains available for existing-audio compare snapshots.
+                    }
+                    const snapshotVoiceLabel = existingVoiceName || 'Existing audio';
                     const playedSnapshot = {
                         itemId: String(itemId || ''),
                         langCode: String(this.currentLangCode || ''),
                         audioBase64,
                         service: 'ElevenLabs',
                         voiceId: '',
-                        voiceName: 'Existing audio',
+                        voiceName: snapshotVoiceLabel,
                         modelId: '',
                         text: '',
                         originalTranslationText: '',
