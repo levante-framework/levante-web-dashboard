@@ -47,6 +47,10 @@ function extractModelIdFromTags(tags) {
   return '';
 }
 
+function extractVoiceIdFromTags(tags) {
+  return extractUserDefinedTag(tags, 'voice_id') || extractUserDefinedTag(tags, 'voiceId');
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -80,12 +84,14 @@ export default async function handler(req, res) {
     const [buffer] = await file.download();
     const tags = NodeID3.read(buffer) || {};
     const voice = extractVoiceFromTags(tags);
+    const voiceId = extractVoiceIdFromTags(tags);
     const modelId = extractModelIdFromTags(tags);
     return res.status(200).json({
       success: true,
       bucket: bucketName,
       path: objectPath,
       voice: voice || '',
+      voice_id: voiceId || '',
       model_id: modelId || '',
       tags: {
         artist: tags?.artist || '',

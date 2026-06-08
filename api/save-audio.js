@@ -86,6 +86,10 @@ export default async function handler(req, res) {
 
 		pushCustomTag('service', serviceValue);
 		pushCustomTag('voice', tags?.voice);
+		const resolvedVoiceId = tags?.voice_id || tags?.voiceId;
+		pushCustomTag('voice_id', resolvedVoiceId);
+		pushCustomTag('voiceId', resolvedVoiceId);
+		pushCustomTag('model_id', tags?.model_id);
 		pushCustomTag('lang_code', tags?.lang_code || langCode);
 		pushCustomTag('text', tags?.text);
 		pushCustomTag('original_translation_text', tags?.original_translation_text);

@@ -2068,7 +2068,7 @@
         class PartnerAudioDashboard {
             constructor() {
                 this.defaultLanguages = {
-                    'English (United States)': { lang_code: 'en-US', service: 'ElevenLabs', voice: 'Lily Wolff' },
+                    'English (United States)': { lang_code: 'en-US', service: 'ElevenLabs', voice: 'Lily Wolff', voice_id: 'qBDvhofpxp92JgXJxDjB' },
                     'Spanish (Colombia)': { lang_code: 'es-CO', service: 'ElevenLabs', voice: 'Malena Tango' },
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Melody - Ecommerce Voice', voice_id: 'bN1bDXgDIGX5lw0rtY2B' },
                     'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
@@ -7396,6 +7396,7 @@
                     }
                     const audioBase64 = await this.convertBlobToBase64(blob);
                     let existingVoiceName = '';
+                    let existingVoiceId = '';
                     try {
                         const metadataParams = new URLSearchParams({
                             bucket: audioBucket,
@@ -7407,6 +7408,7 @@
                         if (metadataResponse.ok) {
                             const metadataPayload = await metadataResponse.json().catch(() => ({}));
                             existingVoiceName = String(metadataPayload?.voice || '').trim();
+                            existingVoiceId = String(metadataPayload?.voice_id || '').trim();
                         }
                     } catch (_) {
                         // Non-fatal: fallback label remains available for existing-audio compare snapshots.
@@ -7417,7 +7419,7 @@
                         langCode: String(this.currentLangCode || ''),
                         audioBase64,
                         service: 'ElevenLabs',
-                        voiceId: '',
+                        voiceId: existingVoiceId,
                         voiceName: snapshotVoiceLabel,
                         modelId: '',
                         text: '',
@@ -8090,6 +8092,8 @@
                             comment: `Levante Project - ${this.latestGeneratedAudio.service} - ${this.latestGeneratedAudio.voiceName} - ${this.currentLangCode}`,
                             service: this.latestGeneratedAudio.service,
                             voice: this.latestGeneratedAudio.voiceName,
+                            voice_id: this.latestGeneratedAudio.voiceId || '',
+                            voiceId: this.latestGeneratedAudio.voiceId || '',
                             model_id: this.latestGeneratedAudio.modelId || 'eleven_v3',
                             lang_code: this.currentLangCode,
                             text: resolvedTagText,
