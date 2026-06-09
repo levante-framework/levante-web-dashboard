@@ -55,7 +55,8 @@
     "validation:prolific:import:pilot-es-ar": "python3 scripts/import_prolific_results.py --translations-csv data/validation/crowdin-xliff-merged.csv --target-col es-AR --output-prefix data/validation/prolific-es-AR-pilot",
     "validation:seed-by-language": "node scripts/seed-validation-by-language-from-legacy.js",
     "validation:cleanup-artifacts": "python3 scripts/cleanup_validation_artifacts.py",
-    "validation:cleanup-artifacts:apply": "python3 scripts/cleanup_validation_artifacts.py --apply"
+    "validation:cleanup-artifacts:apply": "python3 scripts/cleanup_validation_artifacts.py --apply",
+    "report:backfill-rollups": "node scripts/backfill-approver-audio-rollups.js"
   },
   "keywords": [
     "audio",

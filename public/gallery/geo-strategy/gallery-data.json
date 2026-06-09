@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-03-26T01:12:25.140Z",
+  "generatedAt": "2026-06-09T17:15:44.522Z",
   "sourceSeedFile": "public/gallery/locate-me/seed-points.json",
-  "populationThreshold": 50000,
+  "populationThreshold": 20000,
   "shiftKm": 1,
   "tiles": {
     "tileKm": 1,
@@ -16,7 +16,7 @@
   "h3": {
     "scheme": "h3_v1",
     "baseResolution": 5,
-    "effectiveResolutionSearchMax": 9,
+    "effectiveResolutionSearchMax": 7,
     "effectiveRule": "Use highest H3 resolution (smallest cell) whose estimated population is >= populationThreshold",
     "populationSource": "kontur"
   },
@@ -48,7 +48,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283083fffffff",
           "resolution": 5,
@@ -203,18 +203,6 @@
             "population": 76092,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "882830828dfffff",
-            "population": 2513,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892830828c3ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -322,12 +310,12 @@
           "population": 821551
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 16.5,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T18:00",
+        "temperatureC": 17.3,
+        "description": "Clear",
+        "observedAt": "2026-06-09T10:00",
         "query": {
           "lat": 37.7749,
           "lon": -122.4194,
@@ -336,13 +324,7 @@
       },
       "altitudeM": 18,
       "populationDensityPerKm2": 31351,
-      "nearestSchool": {
-        "name": "Collegio De La Mission",
-        "distanceKm": 1.719524843550234,
-        "source": "overpass",
-        "lat": 37.7546523,
-        "lon": -122.4199709
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-portland",
@@ -359,9 +341,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 60689,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 44253,
+        "areaKm2": 9,
         "totals": {
           "1": 4113,
           "3": 44253,
@@ -371,7 +353,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8528f003fffffff",
           "resolution": 5,
@@ -426,18 +408,18 @@
           }
         },
         "effective": {
-          "id": "8628f0007ffffff",
-          "resolution": 6,
-          "population": 99361,
+          "id": "8728f0023ffffff",
+          "resolution": 7,
+          "population": 22176,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8628f0007ffffff",
-              "resolution": 6,
-              "population": 99361,
+              "id": "8728f0023ffffff",
+              "resolution": 7,
+              "population": 22176,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -446,32 +428,32 @@
               "coordinates": [
                 [
                   [
-                    -122.657513,
-                    45.515818
+                    -122.683246,
+                    45.503176
                   ],
                   [
-                    -122.623676,
-                    45.539512
+                    -122.675165,
+                    45.514239
                   ],
                   [
-                    -122.634722,
-                    45.569529
-                  ],
-                  [
-                    -122.679625,
-                    45.575843
-                  ],
-                  [
-                    -122.71345,
-                    45.552144
+                    -122.684734,
+                    45.523719
                   ],
                   [
                     -122.702384,
                     45.522135
                   ],
                   [
-                    -122.657513,
-                    45.515818
+                    -122.710461,
+                    45.511072
+                  ],
+                  [
+                    -122.700892,
+                    45.501593
+                  ],
+                  [
+                    -122.683246,
+                    45.503176
                   ]
                 ]
               ]
@@ -525,19 +507,7 @@
             "id": "8728f0023ffffff",
             "population": 22176,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8828f00237fffff",
-            "population": 4113,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8928f00236fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -593,9 +563,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8628f0007ffffff",
-                "resolution": 6,
-                "population": 99361,
+                "id": "8728f0023ffffff",
+                "resolution": 7,
+                "population": 22176,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -604,32 +574,32 @@
                 "coordinates": [
                   [
                     [
-                      -122.657513,
-                      45.515818
+                      -122.683246,
+                      45.503176
                     ],
                     [
-                      -122.623676,
-                      45.539512
+                      -122.675165,
+                      45.514239
                     ],
                     [
-                      -122.634722,
-                      45.569529
-                    ],
-                    [
-                      -122.679625,
-                      45.575843
-                    ],
-                    [
-                      -122.71345,
-                      45.552144
+                      -122.684734,
+                      45.523719
                     ],
                     [
                       -122.702384,
                       45.522135
                     ],
                     [
-                      -122.657513,
-                      45.515818
+                      -122.710461,
+                      45.511072
+                    ],
+                    [
+                      -122.700892,
+                      45.501593
+                    ],
+                    [
+                      -122.683246,
+                      45.503176
                     ]
                   ]
                 ]
@@ -645,12 +615,12 @@
           "population": 810958
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 9.7,
+        "temperatureC": 14.9,
         "description": "Mostly clear",
-        "observedAt": "2026-03-25T17:45",
+        "observedAt": "2026-06-09T10:00",
         "query": {
           "lat": 45.5231,
           "lon": -122.6765,
@@ -659,13 +629,7 @@
       },
       "altitudeM": 13,
       "populationDensityPerKm2": 5101,
-      "nearestSchool": {
-        "name": "Metropolitan Learning Center",
-        "distanceKm": 0.5002911229866125,
-        "source": "overpass",
-        "lat": 45.5266876,
-        "lon": -122.6932345
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-miami",
@@ -682,9 +646,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 68129,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 29668,
+        "areaKm2": 9,
         "totals": {
           "1": 799,
           "3": 29668,
@@ -694,7 +658,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8544a113fffffff",
           "resolution": 5,
@@ -749,18 +713,18 @@
           }
         },
         "effective": {
-          "id": "8644a112fffffff",
-          "resolution": 6,
-          "population": 121780,
+          "id": "8744a1128ffffff",
+          "resolution": 7,
+          "population": 27764,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8644a112fffffff",
-              "resolution": 6,
-              "population": 121780,
+              "id": "8744a1128ffffff",
+              "resolution": 7,
+              "population": 27764,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -769,32 +733,32 @@
               "coordinates": [
                 [
                   [
-                    -80.201915,
-                    25.725635
+                    -80.195977,
+                    25.746669
                   ],
                   [
-                    -80.171679,
-                    25.740116
+                    -80.186932,
+                    25.755547
                   ],
                   [
-                    -80.16884,
-                    25.773297
+                    -80.190037,
+                    25.767701
                   ],
                   [
-                    -80.196251,
-                    25.792012
+                    -80.202192,
+                    25.770979
                   ],
                   [
-                    -80.226509,
-                    25.777533
+                    -80.211239,
+                    25.7621
                   ],
                   [
-                    -80.229334,
-                    25.744337
+                    -80.208131,
+                    25.749944
                   ],
                   [
-                    -80.201915,
-                    25.725635
+                    -80.195977,
+                    25.746669
                   ]
                 ]
               ]
@@ -848,19 +812,7 @@
             "id": "8744a1128ffffff",
             "population": 27764,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8844a1128dfffff",
-            "population": 5718,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8944a1128cbffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -916,9 +868,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8644a112fffffff",
-                "resolution": 6,
-                "population": 121780,
+                "id": "8744a1128ffffff",
+                "resolution": 7,
+                "population": 27764,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -927,32 +879,32 @@
                 "coordinates": [
                   [
                     [
-                      -80.201915,
-                      25.725635
+                      -80.195977,
+                      25.746669
                     ],
                     [
-                      -80.171679,
-                      25.740116
+                      -80.186932,
+                      25.755547
                     ],
                     [
-                      -80.16884,
-                      25.773297
+                      -80.190037,
+                      25.767701
                     ],
                     [
-                      -80.196251,
-                      25.792012
+                      -80.202192,
+                      25.770979
                     ],
                     [
-                      -80.226509,
-                      25.777533
+                      -80.211239,
+                      25.7621
                     ],
                     [
-                      -80.229334,
-                      25.744337
+                      -80.208131,
+                      25.749944
                     ],
                     [
-                      -80.201915,
-                      25.725635
+                      -80.195977,
+                      25.746669
                     ]
                   ]
                 ]
@@ -968,12 +920,12 @@
           "population": 2723567
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 21.5,
-        "description": "Clear",
-        "observedAt": "2026-03-25T21:00",
+        "temperatureC": 29.7,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T13:00",
         "query": {
           "lat": 25.7617,
           "lon": -80.1918,
@@ -982,13 +934,7 @@
       },
       "altitudeM": 5,
       "populationDensityPerKm2": 7346,
-      "nearestSchool": {
-        "name": "Brickell Christian School",
-        "distanceKm": 0.9393952253427076,
-        "source": "overpass",
-        "lat": 25.7587107,
-        "lon": -80.1983813
-      }
+      "nearestSchool": null
     },
     {
       "id": "CA-vancouver",
@@ -1017,7 +963,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8528de8ffffffff",
           "resolution": 5,
@@ -1072,18 +1018,18 @@
           }
         },
         "effective": {
-          "id": "8628de8dfffffff",
-          "resolution": 6,
-          "population": 174101,
+          "id": "8728de8deffffff",
+          "resolution": 7,
+          "population": 35989,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8628de8dfffffff",
-              "resolution": 6,
-              "population": 174101,
+              "id": "8728de8deffffff",
+              "resolution": 7,
+              "population": 35989,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -1092,32 +1038,32 @@
               "coordinates": [
                 [
                   [
-                    -123.114228,
-                    49.259426
+                    -123.087457,
+                    49.271779
                   ],
                   [
                     -123.07908,
                     49.28237
                   ],
                   [
-                    -123.090758,
-                    49.310619
+                    -123.089107,
+                    49.291202
                   ],
                   [
-                    -123.137605,
-                    49.315917
+                    -123.107511,
+                    49.289442
                   ],
                   [
-                    -123.172739,
-                    49.292967
+                    -123.115884,
+                    49.278851
                   ],
                   [
-                    -123.161041,
-                    49.264725
+                    -123.105857,
+                    49.27002
                   ],
                   [
-                    -123.114228,
-                    49.259426
+                    -123.087457,
+                    49.271779
                   ]
                 ]
               ]
@@ -1171,19 +1117,7 @@
             "id": "8728de8deffffff",
             "population": 35989,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8828de8de3fffff",
-            "population": 1685,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8928de8de33ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -1239,9 +1173,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8628de8dfffffff",
-                "resolution": 6,
-                "population": 174101,
+                "id": "8728de8deffffff",
+                "resolution": 7,
+                "population": 35989,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -1250,32 +1184,32 @@
                 "coordinates": [
                   [
                     [
-                      -123.114228,
-                      49.259426
+                      -123.087457,
+                      49.271779
                     ],
                     [
                       -123.07908,
                       49.28237
                     ],
                     [
-                      -123.090758,
-                      49.310619
+                      -123.089107,
+                      49.291202
                     ],
                     [
-                      -123.137605,
-                      49.315917
+                      -123.107511,
+                      49.289442
                     ],
                     [
-                      -123.172739,
-                      49.292967
+                      -123.115884,
+                      49.278851
                     ],
                     [
-                      -123.161041,
-                      49.264725
+                      -123.105857,
+                      49.27002
                     ],
                     [
-                      -123.114228,
-                      49.259426
+                      -123.087457,
+                      49.271779
                     ]
                   ]
                 ]
@@ -1295,12 +1229,12 @@
           "name": "Vancouver",
           "population": 687459
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 6,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T17:45",
+        "temperatureC": 14,
+        "description": "Mostly clear",
+        "observedAt": "2026-06-09T10:00",
         "query": {
           "lat": 49.2827,
           "lon": -123.1207,
@@ -1309,13 +1243,7 @@
       },
       "altitudeM": 40,
       "populationDensityPerKm2": 22896,
-      "nearestSchool": {
-        "name": "Vancouver Film School",
-        "distanceKm": 0.09006414019004483,
-        "source": "overpass",
-        "lat": 49.2832374,
-        "lon": -123.107818
-      }
+      "nearestSchool": null
     },
     {
       "id": "CA-toronto",
@@ -1344,7 +1272,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852b9bc7fffffff",
           "resolution": 5,
@@ -1499,18 +1427,6 @@
             "population": 62587,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "882b9bc46bfffff",
-            "population": 7147,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892b9bc46bbffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -1622,12 +1538,12 @@
           "name": "Toronto",
           "population": 2895364
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 1.9,
+        "temperatureC": 21.5,
         "description": "Overcast",
-        "observedAt": "2026-03-25T21:00",
+        "observedAt": "2026-06-09T13:00",
         "query": {
           "lat": 43.6532,
           "lon": -79.3832,
@@ -1636,13 +1552,7 @@
       },
       "altitudeM": 99,
       "populationDensityPerKm2": 11246,
-      "nearestSchool": {
-        "name": "Downtown Alternative School",
-        "distanceKm": 0.33880379050569953,
-        "source": "overpass",
-        "lat": 43.6477437,
-        "lon": -79.370378
-      }
+      "nearestSchool": null
     },
     {
       "id": "CO-bogota",
@@ -1671,7 +1581,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8566e42bfffffff",
           "resolution": 5,
@@ -1826,18 +1736,6 @@
             "population": 84661,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "8866e4288bfffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8966e4288afffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -1945,12 +1843,12 @@
           "population": 8360100
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 13.3,
-        "description": "Light showers",
-        "observedAt": "2026-03-25T20:00",
+        "temperatureC": 20.2,
+        "description": "Partly cloudy",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 4.711,
           "lon": -74.0721,
@@ -1959,13 +1857,7 @@
       },
       "altitudeM": 2557,
       "populationDensityPerKm2": 17307,
-      "nearestSchool": {
-        "name": "IED Prado Veraniego I",
-        "distanceKm": 1.3130158148257907,
-        "source": "overpass",
-        "lat": 4.7150116,
-        "lon": -74.0713535
-      }
+      "nearestSchool": null
     },
     {
       "id": "CO-medellin",
@@ -1994,7 +1886,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "856619dbfffffff",
           "resolution": 5,
@@ -2149,18 +2041,6 @@
             "population": 90611,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "886619d907fffff",
-            "population": 13347,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "896619d907bffff",
-            "population": 13347,
-            "populationSource": "worldpop",
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -2268,12 +2148,12 @@
           "population": 2536337
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 19.1,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T20:00",
+        "temperatureC": 26.2,
+        "description": "Mostly clear",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 6.2518,
           "lon": -75.5636,
@@ -2282,13 +2162,7 @@
       },
       "altitudeM": 1493,
       "populationDensityPerKm2": 12825,
-      "nearestSchool": {
-        "name": "Instituto Ferrini",
-        "distanceKm": 0.8121573573469486,
-        "source": "overpass",
-        "lat": 6.2446418,
-        "lon": -75.5627034
-      }
+      "nearestSchool": null
     },
     {
       "id": "CO-cartagena",
@@ -2317,7 +2191,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8566313bfffffff",
           "resolution": 5,
@@ -2372,18 +2246,18 @@
           }
         },
         "effective": {
-          "id": "86663138fffffff",
-          "resolution": 6,
-          "population": 239661,
+          "id": "8766313abffffff",
+          "resolution": 7,
+          "population": 49059,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "86663138fffffff",
-              "resolution": 6,
-              "population": 239661,
+              "id": "8766313abffffff",
+              "resolution": 7,
+              "population": 49059,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -2392,32 +2266,32 @@
               "coordinates": [
                 [
                   [
-                    -75.491527,
-                    10.397274
+                    -75.471102,
+                    10.405069
                   ],
                   [
-                    -75.51944,
-                    10.379947
+                    -75.478584,
+                    10.395544
                   ],
                   [
-                    -75.516005,
-                    10.347893
-                  ],
-                  [
-                    -75.484651,
-                    10.333171
-                  ],
-                  [
-                    -75.45674,
-                    10.350507
+                    -75.473123,
+                    10.384287
                   ],
                   [
                     -75.460181,
                     10.382556
                   ],
                   [
-                    -75.491527,
-                    10.397274
+                    -75.4527,
+                    10.392082
+                  ],
+                  [
+                    -75.45816,
+                    10.403338
+                  ],
+                  [
+                    -75.471102,
+                    10.405069
                   ]
                 ]
               ]
@@ -2471,19 +2345,7 @@
             "id": "8766313abffffff",
             "population": 49059,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8866313ab7fffff",
-            "population": 7168,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8966313ab6bffff",
-            "population": 7168,
-            "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -2539,9 +2401,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "86663138fffffff",
-                "resolution": 6,
-                "population": 239661,
+                "id": "8766313abffffff",
+                "resolution": 7,
+                "population": 49059,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -2550,32 +2412,32 @@
                 "coordinates": [
                   [
                     [
-                      -75.491527,
-                      10.397274
+                      -75.471102,
+                      10.405069
                     ],
                     [
-                      -75.51944,
-                      10.379947
+                      -75.478584,
+                      10.395544
                     ],
                     [
-                      -75.516005,
-                      10.347893
-                    ],
-                    [
-                      -75.484651,
-                      10.333171
-                    ],
-                    [
-                      -75.45674,
-                      10.350507
+                      -75.473123,
+                      10.384287
                     ],
                     [
                       -75.460181,
                       10.382556
                     ],
                     [
-                      -75.491527,
-                      10.397274
+                      -75.4527,
+                      10.392082
+                    ],
+                    [
+                      -75.45816,
+                      10.403338
+                    ],
+                    [
+                      -75.471102,
+                      10.405069
                     ]
                   ]
                 ]
@@ -2591,12 +2453,12 @@
           "population": 990552
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 27.5,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-25T19:30",
+        "temperatureC": 29.4,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 10.391,
           "lon": -75.4794,
@@ -2605,13 +2467,7 @@
       },
       "altitudeM": 13,
       "populationDensityPerKm2": 15668,
-      "nearestSchool": {
-        "name": "Institución Educ El Paraiso",
-        "distanceKm": 0.2957883350052447,
-        "source": "overpass",
-        "lat": 10.3821324,
-        "lon": -75.4738537
-      }
+      "nearestSchool": null
     },
     {
       "id": "DE-berlin",
@@ -2640,7 +2496,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f1d4ffffffff",
           "resolution": 5,
@@ -2695,18 +2551,18 @@
           }
         },
         "effective": {
-          "id": "861f1d48fffffff",
-          "resolution": 6,
-          "population": 183423,
+          "id": "871f1d489ffffff",
+          "resolution": 7,
+          "population": 24594,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f1d48fffffff",
-              "resolution": 6,
-              "population": 183423,
+              "id": "871f1d489ffffff",
+              "resolution": 7,
+              "population": 24594,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -2715,32 +2571,32 @@
               "coordinates": [
                 [
                   [
-                    13.336528,
-                    52.544308
+                    13.39093,
+                    52.530394
                   ],
                   [
-                    13.321054,
-                    52.514606
+                    13.391806,
+                    52.518946
                   ],
                   [
-                    13.358188,
-                    52.493881
+                    13.409934,
+                    52.514299
                   ],
                   [
-                    13.410806,
-                    52.502848
+                    13.427192,
+                    52.5211
                   ],
                   [
                     13.426322,
                     52.532548
                   ],
                   [
-                    13.389179,
-                    52.553283
+                    13.408189,
+                    52.537195
                   ],
                   [
-                    13.336528,
-                    52.544308
+                    13.39093,
+                    52.530394
                   ]
                 ]
               ]
@@ -2794,19 +2650,7 @@
             "id": "871f1d489ffffff",
             "population": 24594,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881f1d4891fffff",
-            "population": 3103,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891f1d48907ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -2862,9 +2706,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f1d48fffffff",
-                "resolution": 6,
-                "population": 183423,
+                "id": "871f1d489ffffff",
+                "resolution": 7,
+                "population": 24594,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -2873,32 +2717,32 @@
                 "coordinates": [
                   [
                     [
-                      13.336528,
-                      52.544308
+                      13.39093,
+                      52.530394
                     ],
                     [
-                      13.321054,
-                      52.514606
+                      13.391806,
+                      52.518946
                     ],
                     [
-                      13.358188,
-                      52.493881
+                      13.409934,
+                      52.514299
                     ],
                     [
-                      13.410806,
-                      52.502848
+                      13.427192,
+                      52.5211
                     ],
                     [
                       13.426322,
                       52.532548
                     ],
                     [
-                      13.389179,
-                      52.553283
+                      13.408189,
+                      52.537195
                     ],
                     [
-                      13.336528,
-                      52.544308
+                      13.39093,
+                      52.530394
                     ]
                   ]
                 ]
@@ -2918,12 +2762,12 @@
           "name": "Berlin",
           "population": 3439121
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 4.2,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 18.5,
+        "description": "Mostly clear",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 52.52,
           "lon": 13.405,
@@ -2932,13 +2776,7 @@
       },
       "altitudeM": 37,
       "populationDensityPerKm2": 6046,
-      "nearestSchool": {
-        "name": "Berlin Cosmopolitan School",
-        "distanceKm": 0.6320841543125559,
-        "source": "overpass",
-        "lat": 52.5273506,
-        "lon": 13.4062656
-      }
+      "nearestSchool": null
     },
     {
       "id": "DE-munich",
@@ -2967,7 +2805,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f8d47fffffff",
           "resolution": 5,
@@ -3022,18 +2860,18 @@
           }
         },
         "effective": {
-          "id": "861f8d7a7ffffff",
-          "resolution": 6,
-          "population": 220849,
+          "id": "871f8d7a4ffffff",
+          "resolution": 7,
+          "population": 38478,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f8d7a7ffffff",
-              "resolution": 6,
-              "population": 220849,
+              "id": "871f8d7a4ffffff",
+              "resolution": 7,
+              "population": 38478,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -3046,24 +2884,24 @@
                     48.134881
                   ],
                   [
-                    11.551016,
-                    48.103309
+                    11.565826,
+                    48.122761
                   ],
                   [
-                    11.586181,
-                    48.08159
+                    11.582861,
+                    48.117966
                   ],
                   [
-                    11.635058,
-                    48.091435
+                    11.598789,
+                    48.12529
                   ],
                   [
-                    11.648796,
-                    48.123006
+                    11.597684,
+                    48.137411
                   ],
                   [
-                    11.61362,
-                    48.144733
+                    11.580645,
+                    48.142206
                   ],
                   [
                     11.564716,
@@ -3121,19 +2959,7 @@
             "id": "871f8d7a4ffffff",
             "population": 38478,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881f8d7a4bfffff",
-            "population": 6503,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891f8d7a4b3ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -3189,9 +3015,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f8d7a7ffffff",
-                "resolution": 6,
-                "population": 220849,
+                "id": "871f8d7a4ffffff",
+                "resolution": 7,
+                "population": 38478,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -3204,24 +3030,24 @@
                       48.134881
                     ],
                     [
-                      11.551016,
-                      48.103309
+                      11.565826,
+                      48.122761
                     ],
                     [
-                      11.586181,
-                      48.08159
+                      11.582861,
+                      48.117966
                     ],
                     [
-                      11.635058,
-                      48.091435
+                      11.598789,
+                      48.12529
                     ],
                     [
-                      11.648796,
-                      48.123006
+                      11.597684,
+                      48.137411
                     ],
                     [
-                      11.61362,
-                      48.144733
+                      11.580645,
+                      48.142206
                     ],
                     [
                       11.564716,
@@ -3245,12 +3071,12 @@
           "name": "München, Kreisfreie Stadt",
           "population": 1597569
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2,
-        "description": "Overcast",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 13.8,
+        "description": "Light rain",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 48.1374,
           "lon": 11.5755,
@@ -3259,13 +3085,7 @@
       },
       "altitudeM": 524,
       "populationDensityPerKm2": 8577,
-      "nearestSchool": {
-        "name": "Otto-Falckenberg-Schule",
-        "distanceKm": 0.46967657994834583,
-        "source": "overpass",
-        "lat": 48.1368214,
-        "lon": 11.5827303
-      }
+      "nearestSchool": null
     },
     {
       "id": "DE-cologne",
@@ -3282,9 +3102,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 106521,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 37275,
+        "areaKm2": 9,
         "totals": {
           "1": 5175,
           "3": 37275,
@@ -3294,7 +3114,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851fa19bfffffff",
           "resolution": 5,
@@ -3349,18 +3169,18 @@
           }
         },
         "effective": {
-          "id": "861fa199fffffff",
-          "resolution": 6,
-          "population": 143298,
+          "id": "871fa1998ffffff",
+          "resolution": 7,
+          "population": 22007,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861fa199fffffff",
-              "resolution": 6,
-              "population": 143298,
+              "id": "871fa1998ffffff",
+              "resolution": 7,
+              "population": 22007,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -3369,32 +3189,32 @@
               "coordinates": [
                 [
                   [
-                    6.894187,
-                    50.956898
+                    6.913654,
+                    50.94167
                   ],
                   [
-                    6.882314,
-                    50.926252
+                    6.915549,
+                    50.930199
                   ],
                   [
-                    6.919336,
-                    50.907252
+                    6.933116,
+                    50.926433
                   ],
                   [
-                    6.96825,
-                    50.918892
+                    6.948794,
+                    50.934138
                   ],
                   [
-                    6.980165,
-                    50.94954
+                    6.946905,
+                    50.945609
                   ],
                   [
-                    6.943124,
-                    50.968547
+                    6.929332,
+                    50.949376
                   ],
                   [
-                    6.894187,
-                    50.956898
+                    6.913654,
+                    50.94167
                   ]
                 ]
               ]
@@ -3448,19 +3268,7 @@
             "id": "871fa1998ffffff",
             "population": 22007,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881fa19983fffff",
-            "population": 2594,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891fa199827ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -3516,9 +3324,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861fa199fffffff",
-                "resolution": 6,
-                "population": 143298,
+                "id": "871fa1998ffffff",
+                "resolution": 7,
+                "population": 22007,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -3527,32 +3335,32 @@
                 "coordinates": [
                   [
                     [
-                      6.894187,
-                      50.956898
+                      6.913654,
+                      50.94167
                     ],
                     [
-                      6.882314,
-                      50.926252
+                      6.915549,
+                      50.930199
                     ],
                     [
-                      6.919336,
-                      50.907252
+                      6.933116,
+                      50.926433
                     ],
                     [
-                      6.96825,
-                      50.918892
+                      6.948794,
+                      50.934138
                     ],
                     [
-                      6.980165,
-                      50.94954
+                      6.946905,
+                      50.945609
                     ],
                     [
-                      6.943124,
-                      50.968547
+                      6.929332,
+                      50.949376
                     ],
                     [
-                      6.894187,
-                      50.956898
+                      6.913654,
+                      50.94167
                     ]
                   ]
                 ]
@@ -3572,12 +3380,12 @@
           "name": "Köln, Kreisfreie Stadt",
           "population": 1119971
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 4.4,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 15.4,
+        "description": "Drizzle",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 50.9375,
           "lon": 6.9603,
@@ -3586,13 +3394,7 @@
       },
       "altitudeM": 55,
       "populationDensityPerKm2": 2135,
-      "nearestSchool": {
-        "name": "Englisches Institut Köln",
-        "distanceKm": 0.06558622320456242,
-        "source": "overpass",
-        "lat": 50.9380732,
-        "lon": 6.9457833
-      }
+      "nearestSchool": null
     },
     {
       "id": "DE-trier",
@@ -3609,9 +3411,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 7,
-        "populationSelected": 63061,
-        "areaKm2": 49,
+        "sizeSelected": 5,
+        "populationSelected": 36391,
+        "areaKm2": 25,
         "totals": {
           "1": 2552,
           "3": 15040,
@@ -3621,7 +3423,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851fa303fffffff",
           "resolution": 5,
@@ -3676,18 +3478,18 @@
           }
         },
         "effective": {
-          "id": "851fa303fffffff",
-          "resolution": 5,
-          "population": 143910,
+          "id": "861fa3027ffffff",
+          "resolution": 6,
+          "population": 34006,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "851fa303fffffff",
-              "resolution": 5,
-              "population": 143910,
+              "id": "861fa3027ffffff",
+              "resolution": 6,
+              "population": 34006,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -3696,32 +3498,32 @@
               "coordinates": [
                 [
                   [
-                    6.523793,
-                    49.745388
+                    6.583237,
+                    49.788285
                   ],
                   [
-                    6.537231,
-                    49.663836
+                    6.57172,
+                    49.75719
                   ],
                   [
-                    6.657861,
-                    49.636909
+                    6.608144,
+                    49.737873
                   ],
                   [
-                    6.765318,
-                    49.691526
+                    6.656104,
+                    49.749644
                   ],
                   [
-                    6.752117,
-                    49.773131
+                    6.667664,
+                    49.780741
                   ],
                   [
                     6.631221,
                     49.800065
                   ],
                   [
-                    6.523793,
-                    49.745388
+                    6.583237,
+                    49.788285
                   ]
                 ]
               ]
@@ -3769,23 +3571,11 @@
             "id": "861fa3027ffffff",
             "population": 34006,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "7": {
             "id": "871fa3020ffffff",
             "population": 3611,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881fa30207fffff",
-            "population": 1820,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891fa302067ffff",
-            "population": 1143,
             "populationSource": "worldpop",
             "privacyMet": false
           }
@@ -3843,9 +3633,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "851fa303fffffff",
-                "resolution": 5,
-                "population": 143910,
+                "id": "861fa3027ffffff",
+                "resolution": 6,
+                "population": 34006,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -3854,32 +3644,32 @@
                 "coordinates": [
                   [
                     [
-                      6.523793,
-                      49.745388
+                      6.583237,
+                      49.788285
                     ],
                     [
-                      6.537231,
-                      49.663836
+                      6.57172,
+                      49.75719
                     ],
                     [
-                      6.657861,
-                      49.636909
+                      6.608144,
+                      49.737873
                     ],
                     [
-                      6.765318,
-                      49.691526
+                      6.656104,
+                      49.749644
                     ],
                     [
-                      6.752117,
-                      49.773131
+                      6.667664,
+                      49.780741
                     ],
                     [
                       6.631221,
                       49.800065
                     ],
                     [
-                      6.523793,
-                      49.745388
+                      6.583237,
+                      49.788285
                     ]
                   ]
                 ]
@@ -3899,12 +3689,12 @@
           "name": "Trier, Kreisfreie Stadt",
           "population": 117436
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 3.2,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:30",
+        "temperatureC": 19.7,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 49.7557,
           "lon": 6.6394,
@@ -3913,13 +3703,7 @@
       },
       "altitudeM": 144,
       "populationDensityPerKm2": 3435,
-      "nearestSchool": {
-        "name": "Ausonius-Grundschule",
-        "distanceKm": 0.4568956308358784,
-        "source": "overpass",
-        "lat": 49.7597531,
-        "lon": 6.6347932
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-nyc",
@@ -3948,7 +3732,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852a1073fffffff",
           "resolution": 5,
@@ -4003,18 +3787,18 @@
           }
         },
         "effective": {
-          "id": "862a1072fffffff",
-          "resolution": 6,
-          "population": 328798,
+          "id": "872a10728ffffff",
+          "resolution": 7,
+          "population": 44189,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "862a1072fffffff",
-              "resolution": 6,
-              "population": 328798,
+              "id": "872a10728ffffff",
+              "resolution": 7,
+              "population": 44189,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -4023,32 +3807,32 @@
               "coordinates": [
                 [
                   [
-                    -74.002274,
-                    40.735376
+                    -74.016499,
+                    40.716487
                   ],
                   [
-                    -74.046908,
-                    40.727986
+                    -74.031207,
+                    40.709918
                   ],
                   [
-                    -74.060611,
-                    40.696775
+                    -74.030712,
+                    40.6976
                   ],
                   [
-                    -74.029724,
-                    40.67297
+                    -74.015518,
+                    40.691851
                   ],
                   [
-                    -73.985141,
-                    40.680349
+                    -74.000814,
+                    40.698417
                   ],
                   [
-                    -73.971394,
-                    40.711544
+                    -74.001301,
+                    40.710735
                   ],
                   [
-                    -74.002274,
-                    40.735376
+                    -74.016499,
+                    40.716487
                   ]
                 ]
               ]
@@ -4102,19 +3886,7 @@
             "id": "872a10728ffffff",
             "population": 44189,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "882a10728bfffff",
-            "population": 9390,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892a10728bbffff",
-            "population": 9390,
-            "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -4170,9 +3942,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "862a1072fffffff",
-                "resolution": 6,
-                "population": 328798,
+                "id": "872a10728ffffff",
+                "resolution": 7,
+                "population": 44189,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -4181,32 +3953,32 @@
                 "coordinates": [
                   [
                     [
-                      -74.002274,
-                      40.735376
+                      -74.016499,
+                      40.716487
                     ],
                     [
-                      -74.046908,
-                      40.727986
+                      -74.031207,
+                      40.709918
                     ],
                     [
-                      -74.060611,
-                      40.696775
+                      -74.030712,
+                      40.6976
                     ],
                     [
-                      -74.029724,
-                      40.67297
+                      -74.015518,
+                      40.691851
                     ],
                     [
-                      -73.985141,
-                      40.680349
+                      -74.000814,
+                      40.698417
                     ],
                     [
-                      -73.971394,
-                      40.711544
+                      -74.001301,
+                      40.710735
                     ],
                     [
-                      -74.002274,
-                      40.735376
+                      -74.016499,
+                      40.716487
                     ]
                   ]
                 ]
@@ -4222,12 +3994,12 @@
           "population": 1617704
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 7.5,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T20:30",
+        "temperatureC": 26,
+        "description": "Clear",
+        "observedAt": "2026-06-09T13:00",
         "query": {
           "lat": 40.7128,
           "lon": -74.006,
@@ -4236,13 +4008,7 @@
       },
       "altitudeM": 32,
       "populationDensityPerKm2": 15329,
-      "nearestSchool": {
-        "name": "Public School 124",
-        "distanceKm": 1.3844126821119513,
-        "source": "overpass",
-        "lat": 40.7144444,
-        "lon": -73.9975
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-chicago",
@@ -4271,7 +4037,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852664c3fffffff",
           "resolution": 5,
@@ -4326,18 +4092,18 @@
           }
         },
         "effective": {
-          "id": "862664c1fffffff",
-          "resolution": 6,
-          "population": 95782,
+          "id": "872664c1affffff",
+          "resolution": 7,
+          "population": 27266,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "862664c1fffffff",
-              "resolution": 6,
-              "population": 95782,
+              "id": "872664c1affffff",
+              "resolution": 7,
+              "population": 27266,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -4346,32 +4112,32 @@
               "coordinates": [
                 [
                   [
-                    -87.600918,
-                    41.911925
+                    -87.639124,
+                    41.887138
                   ],
                   [
-                    -87.643222,
-                    41.899289
+                    -87.65185,
+                    41.878875
                   ],
                   [
                     -87.647752,
                     41.866726
                   ],
                   [
-                    -87.610033,
-                    41.846803
+                    -87.630935,
+                    41.862839
                   ],
                   [
-                    -87.567765,
-                    41.859416
+                    -87.618209,
+                    41.871098
                   ],
                   [
-                    -87.563179,
-                    41.891976
+                    -87.622301,
+                    41.883249
                   ],
                   [
-                    -87.600918,
-                    41.911925
+                    -87.639124,
+                    41.887138
                   ]
                 ]
               ]
@@ -4425,19 +4191,7 @@
             "id": "872664c1affffff",
             "population": 27266,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "882664c1adfffff",
-            "population": 2928,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892664c1ad3ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -4493,9 +4247,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "862664c1fffffff",
-                "resolution": 6,
-                "population": 95782,
+                "id": "872664c1affffff",
+                "resolution": 7,
+                "population": 27266,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -4504,32 +4258,32 @@
                 "coordinates": [
                   [
                     [
-                      -87.600918,
-                      41.911925
+                      -87.639124,
+                      41.887138
                     ],
                     [
-                      -87.643222,
-                      41.899289
+                      -87.65185,
+                      41.878875
                     ],
                     [
                       -87.647752,
                       41.866726
                     ],
                     [
-                      -87.610033,
-                      41.846803
+                      -87.630935,
+                      41.862839
                     ],
                     [
-                      -87.567765,
-                      41.859416
+                      -87.618209,
+                      41.871098
                     ],
                     [
-                      -87.563179,
-                      41.891976
+                      -87.622301,
+                      41.883249
                     ],
                     [
-                      -87.600918,
-                      41.911925
+                      -87.639124,
+                      41.887138
                     ]
                   ]
                 ]
@@ -4545,12 +4299,12 @@
           "population": 4895364
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 17.1,
-        "description": "Clear",
-        "observedAt": "2026-03-25T19:45",
+        "temperatureC": 26.3,
+        "description": "Partly cloudy",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 41.8781,
           "lon": -87.6298,
@@ -4559,13 +4313,7 @@
       },
       "altitudeM": 241,
       "populationDensityPerKm2": 3831,
-      "nearestSchool": {
-        "name": "National College of Education Urban Campus",
-        "distanceKm": 1.1789426857192489,
-        "source": "overpass",
-        "lat": 41.8813543,
-        "lon": -87.6247439
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-soldotna",
@@ -4594,7 +4342,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "850c5557fffffff",
           "resolution": 5,
@@ -4649,18 +4397,18 @@
           }
         },
         "effective": {
-          "id": "820c57fffffffff",
-          "resolution": 2,
-          "population": 55572,
+          "id": "840c555ffffffff",
+          "resolution": 4,
+          "population": 26732,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "820c57fffffffff",
-              "resolution": 2,
-              "population": 55572,
+              "id": "840c555ffffffff",
+              "resolution": 4,
+              "population": 26732,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -4669,32 +4417,32 @@
               "coordinates": [
                 [
                   [
-                    -152.502076,
-                    61.583335
+                    -151.355626,
+                    60.641338
                   ],
                   [
-                    -155.360739,
-                    60.701203
+                    -151.762122,
+                    60.523614
                   ],
                   [
-                    -155.276716,
-                    59.19796
+                    -151.778802,
+                    60.309138
                   ],
                   [
-                    -152.642874,
-                    58.589483
+                    -151.395375,
+                    60.212808
                   ],
                   [
-                    -149.957133,
-                    59.39833
+                    -150.992709,
+                    60.329081
                   ],
                   [
-                    -149.734494,
-                    60.884637
+                    -150.96965,
+                    60.543123
                   ],
                   [
-                    -152.502076,
-                    61.583335
+                    -151.355626,
+                    60.641338
                   ]
                 ]
               ]
@@ -4706,7 +4454,7 @@
             "id": "800dfffffffffff",
             "population": 39555,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "1": {
             "id": "810c7ffffffffff",
@@ -4724,13 +4472,13 @@
             "id": "830c55fffffffff",
             "population": 39367,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "4": {
             "id": "840c555ffffffff",
             "population": 26732,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "5": {
             "id": "850c5557fffffff",
@@ -4748,18 +4496,6 @@
             "id": "870c55544ffffff",
             "population": 2079,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "880c555443fffff",
-            "population": 210,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "890c5554423ffff",
-            "population": null,
-            "populationSource": null,
             "privacyMet": false
           }
         },
@@ -4816,9 +4552,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "820c57fffffffff",
-                "resolution": 2,
-                "population": 55572,
+                "id": "840c555ffffffff",
+                "resolution": 4,
+                "population": 26732,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -4827,32 +4563,32 @@
                 "coordinates": [
                   [
                     [
-                      -152.502076,
-                      61.583335
+                      -151.355626,
+                      60.641338
                     ],
                     [
-                      -155.360739,
-                      60.701203
+                      -151.762122,
+                      60.523614
                     ],
                     [
-                      -155.276716,
-                      59.19796
+                      -151.778802,
+                      60.309138
                     ],
                     [
-                      -152.642874,
-                      58.589483
+                      -151.395375,
+                      60.212808
                     ],
                     [
-                      -149.957133,
-                      59.39833
+                      -150.992709,
+                      60.329081
                     ],
                     [
-                      -149.734494,
-                      60.884637
+                      -150.96965,
+                      60.543123
                     ],
                     [
-                      -152.502076,
-                      61.583335
+                      -151.355626,
+                      60.641338
                     ]
                   ]
                 ]
@@ -4868,12 +4604,12 @@
           "population": 59914
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": -2.6,
-        "description": "Clear",
-        "observedAt": "2026-03-25T16:30",
+        "temperatureC": 11.4,
+        "description": "Light drizzle",
+        "observedAt": "2026-06-09T09:00",
         "query": {
           "lat": 60.4878,
           "lon": -151.0583,
@@ -4882,13 +4618,7 @@
       },
       "altitudeM": 37,
       "populationDensityPerKm2": 226,
-      "nearestSchool": {
-        "name": "Soldotna Elementary School",
-        "distanceKm": 0.30406711179925167,
-        "source": "overpass",
-        "lat": 60.4915955,
-        "lon": -151.0693605
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-billings",
@@ -4905,9 +4635,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 7,
-        "populationSelected": 30765,
-        "areaKm2": 49,
+        "sizeSelected": 5,
+        "populationSelected": 20013,
+        "areaKm2": 25,
         "totals": {
           "1": 686,
           "3": 5858,
@@ -4917,7 +4647,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852798dbfffffff",
           "resolution": 5,
@@ -5072,18 +4802,6 @@
             "population": 1243,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "882798d82dfffff",
-            "population": 1,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892798d82dbffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -5191,12 +4909,12 @@
           "population": 166713
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 21.8,
+        "temperatureC": 24.3,
         "description": "Overcast",
-        "observedAt": "2026-03-25T18:45",
+        "observedAt": "2026-06-09T11:00",
         "query": {
           "lat": 45.7833,
           "lon": -108.5007,
@@ -5205,13 +4923,7 @@
       },
       "altitudeM": 954,
       "populationDensityPerKm2": 1639,
-      "nearestSchool": {
-        "name": "Garfield School",
-        "distanceKm": 1.3040418585536118,
-        "source": "overpass",
-        "lat": 45.7764813,
-        "lon": -108.5083674
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-terlingua",
@@ -5240,7 +4952,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8548ab27fffffff",
           "resolution": 5,
@@ -5395,18 +5107,6 @@
             "population": 50,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "8848ab2561fffff",
-            "population": 13,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8948ab2560fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -5510,12 +5210,12 @@
       "adm": {
         "adm2": null,
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 33.9,
+        "temperatureC": 31.7,
         "description": "Clear",
-        "observedAt": "2026-03-25T19:30",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 29.3216,
           "lon": -103.616,
@@ -5541,9 +5241,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 71912,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 26933,
+        "areaKm2": 9,
         "totals": {
           "1": 2097,
           "3": 26933,
@@ -5553,7 +5253,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85489e37fffffff",
           "resolution": 5,
@@ -5708,18 +5408,6 @@
             "population": 11790,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "88489e3463fffff",
-            "population": 3987,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89489e34637ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -5827,12 +5515,12 @@
           "population": 1273864
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 28.1,
-        "description": "Clear",
-        "observedAt": "2026-03-25T19:45",
+        "temperatureC": 29.3,
+        "description": "Mostly clear",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 30.2672,
           "lon": -97.7431,
@@ -5841,13 +5529,7 @@
       },
       "altitudeM": 157,
       "populationDensityPerKm2": 3178,
-      "nearestSchool": {
-        "name": "Alpha High School",
-        "distanceKm": 0.8471936618818003,
-        "source": "overpass",
-        "lat": 30.2648309,
-        "lon": -97.7451469
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-glencoe-il",
@@ -5876,7 +5558,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852759affffffff",
           "resolution": 5,
@@ -5931,18 +5613,18 @@
           }
         },
         "effective": {
-          "id": "852759affffffff",
-          "resolution": 5,
-          "population": 229452,
+          "id": "862759aefffffff",
+          "resolution": 6,
+          "population": 20104,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "852759affffffff",
-              "resolution": 5,
-              "population": 229452,
+              "id": "862759aefffffff",
+              "resolution": 6,
+              "population": 20104,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -5951,32 +5633,32 @@
               "coordinates": [
                 [
                   [
-                    -87.881991,
-                    42.234517
+                    -87.76778,
+                    42.174755
                   ],
                   [
-                    -87.971277,
-                    42.176219
+                    -87.810263,
+                    42.162006
                   ],
                   [
-                    -87.941882,
-                    42.091037
+                    -87.814698,
+                    42.129341
                   ],
                   [
-                    -87.823549,
-                    42.064047
+                    -87.776708,
+                    42.109426
                   ],
                   [
                     -87.734261,
                     42.122151
                   ],
                   [
-                    -87.763307,
-                    42.207438
+                    -87.729769,
+                    42.154814
                   ],
                   [
-                    -87.881991,
-                    42.234517
+                    -87.76778,
+                    42.174755
                   ]
                 ]
               ]
@@ -6024,24 +5706,12 @@
             "id": "862759aefffffff",
             "population": 20104,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "7": {
             "id": "872759ae9ffffff",
             "population": 6252,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "882759ae95fffff",
-            "population": 485,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892759ae947ffff",
-            "population": null,
-            "populationSource": null,
             "privacyMet": false
           }
         },
@@ -6098,9 +5768,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "852759affffffff",
-                "resolution": 5,
-                "population": 229452,
+                "id": "862759aefffffff",
+                "resolution": 6,
+                "population": 20104,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -6109,32 +5779,32 @@
                 "coordinates": [
                   [
                     [
-                      -87.881991,
-                      42.234517
+                      -87.76778,
+                      42.174755
                     ],
                     [
-                      -87.971277,
-                      42.176219
+                      -87.810263,
+                      42.162006
                     ],
                     [
-                      -87.941882,
-                      42.091037
+                      -87.814698,
+                      42.129341
                     ],
                     [
-                      -87.823549,
-                      42.064047
+                      -87.776708,
+                      42.109426
                     ],
                     [
                       -87.734261,
                       42.122151
                     ],
                     [
-                      -87.763307,
-                      42.207438
+                      -87.729769,
+                      42.154814
                     ],
                     [
-                      -87.881991,
-                      42.234517
+                      -87.76778,
+                      42.174755
                     ]
                   ]
                 ]
@@ -6150,12 +5820,12 @@
           "population": 4895364
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 16.9,
-        "description": "Clear",
-        "observedAt": "2026-03-25T19:45",
+        "temperatureC": 25.5,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 42.135,
           "lon": -87.7581,
@@ -6164,13 +5834,7 @@
       },
       "altitudeM": 207,
       "populationDensityPerKm2": 1499,
-      "nearestSchool": {
-        "name": "South School",
-        "distanceKm": 0.5769034042090555,
-        "source": "overpass",
-        "lat": 42.1241778,
-        "lon": -87.7515459
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-harbor-springs-lakeshore-2999",
@@ -6199,7 +5863,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852745affffffff",
           "resolution": 5,
@@ -6254,18 +5918,18 @@
           }
         },
         "effective": {
-          "id": "832745fffffffff",
-          "resolution": 3,
-          "population": 75255,
+          "id": "842745bffffffff",
+          "resolution": 4,
+          "population": 32633,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "832745fffffffff",
-              "resolution": 3,
-              "population": 75255,
+              "id": "842745bffffffff",
+              "resolution": 4,
+              "population": 32633,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -6274,32 +5938,32 @@
               "coordinates": [
                 [
                   [
-                    -85.647567,
-                    46.249725
+                    -84.798984,
+                    45.797487
                   ],
                   [
-                    -86.349386,
-                    45.832558
+                    -85.128524,
+                    45.711218
                   ],
                   [
-                    -86.150668,
-                    45.210899
+                    -85.176476,
+                    45.474167
                   ],
                   [
-                    -85.270853,
-                    45.001664
+                    -84.898111,
+                    45.323668
                   ],
                   [
                     -84.570871,
                     45.408877
                   ],
                   [
-                    -84.748614,
-                    46.035179
+                    -84.519705,
+                    45.645637
                   ],
                   [
-                    -85.647567,
-                    46.249725
+                    -84.798984,
+                    45.797487
                   ]
                 ]
               ]
@@ -6335,7 +5999,7 @@
             "id": "842745bffffffff",
             "population": 32633,
             "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           },
           "5": {
             "id": "852745affffffff",
@@ -6353,18 +6017,6 @@
             "id": "872745ad4ffffff",
             "population": 929,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "882745ad47fffff",
-            "population": 123,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892745ad477ffff",
-            "population": null,
-            "populationSource": null,
             "privacyMet": false
           }
         },
@@ -6421,9 +6073,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "832745fffffffff",
-                "resolution": 3,
-                "population": 75255,
+                "id": "842745bffffffff",
+                "resolution": 4,
+                "population": 32633,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -6432,32 +6084,32 @@
                 "coordinates": [
                   [
                     [
-                      -85.647567,
-                      46.249725
+                      -84.798984,
+                      45.797487
                     ],
                     [
-                      -86.349386,
-                      45.832558
+                      -85.128524,
+                      45.711218
                     ],
                     [
-                      -86.150668,
-                      45.210899
+                      -85.176476,
+                      45.474167
                     ],
                     [
-                      -85.270853,
-                      45.001664
+                      -84.898111,
+                      45.323668
                     ],
                     [
                       -84.570871,
                       45.408877
                     ],
                     [
-                      -84.748614,
-                      46.035179
+                      -84.519705,
+                      45.645637
                     ],
                     [
-                      -85.647567,
-                      46.249725
+                      -84.798984,
+                      45.797487
                     ]
                   ]
                 ]
@@ -6467,14 +6119,18 @@
         }
       },
       "adm": {
-        "adm2": null,
+        "adm2": {
+          "level": "adm2",
+          "name": "Emmet",
+          "population": 32406
+        },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2,
-        "description": "Clear",
-        "observedAt": "2026-03-25T20:45",
+        "temperatureC": 20.7,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T13:00",
         "query": {
           "lat": 45.4317,
           "lon": -84.992,
@@ -6483,13 +6139,7 @@
       },
       "altitudeM": 213,
       "populationDensityPerKm2": 242,
-      "nearestSchool": {
-        "name": "Harbor Springs Middle School",
-        "distanceKm": 0.9220160033981913,
-        "source": "overpass",
-        "lat": 45.4362605,
-        "lon": -84.9895458
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-minneapolis-pillsbury-3944",
@@ -6518,7 +6168,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85262cd3fffffff",
           "resolution": 5,
@@ -6673,18 +6323,6 @@
             "population": 17246,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "88262cd253fffff",
-            "population": 1484,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89262cd2527ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -6792,12 +6430,12 @@
           "population": 1169544
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 16.8,
-        "description": "Clear",
-        "observedAt": "2026-03-25T19:45",
+        "temperatureC": 26.4,
+        "description": "Partly cloudy",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 44.9315,
           "lon": -93.2815,
@@ -6806,13 +6444,7 @@
       },
       "altitudeM": 267,
       "populationDensityPerKm2": 2074,
-      "nearestSchool": {
-        "name": "Stonebridge World School",
-        "distanceKm": 1.2986322816997822,
-        "source": "overpass",
-        "lat": 44.9204883,
-        "lon": -93.2887296
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-stanford",
@@ -6829,9 +6461,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 58438,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 26029,
+        "areaKm2": 9,
         "totals": {
           "1": 41,
           "3": 26029,
@@ -6841,7 +6473,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283477fffffff",
           "resolution": 5,
@@ -6996,18 +6628,6 @@
             "population": 12639,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "882834743bfffff",
-            "population": 2205,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892834743abffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -7115,12 +6735,12 @@
           "population": 1860458
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 20.3,
+        "temperatureC": 18.3,
         "description": "Overcast",
-        "observedAt": "2026-03-25T17:45",
+        "observedAt": "2026-06-09T10:00",
         "query": {
           "lat": 37.4275,
           "lon": -122.1697,
@@ -7129,13 +6749,7 @@
       },
       "altitudeM": 32,
       "populationDensityPerKm2": 356,
-      "nearestSchool": {
-        "name": "Palo Alto High School",
-        "distanceKm": 0.5646160245490079,
-        "source": "overpass",
-        "lat": 37.4358108,
-        "lon": -122.1557688
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-palo-alto",
@@ -7152,9 +6766,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 71755,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 21847,
+        "areaKm2": 9,
         "totals": {
           "1": 5083,
           "3": 21847,
@@ -7164,7 +6778,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283477fffffff",
           "resolution": 5,
@@ -7319,18 +6933,6 @@
             "population": 17496,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "88283475ddfffff",
-            "population": 1539,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89283475dd7ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -7438,12 +7040,12 @@
           "population": 1860458
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 20.4,
+        "temperatureC": 18.4,
         "description": "Overcast",
-        "observedAt": "2026-03-25T17:45",
+        "observedAt": "2026-06-09T10:00",
         "query": {
           "lat": 37.4419,
           "lon": -122.143,
@@ -7452,13 +7054,7 @@
       },
       "altitudeM": 11,
       "populationDensityPerKm2": 3566,
-      "nearestSchool": {
-        "name": "Addison Elementary School",
-        "distanceKm": 0.27618454549457033,
-        "source": "overpass",
-        "lat": 37.4458109,
-        "lon": -122.150583
-      }
+      "nearestSchool": null
     },
     {
       "id": "US-portola-valley",
@@ -7487,7 +7083,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85283477fffffff",
           "resolution": 5,
@@ -7642,18 +7238,6 @@
             "population": 494,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "88283476d7fffff",
-            "population": 97,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89283476d63ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -7761,27 +7345,12 @@
           "population": 710699
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
-      "weather": {
-        "temperatureC": 20.6,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T17:45",
-        "query": {
-          "lat": 37.3841,
-          "lon": -122.2352,
-          "roundingDeg": 0
-        }
-      },
-      "altitudeM": 162,
+      "weather": null,
+      "altitudeM": null,
       "populationDensityPerKm2": 348,
-      "nearestSchool": {
-        "name": "Ormondale Elementary School",
-        "distanceKm": 2.4671930489238845,
-        "source": "overpass",
-        "lat": 37.38068,
-        "lon": -122.2181576
-      }
+      "nearestSchool": null
     },
     {
       "id": "CA-montreal",
@@ -7810,7 +7379,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "852baa47fffffff",
           "resolution": 5,
@@ -7865,18 +7434,18 @@
           }
         },
         "effective": {
-          "id": "862baa44fffffff",
-          "resolution": 6,
-          "population": 236835,
+          "id": "872baa44cffffff",
+          "resolution": 7,
+          "population": 42638,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "862baa44fffffff",
-              "resolution": 6,
-              "population": 236835,
+              "id": "872baa44cffffff",
+              "resolution": 7,
+              "population": 42638,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -7889,24 +7458,24 @@
                     45.497897
                   ],
                   [
-                    -73.623859,
-                    45.490382
+                    -73.590669,
+                    45.491068
                   ],
                   [
-                    -73.639367,
-                    45.457591
+                    -73.590248,
+                    45.478089
                   ],
                   [
-                    -73.605352,
-                    45.432332
+                    -73.57345,
+                    45.471939
                   ],
                   [
-                    -73.555837,
-                    45.439837
+                    -73.557067,
+                    45.478765
                   ],
                   [
-                    -73.540274,
-                    45.47261
+                    -73.557478,
+                    45.491744
                   ],
                   [
                     -73.574281,
@@ -7964,19 +7533,7 @@
             "id": "872baa44cffffff",
             "population": 42638,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "882baa44cdfffff",
-            "population": 16861,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "892baa44cd3ffff",
-            "population": 2477,
-            "populationSource": "worldpop",
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -8032,9 +7589,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "862baa44fffffff",
-                "resolution": 6,
-                "population": 236835,
+                "id": "872baa44cffffff",
+                "resolution": 7,
+                "population": 42638,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -8047,24 +7604,24 @@
                       45.497897
                     ],
                     [
-                      -73.623859,
-                      45.490382
+                      -73.590669,
+                      45.491068
                     ],
                     [
-                      -73.639367,
-                      45.457591
+                      -73.590248,
+                      45.478089
                     ],
                     [
-                      -73.605352,
-                      45.432332
+                      -73.57345,
+                      45.471939
                     ],
                     [
-                      -73.555837,
-                      45.439837
+                      -73.557067,
+                      45.478765
                     ],
                     [
-                      -73.540274,
-                      45.47261
+                      -73.557478,
+                      45.491744
                     ],
                     [
                       -73.574281,
@@ -8088,12 +7645,12 @@
           "name": "MontrÃ©al",
           "population": 1722957
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": -2.4,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T20:45",
+        "temperatureC": 26.6,
+        "description": "Clear",
+        "observedAt": "2026-06-09T13:00",
         "query": {
           "lat": 45.5017,
           "lon": -73.5673,
@@ -8102,13 +7659,7 @@
       },
       "altitudeM": 76,
       "populationDensityPerKm2": 5306,
-      "nearestSchool": {
-        "name": "Concordia CL",
-        "distanceKm": 0.23608280779214816,
-        "source": "overpass",
-        "lat": 45.4942367,
-        "lon": -73.5789854
-      }
+      "nearestSchool": null
     },
     {
       "id": "CA-calgary",
@@ -8125,9 +7676,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 123221,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 40228,
+        "areaKm2": 9,
         "totals": {
           "1": 5760,
           "3": 40228,
@@ -8137,7 +7688,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8512ccd7fffffff",
           "resolution": 5,
@@ -8192,18 +7743,18 @@
           }
         },
         "effective": {
-          "id": "8612ccd77ffffff",
-          "resolution": 6,
-          "population": 105178,
+          "id": "8712ccd74ffffff",
+          "resolution": 7,
+          "population": 26782,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8612ccd77ffffff",
-              "resolution": 6,
-              "population": 105178,
+              "id": "8712ccd74ffffff",
+              "resolution": 7,
+              "population": 26782,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -8216,24 +7767,24 @@
                     51.063674
                   ],
                   [
-                    -114.10825,
-                    51.040691
+                    -114.081391,
+                    51.052525
                   ],
                   [
-                    -114.091896,
-                    51.008623
+                    -114.069479,
+                    51.042059
                   ],
                   [
-                    -114.04126,
-                    50.999513
+                    -114.050089,
+                    51.042738
                   ],
                   [
-                    -114.006902,
-                    51.022468
+                    -114.0426,
+                    51.053886
                   ],
                   [
-                    -114.0232,
-                    51.054561
+                    -114.054511,
+                    51.064356
                   ],
                   [
                     -114.073911,
@@ -8291,19 +7842,7 @@
             "id": "8712ccd74ffffff",
             "population": 26782,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8812ccd741fffff",
-            "population": 2100,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8912ccd740fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -8359,9 +7898,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8612ccd77ffffff",
-                "resolution": 6,
-                "population": 105178,
+                "id": "8712ccd74ffffff",
+                "resolution": 7,
+                "population": 26782,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -8374,24 +7913,24 @@
                       51.063674
                     ],
                     [
-                      -114.10825,
-                      51.040691
+                      -114.081391,
+                      51.052525
                     ],
                     [
-                      -114.091896,
-                      51.008623
+                      -114.069479,
+                      51.042059
                     ],
                     [
-                      -114.04126,
-                      50.999513
+                      -114.050089,
+                      51.042738
                     ],
                     [
-                      -114.006902,
-                      51.022468
+                      -114.0426,
+                      51.053886
                     ],
                     [
-                      -114.0232,
-                      51.054561
+                      -114.054511,
+                      51.064356
                     ],
                     [
                       -114.073911,
@@ -8415,12 +7954,12 @@
           "name": "Calgary",
           "population": 1408748
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": -6.8,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T18:45",
+        "temperatureC": 15.6,
+        "description": "Clear",
+        "observedAt": "2026-06-09T11:00",
         "query": {
           "lat": 51.0447,
           "lon": -114.0719,
@@ -8429,13 +7968,7 @@
       },
       "altitudeM": 1051,
       "populationDensityPerKm2": 1053,
-      "nearestSchool": {
-        "name": "St. Angela School",
-        "distanceKm": 0.9503683777472088,
-        "source": "overpass",
-        "lat": 51.0542846,
-        "lon": -114.0491698
-      }
+      "nearestSchool": null
     },
     {
       "id": "CO-cali",
@@ -8464,7 +7997,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8566f1c7fffffff",
           "resolution": 5,
@@ -8619,18 +8152,6 @@
             "population": 84357,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "8866f1c535fffff",
-            "population": 12753,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8966f1c5357ffff",
-            "population": 12753,
-            "populationSource": "worldpop",
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -8738,12 +8259,12 @@
           "population": 2314621
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 18.3,
-        "description": "Overcast",
-        "observedAt": "2026-03-25T19:45",
+        "temperatureC": 25.8,
+        "description": "Light drizzle",
+        "observedAt": "2026-06-09T12:00",
         "query": {
           "lat": 3.4516,
           "lon": -76.532,
@@ -8752,13 +8273,7 @@
       },
       "altitudeM": 1009,
       "populationDensityPerKm2": 12877,
-      "nearestSchool": {
-        "name": "Alfredo Vasquez Cobo",
-        "distanceKm": 1.6705437135077152,
-        "source": "overpass",
-        "lat": 3.4368674,
-        "lon": -76.5258785
-      }
+      "nearestSchool": null
     },
     {
       "id": "DE-hamburg",
@@ -8775,9 +8290,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 80315,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 32453,
+        "areaKm2": 9,
         "totals": {
           "1": 3813,
           "3": 32453,
@@ -8787,7 +8302,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f15affffffff",
           "resolution": 5,
@@ -8942,18 +8457,6 @@
             "population": 19553,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "881f15ad23fffff",
-            "population": 3813,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891f15ad223ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -9065,12 +8568,12 @@
           "name": "Hamburg",
           "population": 1804812
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 3.3,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 16.9,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 53.5511,
           "lon": 9.9937,
@@ -9079,13 +8582,7 @@
       },
       "altitudeM": 3,
       "populationDensityPerKm2": 3914,
-      "nearestSchool": {
-        "name": "TANDEM Hamburg Language School",
-        "distanceKm": 0.1068656339732926,
-        "source": "overpass",
-        "lat": 53.5454733,
-        "lon": 9.9819517
-      }
+      "nearestSchool": null
     },
     {
       "id": "GB-edinburgh",
@@ -9114,7 +8611,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85197277fffffff",
           "resolution": 5,
@@ -9169,18 +8666,18 @@
           }
         },
         "effective": {
-          "id": "861972767ffffff",
-          "resolution": 6,
-          "population": 179468,
+          "id": "871972765ffffff",
+          "resolution": 7,
+          "population": 28420,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861972767ffffff",
-              "resolution": 6,
-              "population": 179468,
+              "id": "871972765ffffff",
+              "resolution": 7,
+              "population": 28420,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -9189,32 +8686,32 @@
               "coordinates": [
                 [
                   [
-                    -3.223109,
-                    55.983393
+                    -3.199026,
+                    55.966591
                   ],
                   [
-                    -3.274857,
-                    55.974906
+                    -3.2149,
+                    55.959841
                   ],
                   [
-                    -3.282491,
-                    55.944589
+                    -3.210799,
+                    55.948063
                   ],
                   [
-                    -3.238427,
-                    55.922769
+                    -3.190833,
+                    55.943035
                   ],
                   [
-                    -3.186739,
-                    55.931254
+                    -3.174963,
+                    55.949783
                   ],
                   [
                     -3.179055,
                     55.961561
                   ],
                   [
-                    -3.223109,
-                    55.983393
+                    -3.199026,
+                    55.966591
                   ]
                 ]
               ]
@@ -9268,19 +8765,7 @@
             "id": "871972765ffffff",
             "population": 28420,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881972765dfffff",
-            "population": 8452,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891972765cfffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -9336,9 +8821,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861972767ffffff",
-                "resolution": 6,
-                "population": 179468,
+                "id": "871972765ffffff",
+                "resolution": 7,
+                "population": 28420,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -9347,32 +8832,32 @@
                 "coordinates": [
                   [
                     [
-                      -3.223109,
-                      55.983393
+                      -3.199026,
+                      55.966591
                     ],
                     [
-                      -3.274857,
-                      55.974906
+                      -3.2149,
+                      55.959841
                     ],
                     [
-                      -3.282491,
-                      55.944589
+                      -3.210799,
+                      55.948063
                     ],
                     [
-                      -3.238427,
-                      55.922769
+                      -3.190833,
+                      55.943035
                     ],
                     [
-                      -3.186739,
-                      55.931254
+                      -3.174963,
+                      55.949783
                     ],
                     [
                       -3.179055,
                       55.961561
                     ],
                     [
-                      -3.223109,
-                      55.983393
+                      -3.199026,
+                      55.966591
                     ]
                   ]
                 ]
@@ -9392,12 +8877,12 @@
           "name": "City of Edinburgh",
           "population": 500349
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2.6,
-        "description": "Clear",
-        "observedAt": "2026-03-26T00:45",
+        "temperatureC": 12.2,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T18:00",
         "query": {
           "lat": 55.9533,
           "lon": -3.1883,
@@ -9406,13 +8891,7 @@
       },
       "altitudeM": 69,
       "populationDensityPerKm2": 3406,
-      "nearestSchool": {
-        "name": "Drummond Community High School",
-        "distanceKm": 0.6043553347952937,
-        "source": "overpass",
-        "lat": 55.9605629,
-        "lon": -3.1901004
-      }
+      "nearestSchool": null
     },
     {
       "id": "GB-glasgow",
@@ -9429,9 +8908,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 133779,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 47563,
+        "areaKm2": 9,
         "totals": {
           "1": 5985,
           "3": 47563,
@@ -9441,7 +8920,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851909affffffff",
           "resolution": 5,
@@ -9496,18 +8975,18 @@
           }
         },
         "effective": {
-          "id": "861909ac7ffffff",
-          "resolution": 6,
-          "population": 156526,
+          "id": "871909ac5ffffff",
+          "resolution": 7,
+          "population": 25753,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861909ac7ffffff",
-              "resolution": 6,
-              "population": 156526,
+              "id": "871909ac5ffffff",
+              "resolution": 7,
+              "population": 25753,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -9516,32 +8995,32 @@
               "coordinates": [
                 [
                   [
-                    -4.288774,
-                    55.891367
+                    -4.26421,
+                    55.874703
                   ],
                   [
-                    -4.340618,
-                    55.882376
+                    -4.280027,
+                    55.867779
                   ],
                   [
-                    -4.347656,
-                    55.851849
+                    -4.275657,
+                    55.855983
                   ],
                   [
-                    -4.302901,
-                    55.830324
+                    -4.255478,
+                    55.851111
                   ],
                   [
-                    -4.251116,
-                    55.839313
+                    -4.239666,
+                    55.858034
                   ],
                   [
                     -4.244027,
                     55.869829
                   ],
                   [
-                    -4.288774,
-                    55.891367
+                    -4.26421,
+                    55.874703
                   ]
                 ]
               ]
@@ -9595,19 +9074,7 @@
             "id": "871909ac5ffffff",
             "population": 25753,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881909ac57fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891909ac577ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -9663,9 +9130,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861909ac7ffffff",
-                "resolution": 6,
-                "population": 156526,
+                "id": "871909ac5ffffff",
+                "resolution": 7,
+                "population": 25753,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -9674,32 +9141,32 @@
                 "coordinates": [
                   [
                     [
-                      -4.288774,
-                      55.891367
+                      -4.26421,
+                      55.874703
                     ],
                     [
-                      -4.340618,
-                      55.882376
+                      -4.280027,
+                      55.867779
                     ],
                     [
-                      -4.347656,
-                      55.851849
+                      -4.275657,
+                      55.855983
                     ],
                     [
-                      -4.302901,
-                      55.830324
+                      -4.255478,
+                      55.851111
                     ],
                     [
-                      -4.251116,
-                      55.839313
+                      -4.239666,
+                      55.858034
                     ],
                     [
                       -4.244027,
                       55.869829
                     ],
                     [
-                      -4.288774,
-                      55.891367
+                      -4.26421,
+                      55.874703
                     ]
                   ]
                 ]
@@ -9719,12 +9186,12 @@
           "name": "Glasgow City",
           "population": 602099
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2.5,
-        "description": "Clear",
-        "observedAt": "2026-03-26T00:45",
+        "temperatureC": 12,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T18:00",
         "query": {
           "lat": 55.8642,
           "lon": -4.2518,
@@ -9733,13 +9200,7 @@
       },
       "altitudeM": 34,
       "populationDensityPerKm2": 4360,
-      "nearestSchool": {
-        "name": "St Aloysius' College",
-        "distanceKm": 0.990298052215866,
-        "source": "overpass",
-        "lat": 55.866734,
-        "lon": -4.2634853
-      }
+      "nearestSchool": null
     },
     {
       "id": "GB-aberdeen",
@@ -9768,7 +9229,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8519768ffffffff",
           "resolution": 5,
@@ -9823,18 +9284,18 @@
           }
         },
         "effective": {
-          "id": "8619768cfffffff",
-          "resolution": 6,
-          "population": 93323,
+          "id": "8719768cdffffff",
+          "resolution": 7,
+          "population": 27200,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "8619768cfffffff",
-              "resolution": 6,
-              "population": 93323,
+              "id": "8719768cdffffff",
+              "resolution": 7,
+              "population": 27200,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -9843,32 +9304,32 @@
               "coordinates": [
                 [
                   [
-                    -2.149112,
-                    57.183063
+                    -2.124992,
+                    57.166269
                   ],
                   [
-                    -2.201904,
-                    57.175398
+                    -2.141275,
+                    57.15985
                   ],
                   [
-                    -2.210319,
-                    57.145752
+                    -2.13736,
+                    57.148242
                   ],
                   [
-                    -2.165992,
-                    57.12378
+                    -2.117171,
+                    57.143053
                   ],
                   [
-                    -2.113263,
-                    57.131443
+                    -2.100892,
+                    57.149471
                   ],
                   [
                     -2.104798,
                     57.161079
                   ],
                   [
-                    -2.149112,
-                    57.183063
+                    -2.124992,
+                    57.166269
                   ]
                 ]
               ]
@@ -9922,19 +9383,7 @@
             "id": "8719768cdffffff",
             "population": 27200,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8819768cdbfffff",
-            "population": 8877,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8919768cdafffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -9990,9 +9439,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "8619768cfffffff",
-                "resolution": 6,
-                "population": 93323,
+                "id": "8719768cdffffff",
+                "resolution": 7,
+                "population": 27200,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -10001,32 +9450,32 @@
                 "coordinates": [
                   [
                     [
-                      -2.149112,
-                      57.183063
+                      -2.124992,
+                      57.166269
                     ],
                     [
-                      -2.201904,
-                      57.175398
+                      -2.141275,
+                      57.15985
                     ],
                     [
-                      -2.210319,
-                      57.145752
+                      -2.13736,
+                      57.148242
                     ],
                     [
-                      -2.165992,
-                      57.12378
+                      -2.117171,
+                      57.143053
                     ],
                     [
-                      -2.113263,
-                      57.131443
+                      -2.100892,
+                      57.149471
                     ],
                     [
                       -2.104798,
                       57.161079
                     ],
                     [
-                      -2.149112,
-                      57.183063
+                      -2.124992,
+                      57.166269
                     ]
                   ]
                 ]
@@ -10046,12 +9495,12 @@
           "name": "Aberdeen City",
           "population": 232059
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 1.1,
-        "description": "Overcast",
-        "observedAt": "2026-03-26T00:45",
+        "temperatureC": 10.7,
+        "description": "Light drizzle",
+        "observedAt": "2026-06-09T18:00",
         "query": {
           "lat": 57.1497,
           "lon": -2.0943,
@@ -10060,13 +9509,7 @@
       },
       "altitudeM": 20,
       "populationDensityPerKm2": 10740,
-      "nearestSchool": {
-        "name": "Sunnybank School",
-        "distanceKm": 1.1847862726487695,
-        "source": "overpass",
-        "lat": 57.1597596,
-        "lon": -2.1044327
-      }
+      "nearestSchool": null
     },
     {
       "id": "IN-delhi",
@@ -10083,9 +9526,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 162780,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 32967,
+        "areaKm2": 9,
         "totals": {
           "1": 3135,
           "3": 32967,
@@ -10095,7 +9538,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "853da117fffffff",
           "resolution": 5,
@@ -10250,18 +9693,6 @@
             "population": 14688,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "883da1146bfffff",
-            "population": 3135,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "893da1146abffff",
-            "population": 3135,
-            "populationSource": "worldpop",
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -10373,12 +9804,12 @@
           "name": "Chanakya Puri",
           "population": 171732
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 20.9,
-        "description": "Mostly clear",
-        "observedAt": "2026-03-26T06:15",
+        "temperatureC": 37.1,
+        "description": "Clear",
+        "observedAt": "2026-06-09T22:30",
         "query": {
           "lat": 28.6139,
           "lon": 77.209,
@@ -10387,13 +9818,7 @@
       },
       "altitudeM": 214,
       "populationDensityPerKm2": 1956,
-      "nearestSchool": {
-        "name": "Unnamed school",
-        "distanceKm": 1.03142485485635,
-        "source": "overpass",
-        "lat": 28.6256025,
-        "lon": 77.2103895
-      }
+      "nearestSchool": null
     },
     {
       "id": "IN-mumbai",
@@ -10410,9 +9835,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 3,
-        "populationSelected": 369308,
-        "areaKm2": 9,
+        "sizeSelected": 1,
+        "populationSelected": 40532,
+        "areaKm2": 1,
         "totals": {
           "1": 40532,
           "3": 369308,
@@ -10422,7 +9847,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85608b0bfffffff",
           "resolution": 5,
@@ -10577,18 +10002,6 @@
             "population": 169257,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "88608b0b6bfffff",
-            "population": 40532,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89608b0b6abffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -10700,12 +10113,12 @@
           "name": "Mumbai Suburban",
           "population": 10838698
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 27.9,
-        "description": "Mostly clear",
-        "observedAt": "2026-03-26T06:15",
+        "temperatureC": 30.2,
+        "description": "Light drizzle",
+        "observedAt": "2026-06-09T22:30",
         "query": {
           "lat": 19.076,
           "lon": 72.8777,
@@ -10714,13 +10127,7 @@
       },
       "altitudeM": 6,
       "populationDensityPerKm2": 41281,
-      "nearestSchool": {
-        "name": "American School of Bombay",
-        "distanceKm": 0.22036279157204375,
-        "source": "overpass",
-        "lat": 19.067664,
-        "lon": 72.870696
-      }
+      "nearestSchool": null
     },
     {
       "id": "IN-bengaluru",
@@ -10737,9 +10144,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 3,
-        "populationSelected": 346208,
-        "areaKm2": 9,
+        "sizeSelected": 1,
+        "populationSelected": 36783,
+        "areaKm2": 1,
         "totals": {
           "1": 36783,
           "3": 346208,
@@ -10749,7 +10156,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8560145bfffffff",
           "resolution": 5,
@@ -10904,18 +10311,6 @@
             "population": 187944,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "8860145b4bfffff",
-            "population": 36783,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8960145b4a3ffff",
-            "population": 36783,
-            "populationSource": "worldpop",
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -11027,12 +10422,12 @@
           "name": "Bengaluru North",
           "population": 10550672
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 20.1,
-        "description": "Clear",
-        "observedAt": "2026-03-26T06:15",
+        "temperatureC": 22.4,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T22:30",
         "query": {
           "lat": 12.9716,
           "lon": 77.5946,
@@ -11041,13 +10436,7 @@
       },
       "altitudeM": 910,
       "populationDensityPerKm2": 31889,
-      "nearestSchool": {
-        "name": "Sacred Hearts Girls School",
-        "distanceKm": 1.9691539246093703,
-        "source": "overpass",
-        "lat": 12.9694218,
-        "lon": 77.6033897
-      }
+      "nearestSchool": null
     },
     {
       "id": "AR-buenos-aires",
@@ -11076,7 +10465,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85c2e313fffffff",
           "resolution": 5,
@@ -11131,18 +10520,18 @@
           }
         },
         "effective": {
-          "id": "86c2e3117ffffff",
-          "resolution": 6,
-          "population": 351105,
+          "id": "87c2e3113ffffff",
+          "resolution": 7,
+          "population": 42758,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "86c2e3117ffffff",
-              "resolution": 6,
-              "population": 351105,
+              "id": "87c2e3113ffffff",
+              "resolution": 7,
+              "population": 42758,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -11151,32 +10540,32 @@
               "coordinates": [
                 [
                   [
-                    -58.373772,
-                    -34.654221
+                    -58.371788,
+                    -34.619712
                   ],
                   [
-                    -58.345776,
-                    -34.641057
+                    -58.364542,
+                    -34.612103
                   ],
                   [
-                    -58.35104,
-                    -34.614146
+                    -58.370796,
+                    -34.602448
                   ],
                   [
                     -58.384295,
                     -34.600403
                   ],
                   [
-                    -58.41228,
-                    -34.613571
+                    -58.39154,
+                    -34.608012
                   ],
                   [
-                    -58.407022,
-                    -34.640478
+                    -58.385287,
+                    -34.617666
                   ],
                   [
-                    -58.373772,
-                    -34.654221
+                    -58.371788,
+                    -34.619712
                   ]
                 ]
               ]
@@ -11230,19 +10619,7 @@
             "id": "87c2e3113ffffff",
             "population": 42758,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "88c2e3113bfffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89c2e3113b7ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -11298,9 +10675,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "86c2e3117ffffff",
-                "resolution": 6,
-                "population": 351105,
+                "id": "87c2e3113ffffff",
+                "resolution": 7,
+                "population": 42758,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -11309,32 +10686,32 @@
                 "coordinates": [
                   [
                     [
-                      -58.373772,
-                      -34.654221
+                      -58.371788,
+                      -34.619712
                     ],
                     [
-                      -58.345776,
-                      -34.641057
+                      -58.364542,
+                      -34.612103
                     ],
                     [
-                      -58.35104,
-                      -34.614146
+                      -58.370796,
+                      -34.602448
                     ],
                     [
                       -58.384295,
                       -34.600403
                     ],
                     [
-                      -58.41228,
-                      -34.613571
+                      -58.39154,
+                      -34.608012
                     ],
                     [
-                      -58.407022,
-                      -34.640478
+                      -58.385287,
+                      -34.617666
                     ],
                     [
-                      -58.373772,
-                      -34.654221
+                      -58.371788,
+                      -34.619712
                     ]
                   ]
                 ]
@@ -11350,12 +10727,12 @@
           "population": 230557
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 17.6,
-        "description": "Clear",
-        "observedAt": "2026-03-25T21:45",
+        "temperatureC": 13.4,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T14:00",
         "query": {
           "lat": -34.6037,
           "lon": -58.3816,
@@ -11364,13 +10741,7 @@
       },
       "altitudeM": 18,
       "populationDensityPerKm2": 12476,
-      "nearestSchool": {
-        "name": "Escuela Primaria Común 05 Nicolás Rodríguez Peña",
-        "distanceKm": 1.09089380721052,
-        "source": "overpass",
-        "lat": -34.6003911,
-        "lon": -58.3912858
-      }
+      "nearestSchool": null
     },
     {
       "id": "AR-cordoba",
@@ -11399,7 +10770,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85b24373fffffff",
           "resolution": 5,
@@ -11454,18 +10825,18 @@
           }
         },
         "effective": {
-          "id": "86b243707ffffff",
-          "resolution": 6,
-          "population": 172183,
+          "id": "87b243704ffffff",
+          "resolution": 7,
+          "population": 36407,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "86b243707ffffff",
-              "resolution": 6,
-              "population": 172183,
+              "id": "87b243704ffffff",
+              "resolution": 7,
+              "population": 36407,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -11478,24 +10849,24 @@
                     -31.403028
                   ],
                   [
-                    -64.227655,
-                    -31.42465
+                    -64.206695,
+                    -31.413425
                   ],
                   [
-                    -64.222783,
-                    -31.454169
+                    -64.200555,
+                    -31.422989
                   ],
                   [
-                    -64.18954,
-                    -31.462061
+                    -64.187008,
+                    -31.422157
                   ],
                   [
-                    -64.161184,
-                    -31.44044
+                    -64.179602,
+                    -31.411761
                   ],
                   [
-                    -64.166059,
-                    -31.410927
+                    -64.185742,
+                    -31.402197
                   ],
                   [
                     -64.199288,
@@ -11553,19 +10924,7 @@
             "id": "87b243704ffffff",
             "population": 36407,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "88b243705dfffff",
-            "population": 5077,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89b243705dbffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -11621,9 +10980,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "86b243707ffffff",
-                "resolution": 6,
-                "population": 172183,
+                "id": "87b243704ffffff",
+                "resolution": 7,
+                "population": 36407,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -11636,24 +10995,24 @@
                       -31.403028
                     ],
                     [
-                      -64.227655,
-                      -31.42465
+                      -64.206695,
+                      -31.413425
                     ],
                     [
-                      -64.222783,
-                      -31.454169
+                      -64.200555,
+                      -31.422989
                     ],
                     [
-                      -64.18954,
-                      -31.462061
+                      -64.187008,
+                      -31.422157
                     ],
                     [
-                      -64.161184,
-                      -31.44044
+                      -64.179602,
+                      -31.411761
                     ],
                     [
-                      -64.166059,
-                      -31.410927
+                      -64.185742,
+                      -31.402197
                     ],
                     [
                       -64.199288,
@@ -11673,12 +11032,12 @@
           "population": 1381228
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 17.3,
+        "temperatureC": 14.6,
         "description": "Partly cloudy",
-        "observedAt": "2026-03-25T21:45",
+        "observedAt": "2026-06-09T14:00",
         "query": {
           "lat": -31.4201,
           "lon": -64.1888,
@@ -11687,13 +11046,7 @@
       },
       "altitudeM": 403,
       "populationDensityPerKm2": 5335,
-      "nearestSchool": {
-        "name": "Colegio Santo Domingo",
-        "distanceKm": 0.18044746374177587,
-        "source": "overpass",
-        "lat": -31.4127714,
-        "lon": -64.1798007
-      }
+      "nearestSchool": null
     },
     {
       "id": "AR-rosario",
@@ -11710,9 +11063,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 115474,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 48323,
+        "areaKm2": 9,
         "totals": {
           "1": 4111,
           "3": 48323,
@@ -11722,7 +11075,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85c2eba3fffffff",
           "resolution": 5,
@@ -11877,18 +11230,6 @@
             "population": 14003,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "88c2eba207fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89c2eba2067ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -11996,12 +11337,12 @@
           "population": 1284411
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 16.1,
-        "description": "Clear",
-        "observedAt": "2026-03-25T21:45",
+        "temperatureC": 14.8,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T14:00",
         "query": {
           "lat": -32.9587,
           "lon": -60.6939,
@@ -12010,13 +11351,7 @@
       },
       "altitudeM": 27,
       "populationDensityPerKm2": 16399,
-      "nearestSchool": {
-        "name": "Escuela Técnica 2076 San Francisquito",
-        "distanceKm": 0.9328950942327019,
-        "source": "overpass",
-        "lat": -32.9626942,
-        "lon": -60.6767178
-      }
+      "nearestSchool": null
     },
     {
       "id": "NL-amsterdam",
@@ -12045,7 +11380,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85196953fffffff",
           "resolution": 5,
@@ -12100,18 +11435,18 @@
           }
         },
         "effective": {
-          "id": "861969c9fffffff",
-          "resolution": 6,
-          "population": 140661,
+          "id": "871969c9bffffff",
+          "resolution": 7,
+          "population": 30395,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861969c9fffffff",
-              "resolution": 6,
-              "population": 140661,
+              "id": "871969c9bffffff",
+              "resolution": 7,
+              "population": 30395,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -12120,32 +11455,32 @@
               "coordinates": [
                 [
                   [
-                    4.868846,
-                    52.414316
+                    4.875615,
+                    52.380971
                   ],
                   [
-                    4.857786,
-                    52.38425
+                    4.87787,
+                    52.369852
                   ],
                   [
                     4.895695,
                     52.366568
                   ],
                   [
-                    4.944688,
-                    52.378945
+                    4.911273,
+                    52.374403
                   ],
                   [
-                    4.955793,
-                    52.409014
+                    4.909023,
+                    52.385523
                   ],
                   [
-                    4.917861,
-                    52.426702
+                    4.891191,
+                    52.388807
                   ],
                   [
-                    4.868846,
-                    52.414316
+                    4.875615,
+                    52.380971
                   ]
                 ]
               ]
@@ -12199,19 +11534,7 @@
             "id": "871969c9bffffff",
             "population": 30395,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881969c9b1fffff",
-            "population": 3389,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891969c9b3bffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -12267,9 +11590,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861969c9fffffff",
-                "resolution": 6,
-                "population": 140661,
+                "id": "871969c9bffffff",
+                "resolution": 7,
+                "population": 30395,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -12278,32 +11601,32 @@
                 "coordinates": [
                   [
                     [
-                      4.868846,
-                      52.414316
+                      4.875615,
+                      52.380971
                     ],
                     [
-                      4.857786,
-                      52.38425
+                      4.87787,
+                      52.369852
                     ],
                     [
                       4.895695,
                       52.366568
                     ],
                     [
-                      4.944688,
-                      52.378945
+                      4.911273,
+                      52.374403
                     ],
                     [
-                      4.955793,
-                      52.409014
+                      4.909023,
+                      52.385523
                     ],
                     [
-                      4.917861,
-                      52.426702
+                      4.891191,
+                      52.388807
                     ],
                     [
-                      4.868846,
-                      52.414316
+                      4.875615,
+                      52.380971
                     ]
                   ]
                 ]
@@ -12319,12 +11642,12 @@
           "population": 838669
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 6.4,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 15.6,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 52.3676,
           "lon": 4.9041,
@@ -12333,13 +11656,7 @@
       },
       "altitudeM": 5,
       "populationDensityPerKm2": 6709,
-      "nearestSchool": {
-        "name": "Spirituele Akademie",
-        "distanceKm": 1.2106905311546619,
-        "source": "overpass",
-        "lat": 52.3836013,
-        "lon": 4.8853483
-      }
+      "nearestSchool": null
     },
     {
       "id": "NL-rotterdam",
@@ -12356,9 +11673,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 106261,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 40919,
+        "areaKm2": 9,
         "totals": {
           "1": 2406,
           "3": 40919,
@@ -12368,7 +11685,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85196bb7fffffff",
           "resolution": 5,
@@ -12523,18 +11840,6 @@
             "population": 9558,
             "populationSource": "worldpop",
             "privacyMet": false
-          },
-          "8": {
-            "id": "88196bb52dfffff",
-            "population": 4671,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89196bb52d7ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -12642,12 +11947,12 @@
           "population": 626284
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 5.9,
-        "description": "Overcast",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 15.5,
+        "description": "Rain",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 51.9244,
           "lon": 4.4777,
@@ -12656,13 +11961,7 @@
       },
       "altitudeM": 2,
       "populationDensityPerKm2": 5143,
-      "nearestSchool": {
-        "name": "Piet Zwart Institute",
-        "distanceKm": 0.3911089306410257,
-        "source": "overpass",
-        "lat": 51.9183588,
-        "lon": 4.4746394
-      }
+      "nearestSchool": null
     },
     {
       "id": "NL-utrecht",
@@ -12691,7 +11990,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "8519690bfffffff",
           "resolution": 5,
@@ -12746,18 +12045,18 @@
           }
         },
         "effective": {
-          "id": "861969087ffffff",
-          "resolution": 6,
-          "population": 103206,
+          "id": "87196909cffffff",
+          "resolution": 7,
+          "population": 33455,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861969087ffffff",
-              "resolution": 6,
-              "population": 103206,
+              "id": "87196909cffffff",
+              "resolution": 7,
+              "population": 33455,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -12766,32 +12065,32 @@
               "coordinates": [
                 [
                   [
-                    5.116073,
-                    52.121574
+                    5.089378,
+                    52.083556
+                  ],
+                  [
+                    5.09159,
+                    52.072374
+                  ],
+                  [
+                    5.10935,
+                    52.069023
+                  ],
+                  [
+                    5.124904,
+                    52.076855
+                  ],
+                  [
+                    5.122698,
+                    52.088038
                   ],
                   [
                     5.104932,
                     52.091388
                   ],
                   [
-                    5.142667,
-                    52.073499
-                  ],
-                  [
-                    5.191568,
-                    52.08579
-                  ],
-                  [
-                    5.202754,
-                    52.115979
-                  ],
-                  [
-                    5.164996,
-                    52.133874
-                  ],
-                  [
-                    5.116073,
-                    52.121574
+                    5.089378,
+                    52.083556
                   ]
                 ]
               ]
@@ -12845,19 +12144,7 @@
             "id": "87196909cffffff",
             "population": 33455,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "8819690827fffff",
-            "population": 4133,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89196909cd3ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -12913,9 +12200,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861969087ffffff",
-                "resolution": 6,
-                "population": 103206,
+                "id": "87196909cffffff",
+                "resolution": 7,
+                "population": 33455,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -12924,32 +12211,32 @@
                 "coordinates": [
                   [
                     [
-                      5.116073,
-                      52.121574
+                      5.089378,
+                      52.083556
+                    ],
+                    [
+                      5.09159,
+                      52.072374
+                    ],
+                    [
+                      5.10935,
+                      52.069023
+                    ],
+                    [
+                      5.124904,
+                      52.076855
+                    ],
+                    [
+                      5.122698,
+                      52.088038
                     ],
                     [
                       5.104932,
                       52.091388
                     ],
                     [
-                      5.142667,
-                      52.073499
-                    ],
-                    [
-                      5.191568,
-                      52.08579
-                    ],
-                    [
-                      5.202754,
-                      52.115979
-                    ],
-                    [
-                      5.164996,
-                      52.133874
-                    ],
-                    [
-                      5.116073,
-                      52.121574
+                      5.089378,
+                      52.083556
                     ]
                   ]
                 ]
@@ -12965,12 +12252,12 @@
           "population": 367316
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 4.2,
-        "description": "Partly cloudy",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 13.4,
+        "description": "Light rain",
+        "observedAt": "2026-06-09T19:00",
         "query": {
           "lat": 52.0907,
           "lon": 5.1214,
@@ -12979,13 +12266,7 @@
       },
       "altitudeM": 10,
       "populationDensityPerKm2": 7661,
-      "nearestSchool": {
-        "name": "Haarstylisten college",
-        "distanceKm": 0.4623474961686573,
-        "source": "overpass",
-        "lat": 52.0942594,
-        "lon": 5.1032387
-      }
+      "nearestSchool": null
     },
     {
       "id": "GH-accra",
@@ -13014,7 +12295,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85757697fffffff",
           "resolution": 5,
@@ -13169,18 +12450,6 @@
             "population": 52965,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "8875769757fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "8975769756fffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -13288,12 +12557,12 @@
           "population": 121178
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 27,
+        "temperatureC": 26.3,
         "description": "Overcast",
-        "observedAt": "2026-03-26T00:45",
+        "observedAt": "2026-06-09T17:00",
         "query": {
           "lat": 5.6037,
           "lon": -0.187,
@@ -13302,13 +12571,7 @@
       },
       "altitudeM": 56,
       "populationDensityPerKm2": 12628,
-      "nearestSchool": {
-        "name": "Alliance Français",
-        "distanceKm": 0.1692063846512412,
-        "source": "overpass",
-        "lat": 5.5969429,
-        "lon": -0.1820777
-      }
+      "nearestSchool": null
     },
     {
       "id": "GH-kumasi",
@@ -13337,7 +12600,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "85752a33fffffff",
           "resolution": 5,
@@ -13492,18 +12755,6 @@
             "population": 59641,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "88752a300dfffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "89752a300cfffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -13611,12 +12862,12 @@
           "population": 411196
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 25.9,
-        "description": "Overcast",
-        "observedAt": "2026-03-26T00:45",
+        "temperatureC": 25,
+        "description": "Drizzle",
+        "observedAt": "2026-06-09T17:00",
         "query": {
           "lat": 6.692,
           "lon": -1.571,
@@ -13625,13 +12876,7 @@
       },
       "altitudeM": 273,
       "populationDensityPerKm2": 10886,
-      "nearestSchool": {
-        "name": "Se Manhyia Royal International School",
-        "distanceKm": 1.4946434970787117,
-        "source": "overpass",
-        "lat": 6.6868277,
-        "lon": -1.5843499
-      }
+      "nearestSchool": null
     },
     {
       "id": "GH-takoradi",
@@ -13648,9 +12893,9 @@
         "shiftKm": 1
       },
       "tileGrid": {
-        "sizeSelected": 5,
-        "populationSelected": 102117,
-        "areaKm2": 25,
+        "sizeSelected": 3,
+        "populationSelected": 43444,
+        "areaKm2": 9,
         "totals": {
           "1": 5631,
           "3": 43444,
@@ -13660,7 +12905,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "857509d7fffffff",
           "resolution": 5,
@@ -13715,18 +12960,18 @@
           }
         },
         "effective": {
-          "id": "867509d67ffffff",
-          "resolution": 6,
-          "population": 134954,
+          "id": "877509d63ffffff",
+          "resolution": 7,
+          "population": 20600,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "867509d67ffffff",
-              "resolution": 6,
-              "population": 134954,
+              "id": "877509d63ffffff",
+              "resolution": 7,
+              "population": 20600,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -13735,32 +12980,32 @@
               "coordinates": [
                 [
                   [
-                    -1.76367,
-                    4.923146
+                    -1.757907,
+                    4.891106
                   ],
                   [
-                    -1.768139,
-                    4.896427
+                    -1.755987,
+                    4.880429
                   ],
                   [
                     -1.745757,
                     4.875107
                   ],
                   [
-                    -1.718895,
-                    4.880493
+                    -1.737444,
+                    4.880461
                   ],
                   [
-                    -1.71441,
-                    4.907214
+                    -1.739362,
+                    4.89114
                   ],
                   [
-                    -1.736804,
-                    4.928547
+                    -1.749595,
+                    4.896462
                   ],
                   [
-                    -1.76367,
-                    4.923146
+                    -1.757907,
+                    4.891106
                   ]
                 ]
               ]
@@ -13814,19 +13059,7 @@
             "id": "877509d63ffffff",
             "population": 20600,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "887509d631fffff",
-            "population": 5631,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "897509d6307ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -13882,9 +13115,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "867509d67ffffff",
-                "resolution": 6,
-                "population": 134954,
+                "id": "877509d63ffffff",
+                "resolution": 7,
+                "population": 20600,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -13893,32 +13126,32 @@
                 "coordinates": [
                   [
                     [
-                      -1.76367,
-                      4.923146
+                      -1.757907,
+                      4.891106
                     ],
                     [
-                      -1.768139,
-                      4.896427
+                      -1.755987,
+                      4.880429
                     ],
                     [
                       -1.745757,
                       4.875107
                     ],
                     [
-                      -1.718895,
-                      4.880493
+                      -1.737444,
+                      4.880461
                     ],
                     [
-                      -1.71441,
-                      4.907214
+                      -1.739362,
+                      4.89114
                     ],
                     [
-                      -1.736804,
-                      4.928547
+                      -1.749595,
+                      4.896462
                     ],
                     [
-                      -1.76367,
-                      4.923146
+                      -1.757907,
+                      4.891106
                     ]
                   ]
                 ]
@@ -13934,12 +13167,12 @@
           "population": 490400
         },
         "adm3": null,
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 25.6,
-        "description": "Overcast",
-        "observedAt": "2026-03-26T00:45",
+        "temperatureC": 25.1,
+        "description": "Drizzle",
+        "observedAt": "2026-06-09T17:00",
         "query": {
           "lat": 4.8845,
           "lon": -1.7554,
@@ -13948,13 +13181,7 @@
       },
       "altitudeM": 12,
       "populationDensityPerKm2": 11402,
-      "nearestSchool": {
-        "name": "Chapel Hill School",
-        "distanceKm": 1.1058734802047872,
-        "source": "overpass",
-        "lat": 4.8867441,
-        "lon": -1.7560822
-      }
+      "nearestSchool": null
     },
     {
       "id": "CH-zurich",
@@ -13983,7 +13210,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f8edbfffffff",
           "resolution": 5,
@@ -14038,18 +13265,18 @@
           }
         },
         "effective": {
-          "id": "861f8ed97ffffff",
-          "resolution": 6,
-          "population": 165324,
+          "id": "871f8ed95ffffff",
+          "resolution": 7,
+          "population": 42602,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f8ed97ffffff",
-              "resolution": 6,
-              "population": 165324,
+              "id": "871f8ed95ffffff",
+              "resolution": 7,
+              "population": 42602,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -14058,32 +13285,32 @@
               "coordinates": [
                 [
                   [
-                    8.496673,
-                    47.379713
+                    8.528697,
+                    47.383052
                   ],
                   [
-                    8.484587,
-                    47.34778
+                    8.53026,
+                    47.370948
                   ],
                   [
-                    8.519723,
-                    47.326903
+                    8.547053,
+                    47.366561
                   ],
                   [
-                    8.566959,
-                    47.337951
+                    8.562288,
+                    47.374278
                   ],
                   [
-                    8.579083,
-                    47.369886
+                    8.56073,
+                    47.386383
                   ],
                   [
                     8.543932,
                     47.39077
                   ],
                   [
-                    8.496673,
-                    47.379713
+                    8.528697,
+                    47.383052
                   ]
                 ]
               ]
@@ -14137,19 +13364,7 @@
             "id": "871f8ed95ffffff",
             "population": 42602,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881f8ed95bfffff",
-            "population": 3114,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891f8ed95abffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -14205,9 +13420,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f8ed97ffffff",
-                "resolution": 6,
-                "population": 165324,
+                "id": "871f8ed95ffffff",
+                "resolution": 7,
+                "population": 42602,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -14216,32 +13431,32 @@
                 "coordinates": [
                   [
                     [
-                      8.496673,
-                      47.379713
+                      8.528697,
+                      47.383052
                     ],
                     [
-                      8.484587,
-                      47.34778
+                      8.53026,
+                      47.370948
                     ],
                     [
-                      8.519723,
-                      47.326903
+                      8.547053,
+                      47.366561
                     ],
                     [
-                      8.566959,
-                      47.337951
+                      8.562288,
+                      47.374278
                     ],
                     [
-                      8.579083,
-                      47.369886
+                      8.56073,
+                      47.386383
                     ],
                     [
                       8.543932,
                       47.39077
                     ],
                     [
-                      8.496673,
-                      47.379713
+                      8.528697,
+                      47.383052
                     ]
                   ]
                 ]
@@ -14261,12 +13476,12 @@
           "name": "Zürich",
           "population": 404448
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 1.9,
-        "description": "Light rain",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 15,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T19:15",
         "query": {
           "lat": 47.3769,
           "lon": 8.5417,
@@ -14275,13 +13490,7 @@
       },
       "altitudeM": 409,
       "populationDensityPerKm2": 10209,
-      "nearestSchool": {
-        "name": "Atelierschule Zürich",
-        "distanceKm": 1.1707099168578405,
-        "source": "overpass",
-        "lat": 47.3729757,
-        "lon": 8.5543678
-      }
+      "nearestSchool": null
     },
     {
       "id": "CH-geneva",
@@ -14310,7 +13519,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f91affffffff",
           "resolution": 5,
@@ -14465,18 +13674,6 @@
             "population": 55776,
             "populationSource": "worldpop",
             "privacyMet": true
-          },
-          "8": {
-            "id": "881f91ac2dfffff",
-            "population": 7089,
-            "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891f91ac2cbffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
           }
         },
         "outlines": {
@@ -14588,12 +13785,12 @@
           "name": "Genève",
           "population": 208747
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2.3,
-        "description": "Light rain",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 19.2,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T19:15",
         "query": {
           "lat": 46.2044,
           "lon": 6.1432,
@@ -14602,13 +13799,7 @@
       },
       "altitudeM": 368,
       "populationDensityPerKm2": 9152,
-      "nearestSchool": {
-        "name": "École Brechbühl",
-        "distanceKm": 0.16193807253047962,
-        "source": "overpass",
-        "lat": 46.1993385,
-        "lon": 6.1533287
-      }
+      "nearestSchool": null
     },
     {
       "id": "CH-basel",
@@ -14637,7 +13828,7 @@
       },
       "h3": {
         "scheme": "h3_v1",
-        "threshold": 50000,
+        "threshold": 20000,
         "base": {
           "id": "851f8383fffffff",
           "resolution": 5,
@@ -14692,18 +13883,18 @@
           }
         },
         "effective": {
-          "id": "861f83837ffffff",
-          "resolution": 6,
-          "population": 174922,
+          "id": "871f83833ffffff",
+          "resolution": 7,
+          "population": 36986,
           "populationSource": "worldpop",
           "privacyMet": true,
           "outline": {
             "type": "Feature",
             "properties": {
               "source": "h3",
-              "id": "861f83837ffffff",
-              "resolution": 6,
-              "population": 174922,
+              "id": "871f83833ffffff",
+              "resolution": 7,
+              "population": 36986,
               "populationSource": "worldpop",
               "privacyMet": true
             },
@@ -14712,32 +13903,32 @@
               "coordinates": [
                 [
                   [
-                    7.544097,
-                    47.588253
+                    7.581117,
+                    47.555772
                   ],
                   [
-                    7.532446,
-                    47.556381
+                    7.582825,
+                    47.54374
                   ],
                   [
-                    7.567743,
-                    47.535924
+                    7.599618,
+                    47.53952
                   ],
                   [
                     7.614707,
                     47.547333
                   ],
                   [
-                    7.626397,
-                    47.579207
+                    7.613004,
+                    47.559366
                   ],
                   [
-                    7.591084,
-                    47.599671
+                    7.596206,
+                    47.563586
                   ],
                   [
-                    7.544097,
-                    47.588253
+                    7.581117,
+                    47.555772
                   ]
                 ]
               ]
@@ -14791,19 +13982,7 @@
             "id": "871f83833ffffff",
             "population": 36986,
             "populationSource": "worldpop",
-            "privacyMet": false
-          },
-          "8": {
-            "id": "881f83833bfffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
-          },
-          "9": {
-            "id": "891f83833b3ffff",
-            "population": null,
-            "populationSource": null,
-            "privacyMet": false
+            "privacyMet": true
           }
         },
         "outlines": {
@@ -14859,9 +14038,9 @@
               "type": "Feature",
               "properties": {
                 "source": "h3",
-                "id": "861f83837ffffff",
-                "resolution": 6,
-                "population": 174922,
+                "id": "871f83833ffffff",
+                "resolution": 7,
+                "population": 36986,
                 "populationSource": "worldpop",
                 "privacyMet": true
               },
@@ -14870,32 +14049,32 @@
                 "coordinates": [
                   [
                     [
-                      7.544097,
-                      47.588253
+                      7.581117,
+                      47.555772
                     ],
                     [
-                      7.532446,
-                      47.556381
+                      7.582825,
+                      47.54374
                     ],
                     [
-                      7.567743,
-                      47.535924
+                      7.599618,
+                      47.53952
                     ],
                     [
                       7.614707,
                       47.547333
                     ],
                     [
-                      7.626397,
-                      47.579207
+                      7.613004,
+                      47.559366
                     ],
                     [
-                      7.591084,
-                      47.599671
+                      7.596206,
+                      47.563586
                     ],
                     [
-                      7.544097,
-                      47.588253
+                      7.581117,
+                      47.555772
                     ]
                   ]
                 ]
@@ -14915,12 +14094,12 @@
           "name": "Basel",
           "population": 156813
         },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 2.9,
-        "description": "Light showers",
-        "observedAt": "2026-03-26T01:45",
+        "temperatureC": 18.2,
+        "description": "Overcast",
+        "observedAt": "2026-06-09T19:15",
         "query": {
           "lat": 47.5596,
           "lon": 7.5886,
@@ -14929,13 +14108,7 @@
       },
       "altitudeM": 247,
       "populationDensityPerKm2": 7580,
-      "nearestSchool": {
-        "name": "Schule für Gestaltung",
-        "distanceKm": 0.5554787691747055,
-        "source": "overpass",
-        "lat": 47.5636426,
-        "lon": 7.6062991
-      }
+      "nearestSchool": null
     }
   ]
 }

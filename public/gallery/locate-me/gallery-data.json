@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-14T19:21:18.530Z",
+  "generated": "2026-06-09T17:02:39.573Z",
   "baseUrl": "https://levante-cockpit.vercel.app",
   "total": 46,
   "results": [
@@ -38993,7 +38993,7 @@
         ],
         "metrics": {
           "datasetFile": "cities.min.json.gz",
-          "lookupMs": 1,
+          "lookupMs": 0,
           "seedCountry": "US",
           "seedMethod": "adm0",
           "source": "local"
@@ -40249,7 +40249,7 @@
       },
       "metrics": {
         "datasetFile": "cities.min.json.gz",
-        "lookupMs": 1,
+        "lookupMs": 0,
         "seedCountry": "US",
         "seedMethod": "adm0",
         "source": "local"

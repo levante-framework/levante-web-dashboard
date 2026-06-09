@@ -27,12 +27,14 @@ const DATA_FILE = path.join(OUTPUT_DIR, 'gallery-data.json');
 const SEED_FILE = path.join(process.cwd(), 'public', 'gallery', 'locate-me', 'seed-points.json');
 const ADM_PACK_DIR = path.join(process.cwd(), 'public', 'adm-packs');
 
-const POP_THRESHOLD = Number(process.env.GEO_POP_THRESHOLD || 50000);
 const SHIFT_KM = Number(process.env.GEO_SHIFT_KM || 1);
 const WEATHER_ROUNDING_DEG = Number(process.env.GEO_WEATHER_ROUNDING_DEG || 0);
 const SCHOOL_RADIUS_M = Number(process.env.GEO_SCHOOL_RADIUS_M || 5000);
 
 // H3 configuration
+// Policy-imposed minimum population threshold
+const POP_THRESHOLD = Number(process.env.GEO_POP_THRESHOLD || 20000);
+
 // "Happy medium" for effeciency & privacy
 const H3_BASE_RES = Number(process.env.GEO_H3_BASE_RES || 5);
 

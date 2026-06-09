@@ -66,6 +66,10 @@ function toBoolean(value, fallback = false) {
   return fallback;
 }
 
+function normalizeLangCode(value) {
+  return String(value || '').trim().replace(/_/g, '-').toLowerCase();
+}
+
 function formatDayUtc(date) {
   const yyyy = String(date.getUTCFullYear());
   const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -169,7 +173,9 @@ function buildApprovalDetails(approvalEvent, priorRegens) {
   };
 }
 
-function buildRollupFromEvents(rawEvents) {
+function buildRollupFromEvents(rawEvents, options = {}) {
+  const langFilter = normalizeLangCode(options.langFilter || '');
+  const includeDetails = options.includeDetails !== false;
   const byLanguage = new Map();
   const regenHistoryByKey = new Map();
   const approvalDetails = [];
@@ -193,6 +199,7 @@ function buildRollupFromEvents(rawEvents) {
   for (const event of rawEvents) {
     const eventType = event.eventType;
     const { itemId, langCode, approver } = normalizeKeyParts(event);
+    if (langFilter && langCode !== langFilter) continue;
     const key = `${langCode}::${itemId}::${approver}`;
 
     if (eventType === 'regenerate_success') {
@@ -217,15 +224,17 @@ function buildRollupFromEvents(rawEvents) {
     if (details.hadPriorEnhancedRegen) summary.approvalsWithPriorEnhanced += 1;
     if (details.hadPriorEnhancedChanged) summary.approvalsWithPriorEnhancedChanged += 1;
 
-    approvalDetails.push({
-      approvalType: eventType,
-      itemId,
-      langCode: event.langCode || langCode,
-      approver: event.approver || approver,
-      approvalAt: event.serverTimestamp,
-      task: String(event.task || '').trim(),
-      ...details
-    });
+    if (includeDetails) {
+      approvalDetails.push({
+        approvalType: eventType,
+        itemId,
+        langCode: event.langCode || langCode,
+        approver: event.approver || approver,
+        approvalAt: event.serverTimestamp,
+        task: String(event.task || '').trim(),
+        ...details
+      });
+    }
   }
 
   const summaryByLanguage = Array.from(byLanguage.values())
@@ -322,6 +331,22 @@ async function readRawEventsFromFiles(files, sinceDate = null) {
   return rawEvents;
 }
 
+function filterDayRollupByLang(dayRollup, langFilter, includeDetails) {
+  if (!dayRollup) return null;
+  const normalizedLang = normalizeLangCode(langFilter);
+  const summaryByLanguage = Array.isArray(dayRollup.summaryByLanguage)
+    ? dayRollup.summaryByLanguage.filter((row) => normalizeLangCode(row?.language) === normalizedLang)
+    : [];
+  const approvalDetails = includeDetails && Array.isArray(dayRollup.approvalDetails)
+    ? dayRollup.approvalDetails.filter((row) => normalizeLangCode(row?.langCode) === normalizedLang)
+    : [];
+  return {
+    ...dayRollup,
+    summaryByLanguage,
+    approvalDetails
+  };
+}
+
 async function discoverAllKnownDays(bucket) {
   const days = new Set();
   const rawFiles = await listFiles(bucket, `${LOG_PREFIX}/`);
@@ -362,8 +387,17 @@ export default async function handler(req, res) {
     const requestStartedAt = Date.now();
     const bucketName = String(req.query.bucket || DEFAULT_BUCKET || 'levante-assets-draft').trim();
     const sinceDays = toPositiveInt(req.query.sinceDays, 0);
+    const requestedLangFilter = normalizeLangCode(req.query.lang);
+    const hasLangFilter = Boolean(requestedLangFilter);
+    const includeDetails = toBoolean(req.query.includeDetails, true);
+    const includeTodayRaw = toBoolean(req.query.includeTodayRaw, includeDetails || hasLangFilter);
+    const rawFallback = toBoolean(req.query.rawFallback, hasLangFilter);
     const compactMissing = toBoolean(req.query.compactMissing, true);
+    const effectiveCompactMissing = compactMissing && !hasLangFilter;
     const maxCompactionDaysPerRequest = Math.max(0, toPositiveInt(req.query.maxCompactionDaysPerRequest, 3));
+    const dayCursor = Math.max(0, toPositiveInt(req.query.dayCursor, 0));
+    const maxDaysPerRequest = Math.max(1, toPositiveInt(req.query.maxDaysPerRequest, 5));
+    const maxRuntimeMs = Math.max(2000, toPositiveInt(req.query.maxRuntimeMs, 20000));
     const now = new Date();
     const sinceDate = sinceDays > 0 ? new Date(now.getTime() - sinceDays * 24 * 60 * 60 * 1000) : null;
     const todayDayUtc = formatDayUtc(now);
@@ -375,6 +409,10 @@ export default async function handler(req, res) {
     const daysToProcess = sortDaysNewestFirst(
       candidateDays.filter((day) => !sinceDate || (Date.parse(`${day}T00:00:00.000Z`) + (24 * 60 * 60 * 1000)) >= sinceDate.getTime())
     );
+    const pagedDays = daysToProcess.slice(dayCursor, dayCursor + maxDaysPerRequest);
+    let nextDayCursor = dayCursor + pagedDays.length;
+    let reachedRuntimeBudget = false;
+    let processedDaysCount = 0;
 
     const compaction = {
       ran: false,
@@ -391,7 +429,14 @@ export default async function handler(req, res) {
     const approvalDetails = [];
     let eventsScanned = 0;
 
-    for (const day of daysToProcess) {
+    for (let idx = 0; idx < pagedDays.length; idx += 1) {
+      const day = pagedDays[idx];
+      if ((Date.now() - requestStartedAt) >= maxRuntimeMs) {
+        reachedRuntimeBudget = true;
+        nextDayCursor = dayCursor + idx;
+        break;
+      }
+      processedDaysCount += 1;
       const isHistoricalDay = day < todayDayUtc;
       const summaryPath = rollupSummaryPath(day);
       let dayRollup = null;
@@ -412,7 +457,7 @@ export default async function handler(req, res) {
         }
       }
 
-      if (isHistoricalDay && !dayRollup && compactMissing && compaction.compactedDays.length < maxCompactionDaysPerRequest) {
+      if (isHistoricalDay && !dayRollup && effectiveCompactMissing && compaction.compactedDays.length < maxCompactionDaysPerRequest) {
         try {
           const prefix = rawDayPrefix(day);
           const files = prefix ? await listFiles(bucket, prefix) : [];
@@ -439,13 +484,38 @@ export default async function handler(req, res) {
       }
 
       if (!dayRollup) {
+        if (day === todayDayUtc && !includeTodayRaw) {
+          compaction.pendingDays.push(day);
+          continue;
+        }
+
+        const compactionBudgetExceeded = isHistoricalDay
+          && effectiveCompactMissing
+          && compaction.compactedDays.length >= maxCompactionDaysPerRequest;
+
+        if (compactionBudgetExceeded) {
+          compaction.pendingDays.push(day);
+          continue;
+        }
+
+        if (isHistoricalDay && !rawFallback) {
+          compaction.pendingDays.push(day);
+          continue;
+        }
+
         const prefix = rawDayPrefix(day);
         const files = prefix ? await listFiles(bucket, prefix) : [];
         const rawEvents = await readRawEventsFromFiles(files, day === todayDayUtc ? sinceDate : null);
-        dayRollup = buildRollupFromEvents(rawEvents);
-        if (isHistoricalDay && compactMissing && compaction.compactedDays.length >= maxCompactionDaysPerRequest) {
-          compaction.pendingDays.push(day);
-        }
+        dayRollup = buildRollupFromEvents(rawEvents, {
+          langFilter: requestedLangFilter,
+          includeDetails
+        });
+      }
+
+      if (dayRollup && hasLangFilter) {
+        dayRollup = filterDayRollupByLang(dayRollup, requestedLangFilter, includeDetails);
+      } else if (dayRollup && !includeDetails) {
+        dayRollup = { ...dayRollup, approvalDetails: [] };
       }
 
       eventsScanned += Number(dayRollup?.eventsScanned || 0);
@@ -490,9 +560,21 @@ export default async function handler(req, res) {
       success: true,
       bucket: bucketName,
       sinceDays,
+      langFilter: requestedLangFilter || null,
+      includeDetails,
+      includeTodayRaw,
+      rawFallback,
+      dayCursor,
+      maxDaysPerRequest,
+      totalDaysToProcess: daysToProcess.length,
+      processedDays: processedDaysCount,
+      reachedRuntimeBudget,
+      hasMore: nextDayCursor < daysToProcess.length,
+      nextDayCursor: nextDayCursor < daysToProcess.length ? nextDayCursor : null,
+      maxRuntimeMs,
       generatedAt: new Date().toISOString(),
       eventsScanned,
-      compactMissing,
+      compactMissing: effectiveCompactMissing,
       maxCompactionDaysPerRequest,
       totals,
       summaryByLanguage,

@@ -108,7 +108,7 @@
   </div>
 
   <script>
-    const state = { payload: null, filteredDetails: [], compactionNote: '' };
+    const state = { payload: null, filteredDetails: [], compactionNote: '', partialLoadNote: '' };
 
     function el(id) { return document.getElementById(id); }
     function esc(v) {
@@ -126,7 +126,10 @@
     }
 
     function normalizeLangCode(v) {
-      return String(v || '').trim().replace(/_/g, '-').toLowerCase();
+      const raw = String(v || '').trim();
+      if (!raw) return '';
+      if (raw === '__all__') return '__all__';
+      return raw.replace(/_/g, '-').toLowerCase();
     }
 
     function sumRows(rows) {
@@ -146,6 +149,39 @@
         approvalsWithPriorEnhancedChanged: 0,
         regensBeforeApprovalsTotal: 0
       });
+    }
+
+    function mergeSummaryRows(rows) {
+      const byLang = new Map();
+      for (const row of rows || []) {
+        const language = String(row?.language || '').trim() || 'unknown';
+        if (!byLang.has(language)) {
+          byLang.set(language, {
+            language,
+            approvalsTotal: 0,
+            approvedAsIs: 0,
+            approvalsWithPriorRegen: 0,
+            approvalsWithPriorEnhanced: 0,
+            approvalsWithPriorEnhancedChanged: 0,
+            regensBeforeApprovalsTotal: 0
+          });
+        }
+        const acc = byLang.get(language);
+        acc.approvalsTotal += Number(row?.approvalsTotal || 0);
+        acc.approvedAsIs += Number(row?.approvedAsIs || 0);
+        acc.approvalsWithPriorRegen += Number(row?.approvalsWithPriorRegen || 0);
+        acc.approvalsWithPriorEnhanced += Number(row?.approvalsWithPriorEnhanced || 0);
+        acc.approvalsWithPriorEnhancedChanged += Number(row?.approvalsWithPriorEnhancedChanged || 0);
+        acc.regensBeforeApprovalsTotal += Number(row?.regensBeforeApprovalsTotal || 0);
+      }
+      return Array.from(byLang.values())
+        .map((row) => ({
+          ...row,
+          avgRegensBeforeApproval: row.approvalsWithPriorRegen > 0
+            ? Number((row.regensBeforeApprovalsTotal / row.approvalsWithPriorRegen).toFixed(2))
+            : 0
+        }))
+        .sort((a, b) => String(a.language).localeCompare(String(b.language)));
     }
 
     function renderSummary(rows) {
@@ -244,24 +280,113 @@
       renderSummary(filteredSummary);
       renderDetails(filteredDetails);
       const suffix = state.compactionNote ? ` • ${state.compactionNote}` : '';
-      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records${suffix}`;
+      const partial = state.partialLoadNote ? ` • ${state.partialLoadNote}` : '';
+      const detailsLoaded = state.payload?.includeDetails === true;
+      const detailsNote = detailsLoaded ? '' : ' • Details omitted for faster load; pick a language to load details.';
+      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records${suffix}${partial}${detailsNote}`;
     }
 
     async function loadReport() {
       el('metaLine').innerHTML = '<strong>Updating Log Files...</strong>';
       el('statusLine').innerHTML = '<strong>Updating Log Files...</strong>';
       const sinceDays = Math.max(0, Number(el('sinceDays').value || 0));
-      const url = `/api/approver-audio-report?sinceDays=${encodeURIComponent(sinceDays)}&compactMissing=1`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45000);
-      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
-      clearTimeout(timeout);
-      if (!response.ok) throw new Error(`Failed to load report (${response.status})`);
-      const payload = await response.json();
-      if (!payload?.success) throw new Error(payload?.message || 'Report API returned error');
+      const selectedLang = normalizeLangCode(el('langFilter').value);
+      const hasLangFilter = selectedLang && selectedLang !== '__all__';
+      const includeDetails = hasLangFilter;
+      const includeTodayRaw = hasLangFilter;
+      const rawFallback = hasLangFilter && sinceDays <= 30;
+      const compactMissing = hasLangFilter && sinceDays <= 30;
+      const params = new URLSearchParams({
+        sinceDays: String(sinceDays),
+        compactMissing: compactMissing ? '1' : '0',
+        includeDetails: includeDetails ? '1' : '0',
+        includeTodayRaw: includeTodayRaw ? '1' : '0',
+        rawFallback: rawFallback ? '1' : '0',
+        maxRuntimeMs: '12000',
+        maxDaysPerRequest: '20'
+      });
+      if (hasLangFilter) {
+        params.set('lang', selectedLang);
+      }
+      const allSummaryRows = [];
+      const allDetails = [];
+      let eventsScanned = 0;
+      let generatedAt = '';
+      let bucket = '';
+      let totalDaysToProcess = 0;
+      let totalProcessedDays = 0;
+      let hasMore = false;
+      let cursor = 0;
+      let chunkCount = 0;
+      let compacted = 0;
+      let pending = 0;
+      let stoppedEarly = false;
+      do {
+        const chunkParams = new URLSearchParams(params);
+        chunkParams.set('dayCursor', String(cursor));
+        const url = `/api/approver-audio-report?${chunkParams.toString()}`;
+        let payload;
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 25000);
+          const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+          clearTimeout(timeout);
+          if (!response.ok) throw new Error(`Failed to load report (${response.status})`);
+          payload = await response.json();
+          if (!payload?.success) throw new Error(payload?.message || 'Report API returned error');
+        } catch (error) {
+          if (chunkCount > 0) {
+            stoppedEarly = true;
+            break;
+          }
+          throw error;
+        }
+
+        generatedAt = payload.generatedAt || generatedAt;
+        bucket = payload.bucket || bucket;
+        eventsScanned += Number(payload.eventsScanned || 0);
+        totalDaysToProcess = Number(payload.totalDaysToProcess || totalDaysToProcess || 0);
+        totalProcessedDays += Number(payload.processedDays || 0);
+        compacted += Array.isArray(payload?.compaction?.compactedDays) ? payload.compaction.compactedDays.length : 0;
+        pending = Array.isArray(payload?.compaction?.pendingDays) ? payload.compaction.pendingDays.length : pending;
+
+        allSummaryRows.push(...(payload.summaryByLanguage || []));
+        if (includeDetails) {
+          allDetails.push(...(payload.approvalDetails || []));
+        }
+
+        chunkCount += 1;
+        hasMore = payload.hasMore === true && Number.isFinite(Number(payload.nextDayCursor));
+        cursor = hasMore ? Number(payload.nextDayCursor) : 0;
+        if (hasMore) {
+          el('statusLine').textContent = `Loading report chunks (${chunkCount})... days processed: ${totalProcessedDays}/${totalDaysToProcess || '?'} `;
+        }
+      } while (hasMore && chunkCount < 100);
+
+      const mergedSummary = mergeSummaryRows(allSummaryRows);
+      allDetails.sort((a, b) => (Date.parse(b.approvalAt || '') || 0) - (Date.parse(a.approvalAt || '') || 0));
+      const payload = {
+        success: true,
+        bucket,
+        generatedAt: generatedAt || new Date().toISOString(),
+        sinceDays,
+        langFilter: hasLangFilter ? selectedLang : null,
+        includeDetails,
+        includeTodayRaw,
+        rawFallback,
+        eventsScanned,
+        summaryByLanguage: mergedSummary,
+        approvalDetails: allDetails,
+        compaction: {
+          compactedDays: Array.from({ length: compacted }),
+          pendingDays: Array.from({ length: pending })
+        }
+      };
+
       state.payload = payload;
-      const compacted = Array.isArray(payload?.compaction?.compactedDays) ? payload.compaction.compactedDays.length : 0;
-      const pending = Array.isArray(payload?.compaction?.pendingDays) ? payload.compaction.pendingDays.length : 0;
+      state.partialLoadNote = stoppedEarly
+        ? `Loaded ${totalProcessedDays}/${totalDaysToProcess || '?'} days before timeout`
+        : '';
       state.compactionNote = compacted > 0
         ? `Updated ${compacted} day${compacted === 1 ? '' : 's'} of log files${pending > 0 ? ` (${pending} pending)` : ''}`
         : '';
@@ -283,7 +408,12 @@
       const compactLabel = compacted > 0
         ? ` • Log files updated: ${compacted}${pending > 0 ? ` (${pending} pending)` : ''}`
         : '';
-      el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}${compactLabel}`;
+      const filterLabel = payload?.langFilter ? ` • Language: ${payload.langFilter}` : ' • Language: all';
+      const detailsLabel = payload?.includeDetails === true ? '' : ' • Details deferred';
+      const todayLabel = payload?.includeTodayRaw === true ? '' : ' • Today raw deferred';
+      const rawLabel = payload?.rawFallback === true ? '' : ' • Missing-day raw deferred';
+      const partialLabel = stoppedEarly ? ` • Partial load: ${totalProcessedDays}/${totalDaysToProcess || '?'} days` : '';
+      el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}${filterLabel}${detailsLabel}${todayLabel}${rawLabel}${compactLabel}${partialLabel}`;
       applyFilters();
     }
 
@@ -300,7 +430,7 @@
     }
 
     el('refreshBtn').addEventListener('click', refresh);
-    el('langFilter').addEventListener('change', applyFilters);
+    el('langFilter').addEventListener('change', refresh);
     el('changedOnly').addEventListener('change', applyFilters);
     refresh();
   </script>
