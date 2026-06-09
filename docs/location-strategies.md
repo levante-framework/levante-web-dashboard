@@ -1,6 +1,7 @@
 # Location Strategies: History & Current State
 
 This document summarizes the location strategies that have been tried and which ones are currently in use for the Locate Me feature.
+For the separate geo-strategy demo (privacy summaries), see `README_GEOSTRATEGY.md`.
 
 ## Overview
 
@@ -250,6 +251,26 @@ Return GeoJSON boundary
 - ⚠️ **Used for gallery generation** or as fallback
 - ⚠️ **Not primary path** for interactive page
 
+### Geo-Strategy Gallery (Privacy Summary Demo)
+
+```
+Seed point
+   ↓
+Faux shift (1 km)
+   ↓
+H3 base/effective cell selection (threshold-driven)
+   ↓
+Supporting metrics (tile summaries, ADM, weather, school, density)
+```
+
+**Status**: ✅ **In Use** (gallery/demo pipeline)
+
+**Implementation**:
+- **Generator**: `scripts/generate-geo-strategy-gallery.js`
+- **Output**: `public/gallery/geo-strategy/gallery-data.json`
+- **Primary de-identification geometry**: H3 (`h3_v1`, base/effective cells)
+- **Supporting metrics**: WorldPop 1km tile summaries (kept for diagnostics/comparability)
+
 ---
 
 ## Strategy Comparison
@@ -282,9 +303,11 @@ Return GeoJSON boundary
 
 ### Potential Improvements
 
-1. **Population Data**: Currently estimates by summing cities-in-polygon; could use gridded sources (WorldPop, GPW)
+1. **Population Data**:
+   - Locate Me interactive path still uses lightweight city-based estimation.
+   - Geo-strategy gallery already uses gridded population inputs + H3 cell selection.
    - **See**: `docs/worldpop-integration.md` for detailed analysis and integration guide
-   - **Recommendation**: Use WorldPop for gallery generation (server-side), keep GeoNames for interactive page (client-side)
+   - **Recommendation**: keep GeoNames for interactive page responsiveness; continue H3 + gridded population for geo-strategy demos.
 2. **Weather**: Currently uses coarse query points; could improve with hourly series
 3. **More Countries**: Add ADM packs for additional countries as needed
 4. **Boundary Updates**: GeoBoundaries updates periodically; consider automated pack rebuilds
@@ -299,6 +322,7 @@ Return GeoJSON boundary
 ## References
 
 - **Current Implementation**: `docs/locate-me/README.md`
+- **Geo Strategy Spec**: `README_GEOSTRATEGY.md`
 - **Legacy GADM**: `docs/locate-me-gadm.md`
 - **Reverse Geocode API**: `api/reverse-geocode.js`
 - **Boundary API**: `api/gadm-polygon.js`

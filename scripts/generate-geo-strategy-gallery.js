@@ -5,13 +5,12 @@
  *
  * Builds de-identified location outputs for the 46 demo sites:
  * - Faux location shift (1km)
- * - WorldPop 1km tiles (7x7) around faux location
- * - Smallest tile grid that meets population threshold
+ * - H3 base/effective cells + outlines (adaptive by privacy threshold)
+ * - WorldPop 1km tile summaries (7x7/5x5/3x3/1x1) for diagnostics
  * - ADM2 / ADM3 names + population estimate (filtered by threshold)
  * - Weather (original GPS)
  * - Population density (1km tile at original GPS)
  * - Nearest school (faux location, Overpass)
- * - H3 base/effective cells + outlines (adaptive by privacy threshold)
  */
 
 const fs = require('fs');
@@ -32,10 +31,16 @@ const POP_THRESHOLD = Number(process.env.GEO_POP_THRESHOLD || 50000);
 const SHIFT_KM = Number(process.env.GEO_SHIFT_KM || 1);
 const WEATHER_ROUNDING_DEG = Number(process.env.GEO_WEATHER_ROUNDING_DEG || 0);
 const SCHOOL_RADIUS_M = Number(process.env.GEO_SCHOOL_RADIUS_M || 5000);
+
+// H3 configuration
+// "Happy medium" for effeciency & privacy
 const H3_BASE_RES = Number(process.env.GEO_H3_BASE_RES || 5);
-const H3_EFFECTIVE_MAX_RES = Number(process.env.GEO_H3_EFFECTIVE_MAX_RES || 9);
+
+// Policy-imposed minimum hex size
+const H3_EFFECTIVE_MAX_RES = Number(process.env.GEO_H3_EFFECTIVE_MAX_RES || 7);
 const H3_POPULATION_SOURCE = String(process.env.GEO_H3_POPULATION_SOURCE || 'kontur').toLowerCase();
 
+// Tile summaries for diagnostics -- no longer used for production
 const TILE_SIZES = [1, 3, 5, 7];
 const TILE_HALF_KM = 0.5;
 
@@ -60,6 +65,8 @@ const SHIFT_DIRECTIONS = [
   { id: 'NW', dx: -1, dy: 1 }
 ];
 
+// Map ISO2 country codes to ISO3 codes for WorldPop API
+// New countries should be added here
 const ISO2_TO_ISO3 = {
   US: 'USA',
   CA: 'CAN',
@@ -534,6 +541,7 @@ class Location {
     const point = this.point;
     const options = this.options;
     const faux = shiftLocation(point, options.shiftKm);
+    // Tile summaries are retained for comparability/density context; H3 is the primary privacy geometry.
     const tileGrid = await buildTilePopulationGrid(faux, point.country);
     const totals = {};
     for (const size of TILE_SIZES) {
@@ -553,6 +561,7 @@ class Location {
     const populationDensityPerKm2 = typeof densityPop === 'number' ? densityPop : null;
 
     const school = await fetchNearestSchool(faux.lat, faux.lon);
+    // Resolve base/effective H3 cells for the de-identified area representation.
     const h3Cells = await this.resolveH3Cells(faux);
 
     return {
