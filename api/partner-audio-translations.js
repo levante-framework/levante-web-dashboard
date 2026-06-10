@@ -276,6 +276,32 @@ function inferTaskFromPrefix(prefix) {
   return '';
 }
 
+const PLACEHOLDER_TRANSLATIONS = new Set([
+  'no approved translation',
+]);
+
+function isPlaceholderText(value) {
+  const t = String(value ?? '').trim().toLowerCase();
+  return !t || PLACEHOLDER_TRANSLATIONS.has(t);
+}
+
+function isRealText(value) {
+  return !isPlaceholderText(value);
+}
+
+// Merge a translation into a row without ever letting a placeholder
+// ("NO APPROVED TRANSLATION") or empty string overwrite a real translation.
+// This makes the JSON scan order-independent when duplicate itembank folders
+// exist (e.g. translations/itembank/memory-game/... vs .../memory/...).
+function assignTranslation(row, key, value) {
+  const next = String(value ?? '');
+  if (!next) return;
+  const current = row[key];
+  if (isRealText(next) || !isRealText(current)) {
+    row[key] = next;
+  }
+}
+
 function getRecordText(record) {
   if (!record || typeof record !== 'object' || Array.isArray(record)) return '';
   const candidates = [
@@ -395,11 +421,7 @@ async function buildFromDraftTaskJson(storage, bucketName) {
       }
       const row = byId.get(itemId);
       if (!row.task) row.task = finalTask;
-      if (langCode === 'en-US') {
-        row['en-US'] = text;
-      } else {
-        row[langCode] = text;
-      }
+      assignTranslation(row, langCode === 'en-US' ? 'en-US' : langCode, text);
     });
   }
 
@@ -529,8 +551,8 @@ async function buildFromDraftItembankFolders(storage, bucketName) {
       }
       const row = byId.get(itemId);
       if (task && !row.task) row.task = task;
-      if (unit?.source && !row['en-US']) row['en-US'] = String(unit.source || '').trim();
-      if (langCode && unit?.target) row[langCode] = String(unit.target || '').trim();
+      if (unit?.source) assignTranslation(row, 'en-US', String(unit.source || '').trim());
+      if (langCode && unit?.target) assignTranslation(row, langCode, String(unit.target || '').trim());
     });
   }
 

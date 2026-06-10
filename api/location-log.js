@@ -37,6 +37,7 @@ module.exports = async function handler(req, res) {
         source: body.source || 'client',
         // Optional coarse fields (no raw GPS allowed):
         weather: body.weather || null,
+        airQuality: body.airQuality || null,
         network: body.network || null
       };
 

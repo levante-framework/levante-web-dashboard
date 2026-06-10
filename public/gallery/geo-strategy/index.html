@@ -482,6 +482,23 @@
               <div class="pill"><span class="label">Density</span> ${p.populationDensityPerKm2 !== null ? `${formatNumber(p.populationDensityPerKm2)} / km^2` : 'N/A'}</div>
             </div>
             <div class="row">
+              <div class="pill"><span class="label">Air Quality</span> ${
+                p.airQuality && Number.isFinite(Number(p.airQuality.aqi))
+                  ? `AQI ${p.airQuality.aqi} - ${p.airQuality.category}`
+                  : '<span class="empty">N/A</span>'
+              }</div>
+              <div class="pill"><span class="label">PM2.5</span> ${
+                p.airQuality && p.airQuality.pm25 !== null && p.airQuality.pm25 !== undefined
+                  ? `${p.airQuality.pm25} ug/m^3`
+                  : '<span class="empty">N/A</span>'
+              }</div>
+              <div class="pill"><span class="label">AQ Station</span> ${
+                p.airQuality && p.airQuality.stationName
+                  ? `${p.airQuality.stationName} (${p.airQuality.distanceKm} km)`
+                  : '<span class="empty">N/A</span>'
+              }</div>
+            </div>
+            <div class="row">
               <div class="pill"><span class="label">Nearest School</span> ${
                 school ? `${school.name} - ${school.distanceKm.toFixed(1)} km` : '<span class="empty">N/A</span>'
               }</div>

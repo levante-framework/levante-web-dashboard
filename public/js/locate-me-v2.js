@@ -37,6 +37,21 @@ const API_BASE = (typeof window !== 'undefined' && window.location && window.loc
   ? 'https://levante-web-dashboard.vercel.app'
   : '';
 const WHERE_MAP_POPULATION_MIN_DEFAULT = 50000;
+// Air quality (AQICN/WAQI) privacy-masking config.
+// Faux-location shift mirrors the geo-strategy gallery; the area request is a
+// 10km x 10km box so the precise GPS point is never the obvious center.
+const AQI_SHIFT_KM = 1;
+const AQI_BBOX_KM = 10;
+const AQI_SHIFT_DIRECTIONS = [
+  { id: 'N', dx: 0, dy: 1 },
+  { id: 'NE', dx: 1, dy: 1 },
+  { id: 'E', dx: 1, dy: 0 },
+  { id: 'SE', dx: 1, dy: -1 },
+  { id: 'S', dx: 0, dy: -1 },
+  { id: 'SW', dx: -1, dy: -1 },
+  { id: 'W', dx: -1, dy: 0 },
+  { id: 'NW', dx: -1, dy: 1 }
+];
 const US_LOWER_48_BOUNDS = [[24.396308, -124.848974], [49.384358, -66.885444]];
 const US_STATE_ABBR = {
   alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO',
@@ -123,6 +138,8 @@ createApp({
       inlineLegendControl: null,
       currentWeather: null,
       weatherStatus: null,
+      currentAirQuality: null,
+      airQualityStatus: null,
       networkIsp: null,
       networkStatus: null,
       latestObfuscatedLocation: null,
@@ -170,6 +187,9 @@ createApp({
     },
     latestWeather() {
       return this.logEntries.find((entry) => entry.weather) || null;
+    },
+    latestAirQuality() {
+      return this.logEntries.find((entry) => entry.airQuality) || null;
     },
     filteredCities() {
       if (this.autocompleteSuggestions && this.autocompleteSuggestions.length) {
@@ -848,6 +868,162 @@ createApp({
       });
       return weather;
     },
+    // ---- Air quality (AQICN / WAQI), privacy-masked ----
+    hashStringToInt(str) {
+      // Small deterministic FNV-1a hash; used only to pick a shift direction.
+      let h = 0x811c9dc5;
+      const s = String(str || '');
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      return h >>> 0;
+    },
+    shiftLocationForPrivacy(lat, lon) {
+      // Faux location: shift the raw GPS by a fixed distance in a direction that
+      // is deterministic per coarse-region + day (stable, but not obvious).
+      // Mirrors the geo-strategy gallery's faux-location approach.
+      const dayKey = new Date().toISOString().slice(0, 10);
+      const coarse = `${this.roundToStep(lat, 0.1).toFixed(1)},${this.roundToStep(lon, 0.1).toFixed(1)}`;
+      const dir = AQI_SHIFT_DIRECTIONS[this.hashStringToInt(`${coarse}|${dayKey}`) % AQI_SHIFT_DIRECTIONS.length];
+      const diag = AQI_SHIFT_KM / Math.sqrt(2);
+      const dxKm = dir.dx !== 0 && dir.dy !== 0 ? dir.dx * diag : dir.dx * AQI_SHIFT_KM;
+      const dyKm = dir.dx !== 0 && dir.dy !== 0 ? dir.dy * diag : dir.dy * AQI_SHIFT_KM;
+      const cos = Math.cos((lat * Math.PI) / 180);
+      const newLat = lat + dyKm / 111.0;
+      const newLon = lon + (cos ? dxKm / (111.0 * cos) : 0);
+      return { lat: newLat, lon: newLon, direction: dir.id, shiftKm: AQI_SHIFT_KM };
+    },
+    boundingBoxAround(lat, lon, sizeKm) {
+      // Returns a sizeKm x sizeKm box as bottom-left (1) and top-right (2) corners.
+      const halfKm = sizeKm / 2;
+      const dLat = halfKm / 111.0;
+      const cos = Math.cos((lat * Math.PI) / 180);
+      const dLon = cos ? halfKm / (111.0 * cos) : 0;
+      return {
+        lat1: lat - dLat,
+        lon1: lon - dLon,
+        lat2: lat + dLat,
+        lon2: lon + dLon
+      };
+    },
+    airQualityCategory(aqi) {
+      // US EPA AQI breakpoints (also used by AQICN for the overall index).
+      const n = Number(aqi);
+      if (!Number.isFinite(n)) return { label: 'Unknown', color: '#94a3b8' };
+      if (n <= 50) return { label: 'Good', color: '#16a34a' };
+      if (n <= 100) return { label: 'Moderate', color: '#ca8a04' };
+      if (n <= 150) return { label: 'Unhealthy for sensitive groups', color: '#ea580c' };
+      if (n <= 200) return { label: 'Unhealthy', color: '#dc2626' };
+      if (n <= 300) return { label: 'Very unhealthy', color: '#9333ea' };
+      return { label: 'Hazardous', color: '#7f1d1d' };
+    },
+    aqiCacheKey(fauxLat, fauxLon) {
+      const lat = this.roundToStep(fauxLat, 0.05).toFixed(2);
+      const lon = this.roundToStep(fauxLon, 0.05).toFixed(2);
+      return `aqi:v1:${lat}:${lon}`;
+    },
+    async fetchAirQuality() {
+      const gpsLat = Number(this.coordinates?.lat);
+      const gpsLon = Number(this.coordinates?.lon);
+      if (!Number.isFinite(gpsLat) || !Number.isFinite(gpsLon)) return null;
+
+      // 1) Faux location (shifted) so the requested area's center is not the GPS.
+      const faux = this.shiftLocationForPrivacy(gpsLat, gpsLon);
+
+      const cacheKey = this.aqiCacheKey(faux.lat, faux.lon);
+      const cached = this.readLocalJson(cacheKey);
+      if (cached?.expiresAt && Date.now() < cached.expiresAt && cached?.airQuality) {
+        return cached.airQuality;
+      }
+
+      // 2) Start with a 10km x 10km de-identified area around the faux center.
+      //    In sparse/suburban areas no reporting station may fall inside that box,
+      //    so progressively expand the requested area. A larger box is even more
+      //    de-identified; we still pick the station closest to the raw GPS below.
+      let stations = null;
+      let usedAreaKm = AQI_BBOX_KM;
+      for (const sizeKm of [AQI_BBOX_KM, 25, 50]) {
+        const box = this.boundingBoxAround(faux.lat, faux.lon, sizeKm);
+        const latlng = [box.lat1, box.lon1, box.lat2, box.lon2]
+          .map((v) => Number(v).toFixed(5))
+          .join(',');
+        const res = await fetch(apiUrl(`/api/air-quality?latlng=${encodeURIComponent(latlng)}`), { cache: 'no-store' });
+        const json = await res.json().catch(() => null);
+        if (json && json.ok && Array.isArray(json.stations) && json.stations.length) {
+          stations = json.stations;
+          usedAreaKm = sizeKm;
+          break;
+        }
+      }
+      if (!stations) return null;
+
+      // 3) On-device: pick the station closest to the RAW GPS. Raw GPS never
+      //    leaves the device; it is only used here to rank returned stations.
+      let nearest = null;
+      let nearestDist = Infinity;
+      for (const s of stations) {
+        const d = this.approxDistanceKm(gpsLat, gpsLon, s.lat, s.lon);
+        if (Number.isFinite(d) && d < nearestDist) {
+          nearestDist = d;
+          nearest = s;
+        }
+      }
+      if (!nearest) return null;
+
+      // 4) Enrich the chosen station via its public station id (no GPS involved).
+      let aqi = nearest.aqi;
+      let dominantPollutant = null;
+      let pollutants = {};
+      let observedAt = nearest.observedAt || null;
+      try {
+        if (nearest.uid != null) {
+          const detailRes = await fetch(
+            apiUrl(`/api/air-quality?uid=${encodeURIComponent(nearest.uid)}`),
+            { cache: 'no-store' }
+          );
+          const detail = await detailRes.json().catch(() => null);
+          if (detail?.ok && detail.station) {
+            dominantPollutant = detail.station.dominantPollutant || null;
+            pollutants = detail.station.pollutants || {};
+            observedAt = detail.station.observedAt || observedAt;
+            if (Number.isFinite(Number(detail.station.aqi))) {
+              aqi = Number(detail.station.aqi);
+            }
+          }
+        }
+      } catch (_) {
+        // Enrichment is best-effort; the bounds AQI value is sufficient.
+      }
+
+      const category = this.airQualityCategory(aqi);
+      // Stored measurement: the closest station's reading. We intentionally omit
+      // station coordinates (and raw GPS) to avoid re-identifying the location.
+      const airQuality = {
+        source: 'aqicn',
+        aqi: Number(aqi),
+        category: category.label,
+        color: category.color,
+        dominantPollutant,
+        pollutants,
+        stationName: nearest.name || null,
+        distanceKm: Math.round(nearestDist * 10) / 10,
+        observedAt,
+        privacy: {
+          shiftKm: faux.shiftKm,
+          shiftDirection: faux.direction,
+          requestedAreaKm: usedAreaKm,
+          stationsConsidered: stations.length
+        }
+      };
+
+      this.writeLocalJson(cacheKey, {
+        expiresAt: Date.now() + 30 * 60 * 1000,
+        fetchedAt: Date.now(),
+        airQuality
+      });
+      return airQuality;
+    },
     updateInlineLegend() {
       if (!this.inlineLegendControl) return;
       const best = this.results?.[0] || null;
@@ -859,6 +1035,10 @@ createApp({
       const wxLine = wx
         ? `Weather: ${Number.isFinite(wx.temperature) ? Math.round(wx.temperature) + '°C' : '—'} · ${wx.description || '—'}`
         : (this.weatherStatus ? `Weather: ${this.weatherStatus}` : 'Weather: —');
+      const aq = this.currentAirQuality;
+      const aqLine = aq && Number.isFinite(aq.aqi)
+        ? `Air quality: <span style="color:${aq.color || '#0f172a'};font-weight:600;">${aq.aqi} ${aq.category || ''}</span>`
+        : (this.airQualityStatus ? `Air quality: ${this.airQualityStatus}` : 'Air quality: —');
       const isp = this.networkIsp;
       const ispLabel = isp?.isStarlinkLikely ? 'Starlink (likely)' : (isp?.isp || isp?.org || null);
       const ispLine = ispLabel
@@ -874,6 +1054,7 @@ createApp({
         <div class="locate-legend-row"><span class="swatch swatch-blue"></span> Blue: ${regionalName}</div>
         <div class="locate-legend-divider"></div>
         <div class="locate-legend-row locate-legend-weather">${wxLine}</div>
+        <div class="locate-legend-row locate-legend-aqi">${aqLine}</div>
         <div class="locate-legend-row locate-legend-isp">${ispLine}</div>
         <div class="locate-legend-footnote">${country}${admin1 ? ' · ' + admin1 : ''} (coarse lookup)</div>
       `;
@@ -2013,6 +2194,25 @@ createApp({
               })
               .finally(() => this.updateInlineLegend());
 
+            // Air quality (privacy-masked): request a shifted 10km x 10km area,
+            // then pick the station closest to the raw GPS on-device. Raw GPS is
+            // never sent; only the de-identified bounding box leaves the device.
+            this.airQualityStatus = 'Loading…';
+            this.currentAirQuality = null;
+            const airQualityPromise = this.fetchAirQuality()
+              .then((aq) => {
+                this.currentAirQuality = aq || null;
+                this.airQualityStatus = aq ? null : 'Unavailable';
+                return aq || null;
+              })
+              .catch((e) => {
+                console.warn('air quality fetch failed', e);
+                this.airQualityStatus = 'Unavailable';
+                this.currentAirQuality = null;
+                return null;
+              })
+              .finally(() => this.updateInlineLegend());
+
             // ISP hint (off-device): request IP -> ISP via server lookup.
             this.networkStatus = 'Loading…';
             this.networkIsp = null;
@@ -2046,6 +2246,10 @@ createApp({
               weather: await Promise.race([
                 weatherPromise,
                 new Promise((resolve) => setTimeout(() => resolve(null), 1500))
+              ]),
+              airQuality: await Promise.race([
+                airQualityPromise,
+                new Promise((resolve) => setTimeout(() => resolve(null), 2500))
               ]),
               network: await Promise.race([
                 ispPromise,

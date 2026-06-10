@@ -161,6 +161,39 @@ Gallery images use the known seed lat/lon and call Open‑Meteo directly (with c
 
 ---
 
+## 5b) Air quality strategy (AQICN / WAQI, privacy-masked)
+
+### 5b.1 Interactive page
+
+`public/js/locate-me-v2.js` adds a privacy-masked air quality lookup:
+
+1. **Faux location** — the raw GPS is shifted by `AQI_SHIFT_KM` (1 km) in a direction
+   that is deterministic per coarse-region + day (`shiftLocationForPrivacy`). This
+   mirrors the geo-strategy gallery faux-location approach so the requested area's
+   center is not the device's true position.
+2. **Area request** — a `AQI_BBOX_KM` (10 km × 10 km) bounding box is built around the
+   faux center (`boundingBoxAround`) and sent to `/api/air-quality?latlng=...`. Only the
+   de-identified box leaves the device; the raw GPS never does.
+3. **On-device selection** — the proxy returns every reporting station inside the box; the
+   device picks the station **closest to the raw GPS** (`approxDistanceKm`). The raw GPS is
+   used only locally for this ranking.
+4. **Enrichment** — the chosen station is enriched via its **public station id**
+   (`/api/air-quality?uid=...`), which yields the dominant pollutant and per-pollutant
+   values without involving any coordinates.
+5. **Storage** — the stored measurement (`entry.airQuality`) includes AQI, EPA category,
+   dominant pollutant, station name, distance, and the privacy basis. Station coordinates
+   and raw GPS are intentionally omitted. Results are cached in `localStorage` (~30 min).
+
+### 5b.2 Server proxy and token
+
+- Endpoint: `api/air-quality.js` (proxies WAQI `v2/map/bounds` and `feed/@<uid>`).
+- The secret token is read from **`WAQI_TOKEN`** (or `AQICN_TOKEN`) and is never exposed to
+  the client. Get a free token at https://aqicn.org/data-platform/token/.
+- The proxy rejects bounding boxes larger than ~0.35° per side so it cannot be used as a
+  wide-area scraper, and it never logs or stores coordinates.
+
+---
+
 ## 6) Seed points & filtering
 
 Seed points live in `public/gallery/locate-me/seed-points.json`.

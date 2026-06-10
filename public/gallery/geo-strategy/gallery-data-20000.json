@@ -342,6 +342,17 @@
         "source": "overpass",
         "lat": 37.7546523,
         "lon": -122.4199709
+      },
+      "airQuality": {
+        "aqi": 55,
+        "category": "Moderate",
+        "pm25": 55,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "San Francisco-Arkansas Street, San Francisco, California",
+        "distanceKm": 2,
+        "observedAt": "2026-06-10T11:00:00-07:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -665,6 +676,17 @@
         "source": "overpass",
         "lat": 45.5266876,
         "lon": -122.6932345
+      },
+      "airQuality": {
+        "aqi": 11,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Portland Lincoln High School",
+        "distanceKm": 1.1,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -988,6 +1010,17 @@
         "source": "overpass",
         "lat": 25.7587107,
         "lon": -80.1983813
+      },
+      "airQuality": {
+        "aqi": 25,
+        "category": "Good",
+        "pm25": 25,
+        "pm10": 21,
+        "dominantPollutant": "pm25",
+        "stationName": "Miami Fire Station - Station #5, Miami-Dade, Florida, USA",
+        "distanceKm": 4.4,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -1315,6 +1348,17 @@
         "source": "overpass",
         "lat": 49.2832374,
         "lon": -123.107818
+      },
+      "airQuality": {
+        "aqi": 12,
+        "category": "Good",
+        "pm25": 5,
+        "pm10": null,
+        "dominantPollutant": "o3",
+        "stationName": "Vancouver Clark Drive, British Comlumbia, Canada",
+        "distanceKm": 4,
+        "observedAt": "2026-06-10T11:00:00-07:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -1642,6 +1686,17 @@
         "source": "overpass",
         "lat": 43.6477437,
         "lon": -79.370378
+      },
+      "airQuality": {
+        "aqi": 65,
+        "category": "Moderate",
+        "pm25": 65,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "Toronto",
+        "distanceKm": 0,
+        "observedAt": "2026-06-10T15:00:00-05:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -1965,6 +2020,17 @@
         "source": "overpass",
         "lat": 4.7150116,
         "lon": -74.0713535
+      },
+      "airQuality": {
+        "aqi": 34,
+        "category": "Good",
+        "pm25": 34,
+        "pm10": 16,
+        "dominantPollutant": "pm25",
+        "stationName": "Las Ferias, Bogota, Colombia",
+        "distanceKm": 2.5,
+        "observedAt": "2026-06-10T14:00:00-05:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -2288,6 +2354,17 @@
         "source": "overpass",
         "lat": 6.2446418,
         "lon": -75.5627034
+      },
+      "airQuality": {
+        "aqi": 65,
+        "category": "Moderate",
+        "pm25": 65,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "Villahermosa, Medellín, Colombia",
+        "distanceKm": 1.9,
+        "observedAt": "2026-06-10T13:00:00-05:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -2611,7 +2688,8 @@
         "source": "overpass",
         "lat": 10.3821324,
         "lon": -75.4738537
-      }
+      },
+      "airQuality": null
     },
     {
       "id": "DE-berlin",
@@ -2938,6 +3016,17 @@
         "source": "overpass",
         "lat": 52.5273506,
         "lon": 13.4062656
+      },
+      "airQuality": {
+        "aqi": 33,
+        "category": "Good",
+        "pm25": 21,
+        "pm10": 8,
+        "dominantPollutant": "o3",
+        "stationName": "Berlin, Germany",
+        "distanceKm": 0,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -3265,6 +3354,17 @@
         "source": "overpass",
         "lat": 48.1368214,
         "lon": 11.5827303
+      },
+      "airQuality": {
+        "aqi": 25,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Munich",
+        "distanceKm": 0.5,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -3592,6 +3692,17 @@
         "source": "overpass",
         "lat": 50.9380732,
         "lon": 6.9457833
+      },
+      "airQuality": {
+        "aqi": 23,
+        "category": "Good",
+        "pm25": 13,
+        "pm10": 7,
+        "dominantPollutant": "o3",
+        "stationName": "Köln-Rodenkirchen, Germany",
+        "distanceKm": 5.6,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 25
       }
     },
     {
@@ -3919,6 +4030,17 @@
         "source": "overpass",
         "lat": 49.7597531,
         "lon": 6.6347932
+      },
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": 9,
+        "pm10": 4,
+        "dominantPollutant": "o3",
+        "stationName": "Trier-Ostallee, Germany",
+        "distanceKm": 0.6,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -4242,6 +4364,17 @@
         "source": "overpass",
         "lat": 40.7144444,
         "lon": -73.9975
+      },
+      "airQuality": {
+        "aqi": 41,
+        "category": "Good",
+        "pm25": 41,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "New York",
+        "distanceKm": 0,
+        "observedAt": "2026-06-10T13:00:00-04:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -4565,6 +4698,17 @@
         "source": "overpass",
         "lat": 41.8813543,
         "lon": -87.6247439
+      },
+      "airQuality": {
+        "aqi": 46,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Loop 1",
+        "distanceKm": 0.7,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -4888,6 +5032,17 @@
         "source": "overpass",
         "lat": 60.4915955,
         "lon": -151.0693605
+      },
+      "airQuality": {
+        "aqi": 35,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Soldotna Sensor, Alaska",
+        "distanceKm": 1.2,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -5211,6 +5366,17 @@
         "source": "overpass",
         "lat": 45.7764813,
         "lon": -108.5083674
+      },
+      "airQuality": {
+        "aqi": 28,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Laurel",
+        "distanceKm": 22.3,
+        "observedAt": null,
+        "requestedAreaKm": 50
       }
     },
     {
@@ -5524,7 +5690,8 @@
       },
       "altitudeM": 884,
       "populationDensityPerKm2": 13,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "US-austin",
@@ -5847,6 +6014,17 @@
         "source": "overpass",
         "lat": 30.2648309,
         "lon": -97.7451469
+      },
+      "airQuality": {
+        "aqi": 22,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": "o3",
+        "stationName": "Zavala Elementary, Austin, Texas",
+        "distanceKm": 2.4,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -6170,6 +6348,17 @@
         "source": "overpass",
         "lat": 42.1241778,
         "lon": -87.7515459
+      },
+      "airQuality": {
+        "aqi": 55,
+        "category": "Moderate",
+        "pm25": 55,
+        "pm10": 40,
+        "dominantPollutant": "pm25",
+        "stationName": "Northbrk, Illinois, USA",
+        "distanceKm": 3.5,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -6493,7 +6682,8 @@
         "source": "overpass",
         "lat": 45.4362605,
         "lon": -84.9895458
-      }
+      },
+      "airQuality": null
     },
     {
       "id": "US-minneapolis-pillsbury-3944",
@@ -6816,6 +7006,17 @@
         "source": "overpass",
         "lat": 44.9204883,
         "lon": -93.2887296
+      },
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": null,
+        "pm10": 24,
+        "dominantPollutant": "pm10",
+        "stationName": "Marshall Terrace, Minneapolis - Bottineau, Minnesota, USA",
+        "distanceKm": 9.2,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 25
       }
     },
     {
@@ -7139,6 +7340,17 @@
         "source": "overpass",
         "lat": 37.4358108,
         "lon": -122.1557688
+      },
+      "airQuality": {
+        "aqi": 21,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Berkeley-Palo Alto",
+        "distanceKm": 3.6,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -7462,6 +7674,17 @@
         "source": "overpass",
         "lat": 37.4458109,
         "lon": -122.150583
+      },
+      "airQuality": {
+        "aqi": 21,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Berkeley-Palo Alto",
+        "distanceKm": 1.4,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -7785,6 +8008,17 @@
         "source": "overpass",
         "lat": 37.38068,
         "lon": -122.2181576
+      },
+      "airQuality": {
+        "aqi": 18,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Emerald Hills",
+        "distanceKm": 8.4,
+        "observedAt": null,
+        "requestedAreaKm": 25
       }
     },
     {
@@ -8112,6 +8346,17 @@
         "source": "overpass",
         "lat": 45.4942367,
         "lon": -73.5789854
+      },
+      "airQuality": {
+        "aqi": 54,
+        "category": "Moderate",
+        "pm25": 27,
+        "pm10": null,
+        "dominantPollutant": "o3",
+        "stationName": "St-Dominique, Montreal, Canada",
+        "distanceKm": 1.2,
+        "observedAt": "2026-06-10T14:00:00-04:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -8439,6 +8684,17 @@
         "source": "overpass",
         "lat": 51.0542846,
         "lon": -114.0491698
+      },
+      "airQuality": {
+        "aqi": 15,
+        "category": "Good",
+        "pm25": 15,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "Calgary Central 2, Alberta, Canada",
+        "distanceKm": 0.3,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -8762,7 +9018,8 @@
         "source": "overpass",
         "lat": 3.4368674,
         "lon": -76.5258785
-      }
+      },
+      "airQuality": null
     },
     {
       "id": "DE-hamburg",
@@ -9089,6 +9346,17 @@
         "source": "overpass",
         "lat": 53.5454733,
         "lon": 9.9819517
+      },
+      "airQuality": {
+        "aqi": 29,
+        "category": "Good",
+        "pm25": 13,
+        "pm10": 8,
+        "dominantPollutant": "o3",
+        "stationName": "Sternschanze, Hamburg, Germany",
+        "distanceKm": 2.2,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -9416,6 +9684,17 @@
         "source": "overpass",
         "lat": 55.9605629,
         "lon": -3.1901004
+      },
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": 14,
+        "pm10": 5,
+        "dominantPollutant": "o3",
+        "stationName": "Edinburgh St Leonards, United Kingdom",
+        "distanceKm": 0.9,
+        "observedAt": "2026-06-10T19:00:00+01:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -9743,6 +10022,17 @@
         "source": "overpass",
         "lat": 55.866734,
         "lon": -4.2634853
+      },
+      "airQuality": {
+        "aqi": 26,
+        "category": "Good",
+        "pm25": 12,
+        "pm10": 6,
+        "dominantPollutant": "o3",
+        "stationName": "Glasgow Townhead, United Kingdom",
+        "distanceKm": 0.5,
+        "observedAt": "2026-06-10T19:00:00+01:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -10070,6 +10360,17 @@
         "source": "overpass",
         "lat": 57.1597596,
         "lon": -2.1044327
+      },
+      "airQuality": {
+        "aqi": 4,
+        "category": "Good",
+        "pm25": 4,
+        "pm10": 2,
+        "dominantPollutant": "pm25",
+        "stationName": "Aberdeen Market Street 2, United Kingdom",
+        "distanceKm": 0.9,
+        "observedAt": "2026-06-10T19:00:00+01:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -10397,6 +10698,17 @@
         "source": "overpass",
         "lat": 28.6256025,
         "lon": 77.2103895
+      },
+      "airQuality": {
+        "aqi": 166,
+        "category": "Unhealthy",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Talkatora Garden, Delhi",
+        "distanceKm": 1.7,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -10724,6 +11036,17 @@
         "source": "overpass",
         "lat": 19.067664,
         "lon": 72.870696
+      },
+      "airQuality": {
+        "aqi": 103,
+        "category": "Unhealthy for sensitive groups",
+        "pm25": 103,
+        "pm10": 58,
+        "dominantPollutant": "pm25",
+        "stationName": "Kurla, Mumbai, India",
+        "distanceKm": 1.6,
+        "observedAt": "2026-06-11T01:00:00+05:30",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -11051,6 +11374,17 @@
         "source": "overpass",
         "lat": 12.9694218,
         "lon": 77.6033897
+      },
+      "airQuality": {
+        "aqi": 50,
+        "category": "Good",
+        "pm25": 50,
+        "pm10": 26,
+        "dominantPollutant": "pm25",
+        "stationName": "Hombegowda Nagar, Bengaluru, India",
+        "distanceKm": 3.7,
+        "observedAt": "2026-06-11T01:00:00+05:30",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -11374,6 +11708,17 @@
         "source": "overpass",
         "lat": -34.6003911,
         "lon": -58.3912858
+      },
+      "airQuality": {
+        "aqi": 9,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "38 - General Manuel Nicolás Aristóbulo Savio",
+        "distanceKm": 13.5,
+        "observedAt": null,
+        "requestedAreaKm": 25
       }
     },
     {
@@ -11697,7 +12042,8 @@
         "source": "overpass",
         "lat": -31.4127714,
         "lon": -64.1798007
-      }
+      },
+      "airQuality": null
     },
     {
       "id": "AR-rosario",
@@ -12020,7 +12366,8 @@
         "source": "overpass",
         "lat": -32.9626942,
         "lon": -60.6767178
-      }
+      },
+      "airQuality": null
     },
     {
       "id": "NL-amsterdam",
@@ -12343,6 +12690,17 @@
         "source": "overpass",
         "lat": 52.3836013,
         "lon": 4.8853483
+      },
+      "airQuality": {
+        "aqi": 30,
+        "category": "Good",
+        "pm25": 10,
+        "pm10": 8,
+        "dominantPollutant": "o3",
+        "stationName": "Amsterdam",
+        "distanceKm": 0.7,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -12666,6 +13024,17 @@
         "source": "overpass",
         "lat": 51.9183588,
         "lon": 4.4746394
+      },
+      "airQuality": {
+        "aqi": 27,
+        "category": "Good",
+        "pm25": 14,
+        "pm10": 17,
+        "dominantPollutant": "o3",
+        "stationName": "Rotterdam",
+        "distanceKm": 0.7,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -12989,6 +13358,17 @@
         "source": "overpass",
         "lat": 52.0942594,
         "lon": 5.1032387
+      },
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": 5,
+        "pm10": 21,
+        "dominantPollutant": "o3",
+        "stationName": "Griftpark, Utrecht",
+        "distanceKm": 1.3,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -13312,6 +13692,17 @@
         "source": "overpass",
         "lat": 5.5969429,
         "lon": -0.1820777
+      },
+      "airQuality": {
+        "aqi": 59,
+        "category": "Moderate",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Kawukudi Community Youth Center",
+        "distanceKm": 1.2,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -13635,6 +14026,17 @@
         "source": "overpass",
         "lat": 6.6868277,
         "lon": -1.5843499
+      },
+      "airQuality": {
+        "aqi": 87,
+        "category": "Moderate",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Kumasi Adum",
+        "distanceKm": 5.5,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -13958,6 +14360,17 @@
         "source": "overpass",
         "lat": 4.8867441,
         "lon": -1.7560822
+      },
+      "airQuality": {
+        "aqi": 70,
+        "category": "Moderate",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Takoradi Market Circle",
+        "distanceKm": 1.9,
+        "observedAt": null,
+        "requestedAreaKm": 10
       }
     },
     {
@@ -14285,6 +14698,17 @@
         "source": "overpass",
         "lat": 47.3729757,
         "lon": 8.5543678
+      },
+      "airQuality": {
+        "aqi": 25,
+        "category": "Good",
+        "pm25": 8,
+        "pm10": 3,
+        "dominantPollutant": "o3",
+        "stationName": "Zurich Kaserne, Switzerland",
+        "distanceKm": 0.8,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -14612,6 +15036,17 @@
         "source": "overpass",
         "lat": 46.1993385,
         "lon": 6.1533287
+      },
+      "airQuality": {
+        "aqi": 27,
+        "category": "Good",
+        "pm25": 5,
+        "pm10": 3,
+        "dominantPollutant": "o3",
+        "stationName": "Gaillard, France",
+        "distanceKm": 5.6,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
       }
     },
     {
@@ -14939,7 +15374,19 @@
         "source": "overpass",
         "lat": 47.5636426,
         "lon": 7.6062991
+      },
+      "airQuality": {
+        "aqi": 26,
+        "category": "Good",
+        "pm25": 10,
+        "pm10": 4,
+        "dominantPollutant": "o3",
+        "stationName": "Basel Binningen, Switzerland",
+        "distanceKm": 2.1,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 10
       }
     }
-  ]
+  ],
+  "airQualityGeneratedAt": "2026-06-10T19:47:10.553Z"
 }
