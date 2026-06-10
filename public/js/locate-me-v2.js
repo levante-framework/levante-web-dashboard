@@ -937,23 +937,32 @@ createApp({
         return cached.airQuality;
       }
 
-      // 2) 10km x 10km de-identified area around the faux center.
-      const box = this.boundingBoxAround(faux.lat, faux.lon, AQI_BBOX_KM);
-      const latlng = [box.lat1, box.lon1, box.lat2, box.lon2]
-        .map((v) => Number(v).toFixed(5))
-        .join(',');
-
-      const res = await fetch(apiUrl(`/api/air-quality?latlng=${encodeURIComponent(latlng)}`), { cache: 'no-store' });
-      const json = await res.json().catch(() => null);
-      if (!json || !json.ok || !Array.isArray(json.stations) || !json.stations.length) {
-        return null;
+      // 2) Start with a 10km x 10km de-identified area around the faux center.
+      //    In sparse/suburban areas no reporting station may fall inside that box,
+      //    so progressively expand the requested area. A larger box is even more
+      //    de-identified; we still pick the station closest to the raw GPS below.
+      let stations = null;
+      let usedAreaKm = AQI_BBOX_KM;
+      for (const sizeKm of [AQI_BBOX_KM, 25, 50]) {
+        const box = this.boundingBoxAround(faux.lat, faux.lon, sizeKm);
+        const latlng = [box.lat1, box.lon1, box.lat2, box.lon2]
+          .map((v) => Number(v).toFixed(5))
+          .join(',');
+        const res = await fetch(apiUrl(`/api/air-quality?latlng=${encodeURIComponent(latlng)}`), { cache: 'no-store' });
+        const json = await res.json().catch(() => null);
+        if (json && json.ok && Array.isArray(json.stations) && json.stations.length) {
+          stations = json.stations;
+          usedAreaKm = sizeKm;
+          break;
+        }
       }
+      if (!stations) return null;
 
       // 3) On-device: pick the station closest to the RAW GPS. Raw GPS never
       //    leaves the device; it is only used here to rank returned stations.
       let nearest = null;
       let nearestDist = Infinity;
-      for (const s of json.stations) {
+      for (const s of stations) {
         const d = this.approxDistanceKm(gpsLat, gpsLon, s.lat, s.lon);
         if (Number.isFinite(d) && d < nearestDist) {
           nearestDist = d;
@@ -1003,8 +1012,8 @@ createApp({
         privacy: {
           shiftKm: faux.shiftKm,
           shiftDirection: faux.direction,
-          requestedAreaKm: AQI_BBOX_KM,
-          stationsConsidered: json.stations.length
+          requestedAreaKm: usedAreaKm,
+          stationsConsidered: stations.length
         }
       };
 

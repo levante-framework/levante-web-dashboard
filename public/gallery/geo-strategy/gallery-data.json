@@ -324,7 +324,18 @@
       },
       "altitudeM": 18,
       "populationDensityPerKm2": 31351,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 55,
+        "category": "Moderate",
+        "pm25": 55,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "San Francisco-Arkansas Street, San Francisco, California",
+        "distanceKm": 2,
+        "observedAt": "2026-06-10T11:00:00-07:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-portland",
@@ -629,7 +640,18 @@
       },
       "altitudeM": 13,
       "populationDensityPerKm2": 5101,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 11,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Portland Lincoln High School",
+        "distanceKm": 1.1,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-miami",
@@ -934,7 +956,18 @@
       },
       "altitudeM": 5,
       "populationDensityPerKm2": 7346,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 25,
+        "category": "Good",
+        "pm25": 25,
+        "pm10": 21,
+        "dominantPollutant": "pm25",
+        "stationName": "Miami Fire Station - Station #5, Miami-Dade, Florida, USA",
+        "distanceKm": 4.4,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CA-vancouver",
@@ -1243,7 +1276,18 @@
       },
       "altitudeM": 40,
       "populationDensityPerKm2": 22896,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 12,
+        "category": "Good",
+        "pm25": 5,
+        "pm10": null,
+        "dominantPollutant": "o3",
+        "stationName": "Vancouver Clark Drive, British Comlumbia, Canada",
+        "distanceKm": 4,
+        "observedAt": "2026-06-10T11:00:00-07:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CA-toronto",
@@ -1552,7 +1596,18 @@
       },
       "altitudeM": 99,
       "populationDensityPerKm2": 11246,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 65,
+        "category": "Moderate",
+        "pm25": 65,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "Toronto",
+        "distanceKm": 0,
+        "observedAt": "2026-06-10T15:00:00-05:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CO-bogota",
@@ -1857,7 +1912,18 @@
       },
       "altitudeM": 2557,
       "populationDensityPerKm2": 17307,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 34,
+        "category": "Good",
+        "pm25": 34,
+        "pm10": 16,
+        "dominantPollutant": "pm25",
+        "stationName": "Las Ferias, Bogota, Colombia",
+        "distanceKm": 2.5,
+        "observedAt": "2026-06-10T14:00:00-05:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CO-medellin",
@@ -2162,7 +2228,18 @@
       },
       "altitudeM": 1493,
       "populationDensityPerKm2": 12825,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 65,
+        "category": "Moderate",
+        "pm25": 65,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "Villahermosa, Medellín, Colombia",
+        "distanceKm": 1.9,
+        "observedAt": "2026-06-10T13:00:00-05:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CO-cartagena",
@@ -2467,7 +2544,8 @@
       },
       "altitudeM": 13,
       "populationDensityPerKm2": 15668,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "DE-berlin",
@@ -2776,7 +2854,18 @@
       },
       "altitudeM": 37,
       "populationDensityPerKm2": 6046,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 33,
+        "category": "Good",
+        "pm25": 21,
+        "pm10": 8,
+        "dominantPollutant": "o3",
+        "stationName": "Berlin, Germany",
+        "distanceKm": 0,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "DE-munich",
@@ -3085,7 +3174,18 @@
       },
       "altitudeM": 524,
       "populationDensityPerKm2": 8577,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 25,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Munich",
+        "distanceKm": 0.5,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "DE-cologne",
@@ -3394,7 +3494,18 @@
       },
       "altitudeM": 55,
       "populationDensityPerKm2": 2135,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 23,
+        "category": "Good",
+        "pm25": 13,
+        "pm10": 7,
+        "dominantPollutant": "o3",
+        "stationName": "Köln-Rodenkirchen, Germany",
+        "distanceKm": 5.6,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 25
+      }
     },
     {
       "id": "DE-trier",
@@ -3703,7 +3814,18 @@
       },
       "altitudeM": 144,
       "populationDensityPerKm2": 3435,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": 9,
+        "pm10": 4,
+        "dominantPollutant": "o3",
+        "stationName": "Trier-Ostallee, Germany",
+        "distanceKm": 0.6,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-nyc",
@@ -4008,7 +4130,18 @@
       },
       "altitudeM": 32,
       "populationDensityPerKm2": 15329,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 41,
+        "category": "Good",
+        "pm25": 41,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "New York",
+        "distanceKm": 0,
+        "observedAt": "2026-06-10T13:00:00-04:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-chicago",
@@ -4313,7 +4446,18 @@
       },
       "altitudeM": 241,
       "populationDensityPerKm2": 3831,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 46,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Loop 1",
+        "distanceKm": 0.7,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-soldotna",
@@ -4618,7 +4762,18 @@
       },
       "altitudeM": 37,
       "populationDensityPerKm2": 226,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 35,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Soldotna Sensor, Alaska",
+        "distanceKm": 1.2,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-billings",
@@ -4923,7 +5078,18 @@
       },
       "altitudeM": 954,
       "populationDensityPerKm2": 1639,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 28,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Laurel",
+        "distanceKm": 22.3,
+        "observedAt": null,
+        "requestedAreaKm": 50
+      }
     },
     {
       "id": "US-terlingua",
@@ -5224,7 +5390,8 @@
       },
       "altitudeM": 884,
       "populationDensityPerKm2": 13,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "US-austin",
@@ -5529,7 +5696,18 @@
       },
       "altitudeM": 157,
       "populationDensityPerKm2": 3178,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 22,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": "o3",
+        "stationName": "Zavala Elementary, Austin, Texas",
+        "distanceKm": 2.4,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-glencoe-il",
@@ -5834,7 +6012,18 @@
       },
       "altitudeM": 207,
       "populationDensityPerKm2": 1499,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 55,
+        "category": "Moderate",
+        "pm25": 55,
+        "pm10": 40,
+        "dominantPollutant": "pm25",
+        "stationName": "Northbrk, Illinois, USA",
+        "distanceKm": 3.5,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-harbor-springs-lakeshore-2999",
@@ -6139,7 +6328,8 @@
       },
       "altitudeM": 213,
       "populationDensityPerKm2": 242,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "US-minneapolis-pillsbury-3944",
@@ -6444,7 +6634,18 @@
       },
       "altitudeM": 267,
       "populationDensityPerKm2": 2074,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": null,
+        "pm10": 24,
+        "dominantPollutant": "pm10",
+        "stationName": "Marshall Terrace, Minneapolis - Bottineau, Minnesota, USA",
+        "distanceKm": 9.2,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 25
+      }
     },
     {
       "id": "US-stanford",
@@ -6749,7 +6950,18 @@
       },
       "altitudeM": 32,
       "populationDensityPerKm2": 356,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 21,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Berkeley-Palo Alto",
+        "distanceKm": 3.6,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-palo-alto",
@@ -7054,7 +7266,18 @@
       },
       "altitudeM": 11,
       "populationDensityPerKm2": 3566,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 21,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Berkeley-Palo Alto",
+        "distanceKm": 1.4,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "US-portola-valley",
@@ -7350,7 +7573,18 @@
       "weather": null,
       "altitudeM": null,
       "populationDensityPerKm2": 348,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 18,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Emerald Hills",
+        "distanceKm": 8.4,
+        "observedAt": null,
+        "requestedAreaKm": 25
+      }
     },
     {
       "id": "CA-montreal",
@@ -7659,7 +7893,18 @@
       },
       "altitudeM": 76,
       "populationDensityPerKm2": 5306,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 54,
+        "category": "Moderate",
+        "pm25": 27,
+        "pm10": null,
+        "dominantPollutant": "o3",
+        "stationName": "St-Dominique, Montreal, Canada",
+        "distanceKm": 1.2,
+        "observedAt": "2026-06-10T14:00:00-04:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CA-calgary",
@@ -7968,7 +8213,18 @@
       },
       "altitudeM": 1051,
       "populationDensityPerKm2": 1053,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 15,
+        "category": "Good",
+        "pm25": 15,
+        "pm10": null,
+        "dominantPollutant": "pm25",
+        "stationName": "Calgary Central 2, Alberta, Canada",
+        "distanceKm": 0.3,
+        "observedAt": "2026-06-10T13:00:00-06:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CO-cali",
@@ -8273,7 +8529,8 @@
       },
       "altitudeM": 1009,
       "populationDensityPerKm2": 12877,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "DE-hamburg",
@@ -8582,7 +8839,18 @@
       },
       "altitudeM": 3,
       "populationDensityPerKm2": 3914,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 29,
+        "category": "Good",
+        "pm25": 13,
+        "pm10": 8,
+        "dominantPollutant": "o3",
+        "stationName": "Sternschanze, Hamburg, Germany",
+        "distanceKm": 2.2,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "GB-edinburgh",
@@ -8891,7 +9159,18 @@
       },
       "altitudeM": 69,
       "populationDensityPerKm2": 3406,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": 14,
+        "pm10": 5,
+        "dominantPollutant": "o3",
+        "stationName": "Edinburgh St Leonards, United Kingdom",
+        "distanceKm": 0.9,
+        "observedAt": "2026-06-10T19:00:00+01:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "GB-glasgow",
@@ -9200,7 +9479,18 @@
       },
       "altitudeM": 34,
       "populationDensityPerKm2": 4360,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 26,
+        "category": "Good",
+        "pm25": 12,
+        "pm10": 6,
+        "dominantPollutant": "o3",
+        "stationName": "Glasgow Townhead, United Kingdom",
+        "distanceKm": 0.5,
+        "observedAt": "2026-06-10T19:00:00+01:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "GB-aberdeen",
@@ -9509,7 +9799,18 @@
       },
       "altitudeM": 20,
       "populationDensityPerKm2": 10740,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 4,
+        "category": "Good",
+        "pm25": 4,
+        "pm10": 2,
+        "dominantPollutant": "pm25",
+        "stationName": "Aberdeen Market Street 2, United Kingdom",
+        "distanceKm": 0.9,
+        "observedAt": "2026-06-10T19:00:00+01:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "IN-delhi",
@@ -9818,7 +10119,18 @@
       },
       "altitudeM": 214,
       "populationDensityPerKm2": 1956,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 166,
+        "category": "Unhealthy",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Talkatora Garden, Delhi",
+        "distanceKm": 1.7,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "IN-mumbai",
@@ -10127,7 +10439,18 @@
       },
       "altitudeM": 6,
       "populationDensityPerKm2": 41281,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 103,
+        "category": "Unhealthy for sensitive groups",
+        "pm25": 103,
+        "pm10": 58,
+        "dominantPollutant": "pm25",
+        "stationName": "Kurla, Mumbai, India",
+        "distanceKm": 1.6,
+        "observedAt": "2026-06-11T01:00:00+05:30",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "IN-bengaluru",
@@ -10436,7 +10759,18 @@
       },
       "altitudeM": 910,
       "populationDensityPerKm2": 31889,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 50,
+        "category": "Good",
+        "pm25": 50,
+        "pm10": 26,
+        "dominantPollutant": "pm25",
+        "stationName": "Hombegowda Nagar, Bengaluru, India",
+        "distanceKm": 3.7,
+        "observedAt": "2026-06-11T01:00:00+05:30",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "AR-buenos-aires",
@@ -10741,7 +11075,18 @@
       },
       "altitudeM": 18,
       "populationDensityPerKm2": 12476,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 9,
+        "category": "Good",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "38 - General Manuel Nicolás Aristóbulo Savio",
+        "distanceKm": 13.5,
+        "observedAt": null,
+        "requestedAreaKm": 25
+      }
     },
     {
       "id": "AR-cordoba",
@@ -11046,7 +11391,8 @@
       },
       "altitudeM": 403,
       "populationDensityPerKm2": 5335,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "AR-rosario",
@@ -11351,7 +11697,8 @@
       },
       "altitudeM": 27,
       "populationDensityPerKm2": 16399,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": null
     },
     {
       "id": "NL-amsterdam",
@@ -11656,7 +12003,18 @@
       },
       "altitudeM": 5,
       "populationDensityPerKm2": 6709,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 30,
+        "category": "Good",
+        "pm25": 10,
+        "pm10": 8,
+        "dominantPollutant": "o3",
+        "stationName": "Amsterdam",
+        "distanceKm": 0.7,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "NL-rotterdam",
@@ -11961,7 +12319,18 @@
       },
       "altitudeM": 2,
       "populationDensityPerKm2": 5143,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 27,
+        "category": "Good",
+        "pm25": 14,
+        "pm10": 17,
+        "dominantPollutant": "o3",
+        "stationName": "Rotterdam",
+        "distanceKm": 0.7,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "NL-utrecht",
@@ -12266,7 +12635,18 @@
       },
       "altitudeM": 10,
       "populationDensityPerKm2": 7661,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 24,
+        "category": "Good",
+        "pm25": 5,
+        "pm10": 21,
+        "dominantPollutant": "o3",
+        "stationName": "Griftpark, Utrecht",
+        "distanceKm": 1.3,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "GH-accra",
@@ -12571,7 +12951,18 @@
       },
       "altitudeM": 56,
       "populationDensityPerKm2": 12628,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 59,
+        "category": "Moderate",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Kawukudi Community Youth Center",
+        "distanceKm": 1.2,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "GH-kumasi",
@@ -12876,7 +13267,18 @@
       },
       "altitudeM": 273,
       "populationDensityPerKm2": 10886,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 87,
+        "category": "Moderate",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Kumasi Adum",
+        "distanceKm": 5.5,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "GH-takoradi",
@@ -13181,7 +13583,18 @@
       },
       "altitudeM": 12,
       "populationDensityPerKm2": 11402,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 70,
+        "category": "Moderate",
+        "pm25": null,
+        "pm10": null,
+        "dominantPollutant": null,
+        "stationName": "Takoradi Market Circle",
+        "distanceKm": 1.9,
+        "observedAt": null,
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CH-zurich",
@@ -13490,7 +13903,18 @@
       },
       "altitudeM": 409,
       "populationDensityPerKm2": 10209,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 25,
+        "category": "Good",
+        "pm25": 8,
+        "pm10": 3,
+        "dominantPollutant": "o3",
+        "stationName": "Zurich Kaserne, Switzerland",
+        "distanceKm": 0.8,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CH-geneva",
@@ -13799,7 +14223,18 @@
       },
       "altitudeM": 368,
       "populationDensityPerKm2": 9152,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 27,
+        "category": "Good",
+        "pm25": 5,
+        "pm10": 3,
+        "dominantPollutant": "o3",
+        "stationName": "Gaillard, France",
+        "distanceKm": 5.6,
+        "observedAt": "2026-06-10T21:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     },
     {
       "id": "CH-basel",
@@ -14108,7 +14543,19 @@
       },
       "altitudeM": 247,
       "populationDensityPerKm2": 7580,
-      "nearestSchool": null
+      "nearestSchool": null,
+      "airQuality": {
+        "aqi": 26,
+        "category": "Good",
+        "pm25": 10,
+        "pm10": 4,
+        "dominantPollutant": "o3",
+        "stationName": "Basel Binningen, Switzerland",
+        "distanceKm": 2.1,
+        "observedAt": "2026-06-10T20:00:00+02:00",
+        "requestedAreaKm": 10
+      }
     }
-  ]
+  ],
+  "airQualityGeneratedAt": "2026-06-10T19:47:06.049Z"
 }

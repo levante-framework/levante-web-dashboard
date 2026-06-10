@@ -57,8 +57,9 @@ function fetchJson(url) {
 }
 
 // Validates the privacy-masked bounding box: four finite numbers and an area
-// no larger than ~30km on a side, so callers cannot turn this into a wide-area
-// scraper and the request stays a small, de-identified neighborhood box.
+// no larger than a metro-scale box, so callers cannot turn this into a
+// country-scale scraper while still allowing the client to expand the search
+// area (up to ~50km) when no station falls inside the initial neighborhood box.
 function parseBoundingBox(latlng) {
   const parts = String(latlng || '')
     .split(',')
@@ -70,7 +71,7 @@ function parseBoundingBox(latlng) {
   if (Math.abs(lat1) > 90 || Math.abs(lat2) > 90 || Math.abs(lon1) > 180 || Math.abs(lon2) > 180) {
     return null;
   }
-  const MAX_SPAN_DEG = 0.35; // ~30-40km depending on latitude
+  const MAX_SPAN_DEG = 0.9; // metro-scale cap; allows ~50km client fallback boxes
   if (Math.abs(lat2 - lat1) > MAX_SPAN_DEG || Math.abs(lon2 - lon1) > MAX_SPAN_DEG) {
     return null;
   }

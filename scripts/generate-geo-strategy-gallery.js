@@ -48,6 +48,9 @@ const TILE_HALF_KM = 0.5;
 
 const WORLDPOP_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-worldpop-cache.json');
 const WEATHER_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-weather-cache.json');
+const AIR_QUALITY_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-air-quality-cache.json');
+// AQICN / WAQI token for the privacy-masked air quality lookup (server-only).
+const WAQI_TOKEN = process.env.WAQI_TOKEN || process.env.AQICN_TOKEN || '';
 const OVERPASS_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'geo-strategy-overpass-cache.json');
 const KONTUR_H3_CACHE_PATH = path.join(process.cwd(), 'data', 'gallery', 'kontur-h3-population-cache.json');
 
@@ -94,6 +97,10 @@ function parseArgs() {
       out.popThreshold = Number(arg.split('=')[1]);
     } else if (arg.startsWith('--shift-km=')) {
       out.shiftKm = Number(arg.split('=')[1]);
+    } else if (arg === '--augment-air-quality') {
+      out.augmentAirQuality = true;
+    } else if (arg.startsWith('--files=')) {
+      out.files = arg.split('=')[1].split(',').map((s) => s.trim()).filter(Boolean);
     }
   }
   return out;
@@ -558,6 +565,10 @@ class Location {
     const weather = await getCurrentWeatherForPoint(point.lat, point.lon).catch(() => null);
     const elevationM = weather?.elevationM ?? null;
 
+    // Privacy-masked air quality: request an area around the faux location, then
+    // pick the station closest to the raw seed point (raw GPS used only locally).
+    const airQuality = await getAirQualityForPoint(point.lat, point.lon, faux).catch(() => null);
+
     const densityTile = buildKmSquareGeometry(point.lon, point.lat, TILE_HALF_KM);
     const densityPop = await estimatePopulationFromWorldPop(densityTile, point.country);
     const populationDensityPerKm2 = typeof densityPop === 'number' ? densityPop : null;
@@ -595,6 +606,7 @@ class Location {
         observedAt: weather.observedAt,
         query: weather.query
       } : null,
+      airQuality: airQuality || null,
       altitudeM: elevationM,
       populationDensityPerKm2,
       nearestSchool: school
@@ -829,6 +841,142 @@ async function getCurrentWeatherForPoint(lat, lon) {
   return weather;
 }
 
+let airQualityCache = null;
+let lastAqiFetchAt = 0;
+
+function loadAirQualityCache() {
+  if (airQualityCache) return airQualityCache;
+  try {
+    airQualityCache = fs.existsSync(AIR_QUALITY_CACHE_PATH)
+      ? JSON.parse(fs.readFileSync(AIR_QUALITY_CACHE_PATH, 'utf8'))
+      : {};
+  } catch (_) {
+    airQualityCache = {};
+  }
+  return airQualityCache;
+}
+
+function saveAirQualityCache() {
+  try {
+    fs.mkdirSync(path.dirname(AIR_QUALITY_CACHE_PATH), { recursive: true });
+    fs.writeFileSync(AIR_QUALITY_CACHE_PATH, JSON.stringify(airQualityCache || {}, null, 2));
+  } catch (_) {}
+}
+
+function aqiCategoryLabel(aqi) {
+  const n = Number(aqi);
+  if (!Number.isFinite(n)) return 'Unknown';
+  if (n <= 50) return 'Good';
+  if (n <= 100) return 'Moderate';
+  if (n <= 150) return 'Unhealthy for sensitive groups';
+  if (n <= 200) return 'Unhealthy';
+  if (n <= 300) return 'Very unhealthy';
+  return 'Hazardous';
+}
+
+async function rateLimitAqi() {
+  const since = Date.now() - lastAqiFetchAt;
+  if (since < 250) await new Promise((r) => setTimeout(r, 250 - since));
+  lastAqiFetchAt = Date.now();
+}
+
+/**
+ * Privacy-masked air quality for a seed point.
+ * - Requests a 10km x 10km area around the faux (shifted) location, expanding to
+ *   25/50km only if no reporting station falls inside.
+ * - Picks the station closest to the RAW seed GPS (used only locally here).
+ * - Enriches via the chosen station's public id (no coordinates involved).
+ */
+async function getAirQualityForPoint(rawLat, rawLon, faux) {
+  if (!WAQI_TOKEN) return null;
+
+  const cache = loadAirQualityCache();
+  const key = `${roundCoordFixed(faux.lat, 2)},${roundCoordFixed(faux.lon, 2)}`;
+  const now = Date.now();
+  if (cache[key] && cache[key].expiresAt && now < cache[key].expiresAt) {
+    return cache[key].airQuality || null;
+  }
+
+  const buildBox = (lat, lon, sizeKm) => {
+    const half = sizeKm / 2;
+    const dLat = kmToLatDelta(half);
+    const dLon = kmToLonDelta(half, lat);
+    return [lat - dLat, lon - dLon, lat + dLat, lon + dLon];
+  };
+
+  let stations = null;
+  let usedAreaKm = 10;
+  for (const sizeKm of [10, 25, 50]) {
+    const bb = buildBox(faux.lat, faux.lon, sizeKm).map((v) => roundCoordFixed(v, 5)).join(',');
+    await rateLimitAqi();
+    const url = `https://api.waqi.info/v2/map/bounds/?latlng=${encodeURIComponent(bb)}&networks=all&token=${encodeURIComponent(WAQI_TOKEN)}`;
+    const json = await fetchJsonHttps(url).catch(() => null);
+    const arr = json && json.status === 'ok' && Array.isArray(json.data) ? json.data : [];
+    const valid = arr
+      .map((s) => ({ uid: s.uid, lat: Number(s.lat), lon: Number(s.lon), aqi: Number(s.aqi), name: s?.station?.name || null }))
+      .filter((s) => Number.isFinite(s.lat) && Number.isFinite(s.lon) && Number.isFinite(s.aqi));
+    if (valid.length) {
+      stations = valid;
+      usedAreaKm = sizeKm;
+      break;
+    }
+  }
+  if (!stations) return null;
+
+  let nearest = null;
+  let nearestDist = Infinity;
+  for (const s of stations) {
+    const d = distanceKm({ lat: rawLat, lon: rawLon }, { lat: s.lat, lon: s.lon });
+    if (Number.isFinite(d) && d < nearestDist) {
+      nearestDist = d;
+      nearest = s;
+    }
+  }
+  if (!nearest) return null;
+
+  let aqi = nearest.aqi;
+  let dominantPollutant = null;
+  let pm25 = null;
+  let pm10 = null;
+  let observedAt = null;
+  try {
+    if (nearest.uid != null) {
+      await rateLimitAqi();
+      const detail = await fetchJsonHttps(
+        `https://api.waqi.info/feed/@${encodeURIComponent(String(nearest.uid).replace(/[^0-9]/g, ''))}/?token=${encodeURIComponent(WAQI_TOKEN)}`
+      ).catch(() => null);
+      const d = detail && detail.status === 'ok' ? detail.data : null;
+      if (d) {
+        if (Number.isFinite(Number(d.aqi))) aqi = Number(d.aqi);
+        dominantPollutant = d.dominentpol || null;
+        observedAt = d?.time?.iso || d?.time?.s || null;
+        if (d.iaqi) {
+          if (Number.isFinite(Number(d.iaqi.pm25?.v))) pm25 = Number(d.iaqi.pm25.v);
+          if (Number.isFinite(Number(d.iaqi.pm10?.v))) pm10 = Number(d.iaqi.pm10.v);
+        }
+      }
+    }
+  } catch (_) {
+    // Enrichment is best-effort.
+  }
+
+  const airQuality = {
+    aqi: Number(aqi),
+    category: aqiCategoryLabel(aqi),
+    pm25,
+    pm10,
+    dominantPollutant,
+    stationName: nearest.name || null,
+    distanceKm: Math.round(nearestDist * 10) / 10,
+    observedAt,
+    requestedAreaKm: usedAreaKm
+  };
+
+  cache[key] = { fetchedAt: now, expiresAt: now + 30 * 60 * 1000, airQuality };
+  saveAirQualityCache();
+  return airQuality;
+}
+
 let overpassCache = null;
 
 function loadOverpassCache() {
@@ -911,8 +1059,56 @@ async function buildEntry(point, options) {
   return location.build();
 }
 
+// Surgically add `airQuality` to an already-generated gallery data file using
+// each point's existing gps + fauxLocation. This avoids recomputing H3/ADM/tile
+// data (which would require warm population caches) and only adds air quality.
+async function augmentAirQualityForFile(file) {
+  if (!fs.existsSync(file)) {
+    console.warn(`  skip (missing): ${file}`);
+    return;
+  }
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const points = Array.isArray(data.points) ? data.points : [];
+  let updated = 0;
+  for (const p of points) {
+    const lat = Number(p?.gps?.lat);
+    const lon = Number(p?.gps?.lon);
+    const fLat = Number(p?.fauxLocation?.lat);
+    const fLon = Number(p?.fauxLocation?.lon);
+    if (![lat, lon, fLat, fLon].every(Number.isFinite)) {
+      p.airQuality = p.airQuality || null;
+      console.log(`  ${p.id}: skipped (missing coords)`);
+      continue;
+    }
+    const aq = await getAirQualityForPoint(lat, lon, { lat: fLat, lon: fLon }).catch(() => null);
+    p.airQuality = aq || null;
+    if (aq) updated += 1;
+    console.log(
+      `  ${p.id}: ${aq ? `AQI ${aq.aqi} (${aq.category})${aq.pm25 != null ? ` · PM2.5 ${aq.pm25}` : ''} @ ${aq.stationName || '?'} ${aq.distanceKm}km` : 'N/A'}`
+    );
+  }
+  data.airQualityGeneratedAt = new Date().toISOString();
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+  console.log(`Augmented ${updated}/${points.length} points with air quality in ${file}`);
+}
+
 async function main() {
   const argv = parseArgs();
+
+  if (argv.augmentAirQuality) {
+    if (!WAQI_TOKEN) {
+      throw new Error('WAQI_TOKEN (or AQICN_TOKEN) is required for --augment-air-quality');
+    }
+    const files = argv.files && argv.files.length
+      ? argv.files
+      : [DATA_FILE, path.join(OUTPUT_DIR, 'gallery-data-20000.json')];
+    for (const f of files) {
+      console.log(`Augmenting air quality: ${f}`);
+      await augmentAirQualityForFile(f);
+    }
+    return;
+  }
+
   const options = {
     popThreshold: Number.isFinite(argv.popThreshold) ? argv.popThreshold : POP_THRESHOLD,
     shiftKm: Number.isFinite(argv.shiftKm) ? argv.shiftKm : SHIFT_KM,
