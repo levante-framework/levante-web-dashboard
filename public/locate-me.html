@@ -1006,7 +1006,11 @@
                             <div class="stat-card accent" v-if="latestAirQuality">
                                 <h5>Air Quality</h5>
                                 <p style="margin: 0; font-size: 1rem;">
-                                    <span :style="{ color: latestAirQuality.airQuality.color || '#0f172a', fontWeight: 600 }">{{ latestAirQuality.airQuality.aqi }} {{ latestAirQuality.airQuality.category }}</span>
+                                    <span :style="{ color: latestAirQuality.airQuality.color || '#0f172a', fontWeight: 600 }">AQI {{ latestAirQuality.airQuality.aqi }} · {{ latestAirQuality.airQuality.category }}</span>
+                                </p>
+                                <p v-if="latestAirQuality.airQuality.pollutants && (latestAirQuality.airQuality.pollutants.pm25 != null || latestAirQuality.airQuality.pollutants.pm10 != null)" style="margin: 6px 0 0; color: #0f172a; font-size: 0.9rem;">
+                                    <span v-if="latestAirQuality.airQuality.pollutants.pm25 != null">PM2.5: <strong>{{ latestAirQuality.airQuality.pollutants.pm25 }}</strong> µg/m³</span>
+                                    <span v-if="latestAirQuality.airQuality.pollutants.pm10 != null"> · PM10: <strong>{{ latestAirQuality.airQuality.pollutants.pm10 }}</strong> µg/m³</span>
                                 </p>
                                 <p style="margin: 6px 0 0; color: #71717a; font-size: 0.85rem;">
                                     <span v-if="latestAirQuality.airQuality.dominantPollutant">Main: {{ latestAirQuality.airQuality.dominantPollutant.toUpperCase() }} · </span>
@@ -1029,6 +1033,7 @@
                                     <span><i class="fas fa-layer-group"></i> Results: {{ entry.resultCount }}</span>
                                     <span v-if="entry.weather"><i class="fas fa-cloud"></i> {{ entry.weather.temperature }}° · {{ entry.weather.description || 'Weather' }}</span>
                                     <span v-if="entry.airQuality"><i class="fas fa-wind"></i> AQI {{ entry.airQuality.aqi }} · {{ entry.airQuality.category || 'Air quality' }}</span>
+                                    <span v-if="entry.airQuality && entry.airQuality.pollutants && entry.airQuality.pollutants.pm25 != null"><i class="fas fa-smog"></i> PM2.5 {{ entry.airQuality.pollutants.pm25 }} µg/m³</span>
                                 </div>
                             </article>
                         </div>
