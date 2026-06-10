@@ -100,6 +100,23 @@
       .item.tier-likely_bad { border-left: 6px solid var(--color-danger, #e25555); }
       .item.tier-review { border-left: 6px solid #e0a800; }
       .item.tier-ok { border-left: 6px solid var(--color-success, #38a169); }
+      .item-row { display: flex; gap: 16px; align-items: flex-start; }
+      .item-shot {
+        flex: 0 0 192px;
+        width: 192px;
+        height: 192px;
+        border-radius: var(--radius-md, 8px);
+        border: 1px solid var(--border-subtle, #2a3349);
+        background: var(--surface-2, #141a28);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .item-shot a { display: block; width: 100%; height: 100%; }
+      .item-shot img { width: 100%; height: 100%; object-fit: contain; display: block; }
+      .item-body { flex: 1 1 auto; min-width: 0; }
+      @media (max-width: 640px) { .item-row { flex-direction: column; } }
       .item h3 { margin: 0 0 6px; font-size: 1.02rem; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
       .item code { background: var(--surface-2, #141a28); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
       .lang { color: var(--accent, #6aa9ff); font-weight: 600; }
@@ -111,8 +128,14 @@
       .composite { background: var(--surface-2, #141a28); padding: 7px 10px; border-radius: 6px; font-size: 0.9rem; margin: 6px 0; }
       .composite b { color: var(--accent, #6aa9ff); }
       .reasons { color: var(--color-danger, #e25555); font-weight: 600; font-size: 0.85rem; margin: 6px 0; }
+      .explain { background: #fffdf5; border: 1px solid #f0e6c8; border-radius: 8px; padding: 8px 10px; margin: 8px 0; font-size: 0.9rem; }
+      .explain p { margin: 4px 0; }
+      .conf { font-size: 0.72rem; padding: 1px 8px; border-radius: 10px; color: #fff; vertical-align: middle; }
+      .conf-high { background: #c0392b; } .conf-medium { background: #e0a800; }
+      .conf-low { background: #6c757d; } .conf-na { background: #999; }
       .txt { margin: 4px 0; font-size: 0.92rem; }
       .txt .lbl { color: var(--text-muted, #8893a8); font-weight: 600; }
+      .txt.backtrans { color: var(--text-secondary, #9aa6bd); font-style: italic; }
       ul.signals { margin: 8px 0 0 18px; padding: 0; }
       ul.signals li { font-size: 0.82rem; color: var(--text-secondary); margin: 2px 0; }
       ul.signals b { color: var(--text-primary); }
@@ -233,19 +256,40 @@
         const reasons = r.reasons
           ? `<div class="reasons">Reasons: ${esc(r.reasons.split(";").join("; "))}</div>`
           : "";
+        const explain = r.explanation
+          ? `<div class="explain"><b>Auto explanation</b> ` +
+            `<span class="conf conf-${esc(r.flag_confidence || "na")}">${esc(r.flag_confidence || "n/a")} confidence</span>` +
+            `<p>${esc(r.explanation)}</p>` +
+            (r.suggested_fix ? `<p><span class="lbl">Suggested fix:</span> ${esc(r.suggested_fix)}</p>` : "") +
+            `</div>`
+          : "";
+        const shot = r.screenshot
+          ? `<div class="item-shot"><a href="${esc(r.screenshot)}" target="_blank" rel="noopener">` +
+            `<img loading="lazy" src="${esc(r.screenshot)}" alt="screenshot for ${esc(r.item_id)}"></a></div>`
+          : "";
         return (
-          `<div class="item tier-${esc(r.flag_tier)}">` +
+          `<div class="item tier-${esc(r.flag_tier)}"><div class="item-row">` +
+          shot +
+          `<div class="item-body">` +
           `<h3><code>${esc(r.item_id)}</code> &mdash; ${esc(r.task || "unknown")} ` +
           `&mdash; <span class="lang">${esc(r.target_lang)}</span> ` +
           `<span class="badge badge-${esc(r.flag_tier)}">${esc(r.flag_tier)}</span></h3>` +
           `<div class="composite"><b>Composite quality:</b> ${esc(score)} &nbsp;|&nbsp; ` +
           `confidence ${esc(r.confidence)} &nbsp;|&nbsp; coverage ${esc(r.coverage)} &nbsp;|&nbsp; ` +
-          `${esc(r.n_signals)} signals</div>` +
+          `${esc(r.n_signals)} signals` +
+          (r.oracle_solvable
+            ? ` &nbsp;|&nbsp; oracle: ${r.oracle_solvable === "yes" ? "solvable" : "not solvable"}`
+            : "") +
+          `</div>` +
           reasons +
+          explain +
           `<div class="txt"><span class="lbl">English:</span> ${esc(r.source_text)}</div>` +
           `<div class="txt"><span class="lbl">${esc(r.target_lang)}:</span> ${esc(r.target_text)}</div>` +
+          (r.back_translation
+            ? `<div class="txt backtrans"><span class="lbl">Back-translation:</span> ${esc(r.back_translation)}</div>`
+            : "") +
           (sigs ? `<ul class="signals">${sigs}</ul>` : "") +
-          `</div>`
+          `</div></div></div>`
         );
       }
 
