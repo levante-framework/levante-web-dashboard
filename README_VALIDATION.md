@@ -9,6 +9,10 @@ The Levante validation system includes two complementary approaches:
 
 Both systems help identify potential issues before production deployment.
 
+> **Reviewers:** for the hands-on click-path (validate → review back-translation →
+> Approve / Mark for Review), what "shared storage" is, and when your work is saved,
+> see [`docs/validation-reviewer-workflow.md`](docs/validation-reviewer-workflow.md).
+
 ## Recent Validation Updates (Jan 2026)
 
 - **HTML normalization before scoring**: Source and translated strings are converted to plain text (HTML tags stripped) before similarity/AI evaluation.

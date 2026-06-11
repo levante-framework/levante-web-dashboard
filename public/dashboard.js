@@ -3763,8 +3763,10 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         if (!isChecked) {
                             reasonInput.value = '';
                             self.validation_results[itemId][preferredLangCode].reason = '';
-                            if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
                         }
+                        // Persist every review-flag change to shared storage, whether the
+                        // flag is set or cleared and regardless of whether a reason is typed.
+                        if (typeof queueValidationAutoSave === 'function') queueValidationAutoSave();
                         if (typeof updateValidationSummary === 'function') updateValidationSummary();
                         console.log(`📝 Needs Review ${isChecked ? 'set' : 'cleared'} for ${itemId}[${langCode}]`);
                     };
