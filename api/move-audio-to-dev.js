@@ -62,37 +62,85 @@ export function getLanguageAliases(langCode) {
   return Array.from(aliases.values());
 }
 
-export function isLikelyTaskTranslationPath(pathName, taskCandidates, langAliases) {
+// Maps the dashboard's human-facing task labels (and common aliases) to the
+// canonical item-bank folder slug used in the assets buckets. Keys are
+// normalized: lowercased, "&" -> "and", non-alphanumerics collapsed to spaces.
+const TASK_SLUG_ALIASES = {
+  'memory': 'memory-game',
+  'memory game': 'memory-game',
+  'pattern matching': 'matrix-reasoning',
+  'matrix': 'matrix-reasoning',
+  'matrix reasoning': 'matrix-reasoning',
+  'math': 'egma-math',
+  'egma math': 'egma-math',
+  'shape rotation': 'mental-rotation',
+  'mental rotation': 'mental-rotation',
+  'same and different': 'same-different-selection',
+  'same different': 'same-different-selection',
+  'same different selection': 'same-different-selection',
+  'sentence understanding': 'trog',
+  'trog': 'trog',
+  'stories': 'theory-of-mind',
+  'theory of mind': 'theory-of-mind',
+  'vocabulary': 'vocab',
+  'vocab': 'vocab',
+  'hearts and flowers': 'hearts-and-flowers',
+  'hostile attribution': 'hostile-attribution',
+  'thoughts and feelings': 'child-survey',
+  'child survey': 'child-survey',
+};
+
+// Resolve a task label (display name OR canonical slug) to the set of folder
+// slugs to search for translation JSON files under translations/itembank/.
+export function getTaskSlugCandidates(taskName) {
+  const raw = String(taskName || '').trim().toLowerCase();
+  if (!raw) return [];
+  const normalizedKey = raw.replace(/&/g, 'and').replace(/[^a-z0-9]+/g, ' ').trim();
+  const candidates = new Set();
+  if (normalizedKey && TASK_SLUG_ALIASES[normalizedKey]) {
+    candidates.add(TASK_SLUG_ALIASES[normalizedKey]);
+  }
+  // Also treat the label itself as a slug, covering canonical slugs passed directly.
+  const slug = normalizedKey.replace(/\s+/g, '-');
+  if (slug) candidates.add(slug);
+  return Array.from(candidates);
+}
+
+// Matches the real bucket layout:
+//   translations/itembank/<task-slug>/<lang>/item-bank-translations.json
+export function isLikelyTaskTranslationPath(pathName, slugCandidates, langAliases) {
   const normalizedPath = String(pathName || '').replace(/\\/g, '/').toLowerCase();
   if (!normalizedPath.endsWith('.json')) return false;
-  if (!normalizedPath.includes('/itembank_by_task/')) return false;
-  if (!taskCandidates.some((task) => normalizedPath.endsWith(`/itembank_by_task/${task}.json`))) return false;
-  if (!langAliases.some((alias) => normalizedPath.includes(`/${alias}/`) || normalizedPath.startsWith(`${alias}/`))) return false;
+  if (!normalizedPath.includes('/itembank/')) return false;
+  if (!slugCandidates.some((slug) => normalizedPath.includes(`/itembank/${slug}/`))) return false;
+  if (!langAliases.some((alias) => normalizedPath.includes(`/${alias}/`))) return false;
   return true;
 }
 
 async function copyTaskTranslationJsonFiles(storage, sourceBucketName, taskName, langCode) {
-  const taskCandidates = normalizeTaskCandidates(taskName);
+  const slugCandidates = getTaskSlugCandidates(taskName);
   const langAliases = getLanguageAliases(langCode);
-  if (!taskCandidates.length || !langAliases.length) {
+  if (!slugCandidates.length || !langAliases.length) {
     return { copied: 0, matched: 0 };
   }
 
   const sourceBucket = storage.bucket(sourceBucketName);
   const targetBucket = storage.bucket(TARGET_BUCKET);
-  const candidatePrefixes = [
-    ...langAliases.map((alias) => `${alias}/`),
-    ...langAliases.map((alias) => `translations/${alias}/`),
-    ...langAliases.map((alias) => `main/${alias}/`),
-  ];
 
   const matchedPaths = new Set();
-  for (const prefix of candidatePrefixes) {
-    const [files] = await sourceBucket.getFiles({ prefix });
+  for (const slug of slugCandidates) {
+    const prefix = `translations/itembank/${slug}/`;
+    let files = [];
+    try {
+      [files] = await sourceBucket.getFiles({ prefix });
+    } catch (error) {
+      console.warn(`move-audio-to-dev: failed to list ${prefix}: ${error?.message || error}`);
+      continue;
+    }
     (files || []).forEach((file) => {
       const name = String(file?.name || '').trim();
       if (!name) return;
-      if (isLikelyTaskTranslationPath(name, taskCandidates, langAliases)) {
+      if (isLikelyTaskTranslationPath(name, slugCandidates, langAliases)) {
         matchedPaths.add(name);
       }
     });
