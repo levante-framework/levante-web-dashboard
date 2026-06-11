@@ -19,12 +19,12 @@ let inMemoryValidationData = {
 };
 
 // Validation storage should live in levante-tools (dev project).
-const BUCKET_NAME = process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools';
+const BUCKET_NAME = String(process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools').trim();
 const BY_LANGUAGE_PREFIX = process.env.VALIDATION_RESULTS_BY_LANGUAGE_PREFIX || 'validations/by-language';
 const VERSION_HISTORY_BY_LANGUAGE_PREFIX = process.env.VALIDATION_RESULTS_HISTORY_BY_LANGUAGE_PREFIX || 'validations/history/by-language';
 const VERSION_HISTORY_AGGREGATE_PREFIX = process.env.VALIDATION_RESULTS_HISTORY_AGGREGATE_PREFIX || 'validations/history/aggregate';
-const MAX_HISTORY_PER_LANGUAGE = Number(process.env.VALIDATION_HISTORY_MAX_PER_LANGUAGE || 30);
-const MAX_HISTORY_AGGREGATE = Number(process.env.VALIDATION_HISTORY_MAX_AGGREGATE || 30);
+const MAX_HISTORY_PER_LANGUAGE = Number(process.env.VALIDATION_HISTORY_MAX_PER_LANGUAGE || 200);
+const MAX_HISTORY_AGGREGATE = Number(process.env.VALIDATION_HISTORY_MAX_AGGREGATE || 200);
 const EXCLUDED_VALIDATION_PREFIXES = [
   'main/Z_LEGACY_DO_NOT_TRANSLATE/',
   'main/LEGACY_DO_NOT_TRANSLATE/'
@@ -46,7 +46,7 @@ function sanitizeValidationResultsMap(validationResults) {
   return out;
 }
 
-function mergeValidationEntry(existingEntry, incomingEntry) {
+export function mergeValidationEntry(existingEntry, incomingEntry) {
   const existing = existingEntry && typeof existingEntry === 'object' ? existingEntry : {};
   const incoming = incomingEntry && typeof incomingEntry === 'object' ? incomingEntry : {};
   const nextEntry = { ...existing, ...incoming };
@@ -98,16 +98,28 @@ function mergeValidationEntry(existingEntry, incomingEntry) {
   }
   // Preserve manual approvals unless the client explicitly toggled approval state.
   // This prevents re-validation payloads from unintentionally clearing approvals.
+  const incomingManualApprovalUpdatedAt = String(incoming?.manualApprovalUpdatedAt || '').trim();
+  const existingManualApprovalUpdatedAt = String(existing?.manualApprovalUpdatedAt || '').trim();
   if (!incomingHasManualApproved && existing.manualApproved === true) {
     nextEntry.manualApproved = true;
   }
+  // Clearing an existing approval requires an explicit, newer manualApprovalUpdatedAt marker
+  // from the reviewer. AI re-validation / import passes send manualApproved:false with an
+  // empty (or stale) timestamp; those must NOT wipe a human approval.
   if (
     existing.manualApproved === true
     && incomingHasManualApproved
     && incoming.manualApproved !== true
-    && !incomingHasManualApprovalUpdatedAt
   ) {
-    nextEntry.manualApproved = true;
+    const hasExplicitApprovalChange = incomingHasManualApprovalUpdatedAt && !!incomingManualApprovalUpdatedAt;
+    const incomingApprovalIsNewer = hasExplicitApprovalChange
+      && (!existingManualApprovalUpdatedAt || incomingManualApprovalUpdatedAt >= existingManualApprovalUpdatedAt);
+    if (!incomingApprovalIsNewer) {
+      nextEntry.manualApproved = true;
+      if (existingManualApprovalUpdatedAt) {
+        nextEntry.manualApprovalUpdatedAt = existingManualApprovalUpdatedAt;
+      }
+    }
   }
   if (nextEntry.manualApproved === true) {
     nextEntry.score = 1;
@@ -118,7 +130,7 @@ function mergeValidationEntry(existingEntry, incomingEntry) {
   return nextEntry;
 }
 
-function mergeValidationResultsWithExisting(existingResults, incomingResults) {
+export function mergeValidationResultsWithExisting(existingResults, incomingResults) {
   const existing = sanitizeValidationResultsMap(existingResults || {});
   const incoming = sanitizeValidationResultsMap(incomingResults || {});
   const merged = { ...existing };
