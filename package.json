@@ -21,7 +21,7 @@
     "test:partner-audio-regression": "node scripts/check-partner-audio-approval-regression.js",
     "test:partner-audio-regression:unit": "node --test scripts/check-partner-audio-approval-regression.test.js",
     "test:validation-manual-approval:unit": "node --test scripts/validation-manual-approval.test.js",
-    "test:move-audio-to-dev:unit": "node --experimental-default-type=module --test scripts/move-audio-to-dev.test.js",
+    "test:move-audio-to-dev:unit": "node --test scripts/move-audio-to-dev.test.js",
     "test:translations-ota": "node --test scripts/crowdin-ota-client.test.js",
     "preflight:locale": "ts-node --transpile-only --compiler-options '{\"module\":\"commonjs\"}' preflight/preflight-locale.ts",
     "geocoder:build": "node scripts/geocoder/build-geocoder.js",

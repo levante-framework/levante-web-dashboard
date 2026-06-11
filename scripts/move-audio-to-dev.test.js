@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   normalizeTaskCandidates,
   getLanguageAliases,
+  getTaskSlugCandidates,
   isLikelyTaskTranslationPath,
 } from '../api/move-audio-to-dev.js';
 
@@ -17,23 +18,32 @@ test('getLanguageAliases includes canonical and short aliases', () => {
   assert.deepEqual(aliases, ['es-ar', 'es_ar', 'es']);
 });
 
-test('isLikelyTaskTranslationPath matches task JSON for language aliases', () => {
-  const taskCandidates = normalizeTaskCandidates('thoughts-feelings');
+test('getTaskSlugCandidates maps display labels to canonical folder slugs', () => {
+  assert.ok(getTaskSlugCandidates('Memory').includes('memory-game'));
+  assert.ok(getTaskSlugCandidates('Pattern Matching').includes('matrix-reasoning'));
+  assert.ok(getTaskSlugCandidates('Thoughts & Feelings').includes('child-survey'));
+  assert.ok(getTaskSlugCandidates('Math').includes('egma-math'));
+  // Canonical slugs passed directly resolve to themselves too.
+  assert.ok(getTaskSlugCandidates('matrix-reasoning').includes('matrix-reasoning'));
+});
+
+test('isLikelyTaskTranslationPath matches real itembank layout for language aliases', () => {
+  const slugCandidates = getTaskSlugCandidates('Memory');
   const langAliases = getLanguageAliases('es-AR');
 
   assert.equal(
     isLikelyTaskTranslationPath(
-      'translations/es-ar/main/itembank_by_task/thoughts-feelings.json',
-      taskCandidates,
+      'translations/itembank/memory-game/es-AR/item-bank-translations.json',
+      slugCandidates,
       langAliases
     ),
     true
   );
-
+  // Short language alias folder also matches.
   assert.equal(
     isLikelyTaskTranslationPath(
-      'es_ar/main/itembank_by_task/thoughts_feelings.json',
-      taskCandidates,
+      'translations/itembank/memory-game/es/item-bank-translations.json',
+      slugCandidates,
       langAliases
     ),
     true
@@ -41,29 +51,32 @@ test('isLikelyTaskTranslationPath matches task JSON for language aliases', () =>
 });
 
 test('isLikelyTaskTranslationPath rejects wrong task, language, or extension', () => {
-  const taskCandidates = normalizeTaskCandidates('thoughts-feelings');
+  const slugCandidates = getTaskSlugCandidates('Memory');
   const langAliases = getLanguageAliases('es-AR');
 
+  // Wrong language.
   assert.equal(
     isLikelyTaskTranslationPath(
-      'translations/de-de/main/itembank_by_task/thoughts-feelings.json',
-      taskCandidates,
+      'translations/itembank/memory-game/de-DE/item-bank-translations.json',
+      slugCandidates,
       langAliases
     ),
     false
   );
+  // Wrong task slug.
   assert.equal(
     isLikelyTaskTranslationPath(
-      'translations/es-ar/main/itembank_by_task/math.json',
-      taskCandidates,
+      'translations/itembank/matrix-reasoning/es-AR/item-bank-translations.json',
+      slugCandidates,
       langAliases
     ),
     false
   );
+  // Wrong extension.
   assert.equal(
     isLikelyTaskTranslationPath(
-      'translations/es-ar/main/itembank_by_task/thoughts-feelings.xliff',
-      taskCandidates,
+      'translations/itembank/memory-game/es-AR/item-bank-translations.xliff',
+      slugCandidates,
       langAliases
     ),
     false
