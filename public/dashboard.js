@@ -1489,21 +1489,46 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const merged = this.parseCrowdinZipToMerged(filteredUnzipped);
                     this.logPerf('Crowdin CSV/XLIFF merge', mergeStart, `rows=${Array.isArray(merged) ? merged.length : 0}`);
                     if (!Array.isArray(merged) || merged.length === 0) throw new Error('No CSV or XLIFF data in Crowdin export');
+                    let mergedRows = merged;
+                    let hiddenExcludedCount = 0;
+                    try {
+                        const hiddenSet = await this.fetchHiddenCrowdinIdentifiers();
+                        if (hiddenSet && hiddenSet.size) {
+                            const beforeCount = mergedRows.length;
+                            const visibleRows = mergedRows.filter((row) => !this.isHiddenCrowdinRow(row, hiddenSet));
+                            hiddenExcludedCount = beforeCount - visibleRows.length;
+                            if (visibleRows.length === 0) {
+                                // Safety: never wipe the dataset purely because of the hidden filter.
+                                console.warn('Hidden-string filter matched every row; ignoring it for this import.');
+                                hiddenExcludedCount = 0;
+                            } else {
+                                mergedRows = visibleRows;
+                                if (hiddenExcludedCount > 0) {
+                                    console.log(`🙈 Excluded ${hiddenExcludedCount} hidden Crowdin string(s) from import`);
+                                }
+                            }
+                        }
+                    } catch (hiddenErr) {
+                        console.warn('Hidden-string filter skipped:', hiddenErr?.message || hiddenErr);
+                    }
                     const previousRows = Array.isArray(this.data) ? this.data : [];
                     const setDataStart = this.perfNow();
-                    this.setLoadedData(merged);
+                    this.setLoadedData(mergedRows);
                     this.logPerf('Crowdin setLoadedData', setDataStart, `rows=${this.data.length}`);
                     const importChangeSummary = this.applyCrowdinImportChangeFlags(previousRows, this.data);
                     const source = 'Crowdin (approved only)';
+                    const hiddenNote = hiddenExcludedCount > 0
+                        ? ` Excluded ${hiddenExcludedCount} hidden string${hiddenExcludedCount === 1 ? '' : 's'}.`
+                        : '';
                     this.crowdinCacheState = '';
                     console.log(`Loaded ${this.data.length} items from ${source}`);
                     if (importChangeSummary.changedEntries > 0) {
                         this.setStatus(
-                            `Loaded ${this.data.length} items from ${source}. ${importChangeSummary.changedEntries} validation entries now require revalidation (${importChangeSummary.changedItems} item(s) changed).`,
+                            `Loaded ${this.data.length} items from ${source}.${hiddenNote} ${importChangeSummary.changedEntries} validation entries now require revalidation (${importChangeSummary.changedItems} item(s) changed).`,
                             'warning'
                         );
                     } else {
-                        this.setStatus(`Loaded ${this.data.length} items from ${source}`, 'success');
+                        this.setStatus(`Loaded ${this.data.length} items from ${source}.${hiddenNote}`, 'success');
                     }
                     this.updateDataSourceLabel(source);
                     const cacheStart = this.perfNow();
@@ -1522,6 +1547,42 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     }
                     return false;
                 }
+            }
+
+            async fetchHiddenCrowdinIdentifiers() {
+                try {
+                    const res = await fetch('/api/crowdin-hidden-strings', { cache: 'no-cache' });
+                    if (!res.ok) return null;
+                    const json = await res.json();
+                    const list = Array.isArray(json.hiddenIdentifiers) ? json.hiddenIdentifiers : [];
+                    const set = new Set();
+                    for (const raw of list) {
+                        const id = String(raw || '').trim();
+                        if (!id) continue;
+                        set.add(id.toLowerCase());
+                        if (id.includes('::')) set.add(id.split('::').pop().toLowerCase());
+                    }
+                    return set;
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            isHiddenCrowdinRow(row, hiddenSet) {
+                if (!hiddenSet || !hiddenSet.size || !row) return false;
+                const id = String(row.item_id || row.identifier || '').trim();
+                if (!id) return false;
+                const candidates = new Set([id.toLowerCase()]);
+                if (id.includes('::')) {
+                    const tail = id.split('::').pop();
+                    candidates.add(tail.toLowerCase());
+                    if (tail.includes('/')) candidates.add(tail.split('/').pop().toLowerCase());
+                }
+                if (id.includes('/')) candidates.add(id.split('/').pop().toLowerCase());
+                for (const c of candidates) {
+                    if (hiddenSet.has(c)) return true;
+                }
+                return false;
             }
 
             async loadCrowdinDataFromCache() {
