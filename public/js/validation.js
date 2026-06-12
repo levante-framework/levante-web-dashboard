@@ -883,6 +883,23 @@ function queueValidationAutoSave() {
     }, 2000);
 }
 
+async function flushValidationAutoSave() {
+    const dashboard = window.dashboard;
+    if (!dashboard || typeof dashboard.saveValidationResults !== 'function') return;
+    const hadPending = _validationAutoSaveQueued || !!_validationAutoSaveTimer || _validationAutoSaveInFlight;
+    if (_validationAutoSaveTimer) {
+        clearTimeout(_validationAutoSaveTimer);
+        _validationAutoSaveTimer = null;
+    }
+    _validationAutoSaveQueued = false;
+    if (!hadPending) return;
+    try {
+        await dashboard.saveValidationResults({ updateBaseline: false, silent: true });
+    } catch (e) {
+        console.warn('flushValidationAutoSave failed:', e?.message || e);
+    }
+}
+
 function resetValidationUiForRow(row, langCode) {
     if (!row) return;
     const indicator = row.querySelector('.status-indicator');
@@ -1770,6 +1787,7 @@ function updateValidationSummary() {
 // Ensure inline HTML handlers can resolve these functions.
 if (typeof window !== 'undefined') {
     window.setManualApprovalForValidation = setManualApprovalForValidation;
+    window.flushValidationAutoSave = flushValidationAutoSave;
     window.showStoredValidationResult = showStoredValidationResult;
     window.validateByItemId = validateByItemId;
     window.toggleValidateAllRun = toggleValidateAllRun;

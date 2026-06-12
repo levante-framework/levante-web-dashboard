@@ -3043,6 +3043,12 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 try {
                     console.log('🌐 Loading validation results from shared storage...');
 
+                    // Flush any pending local autosave first so unsaved approvals/flags
+                    // reach the bucket before we merge the shared copy back over local state.
+                    if (typeof window !== 'undefined' && typeof window.flushValidationAutoSave === 'function') {
+                        try { await window.flushValidationAutoSave(); } catch (_) { /* best effort */ }
+                    }
+
                     const configuredRemoteSharedEndpoint = String(window.CONFIG?.sharedValidationEndpoint || '').trim();
                     const currentLangCode = String(
                         languageOverride
@@ -3141,10 +3147,28 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 Object.keys(sharedResults[itemId]).forEach(lang => {
                                     const sharedValidation = sharedResults[itemId][lang];
                                     const localValidation = localResults[itemId][lang];
-                                    localResults[itemId][lang] = {
+                                    const merged = {
                                         ...(localValidation && typeof localValidation === 'object' ? localValidation : {}),
                                         ...(sharedValidation && typeof sharedValidation === 'object' ? sharedValidation : {})
                                     };
+                                    // Don't let the shared copy clobber a locally-newer human
+                                    // review/approval decision that may not have synced yet.
+                                    if (localValidation && typeof localValidation === 'object') {
+                                        const localRev = String(localValidation.reviewUpdatedAt || '');
+                                        const sharedRev = String((sharedValidation && sharedValidation.reviewUpdatedAt) || '');
+                                        if (localValidation.needsReview === true && (!sharedRev || localRev > sharedRev)) {
+                                            merged.needsReview = true;
+                                            if (localRev) merged.reviewUpdatedAt = localRev;
+                                            if (localValidation.reason != null && !merged.reason) merged.reason = localValidation.reason;
+                                        }
+                                        const localAppr = String(localValidation.manualApprovalUpdatedAt || '');
+                                        const sharedAppr = String((sharedValidation && sharedValidation.manualApprovalUpdatedAt) || '');
+                                        if (localValidation.manualApproved === true && (!sharedAppr || localAppr > sharedAppr)) {
+                                            merged.manualApproved = true;
+                                            if (localAppr) merged.manualApprovalUpdatedAt = localAppr;
+                                        }
+                                    }
+                                    localResults[itemId][lang] = merged;
                                 });
                             }
                         });
