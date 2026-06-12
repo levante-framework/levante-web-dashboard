@@ -5311,7 +5311,30 @@
                             approvedCount++;
                         }
                     });
+
+                    // Reopen previously approved/finished items whose draft audio is now
+                    // newer than the promoted dev copy. Staged approvals persist
+                    // server-side, so without this a task marked "Task finished" stays
+                    // hidden from "To Be Approved" even after its audio is regenerated.
+                    // Only reopen items that were actually promoted (a dev copy exists)
+                    // but whose draft is strictly newer; items staged without a dev copy
+                    // are awaiting their first promotion and must stay staged.
+                    let reopenedCount = 0;
+                    const stagedIds = this.getAllStagedApprovedIds(this.currentLangCode);
+                    stagedIds.forEach(baseId => {
+                        const devUpdated = devInfo.updatedById?.get(baseId) || 0;
+                        const draftUpdated = draftInfo.updatedById?.get(baseId) || 0;
+                        if (devUpdated > 0 && draftUpdated > devUpdated) {
+                            if (this.unstageApprovedItem(baseId, this.currentLangCode)) {
+                                reopenedCount++;
+                            }
+                        }
+                    });
+
                     this.recomputeApprovedItems();
+                    if (reopenedCount > 0) {
+                        console.log(`♻️ Reopened ${reopenedCount} item(s) for re-approval: draft audio is newer than the approved dev copy.`);
+                    }
                     console.log(`Loaded approval status with timestamp rule: ${approvedCount} approved items (dev newest).`);
                 } catch (error) {
                     console.warn('Could not load approval status:', error);
