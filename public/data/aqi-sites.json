@@ -1,0 +1,19 @@
+{
+  "updatedAt": "2026-06-12T10:45:00-07:00",
+  "notes": "Manual source of truth for LEVANTE AQI Dashboard. Edit this file to control which sites appear.",
+  "sites": [
+    { "id": "amsterdam-nl", "label": "Amsterdam", "country": "NL", "lat": 52.37, "lon": 4.90, "siteType": "core" },
+    { "id": "bogota-co", "label": "Bogotá", "country": "CO", "lat": 4.71, "lon": -74.07, "siteType": "core" },
+    { "id": "boston-us", "label": "Boston", "country": "US", "lat": 42.36, "lon": -71.06, "siteType": "field" },
+    { "id": "buenos-aires-ar", "label": "Buenos Aires", "country": "AR", "lat": -34.60, "lon": -58.38, "siteType": "core" },
+    { "id": "cali-co", "label": "Cali", "country": "CO", "lat": 3.44, "lon": -76.52, "siteType": "field" },
+    { "id": "chiquinquira-co", "label": "Chiquinquirá", "country": "CO", "lat": 5.62, "lon": -73.82, "siteType": "field" },
+    { "id": "delhi-in", "label": "Delhi", "country": "IN", "lat": 28.6139, "lon": 77.2090, "siteType": "core" },
+    { "id": "leipzig-de", "label": "Leipzig", "country": "DE", "lat": 51.34, "lon": 12.37, "siteType": "field" },
+    { "id": "medellin-co", "label": "Medellín", "country": "CO", "lat": 6.25, "lon": -75.56, "siteType": "field" },
+    { "id": "san-francisco-us", "label": "San Francisco", "country": "US", "lat": 37.74, "lon": -122.50, "siteType": "field" },
+    { "id": "tel-aviv-il", "label": "Tel Aviv", "country": "IL", "lat": 32.0853, "lon": 34.7818, "siteType": "core" },
+    { "id": "toronto-ca", "label": "Toronto", "country": "CA", "lat": 43.65, "lon": -79.38, "siteType": "core" },
+    { "id": "zurich-ch", "label": "Zürich", "country": "CH", "lat": 47.38, "lon": 8.54, "siteType": "field" }
+  ]
+}

@@ -106,7 +106,8 @@ module.exports = async function handler(req, res) {
   try {
     // Station enrichment: fetch detailed feed for a single public station id.
     if (uid != null && String(uid).trim() !== '') {
-      const cleanUid = String(uid).trim().replace(/[^0-9]/g, '');
+      const rawUid = String(uid).trim();
+      const cleanUid = /^-?\d+$/.test(rawUid) ? rawUid : '';
       if (!cleanUid) {
         res.status(400).json({ ok: false, error: 'invalid_uid' });
         return;

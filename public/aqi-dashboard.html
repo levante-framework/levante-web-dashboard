@@ -3,293 +3,428 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LEVANTE AQI Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="./images/checkered-flags.svg" />
+  <title>Levante - AQI Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="audio-favicon.svg" />
+  <link rel="alternate icon" href="favicon-32x32.png" />
+  <link rel="apple-touch-icon" href="favicon-192x192.png" />
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
   />
-  <link rel="stylesheet" href="./css/theme.css" />
   <style>
-    body {
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
       min-height: 100vh;
-      font-family: var(--font-sans);
-      font-size: var(--fs-base);
-      color: var(--text-primary);
-      background: var(--color-bg);
-      background-image:
-        radial-gradient(circle at 0% 0%, rgba(12, 126, 155, 0.08), transparent 42%),
-        radial-gradient(circle at 100% 100%, rgba(181, 120, 26, 0.06), transparent 42%);
-      background-attachment: fixed;
-    }
-
-    .page-shell {
-      max-width: 1400px;
-      margin: 0 auto;
       padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
+      color: #3f3f46;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    .toolbar {
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+      overflow: hidden;
+      border: 1px solid #e4e4e7;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+      color: #3f3f46;
+      padding: 32px;
+      border-bottom: 2px solid #e4e4e7;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 20px;
       flex-wrap: wrap;
-      gap: 12px;
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 14px 16px;
-      box-shadow: var(--shadow-sm);
     }
 
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      color: var(--accent);
-      background: var(--accent-soft);
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-pill);
-      padding: 9px 14px;
+    .header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #da3d16 0%, #a22d10 100%);
     }
 
-    .back-link:hover {
-      background: var(--accent);
-      color: var(--accent-contrast);
-    }
-
-    .refresh-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--accent-border);
-      border-radius: var(--radius-pill);
-      padding: 10px 16px;
-      background: var(--accent);
-      color: var(--accent-contrast);
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .refresh-btn:disabled {
-      opacity: 0.7;
-      cursor: not-allowed;
-    }
-
-    .panel {
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-md);
-      padding: 22px;
-    }
-
-    .panel h1 {
-      margin: 0;
-      font-size: var(--fs-2xl);
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 16px;
+      min-width: 0;
+      flex: 1;
     }
 
-    .panel p {
-      margin: 10px 0 0;
-      color: var(--text-secondary);
+    .header-logo {
+      height: 44px;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .header-content h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #27272a;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      letter-spacing: -0.02em;
+    }
+
+    .header-content h1 i {
+      color: #da3d16;
+      font-size: 1.4rem;
+    }
+
+    .header-content p {
+      font-size: 0.95rem;
+      color: #71717a;
+      margin: 0;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .header-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 8px;
+      border: 1px solid #d4d4d8;
+      padding: 9px 14px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: linear-gradient(135deg, #f4f4f5 0%, #e4e4e7 100%);
+      color: #27272a;
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, #e4e4e7 0%, #d4d4d8 100%);
+      border-color: #a1a1aa;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #da3d16 0%, #a22d10 100%);
+      color: #ffffff;
+      border-color: #a22d10;
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #c73714 0%, #8f270d 100%);
+      border-color: #8f270d;
+    }
+
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .content {
+      padding: 24px 32px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
     .meta-row {
-      margin-top: 16px;
       display: flex;
       flex-wrap: wrap;
-      gap: 16px;
-      color: var(--text-secondary);
-      font-size: var(--fs-sm);
+      gap: 14px;
+      color: #52525b;
+      font-size: 0.9rem;
+      padding-bottom: 4px;
     }
 
-    .status-text[data-kind="error"] { color: var(--color-danger); }
-    .status-text[data-kind="success"] { color: var(--color-success); }
-    .status-text[data-kind="loading"] { color: var(--accent); }
+    .status-text[data-kind="error"] { color: #b91c1c; }
+    .status-text[data-kind="success"] { color: #15803d; }
+    .status-text[data-kind="loading"] { color: #b45309; }
 
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
 
     .summary-card {
-      background: var(--surface-2);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      padding: 14px;
-      box-shadow: var(--shadow-sm);
-      min-height: 92px;
+      background: #fafafa;
+      border: 1px solid #e4e4e7;
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      min-height: 88px;
     }
 
     .summary-label {
-      color: var(--text-muted);
+      color: #71717a;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      font-size: var(--fs-xs);
+      font-size: 0.72rem;
       font-weight: 700;
     }
 
     .summary-value {
-      margin-top: 8px;
-      font-size: var(--fs-2xl);
-      font-weight: var(--fw-semibold);
-      color: var(--text-primary);
+      margin-top: 7px;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #18181b;
     }
 
     .summary-detail {
-      margin-top: 6px;
-      color: var(--text-secondary);
-      font-size: var(--fs-sm);
+      margin-top: 5px;
+      color: #52525b;
+      font-size: 0.82rem;
     }
 
     .site-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .site-card {
-      background: var(--surface-1);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      background: #ffffff;
+      border: 1px solid #e4e4e7;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr minmax(210px, 260px);
+      gap: 10px;
+      align-items: center;
     }
 
-    .site-card-error {
-      border-color: var(--color-danger-border);
-      background: var(--color-danger-soft);
-    }
+    .site-meta { min-width: 0; }
 
     .site-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
     }
 
     .site-header h3 {
       margin: 0;
-      font-size: var(--fs-base);
-      font-weight: var(--fw-semibold);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #27272a;
+      overflow-wrap: break-word;
     }
 
     .site-country {
-      font-size: var(--fs-xs);
-      color: var(--accent);
-      border: 1px solid var(--accent-border);
-      background: var(--accent-soft);
-      border-radius: var(--radius-pill);
-      padding: 4px 9px;
+      font-size: 0.72rem;
+      color: #a22d10;
+      border: 1px solid #f3d2ca;
+      background: #fff6f4;
+      border-radius: 999px;
+      padding: 4px 8px;
       font-weight: 700;
       letter-spacing: 0.08em;
     }
 
-    .metric-row {
+    .site-meta-detail {
+      margin-top: 4px;
+      color: #71717a;
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+
+    .site-metrics {
       display: grid;
       grid-template-columns: 1fr;
+      gap: 7px;
+    }
+
+    .metric-row-bar {
+      border: 1px solid #e4e4e7;
+      border-radius: 8px;
+      background: #fafafa;
+      padding: 6px;
+      display: grid;
+      grid-template-columns: minmax(92px, 110px) 1fr auto;
+      align-items: center;
       gap: 8px;
     }
 
+    .metric-left {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      min-width: 0;
+    }
+
     .metric-label {
-      color: var(--text-muted);
-      font-size: var(--fs-xs);
+      color: #52525b;
+      font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.08em;
       font-weight: 700;
+      line-height: 1.05;
     }
 
-    .metric-value {
-      margin-top: 2px;
-      font-size: var(--fs-xl);
-      font-weight: var(--fw-semibold);
-      line-height: 1.15;
-    }
-
-    .metric-subtext {
-      color: var(--text-secondary);
-      font-size: var(--fs-xs);
-      margin-top: 2px;
-    }
-
-    .metric-bar-wrap {
-      width: 100%;
+    .metric-category {
+      color: #71717a;
+      font-size: 0.68rem;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .metric-bar {
       width: 100%;
-      height: 10px;
-      border-radius: var(--radius-pill);
-      background: var(--surface-3);
-      border: 1px solid var(--border-subtle);
+      height: 14px;
+      border-radius: 999px;
+      border: 1px solid #d4d4d8;
       overflow: hidden;
+      position: relative;
+      opacity: 1;
+    }
+
+    .metric-bar-track {
+      background: #e4e4e7;
     }
 
     .metric-bar-fill {
       display: block;
       height: 100%;
-      border-radius: inherit;
+      border-radius: 999px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 1;
+    }
+
+    .metric-tick {
+      position: absolute;
+      top: -1px;
+      bottom: -1px;
+      width: 1px;
+      background: rgba(63, 63, 70, 0.38);
+      z-index: 2;
+    }
+
+    .metric-value {
+      color: #18181b;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 1.05;
+      white-space: nowrap;
+      text-align: right;
+      min-width: 74px;
+      padding-left: 6px;
+    }
+
+    .metric-value-main {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .metric-value-sub {
+      margin-top: 1px;
+      color: #71717a;
+      font-size: 0.62rem;
+      font-weight: 600;
     }
 
     .site-footer {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
-      color: var(--text-secondary);
-      font-size: var(--fs-xs);
-      border-top: 1px solid var(--border-subtle);
-      padding-top: 10px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 7px;
+      color: #52525b;
+      font-size: 0.75rem;
+      border-left: 1px solid #e4e4e7;
+      padding-left: 10px;
+      min-width: 0;
     }
 
-    .site-error {
-      margin: 0;
-      color: var(--color-danger);
-      font-size: var(--fs-sm);
-      line-height: 1.5;
+    @media (max-width: 1024px) {
+      .site-card {
+        grid-template-columns: 1fr;
+      }
+
+      .site-footer {
+        border-left: 0;
+        border-top: 1px solid #e4e4e7;
+        padding-left: 0;
+        padding-top: 8px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .metric-row-bar {
+        grid-template-columns: 86px 1fr;
+      }
+
+      .metric-value {
+        grid-column: 2;
+        justify-self: end;
+        margin-top: 2px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      body { padding: 12px; }
+      .header { padding: 20px 16px; }
+      .content { padding: 14px 16px 18px; }
+      .header-content h1 { font-size: 1.35rem; }
+      .header-right { width: 100%; justify-content: flex-start; }
+      .btn { width: auto; }
     }
   </style>
 </head>
 <body>
-  <div class="page-shell">
-    <header class="toolbar">
-      <a class="back-link" href="./index.html">
-        <i class="fas fa-arrow-left"></i>
-        Back to Cockpit
-      </a>
-      <button id="refreshAqiBtn" class="refresh-btn" type="button">
-        <i class="fas fa-rotate"></i>
-        Refresh Data
-      </button>
+  <div class="container">
+    <header class="header">
+      <div class="header-left">
+        <img src="./images/levante_icon.svg" alt="Levante" class="header-logo" onerror="this.style.display='none';">
+        <div class="header-content">
+          <h1><i class="fas fa-wind"></i> LEVANTE AQI Dashboard</h1>
+          <p>Live AQI and PM2.5 readings for sites in <code>public/data/aqi-sites.json</code>, using the same WAQI proxy as Locate Me.</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="./index.html"><i class="fas fa-arrow-left"></i>Back to Cockpit</a>
+        <button id="refreshAqiBtn" class="btn btn-primary" type="button"><i class="fas fa-rotate"></i>Refresh Data</button>
+      </div>
     </header>
 
-    <section class="panel">
-      <h1><i class="fas fa-wind"></i> LEVANTE AQI Dashboard</h1>
-      <p>Live air quality index (AQI) and PM2.5 readings for Levante sites using the same real-time WAQI proxy API used by Locate Me.</p>
+    <main class="content">
       <div class="meta-row">
         <span>Status: <strong id="statusText" class="status-text" data-kind="info">Not loaded yet</strong></span>
         <span>Last updated: <strong id="updatedAt">Not loaded yet</strong></span>
       </div>
-    </section>
-
-    <section id="summaryGrid" class="summary-grid"></section>
-    <section id="siteGrid" class="site-grid"></section>
+      <section id="summaryGrid" class="summary-grid"></section>
+      <section id="siteGrid" class="site-grid"></section>
+    </main>
   </div>
 
   <script src="./js/aqi-dashboard.js"></script>
