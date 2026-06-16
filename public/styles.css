@@ -294,7 +294,7 @@ body { font-family: var(--font-sans); background: var(--color-bg); background-im
 .validation-header { background: var(--surface-2); color: var(--text-primary); padding: 10px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .validation-content { padding: 15px; display: none; }
 .validation-content.expanded { display: block; }
-.collapse-icon { transition: transform 0.3s; }
+.collapse-icon { transition: transform 0.3s; user-select: none; }
 .collapsed .collapse-icon { transform: rotate(-180deg); }
 
 /* Validation result styles */
