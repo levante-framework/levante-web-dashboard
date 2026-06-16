@@ -123,20 +123,25 @@ async function postSlackTaskFinishedMessage({ langCode, language, task, approver
         limit: '1000',
         types: 'public_channel,private_channel'
       });
-      if (!payload?.ok) {
+      if (!payload?.ok && String(payload?.error || '') === 'missing_scope') {
+        // Some tokens only have chat:write and cannot list channels.
+        // Fall back to direct post using the configured channel name.
+        resolvedChannel = `#${channelName}`;
+      } else if (!payload?.ok) {
         const details = payload?.error || 'unknown_error';
         throw new Error(`Slack conversations.list failed: ${details}`);
+      } else {
+        const matched = Array.isArray(payload.channels)
+          ? payload.channels.find((entry) => String(entry?.name || '').trim() === channelName)
+          : null;
+        if (!matched?.id) {
+          throw new Error(`Slack channel not found: ${resolvedChannel}`);
+        }
+        if (matched.is_member === false) {
+          throw new Error(`Slack bot is not a member of channel: ${resolvedChannel}`);
+        }
+        resolvedChannel = matched.id;
       }
-      const matched = Array.isArray(payload.channels)
-        ? payload.channels.find((entry) => String(entry?.name || '').trim() === channelName)
-        : null;
-      if (!matched?.id) {
-        throw new Error(`Slack channel not found: ${resolvedChannel}`);
-      }
-      if (matched.is_member === false) {
-        throw new Error(`Slack bot is not a member of channel: ${resolvedChannel}`);
-      }
-      resolvedChannel = matched.id;
     }
 
     const response = await fetch('https://slack.com/api/chat.postMessage', {
