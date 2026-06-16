@@ -76,7 +76,7 @@ async function postSlackTaskFinishedMessage({ langCode, language, task, approver
   const channelFromEnv = String(
     process.env.SLACK_FINISHED_TASK_CHANNEL_ID
     || process.env.SLACK_FINISHED_TASK_CHANNEL
-    || '#levante-partners'
+    || '#levante-crowdin'
   ).trim();
   const webhookUrl = String(
     process.env.SLACK_FINISHED_TASK_WEBHOOK_URL
@@ -103,6 +103,42 @@ async function postSlackTaskFinishedMessage({ langCode, language, task, approver
 
   const text = `:white_check_mark: Partner audio review finished\n• Task: *${taskLabel}*\n• Language: *${langLabel}* (\`${normalizeLangCode(langCode)}\`)\n• Audio approved: *${approved}/${total}*\n• Reviewer: *${safeApprover}*`;
   if (botToken) {
+    const callSlackApi = async (method, params = {}) => {
+      const response = await fetch(`https://slack.com/api/${method}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${botToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(params)
+      });
+      const payload = await response.json().catch(() => ({}));
+      return { response, payload };
+    };
+
+    let resolvedChannel = channel;
+    if (resolvedChannel.startsWith('#')) {
+      const channelName = resolvedChannel.replace(/^#/, '').trim();
+      const { payload } = await callSlackApi('conversations.list', {
+        limit: '1000',
+        types: 'public_channel,private_channel'
+      });
+      if (!payload?.ok) {
+        const details = payload?.error || 'unknown_error';
+        throw new Error(`Slack conversations.list failed: ${details}`);
+      }
+      const matched = Array.isArray(payload.channels)
+        ? payload.channels.find((entry) => String(entry?.name || '').trim() === channelName)
+        : null;
+      if (!matched?.id) {
+        throw new Error(`Slack channel not found: ${resolvedChannel}`);
+      }
+      if (matched.is_member === false) {
+        throw new Error(`Slack bot is not a member of channel: ${resolvedChannel}`);
+      }
+      resolvedChannel = matched.id;
+    }
+
     const response = await fetch('https://slack.com/api/chat.postMessage', {
       method: 'POST',
       headers: {
@@ -110,7 +146,7 @@ async function postSlackTaskFinishedMessage({ langCode, language, task, approver
         'Content-Type': 'application/json; charset=utf-8'
       },
       body: JSON.stringify({
-        channel,
+        channel: resolvedChannel,
         text,
         unfurl_links: false,
         unfurl_media: false
@@ -124,7 +160,7 @@ async function postSlackTaskFinishedMessage({ langCode, language, task, approver
     return {
       sent: true,
       mode: 'chat.postMessage',
-      channel: payload.channel || channel,
+      channel: payload.channel || resolvedChannel || channel,
       ts: payload.ts || ''
     };
   }
