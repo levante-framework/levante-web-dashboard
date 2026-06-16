@@ -411,7 +411,9 @@ async function buildFromDraftTaskJson(storage, bucketName) {
       const fileTask = normalizeTaskName(task || '');
       const mappedTask = existingTaskIndex.get(normalizedItemId) || '';
       const overrideTask = inferTaskFromItemId(itemId);
-      const finalTask = normalizeTaskName(mappedTask || entryTask || overrideTask || fileTask);
+      // Task folder is the source of truth for task attribution.
+      // Key-based mapping is only a fallback for legacy/unscoped sources.
+      const finalTask = normalizeTaskName(fileTask || entryTask || mappedTask || overrideTask);
       if (!byId.has(itemId)) {
         byId.set(itemId, {
           item_id: itemId,
