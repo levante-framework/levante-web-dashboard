@@ -101,17 +101,29 @@ async function loadRemoteLanguagesIntoConfig() {
             const winAny = window;
             if (winAny.dashboard && previousSignature !== nextSignature) {
                 winAny.dashboard.languages = winAny.CONFIG.languages;
-                if (document.getElementById('tabButtons')) {
-                    document.getElementById('tabButtons').innerHTML = '';
+                if (typeof winAny.dashboard.populateLanguageDropdown === 'function') {
+                    winAny.dashboard.populateLanguageDropdown();
+                    if (winAny.dashboard.currentLanguage) {
+                        winAny.dashboard.populateDataTable();
+                    }
                 }
-                if (document.getElementById('tabContent')) {
-                    document.getElementById('tabContent').innerHTML = '';
+                else {
+                    if (document.getElementById('tabButtons')) {
+                        document.getElementById('tabButtons').innerHTML = '';
+                    }
+                    if (document.getElementById('tabContent')) {
+                        document.getElementById('tabContent').innerHTML = '';
+                    }
+                    if (typeof winAny.dashboard.createTabs === 'function') {
+                        winAny.dashboard.createTabs();
+                    }
+                    if (typeof winAny.dashboard.populateVoices === 'function') {
+                        winAny.dashboard.populateVoices();
+                    }
                 }
-                winAny.dashboard.createTabs();
-                winAny.dashboard.populateVoices();
             }
             else if (winAny.dashboard) {
-                console.log('Remote language config matches current tabs; skipping tab rebuild');
+                console.log('Remote language config matches current language UI; skipping refresh');
             }
         }
         else {

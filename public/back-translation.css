@@ -1,0 +1,54 @@
+.dashboard-container .header-actions-left {
+  position: relative;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+}
+
+.dashboard-container .header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  height: auto;
+  padding: 30px;
+}
+
+.dashboard-container .header .header-title {
+  flex: 1;
+  display: block;
+  margin: 0;
+}
+
+.dashboard-container .header-actions {
+  position: relative;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+}
+
+.main-content .controls-section-group {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+  height: auto;
+  margin: 0 0 24px;
+}
+
+.main-content .controls-section-group .controls-section {
+  margin: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+}
+
+.main-content .validation-panel {
+  margin: 24px 0 0;
+}
+
+.main-content .tab-content {
+  margin: 24px 0 0;
+  border-radius: var(--radius-sm);
+}
