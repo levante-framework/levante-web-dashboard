@@ -142,8 +142,23 @@ async function listAllFiles(bucket) {
 
 function extractTaskFromJsonPath(pathValue) {
   const normalized = normalizePath(pathValue);
-  const itemBankMatch = normalized.match(/(?:^|\/)itembank\/(?:[^/]+\/)?([^/]+)\.json$/i);
-  if (itemBankMatch && itemBankMatch[1]) return String(itemBankMatch[1]).trim();
+  const segments = normalized.split('/').filter(Boolean);
+  const itembankIdx = segments.findIndex((segment) => String(segment || '').toLowerCase() === 'itembank');
+  if (itembankIdx >= 0) {
+    const afterItembank = String(segments[itembankIdx + 1] || '').trim();
+    const secondAfterItembank = String(segments[itembankIdx + 2] || '').trim();
+
+    // Common layout: .../itembank/<task>/<lang>/item-bank-translations.json
+    if (afterItembank && !looksLikeLangSegment(afterItembank) && !/\.json$/i.test(afterItembank)) {
+      return afterItembank;
+    }
+
+    // Alternative layout: .../itembank/<lang>/<task>.json
+    if (looksLikeLangSegment(afterItembank) && secondAfterItembank && !/\.json$/i.test(secondAfterItembank)) {
+      return secondAfterItembank;
+    }
+  }
+
   const basenameMatch = normalized.match(/([^/]+)\.json$/i);
   return basenameMatch && basenameMatch[1] ? String(basenameMatch[1]).trim() : '';
 }
