@@ -84,16 +84,6 @@ function itemTokenCandidates(value) {
   return Array.from(out).filter(Boolean);
 }
 
-function unitMatchesItem(unit, requestedToken) {
-  const requested = normalizeItemToken(requestedToken);
-  if (!requested) return false;
-  const candidates = [
-    ...itemTokenCandidates(unit?.resname || ''),
-    ...itemTokenCandidates(unit?.id || ''),
-  ];
-  return candidates.includes(requested);
-}
-
 function taskFromPath(pathValue) {
   const normalized = String(pathValue || '').replace(/\\/g, '/');
   const match = normalized.match(/\/main\/itembank_by_task\/([^/]+)\.xli?ff$/i);
@@ -167,27 +157,37 @@ async function waitForBuild(projectId, token, buildId) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
-  if (req.method !== 'GET') {
+  if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ ok: false, error: 'method_not_allowed' });
     return;
   }
 
   try {
-    const itemId = String(req.query.itemId || '').trim();
-    const lang = normalizeLangCode(req.query.lang || '');
-    const approvedOnly = String(req.query.approvedOnly || 'true').toLowerCase() !== 'false';
-    if (!itemId) {
-      res.status(400).json({ ok: false, error: 'missing_item_id', message: 'Pass ?itemId=<id>' });
+    const payload = req.method === 'POST'
+      ? (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {}))
+      : (req.query || {});
+
+    const lang = normalizeLangCode(payload.lang || '');
+    const approvedOnly = String(payload.approvedOnly || 'true').toLowerCase() !== 'false';
+    const rawItemIds = []
+      .concat(payload.itemIds || [])
+      .concat(payload.itemId || [])
+      .map((value) => String(value || '').trim())
+      .filter(Boolean);
+    const itemIds = Array.from(new Set(rawItemIds));
+
+    if (!itemIds.length) {
+      res.status(400).json({ ok: false, error: 'missing_item_id', message: 'Pass itemId or itemIds[]' });
       return;
     }
     if (!lang) {
-      res.status(400).json({ ok: false, error: 'missing_lang', message: 'Pass ?lang=<langCode>' });
+      res.status(400).json({ ok: false, error: 'missing_lang', message: 'Pass lang=<langCode>' });
       return;
     }
 
@@ -230,7 +230,17 @@ module.exports = async function handler(req, res) {
     const archive = unzipSync(new Uint8Array(zipBuffer));
 
     const lowerLang = normalizeLangCode(lang);
-    const matches = [];
+    const requestedByToken = new Map();
+    itemIds.forEach((requestedId) => {
+      const normalizedRequestedId = normalizeItemToken(requestedId);
+      if (!normalizedRequestedId) return;
+      itemTokenCandidates(requestedId).forEach((token) => {
+        if (!requestedByToken.has(token)) requestedByToken.set(token, new Set());
+        requestedByToken.get(token).add(requestedId);
+      });
+    });
+
+    const matchesByRequestedId = new Map();
     const entries = Object.entries(archive);
     entries.forEach(([pathValue, bytes]) => {
       const normalizedPath = String(pathValue || '').replace(/\\/g, '/');
@@ -242,8 +252,19 @@ module.exports = async function handler(req, res) {
       const xliffText = Buffer.from(bytes).toString('utf8');
       const units = parseXliffUnits(xliffText);
       units.forEach((unit) => {
-        if (!unitMatchesItem(unit, itemId)) return;
-        matches.push({
+        const unitTokens = [
+          ...itemTokenCandidates(unit?.resname || ''),
+          ...itemTokenCandidates(unit?.id || ''),
+        ];
+        const matchedRequestedIds = new Set();
+        unitTokens.forEach((token) => {
+          const ids = requestedByToken.get(token);
+          if (!ids) return;
+          ids.forEach((id) => matchedRequestedIds.add(id));
+        });
+        if (!matchedRequestedIds.size) return;
+
+        const payloadMatch = {
           path: normalizedPath,
           task: taskFromPath(normalizedPath),
           resname: String(unit?.resname || ''),
@@ -251,19 +272,40 @@ module.exports = async function handler(req, res) {
           source: String(unit?.source || ''),
           target: String(unit?.target || ''),
           approved: String(unit?.approved || ''),
+        };
+        matchedRequestedIds.forEach((requestedId) => {
+          if (!matchesByRequestedId.has(requestedId)) matchesByRequestedId.set(requestedId, []);
+          matchesByRequestedId.get(requestedId).push(payloadMatch);
         });
       });
     });
 
-    const withTarget = matches.filter((entry) => String(entry.target || '').trim());
+    const resultsByItemId = {};
+    itemIds.forEach((requestedId) => {
+      const matches = matchesByRequestedId.get(requestedId) || [];
+      const withTarget = matches.filter((entry) => String(entry.target || '').trim());
+      resultsByItemId[requestedId] = {
+        itemId: requestedId,
+        matchCount: matches.length,
+        matches,
+        bestMatch: withTarget[0] || matches[0] || null,
+      };
+    });
+
+    const singleRequestedId = itemIds.length === 1 ? itemIds[0] : '';
+    const singleResult = singleRequestedId ? resultsByItemId[singleRequestedId] : null;
+
     res.status(200).json({
       ok: true,
-      itemId,
+      itemIds,
       lang: lowerLang,
       approvedOnly,
-      matchCount: matches.length,
-      matches,
-      bestMatch: withTarget[0] || matches[0] || null,
+      resultsByItemId,
+      // Backward-compatible fields for single-item callers.
+      itemId: singleRequestedId || '',
+      matchCount: singleResult?.matchCount || 0,
+      matches: singleResult?.matches || [],
+      bestMatch: singleResult?.bestMatch || null,
     });
   } catch (error) {
     console.error('Crowdin approved item lookup failed:', error);

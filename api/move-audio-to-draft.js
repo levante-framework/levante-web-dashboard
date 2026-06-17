@@ -65,10 +65,19 @@ export default async function handler(req, res) {
     const sourceBucket = storage.bucket(sourceBucketName);
     const sourceFile = sourceBucket.file(sanitizedPath);
 
-    // Check if source file exists
+    // Check if source file exists.
+    // If it is already absent, treat this as idempotent success so bulk unapprove
+    // can classify it as skipped/already moved instead of failed.
     const [exists] = await sourceFile.exists();
     if (!exists) {
-      res.status(404).json({ error: `Source file not found: ${sanitizedPath}` });
+      res.status(200).json({
+        success: true,
+        alreadyMoved: true,
+        message: `Source file already absent in ${sourceBucketName}: ${sanitizedPath}`,
+        sourceBucket: sourceBucketName,
+        targetBucket: TARGET_BUCKET,
+        path: sanitizedPath
+      });
       return;
     }
 

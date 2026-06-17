@@ -1082,6 +1082,48 @@
             gap: 6px;
         }
 
+        .crowdin-approval-badge {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: 2px 8px;
+            border: 1px solid transparent;
+            line-height: 1.3;
+        }
+
+        .crowdin-approval-badge.is-checking {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        .crowdin-approval-badge.is-approved {
+            background: #ecfdf3;
+            border-color: #86efac;
+            color: #166534;
+        }
+
+        .crowdin-approval-badge.is-not-approved {
+            background: #fff7ed;
+            border-color: #fdba74;
+            color: #9a3412;
+        }
+
+        .crowdin-approval-badge.is-error {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        .crowdin-approval-badge.is-unknown {
+            background: #f4f4f5;
+            border-color: #d4d4d8;
+            color: #52525b;
+        }
+
         .item-card-compact-source {
             color: #6b7280;
             font-size: 0.85rem;
@@ -2147,6 +2189,8 @@
                 this.commonAudioTagsStorageKeyPrefix = 'partnerAudioCommonTags';
                 this.contextMenuTargetInput = null;
                 this.enhancedTagContextMenuEl = null;
+                this.crowdinApprovalByLang = new Map();
+                this.crowdinApprovalRequestToken = 0;
                 this._hasShownNoSoundHint = false;
                 this._activePlaybackProbe = null;
                 try {
@@ -6539,6 +6583,7 @@
                             failed++;
                             await this.logApproverAudioEvent('bulk_unapprove_task_item_failed', itemId, {
                                 task: selectedTask,
+                                errorMessage: String(error?.message || error || ''),
                                 hadPendingGeneratedAudio: false,
                                 savedGeneratedAudio: false
                             });
@@ -6787,6 +6832,7 @@
                             <div class="item-header">
                                 <div>
                                     <div class="item-id">${escapedItemId}</div>
+                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                             </div>
@@ -6843,6 +6889,7 @@
                 
                 // Update save button states
                 this.updateSaveButtonStates();
+                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
             renderApprovedItems(items) {
@@ -6873,6 +6920,7 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
+                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-text">${escapedTranslated}</div>
@@ -6888,6 +6936,7 @@
                         </div>
                     `;
                 }).join('');
+                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
             renderNoAudioItems(items) {
@@ -6929,6 +6978,7 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
+                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
@@ -6948,6 +6998,138 @@
                 
                 // Update save button states
                 this.updateSaveButtonStates();
+                this.hydrateCrowdinApprovalForRenderedItems(container);
+            }
+
+            normalizeCrowdinApprovalKey(itemId) {
+                return String(itemId || '').trim().toLowerCase();
+            }
+
+            getCrowdinApprovalLangCache(langCode, create = false) {
+                const key = String(langCode || '').trim().toLowerCase();
+                if (!key) return null;
+                if (!this.crowdinApprovalByLang.has(key) && create) {
+                    this.crowdinApprovalByLang.set(key, new Map());
+                }
+                return this.crowdinApprovalByLang.get(key) || null;
+            }
+
+            getCrowdinApprovalDisplay(entry) {
+                const status = String(entry?.status || 'unknown');
+                if (status === 'checking') {
+                    return { className: 'is-checking', label: 'Crowdin: checking...', title: 'Looking up approved translation in Crowdin.' };
+                }
+                if (status === 'approved') {
+                    const task = String(entry?.task || '').trim();
+                    return {
+                        className: 'is-approved',
+                        label: 'Crowdin: approved',
+                        title: task ? `Approved in Crowdin under task: ${task}` : 'Approved in Crowdin.'
+                    };
+                }
+                if (status === 'not_approved') {
+                    return { className: 'is-not-approved', label: 'Crowdin: not approved', title: 'No approved translation found in Crowdin export.' };
+                }
+                if (status === 'error') {
+                    return { className: 'is-error', label: 'Crowdin: check failed', title: String(entry?.error || 'Crowdin lookup failed.') };
+                }
+                return { className: 'is-unknown', label: 'Crowdin: not checked', title: 'Crowdin approval status has not been checked yet.' };
+            }
+
+            renderCrowdinApprovalBadge(itemId) {
+                const rawItemId = String(itemId || '').trim();
+                const escapedItemId = this.escapeHtml(rawItemId);
+                const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
+                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
+                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
+            }
+
+            applyCrowdinApprovalBadges(root = document) {
+                const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
+                if (!root || !root.querySelectorAll) return;
+                root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]').forEach((node) => {
+                    const rawItemId = String(node.dataset?.itemId || '').trim();
+                    if (!rawItemId) return;
+                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                    const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
+                    node.className = `crowdin-approval-badge ${display.className}`;
+                    node.textContent = display.label;
+                    node.title = display.title;
+                });
+            }
+
+            async hydrateCrowdinApprovalForRenderedItems(container = null) {
+                const langCode = String(this.currentLangCode || '').trim();
+                if (!langCode) return;
+                const root = container || document;
+                if (!root || !root.querySelectorAll) return;
+
+                const badgeNodes = Array.from(root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]'));
+                if (!badgeNodes.length) return;
+
+                const langCache = this.getCrowdinApprovalLangCache(langCode, true);
+                const toLookup = [];
+                badgeNodes.forEach((node) => {
+                    const rawItemId = String(node.dataset?.itemId || '').trim();
+                    if (!rawItemId) return;
+                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                    if (!langCache.has(cacheKey)) {
+                        langCache.set(cacheKey, { status: 'checking' });
+                        toLookup.push(rawItemId);
+                    }
+                });
+
+                this.applyCrowdinApprovalBadges(root);
+                if (!toLookup.length) return;
+
+                const requestToken = ++this.crowdinApprovalRequestToken;
+                try {
+                    const response = await fetch('/api/crowdin-approved-item', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            lang: langCode,
+                            itemIds: toLookup,
+                            approvedOnly: true,
+                        }),
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || payload?.ok !== true) {
+                        throw new Error(String(payload?.message || payload?.error || `HTTP ${response.status}`));
+                    }
+
+                    const results = payload?.resultsByItemId && typeof payload.resultsByItemId === 'object'
+                        ? payload.resultsByItemId
+                        : {};
+                    toLookup.forEach((itemId) => {
+                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
+                        const result = results[itemId] || null;
+                        const bestMatch = result?.bestMatch || null;
+                        const target = String(bestMatch?.target || '').trim();
+                        if (target) {
+                            langCache.set(cacheKey, {
+                                status: 'approved',
+                                task: String(bestMatch?.task || ''),
+                                target,
+                            });
+                        } else {
+                            langCache.set(cacheKey, {
+                                status: 'not_approved',
+                            });
+                        }
+                    });
+                } catch (error) {
+                    const errText = String(error?.message || error || 'Crowdin lookup failed');
+                    toLookup.forEach((itemId) => {
+                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
+                        langCache.set(cacheKey, { status: 'error', error: errText });
+                    });
+                }
+
+                if (requestToken === this.crowdinApprovalRequestToken && String(this.currentLangCode || '').trim() === langCode) {
+                    this.applyCrowdinApprovalBadges(root);
+                }
             }
 
             getCompareStateKey(itemId, langCode = this.currentLangCode) {
@@ -8064,6 +8246,14 @@
                     this.invalidateAudioCache(this.audioBuckets.dev, this.currentLangCode, normalizedBaseId);
                     this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, normalizedBaseId);
                     const moveResult = await moveResponse.json().catch(() => ({}));
+                    if (moveResult?.alreadyMoved === true) {
+                        return {
+                            sourceBucket: moveResult?.sourceBucket || this.audioBuckets.dev,
+                            targetBucket: moveResult?.targetBucket || this.audioBuckets.draft,
+                            path: moveResult?.path || audioPath,
+                            alreadyMoved: true
+                        };
+                    }
                     return {
                         sourceBucket: moveResult?.sourceBucket || this.audioBuckets.dev,
                         targetBucket: moveResult?.targetBucket || this.audioBuckets.draft,
