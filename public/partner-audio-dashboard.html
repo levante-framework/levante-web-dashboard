@@ -3752,6 +3752,8 @@
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
                 this.updateFinishedTaskButtonVisibility({ totalAudio: 0, approvedAudio: 0 });
+                // Keep task action button labels aligned with the selected task.
+                this.updateRefreshIndicator();
             }
 
             resolveLanguageKey(languageName) {
@@ -6969,7 +6971,7 @@
                             <div class="item-header">
                                 <div>
                                     <div class="item-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
+                                    ${this.renderCrowdinApprovalBadge(itemId, item)}
                                     ${screenshotThumbHtml}
                                 </div>
                             </div>
@@ -7062,7 +7064,7 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
+                                    ${this.renderCrowdinApprovalBadge(itemId, item)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-text">${escapedTranslated}</div>
@@ -7122,7 +7124,7 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
+                                    ${this.renderCrowdinApprovalBadge(itemId, item)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
@@ -7145,8 +7147,20 @@
                 this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
-            normalizeCrowdinApprovalKey(itemId) {
-                return String(itemId || '').trim().toLowerCase();
+            getCrowdinTaskKeyFromItem(item = null, itemId = '') {
+                const taskName = item
+                    ? this.extractTaskName(item)
+                    : this.extractTaskName(
+                        (Array.isArray(this.data) ? this.data : []).find((entry) => String(entry?.item_id || '').trim() === String(itemId || '').trim())
+                    );
+                return this.normalizeTaskLookupKey(taskName || '');
+            }
+
+            normalizeCrowdinApprovalKey(itemId, taskKey = '') {
+                const normalizedItemId = String(itemId || '').trim().toLowerCase();
+                const normalizedTaskKey = String(taskKey || '').trim().toLowerCase();
+                if (!normalizedTaskKey) return normalizedItemId;
+                return `${normalizedItemId}::${normalizedTaskKey}`;
             }
 
             getCrowdinApprovalLangCache(langCode, create = false) {
@@ -7180,13 +7194,15 @@
                 return { className: 'is-unknown', label: 'Crowdin: not checked', title: 'Crowdin approval status has not been checked yet.' };
             }
 
-            renderCrowdinApprovalBadge(itemId) {
+            renderCrowdinApprovalBadge(itemId, item = null) {
                 const rawItemId = String(itemId || '').trim();
                 const escapedItemId = this.escapeHtml(rawItemId);
+                const taskKey = this.getCrowdinTaskKeyFromItem(item, rawItemId);
+                const escapedTaskKey = this.escapeHtml(taskKey);
                 const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
-                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
                 const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
-                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
+                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" data-crowdin-task-key="${escapedTaskKey}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
             }
 
             applyCrowdinApprovalBadges(root = document) {
@@ -7195,12 +7211,28 @@
                 root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]').forEach((node) => {
                     const rawItemId = String(node.dataset?.itemId || '').trim();
                     if (!rawItemId) return;
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                    const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
                     const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
                     node.className = `crowdin-approval-badge ${display.className}`;
                     node.textContent = display.label;
                     node.title = display.title;
                 });
+            }
+
+            resolveCrowdinBestMatchForTask(result, taskKey = '') {
+                const matches = Array.isArray(result?.matches) ? result.matches : [];
+                const normalizedTaskKey = this.normalizeTaskLookupKey(taskKey || '');
+                if (normalizedTaskKey) {
+                    const taskMatched = matches.find((entry) => {
+                        const entryTaskKey = this.normalizeTaskLookupKey(String(entry?.task || '').trim());
+                        return entryTaskKey && entryTaskKey === normalizedTaskKey && String(entry?.target || '').trim();
+                    });
+                    if (taskMatched) return taskMatched;
+                }
+                const bestMatch = result?.bestMatch || null;
+                if (String(bestMatch?.target || '').trim()) return bestMatch;
+                return matches.find((entry) => String(entry?.target || '').trim()) || null;
             }
 
             async hydrateCrowdinApprovalForRenderedItems(container = null) {
@@ -7213,18 +7245,20 @@
                 if (!badgeNodes.length) return;
 
                 const langCache = this.getCrowdinApprovalLangCache(langCode, true);
-                const toLookup = [];
+                const toLookupSet = new Set();
                 badgeNodes.forEach((node) => {
                     const rawItemId = String(node.dataset?.itemId || '').trim();
                     if (!rawItemId) return;
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                    const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
                     if (!langCache.has(cacheKey)) {
                         langCache.set(cacheKey, { status: 'checking' });
-                        toLookup.push(rawItemId);
+                        toLookupSet.add(rawItemId);
                     }
                 });
 
                 this.applyCrowdinApprovalBadges(root);
+                const toLookup = Array.from(toLookupSet.values());
                 if (!toLookup.length) return;
 
                 const requestToken = ++this.crowdinApprovalRequestToken;
@@ -7246,10 +7280,13 @@
                     const results = payload?.resultsByItemId && typeof payload.resultsByItemId === 'object'
                         ? payload.resultsByItemId
                         : {};
-                    toLookup.forEach((itemId) => {
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
+                    badgeNodes.forEach((node) => {
+                        const itemId = String(node.dataset?.itemId || '').trim();
+                        if (!itemId || !toLookupSet.has(itemId)) return;
+                        const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId, taskKey);
                         const result = results[itemId] || null;
-                        const bestMatch = result?.bestMatch || null;
+                        const bestMatch = this.resolveCrowdinBestMatchForTask(result, taskKey);
                         const target = String(bestMatch?.target || '').trim();
                         if (target) {
                             langCache.set(cacheKey, {
@@ -7257,16 +7294,19 @@
                                 task: String(bestMatch?.task || ''),
                                 target,
                             });
-                        } else {
-                            langCache.set(cacheKey, {
-                                status: 'not_approved',
-                            });
+                            return;
                         }
+                        langCache.set(cacheKey, {
+                            status: 'not_approved',
+                        });
                     });
                 } catch (error) {
                     const errText = String(error?.message || error || 'Crowdin lookup failed');
-                    toLookup.forEach((itemId) => {
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
+                    badgeNodes.forEach((node) => {
+                        const itemId = String(node.dataset?.itemId || '').trim();
+                        if (!itemId || !toLookupSet.has(itemId)) return;
+                        const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId, taskKey);
                         langCache.set(cacheKey, { status: 'error', error: errText });
                     });
                 }
@@ -8703,16 +8743,20 @@
             }
 
             async handleTaskFilterChange(taskName) {
-                this.currentTaskFilter = String(taskName || '__all__');
+                const requestedTask = String(taskName || '__all__');
+                this.currentTaskFilter = this.isNonTaskBucketName(requestedTask) ? '__all__' : requestedTask;
                 const storageKey = this.getTaskFilterStorageKey(this.currentLangCode);
                 if (this.currentTaskFilter === '__all__') {
                     localStorage.removeItem(storageKey);
                 } else {
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
+                // Update Approve/Unapprove task button labels immediately on dropdown change.
+                this.updateRefreshIndicator();
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
                 }
+                this.updateRefreshIndicator();
             }
 
             async promoteStagedApprovalsForTask(taskName) {
