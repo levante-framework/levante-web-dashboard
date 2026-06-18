@@ -1144,6 +1144,20 @@
             margin-top: 4px;
         }
 
+        .item-card-compact-meta {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #52525b;
+            line-height: 1.45;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .item-card-compact-meta strong {
+            color: #3f3f46;
+            font-weight: 600;
+        }
+
         .item-card-compact-actions {
             display: flex;
             gap: 8px;
@@ -2191,6 +2205,7 @@
                 this.enhancedTagContextMenuEl = null;
                 this.crowdinApprovalByLang = new Map();
                 this.crowdinApprovalRequestToken = 0;
+                this.approvalDetailsByLang = new Map();
                 this._hasShownNoSoundHint = false;
                 this._activePlaybackProbe = null;
                 try {
@@ -5932,6 +5947,7 @@
                 
                 // Render items directly for the current tab (don't re-filter)
                 if (this.currentTab === 'approved') {
+                    await this.loadApprovalDetailsFromServer(itemsToShow, this.currentLangCode);
                     this.renderApprovedItems(itemsToShow);
                     this.setStatus(`Finished loading - ${itemsToShow.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
@@ -6630,6 +6646,7 @@
                 if (this.currentTab === 'approved') {
                     // For approved tab, get items from dev bucket
                     const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    await this.loadApprovalDetailsFromServer(approvedItemsList, this.currentLangCode);
                     this.renderApprovedItems(approvedItemsList);
                     this.setStatus(`Showing ${approvedItemsList.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
@@ -6743,6 +6760,126 @@
                     console.error('Error getting approved items from dev:', error);
                     return [];
                 }
+            }
+
+            getApprovalDetailsCacheEntry(langCode = this.currentLangCode, create = false) {
+                const key = String(langCode || '').trim().toLowerCase();
+                if (!key) return null;
+                if (!this.approvalDetailsByLang.has(key) && create) {
+                    this.approvalDetailsByLang.set(key, {
+                        byItem: new Map(),
+                        loadedAt: 0,
+                        loadingPromise: null
+                    });
+                }
+                return this.approvalDetailsByLang.get(key) || null;
+            }
+
+            normalizeApprovalDetailItemId(itemId) {
+                const normalized = this.extractBaseId(itemId || '');
+                if (normalized) return normalized;
+                return String(itemId || '').trim().toLowerCase();
+            }
+
+            getApprovalDetailForItem(itemId, langCode = this.currentLangCode) {
+                const entry = this.getApprovalDetailsCacheEntry(langCode, false);
+                if (!entry || !(entry.byItem instanceof Map)) return null;
+                const key = this.normalizeApprovalDetailItemId(itemId);
+                if (!key) return null;
+                return entry.byItem.get(key) || null;
+            }
+
+            buildApprovalDetailMetaLabel(detail) {
+                if (!detail) return '';
+                const actor = String(detail.approver || '').trim();
+                const approvalAtRaw = String(detail.approvedAt || detail.approvalAt || '').trim();
+                const approvalTs = Date.parse(approvalAtRaw);
+                const approvalAt = Number.isFinite(approvalTs) ? new Date(approvalTs).toLocaleString() : '';
+                if (actor && approvalAt) return `Approved by ${actor} on ${approvalAt}`;
+                if (actor) return `Approved by ${actor}`;
+                if (approvalAt) return `Approved on ${approvalAt}`;
+                return '';
+            }
+
+            getApprovedEnhancedTextForItem(itemId, translatedText, detail) {
+                const enhancedText = String(detail?.enhancedText || '').trim();
+                if (enhancedText) return enhancedText;
+                const approvedText = String(detail?.approvedText || '').trim();
+                if (approvedText) return approvedText;
+                return '';
+            }
+
+            async loadApprovalDetailsFromServer(items = [], langCode = this.currentLangCode, options = {}) {
+                const normalizedLang = String(langCode || '').trim();
+                if (!normalizedLang) return new Map();
+
+                const entry = this.getApprovalDetailsCacheEntry(normalizedLang, true);
+                if (!entry) return new Map();
+
+                const maxAgeMs = 3 * 60 * 1000;
+                const forceRefresh = options.forceRefresh === true;
+                const approvedItems = Array.isArray(items) ? items : [];
+                const itemIds = approvedItems
+                    .map((item) => this.normalizeApprovalDetailItemId(item?.item_id || ''))
+                    .filter(Boolean);
+                const missingIds = itemIds.filter((itemId) => !entry.byItem.has(itemId));
+
+                if (!forceRefresh && missingIds.length === 0 && entry.loadedAt > 0 && (Date.now() - entry.loadedAt) < maxAgeMs) {
+                    return entry.byItem;
+                }
+                if (entry.loadingPromise) {
+                    return entry.loadingPromise;
+                }
+
+                entry.loadingPromise = (async () => {
+                    const targets = forceRefresh ? itemIds : missingIds;
+                    await Promise.all(targets.map(async (normalizedItemId) => {
+                        try {
+                            const params = new URLSearchParams({
+                                bucket: this.audioBuckets.dev,
+                                strict: '1',
+                                langCode: normalizedLang,
+                                itemId: normalizedItemId
+                            });
+                            const response = await fetch(`/api/read-tags?${params.toString()}`, {
+                                cache: 'no-store'
+                            });
+                            if (!response.ok) {
+                                entry.byItem.set(normalizedItemId, {
+                                    approver: '',
+                                    approvedAt: '',
+                                    enhancedText: '',
+                                    approvedText: ''
+                                });
+                                return;
+                            }
+                            const payload = await response.json().catch(() => ({}));
+                            const id3Tags = payload?.id3Tags || {};
+                            entry.byItem.set(normalizedItemId, {
+                                approver: String(id3Tags?.approved_by || '').trim(),
+                                approvedAt: String(id3Tags?.approved_at || '').trim(),
+                                enhancedText: String(id3Tags?.audio_enhanced_text || '').trim(),
+                                approvedText: String(id3Tags?.text || '').trim()
+                            });
+                        } catch (_error) {
+                            entry.byItem.set(normalizedItemId, {
+                                approver: '',
+                                approvedAt: '',
+                                enhancedText: '',
+                                approvedText: ''
+                            });
+                        }
+                    }));
+                    entry.loadedAt = Date.now();
+                    return entry.byItem;
+                })().catch((error) => {
+                    console.warn('Failed to load approval details for Approved tab:', error?.message || error);
+                    return entry.byItem;
+                }).finally(() => {
+                    entry.loadingPromise = null;
+                });
+
+                return entry.loadingPromise;
             }
 
             async renderItems(items) {
@@ -6910,9 +7047,14 @@
                     const itemId = item.item_id || 'unknown';
                     const sourceText = item.en || item.english || '';
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
+                    const approvalDetail = this.getApprovalDetailForItem(itemId, this.currentLangCode);
+                    const approvedEnhancedText = this.getApprovedEnhancedTextForItem(itemId, translatedText, approvalDetail);
+                    const approvalMetaLabel = this.buildApprovalDetailMetaLabel(approvalDetail);
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText);
+                    const escapedApprovedEnhanced = this.escapeHtml(approvedEnhancedText || '');
+                    const escapedApprovalMeta = this.escapeHtml(approvalMetaLabel);
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     return `
@@ -6924,6 +7066,8 @@
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-text">${escapedTranslated}</div>
+                                <div class="item-card-compact-meta"><strong>Approved text:</strong> ${escapedApprovedEnhanced || '<em style="color: #71717a;">No approved text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Approval:</strong> ${escapedApprovalMeta}</div>
                             </div>
                             <div class="item-card-compact-actions">
                                 <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play audio">
@@ -8605,7 +8749,9 @@
                                 path: audioPath,
                                 task: selectedTask,
                                 langCode: this.currentLangCode,
-                                copyTaskTranslations: !requestedTranslationCopy
+                                copyTaskTranslations: !requestedTranslationCopy,
+                                approver: String(this.currentUserEmail || '').trim(),
+                                approvedAt: new Date().toISOString()
                             })
                         });
                         const movePayload = await moveResponse.json().catch(() => ({}));

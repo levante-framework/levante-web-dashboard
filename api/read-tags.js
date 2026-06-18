@@ -18,6 +18,14 @@ function hasUsefulTags(tags) {
     } catch { return false; }
 }
 
+function getUserDefinedTagValue(tags, description) {
+    if (!tags || !Array.isArray(tags.userDefinedText)) return '';
+    const normalizedDescription = String(description || '').trim();
+    if (!normalizedDescription) return '';
+    const match = tags.userDefinedText.find((entry) => String(entry?.description || '').trim() === normalizedDescription);
+    return String(match?.value || '').trim();
+}
+
 async function initializeGCS() {
     if (storageClient) return storageClient;
     
@@ -192,6 +200,10 @@ async function readAudioMetadata(audioUrl) {
                           id3Tags?.lang_code || languageCode,
                 text: id3Tags?.userDefinedText?.find(t => t.description === 'text')?.value || 
                      id3Tags?.text || 'Original text not available',
+                audio_enhanced_text: getUserDefinedTagValue(id3Tags, 'audio_enhanced_text'),
+                original_translation_text: getUserDefinedTagValue(id3Tags, 'original_translation_text'),
+                approved_by: getUserDefinedTagValue(id3Tags, 'approved_by'),
+                approved_at: getUserDefinedTagValue(id3Tags, 'approved_at'),
                 created: id3Tags?.userDefinedText?.find(t => t.description === 'created')?.value || 
                         id3Tags?.date || metadata.timeCreated || null,
                 copyright: id3Tags?.copyright || 'This file was created for the LEVANTE project and is released under a Creative Commons BY-NC-SA 4.0 license',
@@ -450,6 +462,10 @@ export default async function handler(req, res) {
                     voice: tags?.userDefinedText?.find(t => t.description === 'voice')?.value || tags?.voice || 'Not available',
                     lang_code: tags?.userDefinedText?.find(t => t.description === 'lang_code')?.value || tags?.lang_code || undefined,
                     text: tags?.userDefinedText?.find(t => t.description === 'text')?.value || tags?.text || 'Original text not available',
+                    audio_enhanced_text: getUserDefinedTagValue(tags, 'audio_enhanced_text'),
+                    original_translation_text: getUserDefinedTagValue(tags, 'original_translation_text'),
+                    approved_by: getUserDefinedTagValue(tags, 'approved_by'),
+                    approved_at: getUserDefinedTagValue(tags, 'approved_at'),
                     created: tags?.userDefinedText?.find(t => t.description === 'created')?.value || tags?.date || null,
                     comment: tags?.comment?.text || tags?.comment || `Generated audio for item: ${name}`,
                     debug_raw_tags: tags ? Object.fromEntries(Object.entries(tags).slice(0, 10)) : null
@@ -505,6 +521,10 @@ export default async function handler(req, res) {
                     voice: id3Tags?.userDefinedText?.find(t => t.description === 'voice')?.value || id3Tags?.voice || 'Not available',
                     lang_code: id3Tags?.userDefinedText?.find(t => t.description === 'lang_code')?.value || id3Tags?.lang_code || langCode,
                     text: id3Tags?.userDefinedText?.find(t => t.description === 'text')?.value || id3Tags?.text || 'Original text not available',
+                    audio_enhanced_text: getUserDefinedTagValue(id3Tags, 'audio_enhanced_text'),
+                    original_translation_text: getUserDefinedTagValue(id3Tags, 'original_translation_text'),
+                    approved_by: getUserDefinedTagValue(id3Tags, 'approved_by'),
+                    approved_at: getUserDefinedTagValue(id3Tags, 'approved_at'),
                     created: id3Tags?.userDefinedText?.find(t => t.description === 'created')?.value || id3Tags?.date || null,
                     copyright: id3Tags?.copyright || 'This file was created for the LEVANTE project and is released under a Creative Commons BY-NC-SA 4.0 license',
                     comment: id3Tags?.comment?.text || id3Tags?.comment || `Generated audio for item: ${itemId}`,
@@ -564,6 +584,10 @@ export default async function handler(req, res) {
                                     voice: tags?.userDefinedText?.find(t => t.description === 'voice')?.value || tags?.voice || 'Not available',
                                     lang_code: tags?.userDefinedText?.find(t => t.description === 'lang_code')?.value || tags?.lang_code || fallbackLang,
                                     text: tags?.userDefinedText?.find(t => t.description === 'text')?.value || tags?.text || 'Original text not available',
+                                    audio_enhanced_text: getUserDefinedTagValue(tags, 'audio_enhanced_text'),
+                                    original_translation_text: getUserDefinedTagValue(tags, 'original_translation_text'),
+                                    approved_by: getUserDefinedTagValue(tags, 'approved_by'),
+                                    approved_at: getUserDefinedTagValue(tags, 'approved_at'),
                                     created: tags?.userDefinedText?.find(t => t.description === 'created')?.value || tags?.date || null,
                                     copyright: tags?.copyright || 'This file was created for the LEVANTE project and is released under a Creative Commons BY-NC-SA 4.0 license',
                                     comment: tags?.comment?.text || tags?.comment || `Generated audio for item: ${itemId}`,
