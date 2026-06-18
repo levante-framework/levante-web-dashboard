@@ -44,11 +44,230 @@
   box-shadow: none;
 }
 
+.main-content .controls-section-group .controls-section .control-group > label {
+  flex: 1 100%;
+}
+
 .main-content .validation-panel {
   margin: 24px 0 0;
+}
+
+.main-content .validation-panel .validation-controls {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: none;
 }
 
 .main-content .tab-content {
   margin: 24px 0 0;
   border-radius: var(--radius-sm);
+}
+
+.main-content .data-table .table-header {
+  justify-content: flex-start;
+  gap: 16px;
+  border-bottom: none;
+}
+
+.main-content .data-table .table-header .table-header-title {
+  display: block;
+  margin: 0 auto 0 0;
+}
+
+.main-content .data-table .table-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 18px 18px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+
+.main-content .data-table .table-options .sort-btn {
+  background-color: #f8f9fa;
+  border: 1px solid #b0bec5;
+}
+
+.main-content .data-table .table-options .table-filters {
+  margin: 0 0 0 auto;
+}
+
+.main-content .data-table {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content .data-table .data-row {
+  min-height: auto;
+  gap: 12px;
+}
+
+.main-content .data-table .data-row .data-cell {
+  flex: 1;
+  flex-shrink: 0;
+}
+
+.main-content .data-table .data-row .data-cell--actions {
+  flex: 2;
+}
+
+.main-content .data-table .data-row .data-cell .data-cell-label {
+  display: block;
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.main-content
+  .data-table
+  .data-row
+  .data-cell
+  .needs-review-container
+  .approved-toggle-label {
+  margin: 0;
+}
+
+.main-content .data-table .data-row .data-cell .validate-btn {
+  padding: 6px 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: white;
+  line-height: 1;
+}
+
+.main-content .data-table .data-row .data-cell .validate-btn--status-good {
+  background-color: var(--color-success);
+}
+
+.main-content .data-table .data-row .data-cell .validate-btn--status-warning {
+  background-color: var(--color-warning);
+}
+
+.main-content .data-table .data-row .data-cell .validate-btn--status-error {
+  background-color: var(--color-danger);
+}
+
+.main-content .data-table .data-row .data-cell--english,
+.main-content .data-table .data-row .data-cell--backtranslation {
+  color: var(--text-muted);
+}
+
+.language-panel-header {
+  display: flex;
+  flex-direction: column;
+}
+
+.language-panel-title {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin: 0 !important;
+  line-height: 1;
+}
+
+.language-panel-subtitle {
+  display: block;
+  margin: 0 0 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.language-flag {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.language-code {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+/* MODAL */
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 32px;
+}
+
+.modal-body .translation-data-wrapper {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+}
+
+.modal-body .translation-data-wrapper .translation-data {
+  flex: 1;
+}
+
+.modal-body .translation-data-wrapper .translation-data-label {
+  display: block;
+  margin: 0;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.modal-body .review-reason {
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.modal-body .review-reason .review-reason-label {
+  display: block;
+  margin: 0;
+}
+
+.modal-body .review-reason .reason-input {
+  display: block;
+  width: 100%;
+  margin: 8px 0 0;
+  padding: 8px 14px;
+  background: var(--surface-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-pill);
+  color: var(--text-primary);
+}
+
+.modal-body .review-reason .reason-input::placeholder {
+  color: var(--text-muted);
+}
+
+.modal-body .review-reason .reason-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  padding: 0 32px 32px;
 }

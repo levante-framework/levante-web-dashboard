@@ -109,9 +109,9 @@
           </a>
         </div>
 
-        <h1 class="header-title">
+        <h2 class="header-title">
           <i class="fas fa-language"></i> Translations Dashboard
-        </h1>
+        </h2>
 
         <div class="header-actions">
           <div
@@ -143,6 +143,7 @@
           </div>
         </div>
       </div>
+
       <div class="main-content">
         <div class="controls-section-group">
           <div class="controls-section">
@@ -154,8 +155,13 @@
 
               <select
                 id="languageDropdown"
-                class="voice-select"
-                style="max-width: 260px"
+                class="voice-select btn-compact"
+                style="
+                  height: 30px;
+                  padding: 0 8px;
+                  min-width: 150px;
+                  max-width: 260px;
+                "
               >
                 <option value="" hidden selected>Select language</option>
               </select>
@@ -167,10 +173,10 @@
 
           <div class="controls-section data-sources-section">
             <div class="control-group data-source-panel">
-              <label
-                ><i class="fas fa-database"></i> Data Source - Crowdin (approved
-                only)</label
-              >
+              <label>
+                <i class="fas fa-database"></i>
+                Data Source - Crowdin (approved only)
+              </label>
               <div
                 style="
                   display: flex;
@@ -192,10 +198,11 @@
                   class="text-muted"
                   style="font-size: 0.85em"
                 ></span>
-                <span class="text-muted" style="font-size: 0.82em"
-                  >Crowdin is loaded from cache by default. Click
-                  <strong>Update Translations</strong> to refresh.</span
-                >
+                <span class="text-muted" style="font-size: 0.82em">
+                  Changing language fetches the latest approved Crowdin export.
+                  Use <strong>Update Translations</strong> to refresh without
+                  switching language.
+                </span>
               </div>
             </div>
           </div>
@@ -204,17 +211,18 @@
         <!-- Translation Validation Panel -->
         <div class="validation-panel">
           <div class="validation-header" onclick="toggleValidationPanel()">
-            <span
-              ><i class="fas fa-check-circle"></i> Translation Validation
+            <span>
+              <i class="fas fa-check-circle"></i> Translation Validation
               <span
                 style="
                   font-weight: normal;
                   color: var(--text-secondary);
                   font-size: 0.9em;
                 "
-                >(counts &amp; report inside)</span
-              ></span
-            >
+              >
+                (counts &amp; report inside)
+              </span>
+            </span>
             <span class="collapse-icon">▲</span>
           </div>
           <div class="validation-content expanded" id="validationContent">
@@ -243,22 +251,11 @@
               >
                 <i class="fas fa-check-circle"></i> Validate All
               </button>
+
               <input type="hidden" id="aiJudgeMode" value="hybrid" />
-              <select
-                id="validateAllMode"
-                class="voice-select btn-compact"
-                style="
-                  height: 32px;
-                  padding: 0 10px;
-                  max-width: 170px;
-                  min-width: 150px;
-                "
-                title="Choose whether Validate All only runs pending rows or re-runs everything"
-              >
-                <option value="pending">Update Only</option>
-                <option value="force">Force all (overwrite scores)</option>
-              </select>
+
               <input type="hidden" id="validateSpeedMode" value="turbo" />
+
               <button
                 id="saveValidations"
                 class="btn btn-success btn-compact"
@@ -619,126 +616,147 @@
           class="tab-content active"
           style="display: none"
         >
-          <h3 id="languagePanelTitle">
-            <span id="languagePanelFlag"></span>
-            <span id="languagePanelName"></span>
-          </h3>
-          <div class="language-info">
-            <div class="info-card">
-              <strong>Language Code</strong>
-              <span id="languageCodeLabel">—</span>
-            </div>
+          <div class="language-panel-header">
+            <small class="language-panel-subtitle">Selected language</small>
+
+            <h3 id="languagePanelTitle" class="language-panel-title">
+              <span id="languagePanelFlag" class="language-flag"></span>
+              <span id="languagePanelName"></span>
+              <small id="languageCodeLabel" class="language-code">—</small>
+            </h3>
           </div>
+
           <div class="data-table">
             <div class="table-header">
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 12px;
-                  flex-wrap: wrap;
-                "
-              >
-                <h4 style="margin: 0">
-                  <i class="fas fa-table"></i> Translation Items
-                  <span id="itemCount" class="item-count">(0 items)</span>
-                  <span
-                    id="tableLoading"
-                    style="
-                      display: none;
-                      margin-left: 10px;
-                      font-size: 0.85em;
-                      color: #6c757d;
-                    "
-                  ></span>
-                </h4>
-                <div
-                  class="sort-controls"
-                  style="display: flex; gap: 6px; align-items: center"
-                >
-                  <span style="font-size: 0.85em; color: #6c757d">Sort:</span>
-                  <button
-                    class="btn btn-compact sort-btn"
-                    data-sort="score-desc"
-                    title="Sort by score (highest first)"
-                    style="padding: 4px 8px; font-size: 0.8em"
-                  >
-                    <i class="fas fa-sort-amount-down"></i> Score ↓
-                  </button>
-                  <button
-                    class="btn btn-compact sort-btn"
-                    data-sort="score-asc"
-                    title="Sort by score (lowest first)"
-                    style="padding: 4px 8px; font-size: 0.8em"
-                  >
-                    <i class="fas fa-sort-amount-up"></i> Score ↑
-                  </button>
-                  <button
-                    class="btn btn-compact sort-btn"
-                    data-sort="id"
-                    title="Sort by Item ID"
-                    style="padding: 4px 8px; font-size: 0.8em"
-                  >
-                    <i class="fas fa-sort-alpha-down"></i> ID
-                  </button>
-                  <button
-                    class="btn btn-compact sort-btn"
-                    data-sort="review"
-                    title="Show items needing review first"
-                    style="padding: 4px 8px; font-size: 0.8em"
-                  >
-                    <i class="fas fa-flag"></i> Review
-                  </button>
-                  <button
-                    class="btn btn-compact approval-filter-btn"
-                    data-filter="approved"
-                    title="Show only approved rows in this table"
-                    style="
-                      padding: 4px 8px;
-                      font-size: 0.8em;
-                      border: 1px solid #b0bec5;
-                      background: #f8f9fa;
-                      color: #546e7a;
-                    "
-                  >
-                    Approved
-                  </button>
-                  <button
-                    class="btn btn-compact approval-filter-btn"
-                    data-filter="not-approved"
-                    title="Show only not-approved rows in this table"
-                    style="
-                      padding: 4px 8px;
-                      font-size: 0.8em;
-                      border: 1px solid #b0bec5;
-                      background: #f8f9fa;
-                      color: #546e7a;
-                    "
-                  >
-                    Not Approved
-                  </button>
-                  <select
-                    id="fileFilter"
-                    class="voice-select btn-compact file-filter-select"
-                    style="
-                      height: 30px;
-                      padding: 0 8px;
-                      min-width: 150px;
-                      max-width: 220px;
-                    "
-                    title="Filter grid to one source file"
-                  >
-                    <option value="all">All Files</option>
-                  </select>
-                </div>
-              </div>
+              <h4 class="table-header-title">
+                <i class="fas fa-table"></i> Translation Items
+                <span id="itemCount" class="item-count">(0 items)</span>
+                <span
+                  id="tableLoading"
+                  style="
+                    display: none;
+                    margin-left: 10px;
+                    font-size: 0.85em;
+                    color: #6c757d;
+                  "
+                ></span>
+              </h4>
+
               <input
                 type="text"
                 class="search-box"
                 placeholder="Search items..."
                 id="searchBox"
               />
+
+              <button
+                type="button"
+                class="btn btn-primary"
+                disabled="true"
+                id="exportCSVBtn"
+                onclick="exportCSV()"
+              >
+                <i class="fas fa-file-csv"></i> Export all (CSV)
+              </button>
             </div>
+
+            <div class="table-options">
+              <div
+                class="sort-controls"
+                style="display: flex; gap: 6px; align-items: center"
+              >
+                <button
+                  class="btn btn-compact sort-btn"
+                  data-sort="score-desc"
+                  title="Sort by score (highest first)"
+                  style="padding: 4px 8px; font-size: 0.8em"
+                >
+                  <i class="fas fa-sort-amount-down"></i> Score
+                </button>
+                <button
+                  class="btn btn-compact sort-btn"
+                  data-sort="score-asc"
+                  title="Sort by score (lowest first)"
+                  style="padding: 4px 8px; font-size: 0.8em"
+                >
+                  <i class="fas fa-sort-amount-up"></i> Score
+                </button>
+                <button
+                  class="btn btn-compact sort-btn"
+                  data-sort="id"
+                  title="Sort by Item ID"
+                  style="padding: 4px 8px; font-size: 0.8em"
+                >
+                  <i class="fas fa-sort-alpha-down"></i> ID
+                </button>
+              </div>
+
+              <div class="table-filters">
+                <button
+                  class="btn btn-compact sort-btn"
+                  data-sort="review"
+                  title="Show items needing review first"
+                  style="padding: 4px 8px; font-size: 0.8em"
+                >
+                  <i class="fas fa-flag"></i> Review
+                </button>
+                <button
+                  class="btn btn-compact approval-filter-btn"
+                  data-filter="approved"
+                  title="Show only approved rows in this table"
+                  style="
+                    padding: 4px 8px;
+                    font-size: 0.8em;
+                    border: 1px solid #b0bec5;
+                    background: #f8f9fa;
+                    color: #546e7a;
+                  "
+                >
+                  Approved
+                </button>
+                <button
+                  class="btn btn-compact approval-filter-btn"
+                  data-filter="not-approved"
+                  title="Show only not-approved rows in this table"
+                  style="
+                    padding: 4px 8px;
+                    font-size: 0.8em;
+                    border: 1px solid #b0bec5;
+                    background: #f8f9fa;
+                    color: #546e7a;
+                  "
+                >
+                  Not Approved
+                </button>
+                <select
+                  id="fileFilter"
+                  class="voice-select btn-compact file-filter-select"
+                  style="
+                    height: 30px;
+                    padding: 0 8px;
+                    min-width: 150px;
+                    max-width: 200px;
+                  "
+                  title="Filter grid to one source file"
+                >
+                  <option value="all">All Files</option>
+                </select>
+                <select
+                  id="taskFilter"
+                  class="voice-select btn-compact task-filter-select"
+                  style="
+                    height: 30px;
+                    padding: 0 8px;
+                    min-width: 150px;
+                    max-width: 200px;
+                  "
+                  title="Filter grid to one task"
+                >
+                  <option value="all">All Tasks</option>
+                </select>
+              </div>
+            </div>
+
             <div class="table-content" id="tableContent"></div>
           </div>
         </div>
@@ -856,6 +874,43 @@
           targetEl.textContent =
             "Back-translation unavailable for this result.";
         }
+      }
+
+      function openReviewReasonModal(
+        translation,
+        english,
+        backTranslation,
+        itemId,
+        langCode,
+        reason,
+      ) {
+        const modal = document.getElementById("reviewReasonModal");
+
+        const reviewReasonModalTranslation = document.getElementById(
+          "reviewReasonModalTranslation",
+        );
+        reviewReasonModalTranslation.innerHTML = translation;
+
+        const reviewReasonModalEnglish = document.getElementById(
+          "reviewReasonModalEnglish",
+        );
+        reviewReasonModalEnglish.innerHTML = english;
+
+        const reviewReasonModalBackTranslation = document.getElementById(
+          "reviewReasonModalBackTranslation",
+        );
+        reviewReasonModalBackTranslation.innerHTML = backTranslation;
+
+        const reasonInput = modal.querySelector(".reason-input");
+        reasonInput.dataset.itemId = itemId;
+        reasonInput.dataset.langCode = langCode;
+        reasonInput.value = reason;
+
+        modal.style.display = "block";
+      }
+
+      function closeReviewReasonModal() {
+        document.getElementById("reviewReasonModal").style.display = "none";
       }
 
       async function showValidationResults(
@@ -1700,11 +1755,23 @@
                 if (typeof dash.getItemSourcePaths !== "function") return true;
                 return dash.getItemSourcePaths(item).includes(selectedFile);
               });
+        const selectedTask =
+          dash.taskFilterByLanguage &&
+          typeof dash.taskFilterByLanguage.get === "function"
+            ? dash.taskFilterByLanguage.get(langName) || "all"
+            : "all";
+        const filteredRows =
+          selectedTask === "all"
+            ? rowsToShow
+            : rowsToShow.filter((item) => {
+                if (typeof dash.getItemTaskName !== "function") return true;
+                return dash.getItemTaskName(item) === selectedTask;
+              });
 
         const isSourceEnglishTab =
           String(langCode).split("-")[0].toLowerCase() === "en";
         const pendingRows = [];
-        rowsToShow.forEach((item, idx) => {
+        filteredRows.forEach((item, idx) => {
           const itemId = String(
             item?.item_id || item?.identifier || `fallback_${idx}`,
           );
@@ -1752,6 +1819,12 @@
         const dash = window.dashboard;
         const filterEl = document.getElementById("reviewTablePathFilter");
         const filter = filterEl && filterEl.value ? filterEl.value : "all";
+        const fileFilterEl = document.getElementById("fileFilter");
+        const fileFilter =
+          fileFilterEl && fileFilterEl.value ? fileFilterEl.value : "all";
+        const taskFilterEl = document.getElementById("taskFilter");
+        const taskFilter =
+          taskFilterEl && taskFilterEl.value ? taskFilterEl.value : "all";
         const pendingData = getPendingRowsForCurrentLanguage();
 
         const langName =
@@ -1761,7 +1834,10 @@
             : "Current language");
         const langCode = pendingData.langCode || "";
         titleEl.innerHTML = `<i class="fas fa-hourglass-half"></i> Pending items - ${langName}${langCode ? ` (${langCode})` : ""}`;
-        messageEl.textContent = `Filter: ${filter}. Pending means not yet scored for this language (or missing translation text). Total pending: ${pendingData.rows.length}.`;
+        const filterParts = [`path: ${filter}`];
+        if (fileFilter !== "all") filterParts.push(`file: ${fileFilter}`);
+        if (taskFilter !== "all") filterParts.push(`task: ${taskFilter}`);
+        messageEl.textContent = `Filters: ${filterParts.join(", ")}. Pending means not yet scored for this language (or missing translation text). Total pending: ${pendingData.rows.length}.`;
 
         tbody.innerHTML = "";
         pendingData.rows.forEach((row) => {

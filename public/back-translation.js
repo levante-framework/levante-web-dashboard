@@ -49,6 +49,7 @@ class Dashboard {
     this.inFlightRenderSignatureByLanguage = new Map();
     this.lazyRenderStateByLanguage = new Map();
     this.fileFilterByLanguage = new Map();
+    this.taskFilterByLanguage = new Map();
     this.approvalFilterByLanguage = new Map();
 
     // Persistent validation results dictionary
@@ -248,26 +249,26 @@ class Dashboard {
     // Use small flag images (50% bigger than before)
     const flagMap = {
       English:
-        '<img src="https://flagcdn.com/24x18/us.png" alt="US" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/us.png" alt="US" style="width: 24px; height: 18px; vertical-align: middle;">',
       Spanish:
-        '<img src="https://flagcdn.com/24x18/co.png" alt="CO" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/co.png" alt="CO" style="width: 24px; height: 18px; vertical-align: middle;">',
       German:
-        '<img src="https://flagcdn.com/24x18/de.png" alt="DE" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/de.png" alt="DE" style="width: 24px; height: 18px; vertical-align: middle;">',
       French:
-        '<img src="https://flagcdn.com/24x18/ca.png" alt="CA" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/ca.png" alt="CA" style="width: 24px; height: 18px; vertical-align: middle;">',
       "French (Canada)":
-        '<img src="https://flagcdn.com/24x18/ca.png" alt="CA" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/ca.png" alt="CA" style="width: 24px; height: 18px; vertical-align: middle;">',
       Dutch:
-        '<img src="https://flagcdn.com/24x18/nl.png" alt="NL" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/nl.png" alt="NL" style="width: 24px; height: 18px; vertical-align: middle;">',
       // Regional variants
       "German (Switzerland)":
-        '<img src="https://flagcdn.com/24x18/ch.png" alt="CH" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/ch.png" alt="CH" style="width: 24px; height: 18px; vertical-align: middle;">',
       "Spanish (Argentina)":
-        '<img src="https://flagcdn.com/24x18/ar.png" alt="AR" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/ar.png" alt="AR" style="width: 24px; height: 18px; vertical-align: middle;">',
       "English (Ghana)":
-        '<img src="https://flagcdn.com/24x18/gh.png" alt="GH" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/gh.png" alt="GH" style="width: 24px; height: 18px; vertical-align: middle;">',
       Portuguese:
-        '<img src="https://flagcdn.com/24x18/pt.png" alt="PT" style="width: 24px; height: 18px; margin-right: 6px; vertical-align: middle;">',
+        '<img src="https://flagcdn.com/24x18/pt.png" alt="PT" style="width: 24px; height: 18px; vertical-align: middle;">',
     };
     return flagMap[language] || "🌐"; // fallback to globe emoji
   }
@@ -356,13 +357,17 @@ class Dashboard {
 
   async loadData(options = {}) {
     const forceRefresh = options && options.forceRefresh === true;
+    const suppressAlert = options && options.suppressAlert === true;
     const dataSource = this.getDataSourcePreference();
     const selectEl = document.getElementById("dataSourceSelect");
     if (selectEl) selectEl.value = dataSource;
     this.updateDataSourceLabel(null);
 
     if (dataSource === "crowdin") {
-      const loaded = await this.loadDataFromCrowdin({ forceRefresh });
+      const loaded = await this.loadDataFromCrowdin({
+        forceRefresh,
+        suppressAlert,
+      });
       if (loaded) return;
       if (forceRefresh) {
         console.warn(
@@ -417,6 +422,7 @@ class Dashboard {
     this.inFlightRenderSignatureByLanguage.clear();
     this.lazyRenderStateByLanguage.clear();
     this.fileFilterByLanguage.clear();
+    this.taskFilterByLanguage.clear();
     this.activeRenderJobId += 1;
   }
 
@@ -658,22 +664,30 @@ class Dashboard {
     const filterValue =
       document.getElementById("reviewTablePathFilter")?.value || "all";
     const fileFilterValue = this.fileFilterByLanguage.get(language) || "all";
+    const taskFilterValue = this.taskFilterByLanguage.get(language) || "all";
     const approvalFilterValue = this.getApprovalFilterForLanguage(language);
-    return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}::${approvalFilterValue}::vr${this.validationResultsRevision}`;
+    return `${language}::${this.dataVersion}::${filterValue}::${fileFilterValue}::${taskFilterValue}::${approvalFilterValue}::vr${this.validationResultsRevision}`;
   }
 
   noteValidationResultsChanged() {
     this.validationResultsRevision += 1;
   }
 
-  /** Rows currently shown in the main grid for a language tab (path filter + per-file filter). */
+  /** Rows currently shown in the main grid for a language tab (path filter + per-file + per-task filter). */
   getVisibleValidationRowsForLanguage(language) {
     const lang = language || this.currentLanguage;
     const baseRows = this.getFilteredItemsForLanguage(lang);
     const selectedFile = this.fileFilterByLanguage.get(lang) || "all";
-    if (selectedFile === "all") return baseRows;
-    return baseRows.filter((item) =>
-      this.getItemSourcePaths(item).includes(selectedFile),
+    const afterFile =
+      selectedFile === "all"
+        ? baseRows
+        : baseRows.filter((item) =>
+            this.getItemSourcePaths(item).includes(selectedFile),
+          );
+    const selectedTask = this.taskFilterByLanguage.get(lang) || "all";
+    if (selectedTask === "all") return afterFile;
+    return afterFile.filter(
+      (item) => this.getItemTaskName(item) === selectedTask,
     );
   }
 
@@ -1241,6 +1255,45 @@ class Dashboard {
       : "No source file metadata available for this dataset";
   }
 
+  getItemTaskName(item) {
+    const meta = item?.__displayMeta;
+    return String(meta?.taskName || item?.labels || item?.task || "general");
+  }
+
+  getTasksForRows(rows) {
+    const tasks = new Set();
+    (rows || []).forEach((item) => {
+      tasks.add(this.getItemTaskName(item));
+    });
+    return Array.from(tasks).sort((a, b) => a.localeCompare(b));
+  }
+
+  refreshTaskFilterOptions(language, baseRows) {
+    const selectEl = document.getElementById("taskFilter");
+    if (!selectEl) return;
+    const previousValue =
+      this.taskFilterByLanguage.get(language) || selectEl.value || "all";
+    const tasks = this.getTasksForRows(baseRows);
+    selectEl.innerHTML = "";
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "all";
+    defaultOption.textContent = "All Tasks";
+    selectEl.appendChild(defaultOption);
+    tasks.forEach((task) => {
+      const option = document.createElement("option");
+      option.value = String(task);
+      option.textContent = String(task);
+      selectEl.appendChild(option);
+    });
+    const nextValue = tasks.includes(previousValue) ? previousValue : "all";
+    selectEl.value = nextValue;
+    this.taskFilterByLanguage.set(language, nextValue);
+    selectEl.disabled = tasks.length === 0;
+    selectEl.title = tasks.length
+      ? "Filter grid to a single task"
+      : "No task metadata available for this dataset";
+  }
+
   getFilteredItemsForLanguage(language) {
     const allowedIds =
       typeof window.getReviewTableAllowedItemIds === "function"
@@ -1532,6 +1585,7 @@ class Dashboard {
     this.setApprovalFilterBusy(state.renderLanguage, false);
     this.updateApprovalFilterButtonsForLanguage(state.renderLanguage);
     this.setupSortAndReviewHandlers();
+    this.setupReviewReasonHandler();
     this.logPerf(
       `Render table complete (${state.renderLanguage})`,
       state.renderStart,
@@ -3950,6 +4004,13 @@ class Dashboard {
       }
     }
 
+    if (this.isRefreshingTranslations) {
+      this.setStatus("Update already in progress. Please wait...", "warning");
+      const dropdown = document.getElementById("languageDropdown");
+      if (dropdown) dropdown.value = this.currentLanguage || "";
+      return;
+    }
+
     this.currentLanguage = languageKey;
     const dropdown = document.getElementById("languageDropdown");
     if (dropdown) dropdown.value = languageKey;
@@ -3964,9 +4025,21 @@ class Dashboard {
       : languageKey;
 
     try {
+      this.isRefreshingTranslations = true;
+      if (dropdown) dropdown.disabled = true;
+
+      this.setStatus(
+        `Fetching latest Crowdin translations for ${label}...`,
+        "loading",
+      );
+      await this.loadData({ forceRefresh: true, suppressAlert: true });
+
       if (!this.data || this.data.length === 0) {
-        this.setStatus(`Loading translations for ${label}...`, "loading");
-        await this.loadData();
+        this.setStatus(
+          `Could not load Crowdin translations for ${label}`,
+          "error",
+        );
+        return;
       }
 
       const scopedLangCode = String(langConfig?.lang_code || "").trim();
@@ -3991,6 +4064,9 @@ class Dashboard {
         `Failed to load translations: ${error.message || error}`,
         "error",
       );
+    } finally {
+      this.isRefreshingTranslations = false;
+      if (dropdown) dropdown.disabled = false;
     }
   }
 
@@ -4041,6 +4117,21 @@ class Dashboard {
         this.populateDataTable();
       });
       fileFilter.dataset.bound = "true";
+    }
+
+    const taskFilter = document.getElementById("taskFilter");
+    if (taskFilter && taskFilter.dataset.bound !== "true") {
+      taskFilter.addEventListener("change", () => {
+        if (!this.currentLanguage) return;
+        this.taskFilterByLanguage.set(
+          this.currentLanguage,
+          taskFilter.value || "all",
+        );
+        if (typeof setValidationSummaryLoading === "function")
+          setValidationSummaryLoading(true);
+        this.populateDataTable();
+      });
+      taskFilter.dataset.bound = "true";
     }
   }
 
@@ -4122,6 +4213,7 @@ class Dashboard {
     tableContent.innerHTML = "";
     const baseRows = this.getFilteredItemsForLanguage(renderLanguage);
     this.refreshFileFilterOptions(renderLanguage, baseRows);
+    this.refreshTaskFilterOptions(renderLanguage, baseRows);
     const selectedFile = this.fileFilterByLanguage.get(renderLanguage) || "all";
     const baseRowsForFile =
       selectedFile === "all"
@@ -4129,12 +4221,19 @@ class Dashboard {
         : baseRows.filter((item) =>
             this.getItemSourcePaths(item).includes(selectedFile),
           );
+    const selectedTask = this.taskFilterByLanguage.get(renderLanguage) || "all";
+    const baseRowsForTask =
+      selectedTask === "all"
+        ? baseRowsForFile
+        : baseRowsForFile.filter(
+            (item) => this.getItemTaskName(item) === selectedTask,
+          );
     const entryCache = this.buildValidationEntryCacheForRows(
-      baseRowsForFile,
+      baseRowsForTask,
       langCode,
     );
     const dataToShow = this.applyApprovalFilterToRowsWithCache(
-      baseRowsForFile,
+      baseRowsForTask,
       langCode,
       renderLanguage,
       entryCache,
@@ -4196,6 +4295,9 @@ class Dashboard {
       }
     }
     processBatch();
+
+    // Enable export CSV btn
+    document.getElementById("exportCSVBtn").disabled = false;
   }
 
   buildDataRow(item, index, langCode, entryCache = null) {
@@ -4229,6 +4331,7 @@ class Dashboard {
     const escapedTranslation = text.replace(/'/g, "\\'").replace(/"/g, '\\"');
 
     let statusClass = "status-pending";
+    let statusIcon = "";
     let statusTitle = "Not validated yet";
     let buttonText = "Validate";
     let scoreBadgeHtml = "";
@@ -4267,7 +4370,7 @@ class Dashboard {
       !requiresRevalidation;
     let backTranslationHtml = "";
     if (hasAnyStoredScore) {
-      backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? "" : "item-backtranslation-missing"}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`;
+      backTranslationHtml = escapeHtml(backTranslationDisplayText);
     } else if (requiresRevalidation && canValidateTranslation) {
       backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing" title="Back-translation">Validation is stale after translation update — click Revalidate to regenerate back-translation.</div>`;
     } else if (canValidateTranslation) {
@@ -4295,6 +4398,7 @@ class Dashboard {
     const indicatorOnClick = hasStoredScore
       ? `onclick="window.showStoredValidationResult && window.showStoredValidationResult('${escapedItemId}', '${langCode}')" style="cursor: pointer;"`
       : "";
+    const showReviewReasonModal = `(window.openReviewReasonModal && window.openReviewReasonModal('${escapedDisplayText}', '${escapedOriginalText}', '${escapeHtml(backTranslationDisplayText)}', '${escapedItemId}', '${langCode}', '${reviewReason}'))`;
     if (
       storedResult &&
       storedResult.score !== undefined &&
@@ -4307,15 +4411,18 @@ class Dashboard {
       if (scorePercent >= 85) {
         statusClass = "status-good";
         statusTitle = `✅ Excellent: ${scorePercent.toFixed(2)}% similarity`;
-        buttonText = "✅ View Results";
+        buttonText = "View Results";
+        statusIcon = "✅";
       } else if (scorePercent >= 70) {
         statusClass = "status-warning";
         statusTitle = `⚠️ Warning: ${scorePercent.toFixed(2)}% similarity`;
-        buttonText = "⚠️ View Warning";
+        buttonText = "View Warning";
+        statusIcon = "⚠️";
       } else {
         statusClass = "status-error";
         statusTitle = `❌ Poor: ${scorePercent.toFixed(2)}% similarity`;
-        buttonText = "❌ View Issues";
+        buttonText = "View Issues";
+        statusIcon = "❌";
       }
       const badgeColor =
         scorePercent >= 85
@@ -4451,7 +4558,7 @@ class Dashboard {
       embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}"><span class="item-embedding-label">Embedding${advisoryDatasetLabel}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
     }
     const manualApproved = this.isManualApprovedEntry(storedResult);
-    approvedHtml = `<label class="approved-toggle-label" title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? "#2e7d32" : "#6c757d"}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? "checked" : ""} onchange="window.setManualApprovalForValidation && window.setManualApprovalForValidation('${escapedItemId}', '${langCode}', this.checked, this.closest('.data-row'))" style="cursor: pointer;">Approved</label>`;
+    approvedHtml = `<label class="approved-toggle-label" title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: ${manualApproved ? "#2e7d32" : "#6c757d"}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? "checked" : ""} onchange="window.setManualApprovalForValidation && window.setManualApprovalForValidation('${escapedItemId}', '${langCode}', this.checked, this.closest('.data-row'))" style="cursor: pointer;">Approved</label>`;
 
     row.dataset.score = scoreValue;
     row.dataset.needsReview = needsReview ? "1" : "0";
@@ -4465,54 +4572,64 @@ class Dashboard {
       row.style.outlineOffset = "";
       row.style.background = "";
     }
-    row.innerHTML = `
-      <div class="item-id-cell">
-          <div class="item-id-top">
-              <div class="item_id" title="${escapeHtml(displayItemIdText)}">${escapeHtml(compactItemId)}</div>
-              <button class="item-id-copy-btn" type="button" title="Copy full key" onclick="copyItemIdToClipboard('${escapedItemId}', this, event)">
-                  <i class="fas fa-copy"></i>
-              </button>
-          </div>
-          <div class="item-meta-badges">
-              <span class="item-task" title="${escapedTaskName}">${escapedTaskName}</span>
-              <span class="item-type" title="${escapedTypeName}">${escapedTypeName}</span>
-          </div>
-          ${embeddingRowHtml}
+
+    row.innerHTML = /* html */ `
+      <div class="data-cell item-id-cell">
+        <small class="data-cell-label">Audio key</small>
+        
+        <div class="item-id-top">
+          <div class="item_id" title="${escapeHtml(displayItemIdText)}">${escapeHtml(compactItemId)}</div>
+          <button class="item-id-copy-btn" type="button" title="Copy full key" onclick="copyItemIdToClipboard('${escapedItemId}', this, event)">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+        
+        ${embeddingRowHtml}
       </div>
-      <div class="item-english">
-          <div class="item-english-source">${escapedOriginalText}</div>
-          ${backTranslationHtml}
+
+      <div class="data-cell data-cell--text">
+        <small class="data-cell-label">Translation</small>
+        ${escapedDisplayText}
       </div>
-      <div class="item-text">
-          ${escapedDisplayText}
+
+      <div class="data-cell data-cell--english">
+        <small class="data-cell-label">English</small>
+        ${escapedOriginalText}
       </div>
-      <div class="item-actions">
+
+      <div class="data-cell data-cell--backtranslation">
+        <small class="data-cell-label">Back translation</small>
+        ${backTranslationHtml}
+      </div>
+      
+      <div class="data-cell data-cell--actions">
         <div class="validation-status">
-              <div class="status-indicator ${statusClass}" title="${statusTitle}" data-item-id="${itemId}" ${indicatorOnClick}></div>
-              <div class="validation-action-buttons">
-                  <button class="validate-btn" onclick="${validateOnClick}" ${canValidateTranslation ? "" : "disabled"}>${buttonText}</button>
-              </div>
-              ${scoreBadgeHtml}
-              ${sourceBadgeHtml}
-              ${
-                requiresRevalidation
-                  ? translationUpdated
-                    ? '<span class="translation-updated-indicator" title="Translation changed since the previous reviewed/validated version." style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#0d47a1; background:#e3f2fd; border:1px solid #90caf9; border-radius:4px; padding:1px 6px;">🆕 Updated</span>'
-                    : '<span class="stale-validation-indicator" title="Source changed; revalidate to refresh review status." style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#b26a00; background:#fff3e0; border:1px solid #ffcc80; border-radius:4px; padding:1px 6px;">⚠ Revalidate</span>'
-                  : ""
-              }
-              <span class="approved-indicator" style="display: ${!requiresRevalidation && manualApproved ? "inline-flex" : "none"}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
+          <div class="validation-icon">${statusIcon}</div>
+          <div class="validation-action-buttons">
+            <button class="validate-btn validate-btn--${statusClass}" onclick="${validateOnClick}" ${canValidateTranslation ? "" : "disabled"}>${buttonText}</button>
           </div>
-          <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
-              ${approvedHtml}
-              <label class="needs-review-toggle-label" style="display: ${manualApproved ? "none" : "flex"}; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? "#dc3545" : "#6c757d"};">
-                  <input type="checkbox" class="needs-review-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${needsReview ? "checked" : ""} style="cursor: pointer;">
-                  <i class="fas fa-flag" style="color: ${needsReview ? "#dc3545" : "#adb5bd"};"></i> Needs Review
-              </label>
-              <div class="reason-container" style="display: ${!manualApproved && needsReview ? "flex" : "none"}; align-items: center; gap: 4px; flex: 1; min-width: 150px;">
-                  <input type="text" class="reason-input" data-item-id="${escapedItemId}" data-lang-code="${langCode}" value="${reviewReason.replace(/"/g, "&quot;")}" placeholder="Reason..." style="flex: 1; padding: 3px 6px; font-size: 0.8em; border: 1px solid #ced4da; border-radius: 4px; min-width: 100px;">
-              </div>
+          ${scoreBadgeHtml}
+          ${sourceBadgeHtml}
+          ${
+            requiresRevalidation
+              ? translationUpdated
+                ? '<span class="translation-updated-indicator" title="Translation changed since the previous reviewed/validated version." style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#0d47a1; background:#e3f2fd; border:1px solid #90caf9; border-radius:4px; padding:1px 6px;">🆕 Updated</span>'
+                : '<span class="stale-validation-indicator" title="Source changed; revalidate to refresh review status." style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#b26a00; background:#fff3e0; border:1px solid #ffcc80; border-radius:4px; padding:1px 6px;">⚠ Revalidate</span>'
+              : ""
+          }
+          <span class="approved-indicator" style="display: ${!requiresRevalidation && manualApproved ? "inline-flex" : "none"}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
+        </div>
+
+        <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          ${approvedHtml}
+          <label class="needs-review-toggle-label" style="display: ${manualApproved ? "none" : "flex"}; align-items: center; gap: 4px; cursor: pointer; font-size: 0.8em; color: ${needsReview ? "#dc3545" : "#6c757d"};">
+            <input type="checkbox" class="needs-review-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${needsReview ? "checked" : ""} style="cursor: pointer;">
+            <i class="fas fa-flag" style="color: ${needsReview ? "#dc3545" : "#adb5bd"};"></i> Needs Review
+          </label>
+          <div class="reason-container" style="display: ${!manualApproved && needsReview ? "block" : "none"};">
+            <button class="validate-btn" onclick="${showReviewReasonModal}">${reviewReason?.trim()?.length ? "View reason" : "Input reason"}</button>
           </div>
+        </div>
       </div>
     `;
 
@@ -4647,6 +4764,68 @@ class Dashboard {
     });
   }
 
+  setupReviewReasonHandler() {
+    const self = this;
+    const reviewReasonModal = document.getElementById("reviewReasonModal");
+    if (!reviewReasonModal) return;
+
+    const reasonInput = reviewReasonModal.querySelector(".reason-input");
+
+    const saveReasonToStore = () => {
+      const itemId = reasonInput.dataset.itemId;
+      const langCode = reasonInput.dataset.langCode;
+      const reason = String(reasonInput.value || "").trim();
+      if (!self.validation_results[itemId]) {
+        self.validation_results[itemId] = {};
+      }
+      const preferredLangCode = self.resolvePreferredLangCode(langCode);
+      if (!self.validation_results[itemId][preferredLangCode]) {
+        self.validation_results[itemId][preferredLangCode] = {};
+      }
+      if (self.validation_results[itemId][preferredLangCode].reason === reason)
+        return;
+      self.validation_results[itemId][preferredLangCode].reason = reason;
+      self.validation_results[itemId][preferredLangCode].reviewUpdatedAt =
+        new Date().toISOString();
+      if (typeof requestValidationSummaryUpdate === "function")
+        requestValidationSummaryUpdate(180);
+      else if (typeof updateValidationSummary === "function")
+        updateValidationSummary();
+    };
+
+    const scheduleSharedSave = () => {
+      const itemId = String(reasonInput.dataset.itemId || "").trim();
+      const langCode = String(reasonInput.dataset.langCode || "").trim();
+      const timerKey = `${itemId}::${langCode}`;
+      if (self.reasonAutoSaveTimers.has(timerKey)) {
+        clearTimeout(self.reasonAutoSaveTimers.get(timerKey));
+      }
+      const timerId = setTimeout(() => {
+        self.reasonAutoSaveTimers.delete(timerKey);
+        if (typeof queueValidationAutoSave === "function")
+          queueValidationAutoSave();
+      }, 2200);
+      self.reasonAutoSaveTimers.set(timerKey, timerId);
+    };
+
+    reasonInput.oninput = () => {
+      saveReasonToStore();
+      scheduleSharedSave();
+    };
+
+    reasonInput.onchange = () => {
+      saveReasonToStore();
+      if (typeof queueValidationAutoSave === "function")
+        queueValidationAutoSave();
+    };
+
+    reasonInput.onblur = () => {
+      saveReasonToStore();
+      if (typeof queueValidationAutoSave === "function")
+        queueValidationAutoSave();
+    };
+  }
+
   sortTable(sortType) {
     this.ensureLanguageFullyRendered(this.currentLanguage);
     const tableContent = document.getElementById("tableContent");
@@ -4685,6 +4864,13 @@ class Dashboard {
   }
 
   selectRow(rowElement, item) {
+    if (rowElement.classList.contains("selected")) {
+      rowElement.classList.remove("selected");
+      this.selectedRow = null;
+      this.setStatus("Selection cleared", "info");
+      return;
+    }
+
     // Remove previous selection
     document
       .querySelectorAll(".data-row")
@@ -4894,18 +5080,34 @@ class Dashboard {
 
   setupFileFilterListeners() {
     const selectEl = document.getElementById("fileFilter");
-    if (!selectEl || selectEl.dataset.bound === "true") return;
-    selectEl.addEventListener("change", () => {
-      if (!this.currentLanguage) return;
-      this.fileFilterByLanguage.set(
-        this.currentLanguage,
-        selectEl.value || "all",
-      );
-      if (typeof setValidationSummaryLoading === "function")
-        setValidationSummaryLoading(true);
-      this.populateDataTable();
-    });
-    selectEl.dataset.bound = "true";
+    if (selectEl && selectEl.dataset.bound !== "true") {
+      selectEl.addEventListener("change", () => {
+        if (!this.currentLanguage) return;
+        this.fileFilterByLanguage.set(
+          this.currentLanguage,
+          selectEl.value || "all",
+        );
+        if (typeof setValidationSummaryLoading === "function")
+          setValidationSummaryLoading(true);
+        this.populateDataTable();
+      });
+      selectEl.dataset.bound = "true";
+    }
+
+    const taskSelectEl = document.getElementById("taskFilter");
+    if (taskSelectEl && taskSelectEl.dataset.bound !== "true") {
+      taskSelectEl.addEventListener("change", () => {
+        if (!this.currentLanguage) return;
+        this.taskFilterByLanguage.set(
+          this.currentLanguage,
+          taskSelectEl.value || "all",
+        );
+        if (typeof setValidationSummaryLoading === "function")
+          setValidationSummaryLoading(true);
+        this.populateDataTable();
+      });
+      taskSelectEl.dataset.bound = "true";
+    }
   }
 
   extractTextForItem(item, langCode) {
@@ -4979,6 +5181,141 @@ class Dashboard {
 // - js/credentials.js (modal functions)
 // - js/validation.js (validateSingle, validateAll, etc.)
 // - js/bootstrap.js (initialization)
+
+function csvEscape(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+function getValidationStatusForExport(storedResult, canValidate) {
+  const requiresRevalidation = storedResult?.requiresRevalidation === true;
+  if (requiresRevalidation) return "Stale";
+  if (
+    !canValidate ||
+    !storedResult ||
+    typeof storedResult.score !== "number"
+  ) {
+    return "Pending";
+  }
+  const scorePercent = Number(storedResult.score) * 100;
+  if (scorePercent >= 85) return "Good";
+  if (scorePercent >= 70) return "Warning";
+  return "Poor";
+}
+
+function getScoreDisplayForExport(storedResult, canValidate) {
+  const requiresRevalidation = storedResult?.requiresRevalidation === true;
+  if (
+    requiresRevalidation ||
+    !canValidate ||
+    !storedResult ||
+    typeof storedResult.score !== "number"
+  ) {
+    return "";
+  }
+  return String(Math.round(Number(storedResult.score) * 10000) / 100);
+}
+
+function exportCSV() {
+  const btn = document.getElementById("exportCSVBtn");
+  if (!btn || btn.disabled) return;
+
+  const dash = window.dashboard;
+  if (!dash || !dash.currentLanguage) return;
+
+  dash.ensureLanguageFullyRendered(dash.currentLanguage);
+
+  const state = dash.lazyRenderStateByLanguage.get(dash.currentLanguage);
+  if (!state?.rows?.length) return;
+
+  const { rows, langCode, entryCache } = state;
+  const headers = [
+    "Audio Key",
+    "Translation",
+    "English String",
+    "Back Translation",
+    "Status",
+    "Score",
+    "Is Approved?",
+    "Needs Review?",
+    "Review Reason",
+  ];
+
+  const searchTerm = String(
+    document.getElementById("searchBox")?.value || "",
+  ).trim();
+  const searchLower = searchTerm.toLowerCase();
+  const isSourceEnglishTab =
+    String(langCode).split("-")[0].toLowerCase() === "en";
+
+  const filteredRows = searchLower
+    ? rows.filter((item) => {
+        const itemId = String(item?.item_id || item?.identifier || "");
+        const translation = dash.getTranslationTextForLanguage(item, langCode);
+        const english = String(item?.en || "");
+        const task = String(dash.getItemTaskName(item) || "");
+        return (
+          itemId.toLowerCase().includes(searchLower) ||
+          translation.toLowerCase().includes(searchLower) ||
+          english.toLowerCase().includes(searchLower) ||
+          task.toLowerCase().includes(searchLower)
+        );
+      })
+    : rows;
+
+  if (!filteredRows.length) return;
+
+  const dataRows = filteredRows.map((item) => {
+    const audioKey = String(item?.item_id || item?.identifier || "");
+    const translation = dash.getTranslationTextForLanguage(item, langCode);
+    const english = String(item?.en || "");
+    const storedResult = dash.getCachedValidationEntry(
+      entryCache,
+      item,
+      langCode,
+    );
+    const requiresRevalidation = storedResult?.requiresRevalidation === true;
+    const hasTranslatedText = !!String(translation || "").trim();
+    const canValidate = isSourceEnglishTab || hasTranslatedText;
+    const hasStoredScore =
+      !!(
+        storedResult &&
+        typeof storedResult.score === "number" &&
+        canValidate &&
+        !requiresRevalidation
+      );
+    const backTranslation = hasStoredScore
+      ? String(storedResult.backTranslation || "").trim()
+      : "";
+    const isApproved =
+      !requiresRevalidation && dash.isManualApprovedEntry(storedResult);
+    const needsReview = storedResult?.needsReview === true;
+
+    return [
+      csvEscape(audioKey),
+      csvEscape(translation),
+      csvEscape(english),
+      csvEscape(backTranslation),
+      csvEscape(getValidationStatusForExport(storedResult, canValidate)),
+      csvEscape(getScoreDisplayForExport(storedResult, canValidate)),
+      csvEscape(isApproved ? "Yes" : "No"),
+      csvEscape(needsReview ? "Yes" : "No"),
+      csvEscape(storedResult?.reason || ""),
+    ].join(",");
+  });
+
+  const csv = [headers.join(","), ...dataRows].join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${dash.currentLanguage || "export"}-validations.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+}
 
 async function copyItemIdToClipboard(itemId, buttonEl, event) {
   if (event && typeof event.stopPropagation === "function")
