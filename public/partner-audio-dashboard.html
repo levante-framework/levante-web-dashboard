@@ -5772,14 +5772,23 @@
                     
                     select.appendChild(option);
                 });
-                
-                // Remove existing listeners and add new one
-                const newSelect = select.cloneNode(true);
-                select.parentNode.replaceChild(newSelect, select);
-                newSelect.addEventListener('change', (e) => {
+
+                // Preserve current selection when still available; otherwise keep placeholder.
+                const hasCurrentLanguage = this.currentLanguage
+                    && Array.from(select.options || []).some((option) => option.value === this.currentLanguage);
+                if (resolvedAllowedLanguage && Array.from(select.options || []).some((option) => option.value === resolvedAllowedLanguage)) {
+                    select.value = resolvedAllowedLanguage;
+                } else if (hasCurrentLanguage) {
+                    select.value = this.currentLanguage;
+                } else {
+                    select.value = '';
+                }
+
+                // Keep a single change handler without replacing the DOM node (which can reset selection state).
+                select.onchange = (e) => {
                     this.selectLanguage(e.target.value);
-                });
-                
+                };
+
                 // Auto-select if restricted (but not for superadmins/override emails)
                 if (resolvedAllowedLanguage && select.disabled) {
                     this.selectLanguage(resolvedAllowedLanguage);
