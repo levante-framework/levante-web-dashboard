@@ -1164,6 +1164,52 @@
             flex-shrink: 0;
         }
 
+        .item-card-compact-approved {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: start;
+            gap: 16px;
+        }
+
+        .item-card-compact-screenshot {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 140px;
+        }
+
+        .item-card-compact-approved .item-card-compact-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .item-card-compact-approved .item-card-compact-id-wrap {
+            margin-bottom: 2px;
+        }
+
+        .item-card-compact-approved .item-card-compact-text {
+            margin-top: 0;
+            white-space: normal;
+            word-break: break-word;
+            overflow: visible;
+            text-overflow: unset;
+            width: 100%;
+            text-align: left;
+        }
+
+        .item-card-compact-approved .item-card-compact-meta {
+            margin-top: 0;
+            width: 100%;
+            text-align: left;
+        }
+
+        .item-card-compact-approved .item-card-compact-actions {
+            align-self: center;
+        }
+
         .auth-container {
             position: fixed;
             top: 0;
@@ -6971,7 +7017,6 @@
                             <div class="item-header">
                                 <div>
                                     <div class="item-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId, item)}
                                     ${screenshotThumbHtml}
                                 </div>
                             </div>
@@ -7047,29 +7092,28 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const sourceText = item.en || item.english || '';
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
                     const approvalDetail = this.getApprovalDetailForItem(itemId, this.currentLangCode);
                     const approvedEnhancedText = this.getApprovedEnhancedTextForItem(itemId, translatedText, approvalDetail);
                     const approvalMetaLabel = this.buildApprovalDetailMetaLabel(approvalDetail);
                     const escapedItemId = this.escapeHtml(itemId);
-                    const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText);
                     const escapedApprovedEnhanced = this.escapeHtml(approvedEnhancedText || '');
                     const escapedApprovalMeta = this.escapeHtml(approvalMetaLabel);
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     return `
-                        <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact item-card-compact-approved" data-item-id="${escapedItemId}">
+                            <div class="item-card-compact-screenshot">
+                                ${screenshotThumbHtml}
+                            </div>
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId, item)}
-                                    ${screenshotThumbHtml}
                                 </div>
-                                <div class="item-card-compact-text">${escapedTranslated}</div>
-                                <div class="item-card-compact-meta"><strong>Approved text:</strong> ${escapedApprovedEnhanced || '<em style="color: #71717a;">No approved text recorded</em>'}</div>
-                                <div class="item-card-compact-meta"><strong>Approval:</strong> ${escapedApprovalMeta}</div>
+                                <div class="item-card-compact-meta"><strong>Translation Text:</strong> ${escapedTranslated || '<em style="color: #71717a;">No translation text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Audio Text:</strong> ${escapedApprovedEnhanced || '<em style="color: #71717a;">No audio text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Audio Approval:</strong> ${escapedApprovalMeta || '<em style="color: #71717a;">No audio approval recorded</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
                                 <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play audio">
@@ -7124,7 +7168,6 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId, item)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
