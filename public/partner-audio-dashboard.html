@@ -1144,10 +1144,70 @@
             margin-top: 4px;
         }
 
+        .item-card-compact-meta {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #52525b;
+            line-height: 1.45;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .item-card-compact-meta strong {
+            color: #3f3f46;
+            font-weight: 600;
+        }
+
         .item-card-compact-actions {
             display: flex;
             gap: 8px;
             flex-shrink: 0;
+        }
+
+        .item-card-compact-approved {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: start;
+            gap: 16px;
+        }
+
+        .item-card-compact-screenshot {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 140px;
+        }
+
+        .item-card-compact-approved .item-card-compact-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .item-card-compact-approved .item-card-compact-id-wrap {
+            margin-bottom: 2px;
+        }
+
+        .item-card-compact-approved .item-card-compact-text {
+            margin-top: 0;
+            white-space: normal;
+            word-break: break-word;
+            overflow: visible;
+            text-overflow: unset;
+            width: 100%;
+            text-align: left;
+        }
+
+        .item-card-compact-approved .item-card-compact-meta {
+            margin-top: 0;
+            width: 100%;
+            text-align: left;
+        }
+
+        .item-card-compact-approved .item-card-compact-actions {
+            align-self: center;
         }
 
         .auth-container {
@@ -2191,6 +2251,7 @@
                 this.enhancedTagContextMenuEl = null;
                 this.crowdinApprovalByLang = new Map();
                 this.crowdinApprovalRequestToken = 0;
+                this.approvalDetailsByLang = new Map();
                 this._hasShownNoSoundHint = false;
                 this._activePlaybackProbe = null;
                 try {
@@ -3737,6 +3798,8 @@
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
                 this.updateFinishedTaskButtonVisibility({ totalAudio: 0, approvedAudio: 0 });
+                // Keep task action button labels aligned with the selected task.
+                this.updateRefreshIndicator();
             }
 
             resolveLanguageKey(languageName) {
@@ -5932,6 +5995,7 @@
                 
                 // Render items directly for the current tab (don't re-filter)
                 if (this.currentTab === 'approved') {
+                    await this.loadApprovalDetailsFromServer(itemsToShow, this.currentLangCode);
                     this.renderApprovedItems(itemsToShow);
                     this.setStatus(`Finished loading - ${itemsToShow.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
@@ -6630,6 +6694,7 @@
                 if (this.currentTab === 'approved') {
                     // For approved tab, get items from dev bucket
                     const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    await this.loadApprovalDetailsFromServer(approvedItemsList, this.currentLangCode);
                     this.renderApprovedItems(approvedItemsList);
                     this.setStatus(`Showing ${approvedItemsList.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
@@ -6745,6 +6810,126 @@
                 }
             }
 
+            getApprovalDetailsCacheEntry(langCode = this.currentLangCode, create = false) {
+                const key = String(langCode || '').trim().toLowerCase();
+                if (!key) return null;
+                if (!this.approvalDetailsByLang.has(key) && create) {
+                    this.approvalDetailsByLang.set(key, {
+                        byItem: new Map(),
+                        loadedAt: 0,
+                        loadingPromise: null
+                    });
+                }
+                return this.approvalDetailsByLang.get(key) || null;
+            }
+
+            normalizeApprovalDetailItemId(itemId) {
+                const normalized = this.extractBaseId(itemId || '');
+                if (normalized) return normalized;
+                return String(itemId || '').trim().toLowerCase();
+            }
+
+            getApprovalDetailForItem(itemId, langCode = this.currentLangCode) {
+                const entry = this.getApprovalDetailsCacheEntry(langCode, false);
+                if (!entry || !(entry.byItem instanceof Map)) return null;
+                const key = this.normalizeApprovalDetailItemId(itemId);
+                if (!key) return null;
+                return entry.byItem.get(key) || null;
+            }
+
+            buildApprovalDetailMetaLabel(detail) {
+                if (!detail) return '';
+                const actor = String(detail.approver || '').trim();
+                const approvalAtRaw = String(detail.approvedAt || detail.approvalAt || '').trim();
+                const approvalTs = Date.parse(approvalAtRaw);
+                const approvalAt = Number.isFinite(approvalTs) ? new Date(approvalTs).toLocaleString() : '';
+                if (actor && approvalAt) return `Approved by ${actor} on ${approvalAt}`;
+                if (actor) return `Approved by ${actor}`;
+                if (approvalAt) return `Approved on ${approvalAt}`;
+                return '';
+            }
+
+            getApprovedEnhancedTextForItem(itemId, translatedText, detail) {
+                const enhancedText = String(detail?.enhancedText || '').trim();
+                if (enhancedText) return enhancedText;
+                const approvedText = String(detail?.approvedText || '').trim();
+                if (approvedText) return approvedText;
+                return '';
+            }
+
+            async loadApprovalDetailsFromServer(items = [], langCode = this.currentLangCode, options = {}) {
+                const normalizedLang = String(langCode || '').trim();
+                if (!normalizedLang) return new Map();
+
+                const entry = this.getApprovalDetailsCacheEntry(normalizedLang, true);
+                if (!entry) return new Map();
+
+                const maxAgeMs = 3 * 60 * 1000;
+                const forceRefresh = options.forceRefresh === true;
+                const approvedItems = Array.isArray(items) ? items : [];
+                const itemIds = approvedItems
+                    .map((item) => this.normalizeApprovalDetailItemId(item?.item_id || ''))
+                    .filter(Boolean);
+                const missingIds = itemIds.filter((itemId) => !entry.byItem.has(itemId));
+
+                if (!forceRefresh && missingIds.length === 0 && entry.loadedAt > 0 && (Date.now() - entry.loadedAt) < maxAgeMs) {
+                    return entry.byItem;
+                }
+                if (entry.loadingPromise) {
+                    return entry.loadingPromise;
+                }
+
+                entry.loadingPromise = (async () => {
+                    const targets = forceRefresh ? itemIds : missingIds;
+                    await Promise.all(targets.map(async (normalizedItemId) => {
+                        try {
+                            const params = new URLSearchParams({
+                                bucket: this.audioBuckets.dev,
+                                strict: '1',
+                                langCode: normalizedLang,
+                                itemId: normalizedItemId
+                            });
+                            const response = await fetch(`/api/read-tags?${params.toString()}`, {
+                                cache: 'no-store'
+                            });
+                            if (!response.ok) {
+                                entry.byItem.set(normalizedItemId, {
+                                    approver: '',
+                                    approvedAt: '',
+                                    enhancedText: '',
+                                    approvedText: ''
+                                });
+                                return;
+                            }
+                            const payload = await response.json().catch(() => ({}));
+                            const id3Tags = payload?.id3Tags || {};
+                            entry.byItem.set(normalizedItemId, {
+                                approver: String(id3Tags?.approved_by || '').trim(),
+                                approvedAt: String(id3Tags?.approved_at || '').trim(),
+                                enhancedText: String(id3Tags?.audio_enhanced_text || '').trim(),
+                                approvedText: String(id3Tags?.text || '').trim()
+                            });
+                        } catch (_error) {
+                            entry.byItem.set(normalizedItemId, {
+                                approver: '',
+                                approvedAt: '',
+                                enhancedText: '',
+                                approvedText: ''
+                            });
+                        }
+                    }));
+                    entry.loadedAt = Date.now();
+                    return entry.byItem;
+                })().catch((error) => {
+                    console.warn('Failed to load approval details for Approved tab:', error?.message || error);
+                    return entry.byItem;
+                }).finally(() => {
+                    entry.loadingPromise = null;
+                });
+
+                return entry.loadingPromise;
+            }
+
             async renderItems(items) {
                 // This function is called from selectLanguage but refreshItemsForCurrentTab handles rendering
                 // So we just ensure status is cleared here
@@ -6832,7 +7017,6 @@
                             <div class="item-header">
                                 <div>
                                     <div class="item-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                             </div>
@@ -6908,22 +7092,28 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const sourceText = item.en || item.english || '';
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
+                    const approvalDetail = this.getApprovalDetailForItem(itemId, this.currentLangCode);
+                    const approvedEnhancedText = this.getApprovedEnhancedTextForItem(itemId, translatedText, approvalDetail);
+                    const approvalMetaLabel = this.buildApprovalDetailMetaLabel(approvalDetail);
                     const escapedItemId = this.escapeHtml(itemId);
-                    const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText);
+                    const escapedApprovedEnhanced = this.escapeHtml(approvedEnhancedText || '');
+                    const escapedApprovalMeta = this.escapeHtml(approvalMetaLabel);
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     return `
-                        <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact item-card-compact-approved" data-item-id="${escapedItemId}">
+                            <div class="item-card-compact-screenshot">
+                                ${screenshotThumbHtml}
+                            </div>
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
-                                    ${screenshotThumbHtml}
                                 </div>
-                                <div class="item-card-compact-text">${escapedTranslated}</div>
+                                <div class="item-card-compact-meta"><strong>Translation Text:</strong> ${escapedTranslated || '<em style="color: #71717a;">No translation text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Audio Text:</strong> ${escapedApprovedEnhanced || '<em style="color: #71717a;">No audio text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Audio Approval:</strong> ${escapedApprovalMeta || '<em style="color: #71717a;">No audio approval recorded</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
                                 <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play audio">
@@ -6978,7 +7168,6 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
@@ -7001,8 +7190,20 @@
                 this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
-            normalizeCrowdinApprovalKey(itemId) {
-                return String(itemId || '').trim().toLowerCase();
+            getCrowdinTaskKeyFromItem(item = null, itemId = '') {
+                const taskName = item
+                    ? this.extractTaskName(item)
+                    : this.extractTaskName(
+                        (Array.isArray(this.data) ? this.data : []).find((entry) => String(entry?.item_id || '').trim() === String(itemId || '').trim())
+                    );
+                return this.normalizeTaskLookupKey(taskName || '');
+            }
+
+            normalizeCrowdinApprovalKey(itemId, taskKey = '') {
+                const normalizedItemId = String(itemId || '').trim().toLowerCase();
+                const normalizedTaskKey = String(taskKey || '').trim().toLowerCase();
+                if (!normalizedTaskKey) return normalizedItemId;
+                return `${normalizedItemId}::${normalizedTaskKey}`;
             }
 
             getCrowdinApprovalLangCache(langCode, create = false) {
@@ -7036,13 +7237,15 @@
                 return { className: 'is-unknown', label: 'Crowdin: not checked', title: 'Crowdin approval status has not been checked yet.' };
             }
 
-            renderCrowdinApprovalBadge(itemId) {
+            renderCrowdinApprovalBadge(itemId, item = null) {
                 const rawItemId = String(itemId || '').trim();
                 const escapedItemId = this.escapeHtml(rawItemId);
+                const taskKey = this.getCrowdinTaskKeyFromItem(item, rawItemId);
+                const escapedTaskKey = this.escapeHtml(taskKey);
                 const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
-                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
                 const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
-                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
+                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" data-crowdin-task-key="${escapedTaskKey}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
             }
 
             applyCrowdinApprovalBadges(root = document) {
@@ -7051,12 +7254,28 @@
                 root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]').forEach((node) => {
                     const rawItemId = String(node.dataset?.itemId || '').trim();
                     if (!rawItemId) return;
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                    const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
                     const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
                     node.className = `crowdin-approval-badge ${display.className}`;
                     node.textContent = display.label;
                     node.title = display.title;
                 });
+            }
+
+            resolveCrowdinBestMatchForTask(result, taskKey = '') {
+                const matches = Array.isArray(result?.matches) ? result.matches : [];
+                const normalizedTaskKey = this.normalizeTaskLookupKey(taskKey || '');
+                if (normalizedTaskKey) {
+                    const taskMatched = matches.find((entry) => {
+                        const entryTaskKey = this.normalizeTaskLookupKey(String(entry?.task || '').trim());
+                        return entryTaskKey && entryTaskKey === normalizedTaskKey && String(entry?.target || '').trim();
+                    });
+                    if (taskMatched) return taskMatched;
+                }
+                const bestMatch = result?.bestMatch || null;
+                if (String(bestMatch?.target || '').trim()) return bestMatch;
+                return matches.find((entry) => String(entry?.target || '').trim()) || null;
             }
 
             async hydrateCrowdinApprovalForRenderedItems(container = null) {
@@ -7069,18 +7288,20 @@
                 if (!badgeNodes.length) return;
 
                 const langCache = this.getCrowdinApprovalLangCache(langCode, true);
-                const toLookup = [];
+                const toLookupSet = new Set();
                 badgeNodes.forEach((node) => {
                     const rawItemId = String(node.dataset?.itemId || '').trim();
                     if (!rawItemId) return;
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
+                    const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
                     if (!langCache.has(cacheKey)) {
                         langCache.set(cacheKey, { status: 'checking' });
-                        toLookup.push(rawItemId);
+                        toLookupSet.add(rawItemId);
                     }
                 });
 
                 this.applyCrowdinApprovalBadges(root);
+                const toLookup = Array.from(toLookupSet.values());
                 if (!toLookup.length) return;
 
                 const requestToken = ++this.crowdinApprovalRequestToken;
@@ -7102,10 +7323,13 @@
                     const results = payload?.resultsByItemId && typeof payload.resultsByItemId === 'object'
                         ? payload.resultsByItemId
                         : {};
-                    toLookup.forEach((itemId) => {
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
+                    badgeNodes.forEach((node) => {
+                        const itemId = String(node.dataset?.itemId || '').trim();
+                        if (!itemId || !toLookupSet.has(itemId)) return;
+                        const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId, taskKey);
                         const result = results[itemId] || null;
-                        const bestMatch = result?.bestMatch || null;
+                        const bestMatch = this.resolveCrowdinBestMatchForTask(result, taskKey);
                         const target = String(bestMatch?.target || '').trim();
                         if (target) {
                             langCache.set(cacheKey, {
@@ -7113,16 +7337,19 @@
                                 task: String(bestMatch?.task || ''),
                                 target,
                             });
-                        } else {
-                            langCache.set(cacheKey, {
-                                status: 'not_approved',
-                            });
+                            return;
                         }
+                        langCache.set(cacheKey, {
+                            status: 'not_approved',
+                        });
                     });
                 } catch (error) {
                     const errText = String(error?.message || error || 'Crowdin lookup failed');
-                    toLookup.forEach((itemId) => {
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
+                    badgeNodes.forEach((node) => {
+                        const itemId = String(node.dataset?.itemId || '').trim();
+                        if (!itemId || !toLookupSet.has(itemId)) return;
+                        const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
+                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId, taskKey);
                         langCache.set(cacheKey, { status: 'error', error: errText });
                     });
                 }
@@ -8559,16 +8786,20 @@
             }
 
             async handleTaskFilterChange(taskName) {
-                this.currentTaskFilter = String(taskName || '__all__');
+                const requestedTask = String(taskName || '__all__');
+                this.currentTaskFilter = this.isNonTaskBucketName(requestedTask) ? '__all__' : requestedTask;
                 const storageKey = this.getTaskFilterStorageKey(this.currentLangCode);
                 if (this.currentTaskFilter === '__all__') {
                     localStorage.removeItem(storageKey);
                 } else {
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
+                // Update Approve/Unapprove task button labels immediately on dropdown change.
+                this.updateRefreshIndicator();
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
                 }
+                this.updateRefreshIndicator();
             }
 
             async promoteStagedApprovalsForTask(taskName) {
@@ -8605,7 +8836,9 @@
                                 path: audioPath,
                                 task: selectedTask,
                                 langCode: this.currentLangCode,
-                                copyTaskTranslations: !requestedTranslationCopy
+                                copyTaskTranslations: !requestedTranslationCopy,
+                                approver: String(this.currentUserEmail || '').trim(),
+                                approvedAt: new Date().toISOString()
                             })
                         });
                         const movePayload = await moveResponse.json().catch(() => ({}));

@@ -1,4 +1,5 @@
 import { Storage } from '@google-cloud/storage';
+import NodeID3 from 'node-id3';
 
 const DEFAULT_SOURCE_BUCKET = process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
 const TARGET_BUCKET = process.env.ASSETS_DEV_BUCKET || 'levante-assets-dev';
@@ -36,6 +37,61 @@ function parseAudioObjectPath(objectPath) {
     language: match[1],
     baseId: match[2]
   };
+}
+
+function safeTagValue(value, maxLen = 512) {
+  return String(value || '').trim().slice(0, maxLen);
+}
+
+function normalizeUserDefinedTextEntries(rawEntries) {
+  if (!Array.isArray(rawEntries)) return [];
+  return rawEntries
+    .map((entry) => ({
+      description: safeTagValue(entry?.description, 120),
+      value: safeTagValue(entry?.value, 4000)
+    }))
+    .filter((entry) => entry.description && entry.value);
+}
+
+function upsertUserDefinedTag(entries, description, value) {
+  const cleanDescription = safeTagValue(description, 120);
+  const cleanValue = safeTagValue(value, 4000);
+  if (!cleanDescription) return entries;
+  const filtered = entries.filter((entry) => entry.description !== cleanDescription);
+  if (cleanValue) {
+    filtered.push({ description: cleanDescription, value: cleanValue });
+  }
+  return filtered;
+}
+
+async function applyApprovalId3Tags(file, { approver, approvedAt }) {
+  const approverTag = safeTagValue(approver, 160);
+  const approvedAtTag = safeTagValue(approvedAt, 80);
+  if (!approverTag && !approvedAtTag) return false;
+
+  const [rawAudio] = await file.download();
+  let existingTags = {};
+  try {
+    existingTags = NodeID3.read(rawAudio) || {};
+  } catch (_) {
+    existingTags = {};
+  }
+
+  let userDefinedText = normalizeUserDefinedTextEntries(existingTags.userDefinedText);
+  userDefinedText = upsertUserDefinedTag(userDefinedText, 'approved_by', approverTag);
+  userDefinedText = upsertUserDefinedTag(userDefinedText, 'approved_at', approvedAtTag);
+
+  let taggedAudio = rawAudio;
+  try {
+    taggedAudio = NodeID3.update({ userDefinedText }, rawAudio);
+  } catch (error) {
+    console.warn('move-audio-to-dev: failed updating ID3 approval tags, keeping original audio bytes', error?.message || error);
+    return false;
+  }
+
+  if (!Buffer.isBuffer(taggedAudio)) return false;
+  await file.save(taggedAudio, { contentType: 'audio/mpeg', resumable: false, public: false });
+  return true;
 }
 
 export function normalizeLangCode(langCode) {
@@ -179,7 +235,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { bucket, path: objectPath, task, langCode, copyTaskTranslations } = req.body || {};
+    const { bucket, path: objectPath, task, langCode, copyTaskTranslations, approver, approvedAt } = req.body || {};
     
     if (!objectPath) {
       res.status(400).json({ error: 'Missing path parameter' });
@@ -216,6 +272,16 @@ export default async function handler(req, res) {
 
     // Copy file to target bucket
     await sourceFile.copy(targetFile);
+
+    let approvalTagsWritten = false;
+    try {
+      approvalTagsWritten = await applyApprovalId3Tags(targetFile, {
+        approver,
+        approvedAt: approvedAt || new Date().toISOString()
+      });
+    } catch (error) {
+      console.warn('move-audio-to-dev: failed applying approval ID3 tags:', error?.message || error);
+    }
 
     // Copy metadata if present
     if (metadata.metadata) {
@@ -276,6 +342,7 @@ export default async function handler(req, res) {
       cleanedDraftSiblings,
       sourceDeleted,
       sourceDeleteError,
+      approvalTagsWritten,
       translationJsonCopy
     });
   } catch (error) {
