@@ -36,6 +36,25 @@ function parseTimestamp(value) {
     return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function getCustomMetadataValue(metadata, key) {
+    return String(metadata?.metadata?.[key] || '').trim();
+}
+
+function getLogicalUpdated(metadata) {
+    return getCustomMetadataValue(metadata, 'logical_updated_at')
+        || getCustomMetadataValue(metadata, 'original_updated_at')
+        || metadata?.updated
+        || metadata?.timeCreated
+        || null;
+}
+
+function getLogicalApprovedAt(metadata) {
+    return getCustomMetadataValue(metadata, 'logical_approved_at')
+        || getCustomMetadataValue(metadata, 'approved_at')
+        || getLogicalUpdated(metadata)
+        || null;
+}
+
 function normalizePath(value = '') {
     return value
         .replace(/\\/g, '/')
@@ -132,10 +151,10 @@ export default async function handler(req, res) {
                 approvalInfo.set(key, {
                     path: file.name,
                     bucket: DEV_BUCKET,
-                    updated: file.metadata?.updated || file.metadata?.timeCreated || null,
+                    updated: getLogicalUpdated(file.metadata),
                     generation: file.metadata?.generation || null,
                     approvedVersion: parseVersionFromPath(file.name),
-                    approvedAt: file.metadata?.updated || file.metadata?.timeCreated || null
+                    approvedAt: getLogicalApprovedAt(file.metadata)
                 });
             });
         } else if (shouldLoadDevInfo) {
@@ -151,10 +170,10 @@ export default async function handler(req, res) {
                 approvalInfo.set(key, {
                     path: file.name,
                     bucket: DEV_BUCKET,
-                    updated: file.metadata?.updated || file.metadata?.timeCreated || null,
+                    updated: getLogicalUpdated(file.metadata),
                     generation: file.metadata?.generation || null,
                     approvedVersion: parseVersionFromPath(file.name),
-                    approvedAt: file.metadata?.updated || file.metadata?.timeCreated || null
+                    approvedAt: getLogicalApprovedAt(file.metadata)
                 });
             });
         }
@@ -173,7 +192,7 @@ export default async function handler(req, res) {
                 const baseItemId = versionMatch ? itemIdRaw.replace(/_v\d{3}$/, '') : itemIdRaw;
                 const approvalKey = buildApprovalKey(language, baseItemId);
 
-                const draftUpdated = metadata.updated || metadata.timeCreated || null;
+                const draftUpdated = getLogicalUpdated(metadata);
                 const draftUpdatedDate = parseTimestamp(draftUpdated);
                 const approvalEntry = approvalKey ? approvalInfo.get(approvalKey) : null;
 
@@ -206,7 +225,7 @@ export default async function handler(req, res) {
                     version: derivedVersion,
                     path: name,
                     size: Number(metadata.size || 0),
-                    updated: metadata.updated || metadata.timeCreated || null,
+                    updated: getLogicalUpdated(metadata),
                     generation: metadata.generation || null,
                     contentType: metadata.contentType || null,
                     approvedBySite,
@@ -214,14 +233,14 @@ export default async function handler(req, res) {
                         status: approvalStatus,
                         deployPath: approvalEntry ? approvalEntry.path : (isDevBucket ? name : null),
                         deployBucket: approvalEntry ? approvalEntry.bucket : (isDevBucket ? bucketName : null),
-                        deployUpdated: approvalEntry ? approvalEntry.updated : (isDevBucket ? (metadata.updated || metadata.timeCreated || null) : null),
+                        deployUpdated: approvalEntry ? approvalEntry.updated : (isDevBucket ? getLogicalUpdated(metadata) : null),
                         deployGeneration: approvalEntry ? approvalEntry.generation : (isDevBucket ? (metadata.generation || null) : null),
                         draftUpdated,
                         approvedSource: approvalEntry ? approvalEntry.path : (isDevBucket ? name : null),
                         approvedVersion: approvalEntry && approvalEntry.approvedVersion !== null
                             ? approvalEntry.approvedVersion
                             : (isDevBucket && derivedVersion !== null ? derivedVersion : null),
-                        approvedAt: approvalEntry ? approvalEntry.approvedAt : (isDevBucket ? (metadata.updated || metadata.timeCreated || null) : null)
+                        approvedAt: approvalEntry ? approvalEntry.approvedAt : (isDevBucket ? getLogicalApprovedAt(metadata) : null)
                     }
                 };
             });

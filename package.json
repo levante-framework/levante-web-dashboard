@@ -57,7 +57,8 @@
     "validation:seed-by-language": "node scripts/seed-validation-by-language-from-legacy.js",
     "validation:cleanup-artifacts": "python3 scripts/cleanup_validation_artifacts.py",
     "validation:cleanup-artifacts:apply": "python3 scripts/cleanup_validation_artifacts.py --apply",
-    "report:backfill-rollups": "node scripts/backfill-approver-audio-rollups.js"
+    "report:backfill-rollups": "node scripts/backfill-approver-audio-rollups.js",
+    "audio:backfill-approval-id3": "node scripts/backfill-dev-approval-id3-tags.js"
   },
   "keywords": [
     "audio",
