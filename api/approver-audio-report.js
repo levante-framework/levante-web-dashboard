@@ -43,6 +43,20 @@ function normalizeKeyParts(event) {
   return { itemId, langCode, approver };
 }
 
+function getApprovalActor(event) {
+  return String(event?.approved_by || event?.approvedBy || event?.approver || '').trim();
+}
+
+function getApprovalTimestamp(event) {
+  const approvedAtRaw = String(event?.approved_at || event?.approvedAt || '').trim();
+  const approvedAtDate = parseIsoDate(approvedAtRaw);
+  if (approvedAtDate) return approvedAtDate.toISOString();
+  const serverTimestampRaw = String(event?.serverTimestamp || '').trim();
+  const serverTimestampDate = parseIsoDate(serverTimestampRaw);
+  if (serverTimestampDate) return serverTimestampDate.toISOString();
+  return approvedAtRaw || serverTimestampRaw || '';
+}
+
 function isApprovalEvent(type) {
   return type === 'save_success'
     || type === 'approve_single_success'
@@ -229,8 +243,9 @@ function buildRollupFromEvents(rawEvents, options = {}) {
         approvalType: eventType,
         itemId,
         langCode: event.langCode || langCode,
-        approver: event.approver || approver,
-        approvalAt: event.serverTimestamp,
+        approver: getApprovalActor(event) || approver,
+        approvalAt: getApprovalTimestamp(event),
+        loggedAt: String(event.serverTimestamp || '').trim(),
         task: String(event.task || '').trim(),
         ...details
       });
