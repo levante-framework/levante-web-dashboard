@@ -42,6 +42,8 @@ function normalizePayload(body = {}) {
   const langCode = safeText(body.langCode, 32);
   const eventType = safeText(body.eventType, 80).toLowerCase();
   const approver = safeText(body.approver, 160);
+  const approvedBy = safeText(body.approved_by || body.approvedBy || body.approver, 160);
+  const approvedAtRaw = safeText(body.approved_at || body.approvedAt || '', 64);
   const authMethod = safeText(body.authMethod, 64);
   const task = safeText(body.task, 120);
   const tab = safeText(body.tab, 40);
@@ -86,6 +88,8 @@ function normalizePayload(body = {}) {
     task,
     tab,
     approver,
+    approved_by: approvedBy,
+    approved_at: approvedAtRaw,
     authMethod,
     service,
     modelId,
@@ -152,6 +156,15 @@ export default async function handler(req, res) {
         userAgent
       }
     };
+
+    // Ensure explicit approval keys are always present in the log payload.
+    // If caller did not provide approved_at, default to server time.
+    if (!record.approved_by) {
+      record.approved_by = String(record.approver || '').trim();
+    }
+    if (!record.approved_at) {
+      record.approved_at = record.serverTimestamp;
+    }
 
     const bucket = storage.bucket(bucketName);
     const file = bucket.file(objectPath);
