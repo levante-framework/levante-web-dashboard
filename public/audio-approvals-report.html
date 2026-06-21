@@ -24,6 +24,41 @@
     .card .v { margin-top: 6px; font-size: 24px; font-weight: 700; color: var(--accent); }
     .panel { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: 14px; margin-top: 2px; overflow: hidden; box-shadow: var(--shadow-lg); }
     .panel h2 { margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); font-size: 16px; color: var(--text-primary); background: var(--surface-2); }
+    .panel-collapsible > summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 16px;
+      color: var(--text-primary);
+      background: var(--surface-2);
+      font-weight: 600;
+    }
+    .panel-collapsible > summary::-webkit-details-marker { display: none; }
+    .panel-collapsible > summary::after {
+      content: '▾';
+      margin-left: auto;
+      color: var(--text-secondary);
+      font-size: 14px;
+      transition: transform .15s ease;
+    }
+    .panel-collapsible:not([open]) > summary::after {
+      content: '▸';
+    }
+    .panel-collapsible > summary h2 {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .panel-collapsible .panel-body {
+      border-top: 0;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
     th { background: var(--accent); color: var(--accent-contrast); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
@@ -145,25 +180,47 @@
       </table>
     </div>
 
-    <div class="panel">
-      <h2>Approved Events</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Approval Date</th>
-            <th>Language</th>
-            <th>Item</th>
-            <th>Task</th>
-            <th>Approver</th>
-            <th>Approval Type</th>
-            <th>Regens Before Approval</th>
-            <th>Used Enhanced</th>
-            <th>Enhanced Changed</th>
-          </tr>
-        </thead>
-        <tbody id="detailBody"></tbody>
-      </table>
-    </div>
+    <details class="panel panel-collapsible" open>
+      <summary><h2>Approved Events</h2></summary>
+      <div class="panel-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Approval Date</th>
+              <th>Language</th>
+              <th>Item</th>
+              <th>Task</th>
+              <th>Approver</th>
+              <th>Approval Type</th>
+              <th>Regens Before Approval</th>
+              <th>Used Enhanced</th>
+              <th>Enhanced Changed</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="panel panel-collapsible" open>
+      <summary><h2>Approvals With Enhanced Audio</h2></summary>
+      <div class="panel-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Approval Date</th>
+              <th>Language</th>
+              <th>Item</th>
+              <th>Task</th>
+              <th>Approver</th>
+              <th>Enhanced Changed</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="enhancedBody"></tbody>
+        </table>
+      </div>
+    </details>
     <div class="status muted" id="statusLine"></div>
   </div>
 
@@ -318,6 +375,38 @@
       }).join('');
     }
 
+    function renderEnhancedDetails(rows) {
+      const body = el('enhancedBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="muted">No enhanced-audio approvals match current filters.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((r) => {
+        const enhanced = r.latestPriorEnhanced || null;
+        const changed = r.hadPriorEnhancedChanged === true;
+        const original = enhanced ? enhanced.originalTranslation : '';
+        const modified = enhanced ? enhanced.audioEnhancedText : '';
+        return `
+          <tr>
+            <td>${esc(fmtDate(r.approvalAt))}</td>
+            <td>${esc(r.langCode)}</td>
+            <td>${esc(r.itemId)}</td>
+            <td>${esc(r.task || '—')}</td>
+            <td>${esc(r.approver)}</td>
+            <td><span class="pill ${changed ? 'changed' : 'no'}">${changed ? 'Changed' : 'No change'}</span></td>
+            <td>
+              ${enhanced ? `
+                <div class="diff">
+                  <div class="box"><b>Original</b>${esc(original)}</div>
+                  <div class="box"><b>Audio-Enhanced</b>${esc(modified)}</div>
+                </div>
+              ` : '<span class="muted">No enhanced details logged.</span>'}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     function applyFilters() {
       if (!state.payload) return;
       const changedOnly = el('changedOnly').checked;
@@ -343,6 +432,7 @@
 
       const filteredDetails = details.filter((row) => (lang === '__all__' || normalizeLangCode(row.langCode) === lang))
         .filter((row) => !changedOnly || (row.latestPriorEnhanced && row.latestPriorEnhanced.enhancedTextChanged === true));
+      const enhancedRows = filteredDetails.filter((row) => row.hadPriorEnhancedRegen === true);
 
       state.filteredDetails = filteredDetails;
       const totals = sumRows(filteredSummary);
@@ -353,11 +443,12 @@
       renderCards(totals);
       renderSummary(filteredSummary);
       renderDetails(filteredDetails);
+      renderEnhancedDetails(enhancedRows);
       const suffix = state.compactionNote ? ` • ${state.compactionNote}` : '';
       const partial = state.partialLoadNote ? ` • ${state.partialLoadNote}` : '';
       const detailsLoaded = state.payload?.includeDetails === true;
       const detailsNote = detailsLoaded ? '' : ' • Details omitted for faster load; pick a language to load details.';
-      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records${suffix}${partial}${detailsNote}`;
+      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records and ${enhancedRows.length} enhanced-audio records${suffix}${partial}${detailsNote}`;
     }
 
     async function loadReport() {
