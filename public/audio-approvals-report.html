@@ -39,10 +39,69 @@
     .status { margin-top: 2px; font-size: 13px; }
     .back-to-cockpit { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--accent-border); color: var(--accent); padding: 8px 14px; border-radius: 999px; text-decoration: none; font-weight: 600; transition: all .2s ease; }
     .back-to-cockpit:hover { background: var(--accent); color: var(--accent-contrast); transform: translateY(-1px); }
+    .loading-overlay[hidden] { display: none; }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.52);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .loading-card {
+      width: min(560px, 100%);
+      background: var(--surface-1);
+      border: 2px solid var(--color-warning-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      padding: 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 3px solid var(--accent-soft);
+      border-top-color: var(--accent);
+      animation: reportSpin 0.9s linear infinite;
+      flex: 0 0 24px;
+      margin-top: 2px;
+    }
+    .loading-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.25;
+    }
+    .loading-detail {
+      margin-top: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    @keyframes reportSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .diff { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
+  <div class="loading-overlay" id="loadingOverlay" hidden aria-live="polite" aria-busy="true">
+    <div class="loading-card" role="status">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div>
+        <p class="loading-title" id="loadingTitle">Loading report...</p>
+        <div class="loading-detail" id="loadingDetail">Preparing request.</div>
+      </div>
+    </div>
+  </div>
   <div class="wrap">
     <div class="top">
       <div>
@@ -109,7 +168,7 @@
   </div>
 
   <script>
-    const state = { payload: null, filteredDetails: [], compactionNote: '', partialLoadNote: '' };
+    const state = { payload: null, filteredDetails: [], compactionNote: '', partialLoadNote: '', isLoading: false };
 
     function el(id) { return document.getElementById(id); }
     function esc(v) {
@@ -124,6 +183,28 @@
     function fmtDate(v) {
       const d = new Date(v || '');
       return Number.isNaN(d.getTime()) ? (v || '') : d.toLocaleString();
+    }
+
+    function setLoading(isLoading, title, detail = '') {
+      state.isLoading = isLoading === true;
+      const overlay = el('loadingOverlay');
+      const titleEl = el('loadingTitle');
+      const detailEl = el('loadingDetail');
+      const refreshBtn = el('refreshBtn');
+      const sinceDaysInput = el('sinceDays');
+      const langSelect = el('langFilter');
+      const changedOnly = el('changedOnly');
+
+      if (titleEl) titleEl.textContent = title || 'Loading report...';
+      if (detailEl) detailEl.textContent = detail || '';
+      if (overlay) overlay.hidden = !state.isLoading;
+      if (refreshBtn) {
+        refreshBtn.disabled = state.isLoading;
+        refreshBtn.textContent = state.isLoading ? 'Refreshing...' : 'Refresh';
+      }
+      if (sinceDaysInput) sinceDaysInput.disabled = state.isLoading;
+      if (langSelect) langSelect.disabled = state.isLoading;
+      if (changedOnly) changedOnly.disabled = state.isLoading;
     }
 
     function normalizeLangCode(v) {
@@ -280,9 +361,14 @@
     }
 
     async function loadReport() {
-      el('metaLine').innerHTML = '<strong>Updating Log Files...</strong>';
-      el('statusLine').innerHTML = '<strong>Updating Log Files...</strong>';
       const sinceDays = Math.max(0, Number(el('sinceDays').value || 0));
+      setLoading(
+        true,
+        'Updating audio approvals report',
+        `Updating log files and loading events for the last ${sinceDays === 0 ? 'all available days' : `${sinceDays} day${sinceDays === 1 ? '' : 's'}`}.`
+      );
+      el('metaLine').innerHTML = '<strong>Loading in progress...</strong>';
+      el('statusLine').innerHTML = '<strong>Loading in progress...</strong>';
       const selectedLang = normalizeLangCode(el('langFilter').value);
       const hasLangFilter = selectedLang && selectedLang !== '__all__';
       // Keep detailed approval-event rows enabled so this report always shows
@@ -354,8 +440,13 @@
         chunkCount += 1;
         hasMore = payload.hasMore === true && Number.isFinite(Number(payload.nextDayCursor));
         cursor = hasMore ? Number(payload.nextDayCursor) : 0;
+        setLoading(
+          true,
+          'Updating audio approvals report',
+          `Loading chunk ${chunkCount}${totalDaysToProcess > 0 ? ` • processed ${totalProcessedDays}/${totalDaysToProcess} day ranges` : ''}${compacted > 0 ? ` • updated ${compacted} log day${compacted === 1 ? '' : 's'}` : ''}.`
+        );
         if (hasMore) {
-          el('statusLine').textContent = `Loading report chunks (${chunkCount})... days processed: ${totalProcessedDays}/${totalDaysToProcess || '?'} `;
+          el('statusLine').innerHTML = `<strong>Loading in progress...</strong> chunk ${chunkCount}, days processed: ${totalProcessedDays}/${totalDaysToProcess || '?'}`;
         }
       } while (hasMore && chunkCount < 60);
 
@@ -411,6 +502,7 @@
       const partialLabel = stoppedEarly ? ` • Partial load: ${totalProcessedDays}/${totalDaysToProcess || '?'} days` : '';
       el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}${filterLabel}${detailsLabel}${todayLabel}${rawLabel}${compactLabel}${partialLabel}`;
       applyFilters();
+      setLoading(false, '', '');
     }
 
     async function refresh() {
@@ -420,6 +512,7 @@
         const message = error?.name === 'AbortError'
           ? 'Report request timed out. Try reducing "Since days" (e.g., 7 or 14) and refresh.'
           : `Error: ${error?.message || error}`;
+        setLoading(false, '', '');
         el('metaLine').textContent = message;
         el('statusLine').textContent = message;
       }
