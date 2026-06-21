@@ -358,7 +358,7 @@
       }
       body.innerHTML = rows.map((r) => {
         const usedEnhanced = r.hadPriorEnhancedRegen === true;
-        const changed = r.hadPriorEnhancedChanged === true;
+        const changed = Boolean(r.latestPriorEnhanced && r.latestPriorEnhanced.enhancedTextChanged === true);
         return `
           <tr>
             <td>${esc(fmtDate(r.approvalAt))}</td>
@@ -383,7 +383,7 @@
       }
       body.innerHTML = rows.map((r) => {
         const enhanced = r.latestPriorEnhanced || null;
-        const changed = r.hadPriorEnhancedChanged === true;
+        const changed = Boolean(enhanced && enhanced.enhancedTextChanged === true);
         const original = enhanced ? enhanced.originalTranslation : '';
         const modified = enhanced ? enhanced.audioEnhancedText : '';
         return `
