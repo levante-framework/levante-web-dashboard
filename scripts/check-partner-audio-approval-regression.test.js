@@ -15,7 +15,7 @@ test('partner audio dashboard satisfies approval regression contracts', () => {
 });
 
 test('regression contracts cover expected approval safeguards', () => {
-  assert.ok(CONTRACTS.length >= 12, 'Expected at least 12 approval contract checks.');
+  assert.ok(CONTRACTS.length >= 16, 'Expected at least 16 approval contract checks.');
 });
 
 test('fails when approve force-refresh lookup contract is removed', () => {

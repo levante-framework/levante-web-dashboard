@@ -187,6 +187,8 @@ Required/optional keys used by current translation and AI features:
 - `OPENAI_MODEL` – optional OpenAI model override (defaults to `gpt-4.1`)
 - `GCP_SERVICE_ACCOUNT_JSON` or `GOOGLE_APPLICATION_CREDENTIALS_JSON` – JSON credentials for private GCS-backed APIs
 - `ASSETS_DRAFT_BUCKET` – optional draft assets bucket override used by partner audio APIs (defaults to `levante-assets-draft`)
+- `ASSETS_DEV_BUCKET` – dev assets bucket for promoted audio and `languageoptions.json` (defaults to `levante-assets-dev`)
+- `LANGUAGE_OPTIONS_OBJECT` – path to consolidated language options JSON (defaults to `translations/dashboard-consolidated-flat/languageoptions.json`)
 - `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE` – translation source mode for `/api/partner-audio-translations` (`task-json` default; legacy options: `csv`, `xliff`)
 - `PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH` – CSV object path used only when `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE=csv` (defaults to `audio/item_bank_translations.csv`)
 - `PARTNER_AUDIO_TRANSLATIONS_ENABLE_XLIFF_SOURCE` – optional CSV-mode fallback toggle to allow legacy XLIFF scan/build when CSV is missing (`false` by default)
@@ -214,15 +216,24 @@ Key dependencies:
 ## API Endpoints
 
 ### `/api/partner-audio-translations`
-Returns the partner audio approval catalog as CSV.
+Returns translation items for the Partner Audio Approval Tool.
 
 **Default source mode (`task-json`):**
-- Reads task-specific JSON files from `gs://<ASSETS_DRAFT_BUCKET>/**/itembank_by_task/*.json`
-- Does not fall back to other sources unless `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE` is changed
+- `GET ?lang=<code>` — returns JSON bundle for one audio-capable language from `gs://<ASSETS_DRAFT_BUCKET>/translations/itembank/<task>/<lang>/item-bank-translations.json`
+- English source joined from `en-US`; items classified as `ok`, `no_approved_translation`, or `missing_key`
+- Requires `lang` query parameter (no bulk all-languages export)
 
-**Legacy source modes (opt-in):**
-- `csv`: `gs://<ASSETS_DRAFT_BUCKET>/<PARTNER_AUDIO_TRANSLATIONS_OBJECT_PATH>` and public URL fallback
-- `xliff`: bucket-wide XLIFF scan/build from `**/main/itembank_by_task/*.xlf*`
+**Legacy source modes (opt-in via `PARTNER_AUDIO_TRANSLATIONS_SOURCE_MODE`):**
+- `csv`: flat CSV from draft bucket
+- `xliff`: bucket-wide XLIFF scan/build
+
+### `/api/partner-audio-language-config`
+Partner-audio-only language list from `language_config.json` (GCS), filtered to audio-capable entries.
+
+### `/api/partner-task-finished`
+Records task completion in draft-bucket logs, posts optional Slack notification, and appends the task slug to `languageoptions.json` `taskOptions` for the language (`ASSETS_DEV_BUCKET`, default `levante-assets-dev`).
+
+**POST body:** `{ langCode, language, task, approver, approvedAudio, totalAudio }`
 
 ### `/translations` (public Crowdin OTA viewer)
 Server-rendered public route for approved translations from Crowdin.
@@ -409,6 +420,11 @@ For a chronological log of January 2026 dashboard updates, see `docs/dashboard-u
   - Added alias-safe handling for validation keys and audio paths (`en`<->`en-US`, `de`<->`de-DE`).
   - Prevents loss of existing validation history and reduces audio lookup misses after locale-code changes.
 - **Partner Audio Approval Tool**:
+  - JSON bundle API (`GET /api/partner-audio-translations?lang=`) with deferred per-language load
+  - Partner-scoped audio-capable language config (`/api/partner-audio-language-config`)
+  - Staged approval workflow: approve per task, promote on **Mark task finished**
+  - Missing Audio / Missing Translation / Hidden Strings tabs; Crowdin approval badges removed
+  - Task finish appends slug to `languageoptions.json` and reports outcome in UI
   - Added **Approve All Audio (Language)** action in pending tab.
   - Added timestamp-based approval classification: item is approved only when dev copy is newest vs draft (prevents passive status flips when draft is newer).
   - Strengthened cache invalidation + UI consistency after approve/unapprove/move flows.

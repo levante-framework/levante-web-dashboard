@@ -443,6 +443,8 @@
 
         .tabs-container {
             display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
             gap: 8px;
             margin-bottom: 16px;
             border-bottom: 2px solid #e4e4e7;
@@ -901,12 +903,59 @@
             border-bottom-color: #da3d16;
         }
 
+        .tab-button.tab-button-inactive,
+        .tab-button:disabled {
+            color: #a1a1aa;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .tab-button.tab-button-inactive:hover,
+        .tab-button:disabled:hover {
+            color: #a1a1aa;
+        }
+
+        .tab-button.tab-button-superadmin {
+            margin-left: auto;
+        }
+
         .tab-content {
             display: none;
         }
 
         .tab-content.active {
             display: block;
+        }
+
+        .tab-info-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .missing-translation-subsection {
+            margin-bottom: 28px;
+        }
+
+        .missing-translation-subsection:last-child {
+            margin-bottom: 0;
+        }
+
+        .missing-translation-subsection h3 {
+            font-size: 1rem;
+            margin: 0 0 8px;
+            color: #0f172a;
+        }
+
+        .missing-translation-subsection-note {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 0 0 12px;
         }
 
         .no-audio-meta {
@@ -1145,48 +1194,6 @@
             gap: 6px;
         }
 
-        .crowdin-approval-badge {
-            display: inline-flex;
-            align-items: center;
-            width: fit-content;
-            font-size: 11px;
-            font-weight: 600;
-            border-radius: 999px;
-            padding: 2px 8px;
-            border: 1px solid transparent;
-            line-height: 1.3;
-        }
-
-        .crowdin-approval-badge.is-checking {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            color: #1d4ed8;
-        }
-
-        .crowdin-approval-badge.is-approved {
-            background: #ecfdf3;
-            border-color: #86efac;
-            color: #166534;
-        }
-
-        .crowdin-approval-badge.is-not-approved {
-            background: #fff7ed;
-            border-color: #fdba74;
-            color: #9a3412;
-        }
-
-        .crowdin-approval-badge.is-error {
-            background: #fef2f2;
-            border-color: #fca5a5;
-            color: #991b1b;
-        }
-
-        .crowdin-approval-badge.is-unknown {
-            background: #f4f4f5;
-            border-color: #d4d4d8;
-            color: #52525b;
-        }
-
         .item-card-compact-source {
             color: #6b7280;
             font-size: 0.85rem;
@@ -1207,10 +1214,70 @@
             margin-top: 4px;
         }
 
+        .item-card-compact-meta {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #52525b;
+            line-height: 1.45;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .item-card-compact-meta strong {
+            color: #3f3f46;
+            font-weight: 600;
+        }
+
         .item-card-compact-actions {
             display: flex;
             gap: 8px;
             flex-shrink: 0;
+        }
+
+        .item-card-compact-approved {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            align-items: start;
+            gap: 16px;
+        }
+
+        .item-card-compact-screenshot {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-width: 140px;
+        }
+
+        .item-card-compact-approved .item-card-compact-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .item-card-compact-approved .item-card-compact-id-wrap {
+            margin-bottom: 2px;
+        }
+
+        .item-card-compact-approved .item-card-compact-text {
+            margin-top: 0;
+            white-space: normal;
+            word-break: break-word;
+            overflow: visible;
+            text-overflow: unset;
+            width: 100%;
+            text-align: left;
+        }
+
+        .item-card-compact-approved .item-card-compact-meta {
+            margin-top: 0;
+            width: 100%;
+            text-align: left;
+        }
+
+        .item-card-compact-approved .item-card-compact-actions {
+            align-self: center;
         }
 
         .auth-container {
@@ -2016,8 +2083,12 @@
                         <span class="stat-value stat-pending" id="statPending">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">No Audio</span>
+                        <span class="stat-label">Missing Audio</span>
                         <span class="stat-value stat-noaudio" id="statNoAudio">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Missing Translation</span>
+                        <span class="stat-value stat-missing-translation" id="statMissingTranslation">0</span>
                     </div>
                 </div>
             </div>
@@ -2050,7 +2121,28 @@
                     data-layout-editable="true"
                     data-layout-page="partner-audio-dashboard"
                     data-layout-region="tab-noaudio-label"
-                >No Audio Yet</span>
+                >Missing Audio</span>
+            </button>
+            <button class="tab-button" id="tabMissingTranslation" onclick="dashboard.switchTab('missingtranslation')">
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-missing-translation-label"
+                >Missing Translation</span>
+            </button>
+            <button
+                class="tab-button tab-button-superadmin"
+                id="tabHiddenStrings"
+                type="button"
+                onclick="dashboard.switchTab('hiddenstrings')"
+                style="display: none;"
+                disabled
+            >
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-hidden-strings-label"
+                >Hidden Strings</span>
             </button>
         </div>
         <div class="search-container">
@@ -2151,6 +2243,12 @@
             </div>
         </div>
         <div class="tab-content" id="tabContentNoAudio">
+            <div
+                class="tab-info-panel"
+                data-layout-editable="true"
+                data-layout-page="partner-audio-dashboard"
+                data-layout-region="missing-audio-info"
+            >No audio files were found for these strings. Audio may need to be generated by the DCC.</div>
             <div class="no-audio-meta" id="noAudioScanInfo"></div>
             <div class="items-list" id="itemsListNoAudio">
                 <div class="empty-state">
@@ -2160,8 +2258,50 @@
                         data-layout-page="partner-audio-dashboard"
                         data-layout-region="empty-noaudio-copy"
                     >
-                        <h3>No items without audio</h3>
-                        <p>Items without audio files will appear here</p>
+                        <h3>No missing audio items</h3>
+                        <p>Valid translations without audio files will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-content" id="tabContentMissingTranslation">
+            <div
+                class="tab-info-panel"
+                data-layout-editable="true"
+                data-layout-page="partner-audio-dashboard"
+                data-layout-region="missing-translation-info"
+            >These strings have <strong>NO APPROVED TRANSLATION</strong> in the selected language export.</div>
+            <div class="items-list" id="itemsListMissingTranslation">
+                <div class="empty-state">
+                    <i class="fas fa-language"></i>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-missing-translation-copy"
+                    >
+                        <h3>No missing translation items</h3>
+                        <p>Strings with NO APPROVED TRANSLATION will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-content" id="tabContentHiddenStrings">
+            <div
+                class="tab-info-panel"
+                data-layout-editable="true"
+                data-layout-page="partner-audio-dashboard"
+                data-layout-region="hidden-strings-info"
+            >English source keys that are missing from the selected language task export. Note: these strings may be deliberately hidden.</div>
+            <div class="items-list" id="itemsListHiddenStrings">
+                <div class="empty-state">
+                    <i class="fas fa-eye-slash"></i>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-hidden-strings-copy"
+                    >
+                        <h3>No hidden strings</h3>
+                        <p>All English source keys are present in this language export</p>
                     </div>
                 </div>
             </div>
@@ -2206,8 +2346,8 @@
                 this.devApprovedItems = new Set(); // Track items that are actually in dev bucket
                 this.stagedApprovedByLang = new Map(); // langCode -> Map(taskName -> Set(baseId))
                 this.unapprovedItems = new Set(); // Track explicitly unapproved items (to prevent re-adding)
-                this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0 };
-                this.currentTab = 'pending'; // Current tab: 'pending' or 'approved'
+                this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0, missingTranslation: 0 };
+                this.currentTab = 'pending';
                 
                 this.data = [];
                 this.currentLanguage = null;
@@ -2263,8 +2403,7 @@
                 this.commonAudioTagsStorageKeyPrefix = 'partnerAudioCommonTags';
                 this.contextMenuTargetInput = null;
                 this.enhancedTagContextMenuEl = null;
-                this.crowdinApprovalByLang = new Map();
-                this.crowdinApprovalRequestToken = 0;
+                this.approvalDetailsByLang = new Map();
                 this._hasShownNoSoundHint = false;
                 this._activePlaybackProbe = null;
                 try {
@@ -2922,6 +3061,10 @@
                     container = document.getElementById('itemsListApproved');
                 } else if (this.currentTab === 'noaudio') {
                     container = document.getElementById('itemsListNoAudio');
+                } else if (this.currentTab === 'missingtranslation') {
+                    container = null;
+                } else if (this.currentTab === 'hiddenstrings') {
+                    container = null;
                 }
                 if (!container) return [];
                 const inputs = Array.from(container.querySelectorAll('.audio-enhanced-input'));
@@ -3811,6 +3954,8 @@
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
                 this.updateFinishedTaskButtonVisibility({ totalAudio: 0, approvedAudio: 0 });
+                // Keep task action button labels aligned with the selected task.
+                this.updateRefreshIndicator();
             }
 
             resolveLanguageKey(languageName) {
@@ -4044,10 +4189,14 @@
                     && String(item.translationText || '').trim() !== '';
             }
 
-            isMissingTranslationItem(item) {
+            isNoApprovedTranslationItem(item) {
                 if (!item) return false;
-                return item.translationStatus === 'no_approved_translation'
-                    || item.translationStatus === 'missing_key';
+                return item.translationStatus === 'no_approved_translation';
+            }
+
+            isHiddenStringItem(item) {
+                if (!item) return false;
+                return item.translationStatus === 'missing_key';
             }
 
             getItemsWithTranslationStatus(items, status) {
@@ -4056,12 +4205,64 @@
                 return (Array.isArray(items) ? items : []).filter((item) => item?.translationStatus === wanted);
             }
 
-            splitMissingTranslationItems(items) {
-                const list = Array.isArray(items) ? items : [];
-                return {
-                    noApprovedTranslation: list.filter((item) => item?.translationStatus === 'no_approved_translation'),
-                    missingKey: list.filter((item) => item?.translationStatus === 'missing_key'),
-                };
+            getOkTranslationItems() {
+                return (Array.isArray(this.data) ? this.data : []).filter((item) => this.isValidTranslationItem(item));
+            }
+
+            getMissingTranslationItems() {
+                return (Array.isArray(this.data) ? this.data : []).filter((item) => this.isNoApprovedTranslationItem(item));
+            }
+
+            getHiddenStringItems() {
+                return (Array.isArray(this.data) ? this.data : []).filter((item) => this.isHiddenStringItem(item));
+            }
+
+            isSuperAdminUser() {
+                return this.authMethod === 'superadmin';
+            }
+
+            updateHiddenStringsTabState() {
+                const tabBtn = document.getElementById('tabHiddenStrings');
+                if (!tabBtn) return;
+
+                const isSuper = this.isSuperAdminUser();
+                tabBtn.style.display = isSuper ? '' : 'none';
+
+                if (!isSuper) {
+                    tabBtn.disabled = true;
+                    tabBtn.classList.remove('tab-button-inactive');
+                    if (this.currentTab === 'hiddenstrings') {
+                        this.currentTab = 'pending';
+                        this.setActiveTabPanels();
+                    }
+                    return;
+                }
+
+                const count = this.currentLangCode
+                    ? this.applyTaskFilterToItems(this.getHiddenStringItems()).length
+                    : 0;
+                tabBtn.disabled = count === 0;
+                tabBtn.classList.toggle('tab-button-inactive', count === 0);
+                tabBtn.setAttribute('aria-disabled', count === 0 ? 'true' : 'false');
+
+                if (count === 0 && this.currentTab === 'hiddenstrings') {
+                    this.currentTab = 'pending';
+                    this.setActiveTabPanels();
+                }
+            }
+
+            setActiveTabPanels() {
+                const tab = this.currentTab;
+                document.getElementById('tabPending')?.classList.toggle('active', tab === 'pending');
+                document.getElementById('tabApproved')?.classList.toggle('active', tab === 'approved');
+                document.getElementById('tabNoAudio')?.classList.toggle('active', tab === 'noaudio');
+                document.getElementById('tabMissingTranslation')?.classList.toggle('active', tab === 'missingtranslation');
+                document.getElementById('tabHiddenStrings')?.classList.toggle('active', tab === 'hiddenstrings');
+                document.getElementById('tabContentPending')?.classList.toggle('active', tab === 'pending');
+                document.getElementById('tabContentApproved')?.classList.toggle('active', tab === 'approved');
+                document.getElementById('tabContentNoAudio')?.classList.toggle('active', tab === 'noaudio');
+                document.getElementById('tabContentMissingTranslation')?.classList.toggle('active', tab === 'missingtranslation');
+                document.getElementById('tabContentHiddenStrings')?.classList.toggle('active', tab === 'hiddenstrings');
             }
 
             getSourceForItem(item) {
@@ -4286,6 +4487,7 @@
                     }
 
                     this.updateRefreshIndicator();
+                    this.updateHiddenStringsTabState();
                     console.log('initDashboard() completed', {
                         authMethod: this.authMethod,
                         user: this.currentUserEmail,
@@ -5667,16 +5869,13 @@
             }
 
             async updateApprovalStats() {
-                // Calculate stats from all items with translations and audio
                 if (!this.currentLangCode) return;
-                
-                // Get all items with translations
-                const withTranslations = this.data.filter(item => {
-                    const text = this.getTextForItem(item, this.currentLangCode);
-                    return text && text.trim();
-                });
-                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                
+
+                const okItems = this.getOkTranslationItems();
+                const missingTranslationItems = this.getMissingTranslationItems();
+                const taskFilteredOk = this.applyTaskFilterToItems(okItems);
+                const taskFilteredMissingTranslation = this.applyTaskFilterToItems(missingTranslationItems);
+
                 const [draftInfo, devInfo] = await Promise.all([
                     this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode),
                     this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
@@ -5685,7 +5884,7 @@
 
                 const taskAudioIds = new Set();
                 const taskApprovedAudioIds = new Set();
-                taskFilteredTranslations.forEach(item => {
+                taskFilteredOk.forEach(item => {
                     const baseId = this.extractBaseId(item.item_id || '');
                     if (!baseId || !combinedIds.has(baseId)) return;
                     taskAudioIds.add(baseId);
@@ -5693,14 +5892,15 @@
                         taskApprovedAudioIds.add(baseId);
                     }
                 });
-                
-                const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
-                const total = taskFilteredTranslations.length;
+
+                const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredOk);
+                const total = taskFilteredOk.length;
                 const noAudio = itemsWithoutAudio.length;
+                const missingTranslation = taskFilteredMissingTranslation.length;
                 let approved = 0;
                 let pending = 0;
-                
-                taskFilteredTranslations.forEach(item => {
+
+                taskFilteredOk.forEach(item => {
                     const baseId = this.extractBaseId(item.item_id || '');
                     if (!baseId || !combinedIds.has(baseId)) {
                         return;
@@ -5711,31 +5911,29 @@
                         pending++;
                     }
                 });
-                // Keep standalone total aligned with the visible approved metric.
-                // This prevents confusing mismatches between "Approved" and "Total Approved".
                 const totalApproved = approved;
-                
+
                 this.approvalStats.total = total;
                 this.approvalStats.totalApproved = totalApproved;
                 this.approvalStats.approved = approved;
                 this.approvalStats.pending = pending;
                 this.approvalStats.noAudio = noAudio;
-                
-                // Update UI elements
+                this.approvalStats.missingTranslation = missingTranslation;
+
                 const statTotal = document.getElementById('statTotal');
                 const statTotalApproved = document.getElementById('statTotalApproved');
                 const statApproved = document.getElementById('statApproved');
                 const statPending = document.getElementById('statPending');
                 const statNoAudio = document.getElementById('statNoAudio');
-                
+                const statMissingTranslation = document.getElementById('statMissingTranslation');
+
                 if (statTotal) statTotal.textContent = total;
                 if (statTotalApproved) statTotalApproved.textContent = totalApproved;
                 if (statApproved) statApproved.textContent = approved;
                 if (statPending) statPending.textContent = pending;
                 if (statNoAudio) statNoAudio.textContent = noAudio;
-                
-                
-                // Show stats container
+                if (statMissingTranslation) statMissingTranslation.textContent = missingTranslation;
+
                 const statsEl = document.getElementById('approvalStats');
                 if (statsEl) {
                     statsEl.style.display = 'flex';
@@ -5843,13 +6041,22 @@
                     
                     select.appendChild(option);
                 });
-                
-                // Remove existing listeners and add new one
-                const newSelect = select.cloneNode(true);
-                select.parentNode.replaceChild(newSelect, select);
-                newSelect.addEventListener('change', (e) => {
+
+                // Preserve current selection when still available; otherwise keep placeholder.
+                const hasCurrentLanguage = this.currentLanguage
+                    && Array.from(select.options || []).some((option) => option.value === this.currentLanguage);
+                if (resolvedAllowedLanguage && Array.from(select.options || []).some((option) => option.value === resolvedAllowedLanguage)) {
+                    select.value = resolvedAllowedLanguage;
+                } else if (hasCurrentLanguage) {
+                    select.value = this.currentLanguage;
+                } else {
+                    select.value = '';
+                }
+
+                // Keep a single change handler without replacing the DOM node (which can reset selection state).
+                select.onchange = (e) => {
                     this.selectLanguage(e.target.value);
-                });
+                };
                 
                 console.log(`Successfully populated ${languageKeys.length} languages in dropdown`);
             }
@@ -5907,50 +6114,51 @@
                 // Load approval status first (populates approvedItems set)
                 await this.loadApprovalStatus();
 
-                // Filter to items with valid translations
-                const withTranslations = this.data.filter(item => this.isValidTranslationItem(item));
-                
-                console.log(`Found ${withTranslations.length} items with translations for ${this.currentLangCode} (out of ${this.data.length} total items)`);
-                
-                // Then check which items have audio files
-                this.setStatus(`Checking audio availability for ${withTranslations.length} items...`, 'loading');
-                this.populateTaskFilter(withTranslations);
-                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                
-                // Get all items with audio (both draft and dev buckets) for stats
-                const allItemsWithAudio = await this.getAllItemsWithAudio(taskFilteredTranslations);
-                
-                // Filter based on current tab
+                const okItems = this.getOkTranslationItems();
+                console.log(`Found ${okItems.length} items with valid translations for ${this.currentLangCode} (out of ${this.data.length} total items)`);
+
+                this.setStatus(`Checking audio availability for ${okItems.length} items...`, 'loading');
+                this.populateTaskFilter(this.data);
+                const taskFilteredOk = this.applyTaskFilterToItems(okItems);
+                const taskFilteredMissingTranslation = this.applyTaskFilterToItems(this.getMissingTranslationItems());
+                const taskFilteredHiddenStrings = this.applyTaskFilterToItems(this.getHiddenStringItems());
+
+                const allItemsWithAudio = await this.getAllItemsWithAudio(taskFilteredOk);
+
                 let itemsToShow;
                 if (this.currentTab === 'approved') {
-                    // For approved tab, get items from dev bucket
-                    itemsToShow = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    itemsToShow = await this.getApprovedItemsFromDev(taskFilteredOk);
                 } else if (this.currentTab === 'noaudio') {
-                    // For no audio tab, get items without audio
-                    itemsToShow = await this.getItemsWithoutAudio(taskFilteredTranslations);
+                    itemsToShow = await this.getItemsWithoutAudio(taskFilteredOk);
+                } else if (this.currentTab === 'missingtranslation') {
+                    itemsToShow = taskFilteredMissingTranslation;
+                } else if (this.currentTab === 'hiddenstrings') {
+                    itemsToShow = taskFilteredHiddenStrings;
                 } else {
-                    // For pending tab, get items from draft bucket (excluding approved)
-                    itemsToShow = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    itemsToShow = await this.filterItemsWithAudio(taskFilteredOk);
                 }
-                
+
                 console.log(`Found ${allItemsWithAudio.length} total items with audio (${itemsToShow.length} shown in ${this.currentTab} tab)`);
-                
-                // Ensure current tab content is visible
-                document.getElementById('tabContentPending').classList.toggle('active', this.currentTab === 'pending');
-                document.getElementById('tabContentApproved').classList.toggle('active', this.currentTab === 'approved');
-                document.getElementById('tabContentNoAudio').classList.toggle('active', this.currentTab === 'noaudio');
-                
-                // Render items directly for the current tab (don't re-filter)
+
+                this.setActiveTabPanels();
+
                 if (this.currentTab === 'approved') {
+                    await this.loadApprovalDetailsFromServer(itemsToShow, this.currentLangCode);
                     this.renderApprovedItems(itemsToShow);
                     this.setStatus(`Finished loading - ${itemsToShow.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
-                    this.renderNoAudioItems(itemsToShow);
-                    this.setStatus(`Finished loading - ${itemsToShow.length} items without audio`, 'success');
+                    this.renderMissingAudioItems(itemsToShow);
+                    this.setStatus(`Finished loading - ${itemsToShow.length} items missing audio`, 'success');
+                } else if (this.currentTab === 'missingtranslation') {
+                    this.renderMissingTranslationItems(itemsToShow);
+                    this.setStatus(`Finished loading - ${itemsToShow.length} items with NO APPROVED TRANSLATION`, 'success');
+                } else if (this.currentTab === 'hiddenstrings') {
+                    this.renderHiddenStringItems(itemsToShow);
+                    this.setStatus(`Finished loading - ${itemsToShow.length} hidden strings`, 'success');
                 } else {
                     await this.renderPendingItems(itemsToShow);
                     if (itemsToShow.length === 0 && allItemsWithAudio.length > 0) {
-                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredOk);
                         if (approvedItemsList.length > 0) {
                             await this.switchTab('approved');
                             this.setStatus(
@@ -5970,6 +6178,7 @@
                 
                 // Update stats with all items
                 await this.updateApprovalStats();
+                this.updateHiddenStringsTabState();
                 
                 // Apply search filter if active
                 if (this.currentSearchQuery) {
@@ -6046,22 +6255,19 @@
             }
 
             async switchTab(tab) {
+                if (tab === 'hiddenstrings') {
+                    if (!this.isSuperAdminUser()) return;
+                    const count = this.currentLangCode
+                        ? this.applyTaskFilterToItems(this.getHiddenStringItems()).length
+                        : 0;
+                    if (count === 0) return;
+                }
+
                 this.currentTab = tab;
-                
-                // Update tab buttons
-                document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
-                document.getElementById('tabApproved').classList.toggle('active', tab === 'approved');
-                document.getElementById('tabNoAudio').classList.toggle('active', tab === 'noaudio');
-                
-                // Update tab content
-                document.getElementById('tabContentPending').classList.toggle('active', tab === 'pending');
-                document.getElementById('tabContentApproved').classList.toggle('active', tab === 'approved');
-                document.getElementById('tabContentNoAudio').classList.toggle('active', tab === 'noaudio');
-                
-                // Re-render items for the selected tab
+                this.setActiveTabPanels();
+
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
-                    // Search filter is already applied in refreshItemsForCurrentTab()
                 }
                 this.updateRefreshIndicator();
             }
@@ -6494,30 +6700,32 @@
             }
 
             async refreshItemsForCurrentTab() {
-                // Get all items with translations
-                const withTranslations = this.data.filter(item => {
-                    const text = this.getTextForItem(item, this.currentLangCode);
-                    return text && text.trim();
-                });
-                this.populateTaskFilter(withTranslations);
-                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                
+                const okItems = this.getOkTranslationItems();
+                this.populateTaskFilter(this.data);
+                const taskFilteredOk = this.applyTaskFilterToItems(okItems);
+                const taskFilteredMissingTranslation = this.applyTaskFilterToItems(this.getMissingTranslationItems());
+                const taskFilteredHiddenStrings = this.applyTaskFilterToItems(this.getHiddenStringItems());
+
                 if (this.currentTab === 'approved') {
-                    // For approved tab, get items from dev bucket
-                    const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredOk);
+                    await this.loadApprovalDetailsFromServer(approvedItemsList, this.currentLangCode);
                     this.renderApprovedItems(approvedItemsList);
                     this.setStatus(`Showing ${approvedItemsList.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
-                    // For no audio tab, get items without audio files
-                    const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
-                    this.renderNoAudioItems(itemsWithoutAudio);
-                    this.setStatus(`Showing ${itemsWithoutAudio.length} items without audio`, 'success');
+                    const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredOk);
+                    this.renderMissingAudioItems(itemsWithoutAudio);
+                    this.setStatus(`Showing ${itemsWithoutAudio.length} items missing audio`, 'success');
+                } else if (this.currentTab === 'missingtranslation') {
+                    this.renderMissingTranslationItems(taskFilteredMissingTranslation);
+                    this.setStatus(`Showing ${taskFilteredMissingTranslation.length} items with NO APPROVED TRANSLATION`, 'success');
+                } else if (this.currentTab === 'hiddenstrings') {
+                    this.renderHiddenStringItems(taskFilteredHiddenStrings);
+                    this.setStatus(`Showing ${taskFilteredHiddenStrings.length} hidden strings`, 'success');
                 } else {
-                    // For pending tab, get items from draft bucket (excluding approved)
-                    const itemsWithAudio = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    const itemsWithAudio = await this.filterItemsWithAudio(taskFilteredOk);
                     await this.renderPendingItems(itemsWithAudio);
                     if (itemsWithAudio.length === 0) {
-                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredOk);
                         this.setStatus(
                             `Showing 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved.`,
                             'info'
@@ -6526,11 +6734,10 @@
                         this.setStatus(`Showing ${itemsWithAudio.length} items in To Be Approved tab`, 'success');
                     }
                 }
-                
-                // Update stats after rendering
+
                 await this.updateApprovalStats();
-                
-                // Apply search filter if active
+                this.updateHiddenStringsTabState();
+
                 if (this.currentSearchQuery) {
                     this.applySearchFilter(this.currentSearchQuery);
                 }
@@ -6620,10 +6827,130 @@
                 }
             }
 
+            getApprovalDetailsCacheEntry(langCode = this.currentLangCode, create = false) {
+                const key = String(langCode || '').trim().toLowerCase();
+                if (!key) return null;
+                if (!this.approvalDetailsByLang.has(key) && create) {
+                    this.approvalDetailsByLang.set(key, {
+                        byItem: new Map(),
+                        loadedAt: 0,
+                        loadingPromise: null
+                    });
+                }
+                return this.approvalDetailsByLang.get(key) || null;
+            }
+
+            normalizeApprovalDetailItemId(itemId) {
+                const normalized = this.extractBaseId(itemId || '');
+                if (normalized) return normalized;
+                return String(itemId || '').trim().toLowerCase();
+            }
+
+            getApprovalDetailForItem(itemId, langCode = this.currentLangCode) {
+                const entry = this.getApprovalDetailsCacheEntry(langCode, false);
+                if (!entry || !(entry.byItem instanceof Map)) return null;
+                const key = this.normalizeApprovalDetailItemId(itemId);
+                if (!key) return null;
+                return entry.byItem.get(key) || null;
+            }
+
+            buildApprovalDetailMetaLabel(detail) {
+                if (!detail) return '';
+                const actor = String(detail.approver || '').trim();
+                const approvalAtRaw = String(detail.approvedAt || detail.approvalAt || '').trim();
+                const approvalTs = Date.parse(approvalAtRaw);
+                const approvalAt = Number.isFinite(approvalTs) ? new Date(approvalTs).toLocaleString() : '';
+                if (actor && approvalAt) return `Approved by ${actor} on ${approvalAt}`;
+                if (actor) return `Approved by ${actor}`;
+                if (approvalAt) return `Approved on ${approvalAt}`;
+                return '';
+            }
+
+            getApprovedEnhancedTextForItem(itemId, translatedText, detail) {
+                const enhancedText = String(detail?.enhancedText || '').trim();
+                if (enhancedText) return enhancedText;
+                const approvedText = String(detail?.approvedText || '').trim();
+                if (approvedText) return approvedText;
+                return '';
+            }
+
+            async loadApprovalDetailsFromServer(items = [], langCode = this.currentLangCode, options = {}) {
+                const normalizedLang = String(langCode || '').trim();
+                if (!normalizedLang) return new Map();
+
+                const entry = this.getApprovalDetailsCacheEntry(normalizedLang, true);
+                if (!entry) return new Map();
+
+                const maxAgeMs = 3 * 60 * 1000;
+                const forceRefresh = options.forceRefresh === true;
+                const approvedItems = Array.isArray(items) ? items : [];
+                const itemIds = approvedItems
+                    .map((item) => this.normalizeApprovalDetailItemId(item?.item_id || ''))
+                    .filter(Boolean);
+                const missingIds = itemIds.filter((itemId) => !entry.byItem.has(itemId));
+
+                if (!forceRefresh && missingIds.length === 0 && entry.loadedAt > 0 && (Date.now() - entry.loadedAt) < maxAgeMs) {
+                    return entry.byItem;
+                }
+                if (entry.loadingPromise) {
+                    return entry.loadingPromise;
+                }
+
+                entry.loadingPromise = (async () => {
+                    const targets = forceRefresh ? itemIds : missingIds;
+                    await Promise.all(targets.map(async (normalizedItemId) => {
+                        try {
+                            const params = new URLSearchParams({
+                                bucket: this.audioBuckets.dev,
+                                strict: '1',
+                                langCode: normalizedLang,
+                                itemId: normalizedItemId
+                            });
+                            const response = await fetch(`/api/read-tags?${params.toString()}`, {
+                                cache: 'no-store'
+                            });
+                            if (!response.ok) {
+                                entry.byItem.set(normalizedItemId, {
+                                    approver: '',
+                                    approvedAt: '',
+                                    enhancedText: '',
+                                    approvedText: ''
+                                });
+                                return;
+                            }
+                            const payload = await response.json().catch(() => ({}));
+                            const id3Tags = payload?.id3Tags || {};
+                            entry.byItem.set(normalizedItemId, {
+                                approver: String(id3Tags?.approved_by || '').trim(),
+                                approvedAt: String(id3Tags?.approved_at || '').trim(),
+                                enhancedText: String(id3Tags?.audio_enhanced_text || '').trim(),
+                                approvedText: String(id3Tags?.text || '').trim()
+                            });
+                        } catch (_error) {
+                            entry.byItem.set(normalizedItemId, {
+                                approver: '',
+                                approvedAt: '',
+                                enhancedText: '',
+                                approvedText: ''
+                            });
+                        }
+                    }));
+                    entry.loadedAt = Date.now();
+                    return entry.byItem;
+                })().catch((error) => {
+                    console.warn('Failed to load approval details for Approved tab:', error?.message || error);
+                    return entry.byItem;
+                }).finally(() => {
+                    entry.loadingPromise = null;
+                });
+
+                return entry.loadingPromise;
+            }
+
             async renderItems(items) {
                 // This function is called from selectLanguage but refreshItemsForCurrentTab handles rendering
                 // So we just ensure status is cleared here
-                if (items.length === 0 && this.currentTab !== 'noaudio') {
+                if (items.length === 0 && this.currentTab !== 'noaudio' && this.currentTab !== 'missingtranslation' && this.currentTab !== 'hiddenstrings') {
                     this.setStatus('No items found', 'success');
                 }
             }
@@ -6691,7 +7018,6 @@
                             <div class="item-header">
                                 <div>
                                     <div class="item-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                             </div>
@@ -6748,7 +7074,6 @@
                 
                 // Update save button states
                 this.updateSaveButtonStates();
-                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
             renderApprovedItems(items) {
@@ -6767,22 +7092,28 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const sourceText = this.getSourceForItem(item);
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
+                    const approvalDetail = this.getApprovalDetailForItem(itemId, this.currentLangCode);
+                    const approvedEnhancedText = this.getApprovedEnhancedTextForItem(itemId, translatedText, approvalDetail);
+                    const approvalMetaLabel = this.buildApprovalDetailMetaLabel(approvalDetail);
                     const escapedItemId = this.escapeHtml(itemId);
-                    const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText);
+                    const escapedApprovedEnhanced = this.escapeHtml(approvedEnhancedText || '');
+                    const escapedApprovalMeta = this.escapeHtml(approvalMetaLabel);
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
                     return `
-                        <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact item-card-compact-approved" data-item-id="${escapedItemId}">
+                            <div class="item-card-compact-screenshot">
+                                ${screenshotThumbHtml}
+                            </div>
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
-                                    ${screenshotThumbHtml}
                                 </div>
-                                <div class="item-card-compact-text">${escapedTranslated}</div>
+                                <div class="item-card-compact-meta"><strong>Translation Text:</strong> ${escapedTranslated || '<em style="color: #71717a;">No translation text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Audio Text:</strong> ${escapedApprovedEnhanced || '<em style="color: #71717a;">No audio text recorded</em>'}</div>
+                                <div class="item-card-compact-meta"><strong>Audio Approval:</strong> ${escapedApprovalMeta || '<em style="color: #71717a;">No audio approval recorded</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
                                 <button class="btn btn-secondary" data-audio-action="play" data-audio-item-id="${escapedItemId}" onclick="dashboard.playAudio('${escapedItemId}')" title="Play audio">
@@ -6795,18 +7126,17 @@
                         </div>
                     `;
                 }).join('');
-                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
-            renderNoAudioItems(items) {
+            renderMissingAudioItems(items) {
                 const container = document.getElementById('itemsListNoAudio');
                 
                 if (items.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-volume-mute"></i>
-                            <h3>No items without audio</h3>
-                            <p>All items have audio files</p>
+                            <h3>No missing audio items</h3>
+                            <p>All valid translations have audio files</p>
                         </div>
                     `;
                     return;
@@ -6821,7 +7151,6 @@
                     const escapedTranslated = this.escapeHtml(translatedText || '');
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
-                    // Check if audio has been generated for this item
                     const pendingKey = this.pendingSaveKey;
                     const key = `${this.currentLangCode}::${itemId}`;
                     const isPending = Boolean(
@@ -6837,14 +7166,13 @@
                             <div class="item-card-compact-info">
                                 <div class="item-card-compact-id-wrap">
                                     <div class="item-card-compact-id">${escapedItemId}</div>
-                                    ${this.renderCrowdinApprovalBadge(itemId)}
                                     ${screenshotThumbHtml}
                                 </div>
                                 <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
                                 <div class="item-card-compact-text">${escapedTranslated || '<em style="color: #999;">Translation not available</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
-                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generation is disabled in No Audio Yet; use To Be Approved after audio exists" disabled>
+                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generation is disabled in Missing Audio; use To Be Approved after audio exists" disabled>
                                     <i class="fas fa-microphone"></i> Generate Audio
                                 </button>
                                 <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and approve immediately' : 'Generate audio before saving and approving'}">
@@ -6855,140 +7183,85 @@
                     `;
                 }).join('');
                 
-                // Update save button states
                 this.updateSaveButtonStates();
-                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
-            normalizeCrowdinApprovalKey(itemId) {
-                return String(itemId || '').trim().toLowerCase();
+            buildMissingTranslationCardHtml(item) {
+                const itemId = item.item_id || 'unknown';
+                const sourceText = this.getSourceForItem(item);
+                const escapedItemId = this.escapeHtml(itemId);
+                const escapedSource = this.escapeHtml(sourceText);
+                const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
+
+                return `
+                    <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact-info">
+                            <div class="item-card-compact-id-wrap">
+                                <div class="item-card-compact-id">${escapedItemId}</div>
+                                ${screenshotThumbHtml}
+                            </div>
+                            <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
+                            <div class="item-card-compact-text"><em>NO APPROVED TRANSLATION</em></div>
+                        </div>
+                    </div>
+                `;
             }
 
-            getCrowdinApprovalLangCache(langCode, create = false) {
-                const key = String(langCode || '').trim().toLowerCase();
-                if (!key) return null;
-                if (!this.crowdinApprovalByLang.has(key) && create) {
-                    this.crowdinApprovalByLang.set(key, new Map());
-                }
-                return this.crowdinApprovalByLang.get(key) || null;
+            buildHiddenStringCardHtml(item) {
+                const itemId = item.item_id || 'unknown';
+                const sourceText = this.getSourceForItem(item);
+                const escapedItemId = this.escapeHtml(itemId);
+                const escapedSource = this.escapeHtml(sourceText);
+                const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
+
+                return `
+                    <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact-info">
+                            <div class="item-card-compact-id-wrap">
+                                <div class="item-card-compact-id">${escapedItemId}</div>
+                                ${screenshotThumbHtml}
+                            </div>
+                            <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
+                            <div class="item-card-compact-text"><em>Not present in this language export</em></div>
+                        </div>
+                    </div>
+                `;
             }
 
-            getCrowdinApprovalDisplay(entry) {
-                const status = String(entry?.status || 'unknown');
-                if (status === 'checking') {
-                    return { className: 'is-checking', label: 'Crowdin: checking...', title: 'Looking up approved translation in Crowdin.' };
+            renderMissingTranslationItems(items) {
+                const container = document.getElementById('itemsListMissingTranslation');
+                if (!container) return;
+
+                if (!items.length) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-language"></i>
+                            <h3>No missing translation items</h3>
+                            <p>Strings with NO APPROVED TRANSLATION will appear here</p>
+                        </div>
+                    `;
+                    return;
                 }
-                if (status === 'approved') {
-                    const task = String(entry?.task || '').trim();
-                    return {
-                        className: 'is-approved',
-                        label: 'Crowdin: approved',
-                        title: task ? `Approved in Crowdin under task: ${task}` : 'Approved in Crowdin.'
-                    };
-                }
-                if (status === 'not_approved') {
-                    return { className: 'is-not-approved', label: 'Crowdin: not approved', title: 'No approved translation found in Crowdin export.' };
-                }
-                if (status === 'error') {
-                    return { className: 'is-error', label: 'Crowdin: check failed', title: String(entry?.error || 'Crowdin lookup failed.') };
-                }
-                return { className: 'is-unknown', label: 'Crowdin: not checked', title: 'Crowdin approval status has not been checked yet.' };
+
+                container.innerHTML = items.map((item) => this.buildMissingTranslationCardHtml(item)).join('');
             }
 
-            renderCrowdinApprovalBadge(itemId) {
-                const rawItemId = String(itemId || '').trim();
-                const escapedItemId = this.escapeHtml(rawItemId);
-                const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
-                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
-                const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
-                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
-            }
+            renderHiddenStringItems(items) {
+                const container = document.getElementById('itemsListHiddenStrings');
+                if (!container) return;
 
-            applyCrowdinApprovalBadges(root = document) {
-                const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
-                if (!root || !root.querySelectorAll) return;
-                root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]').forEach((node) => {
-                    const rawItemId = String(node.dataset?.itemId || '').trim();
-                    if (!rawItemId) return;
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
-                    const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
-                    node.className = `crowdin-approval-badge ${display.className}`;
-                    node.textContent = display.label;
-                    node.title = display.title;
-                });
-            }
-
-            async hydrateCrowdinApprovalForRenderedItems(container = null) {
-                const langCode = String(this.currentLangCode || '').trim();
-                if (!langCode) return;
-                const root = container || document;
-                if (!root || !root.querySelectorAll) return;
-
-                const badgeNodes = Array.from(root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]'));
-                if (!badgeNodes.length) return;
-
-                const langCache = this.getCrowdinApprovalLangCache(langCode, true);
-                const toLookup = [];
-                badgeNodes.forEach((node) => {
-                    const rawItemId = String(node.dataset?.itemId || '').trim();
-                    if (!rawItemId) return;
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId);
-                    if (!langCache.has(cacheKey)) {
-                        langCache.set(cacheKey, { status: 'checking' });
-                        toLookup.push(rawItemId);
-                    }
-                });
-
-                this.applyCrowdinApprovalBadges(root);
-                if (!toLookup.length) return;
-
-                const requestToken = ++this.crowdinApprovalRequestToken;
-                try {
-                    const response = await fetch('/api/crowdin-approved-item', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            lang: langCode,
-                            itemIds: toLookup,
-                            approvedOnly: true,
-                        }),
-                    });
-                    const payload = await response.json().catch(() => ({}));
-                    if (!response.ok || payload?.ok !== true) {
-                        throw new Error(String(payload?.message || payload?.error || `HTTP ${response.status}`));
-                    }
-
-                    const results = payload?.resultsByItemId && typeof payload.resultsByItemId === 'object'
-                        ? payload.resultsByItemId
-                        : {};
-                    toLookup.forEach((itemId) => {
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
-                        const result = results[itemId] || null;
-                        const bestMatch = result?.bestMatch || null;
-                        const target = String(bestMatch?.target || '').trim();
-                        if (target) {
-                            langCache.set(cacheKey, {
-                                status: 'approved',
-                                task: String(bestMatch?.task || ''),
-                                target,
-                            });
-                        } else {
-                            langCache.set(cacheKey, {
-                                status: 'not_approved',
-                            });
-                        }
-                    });
-                } catch (error) {
-                    const errText = String(error?.message || error || 'Crowdin lookup failed');
-                    toLookup.forEach((itemId) => {
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId);
-                        langCache.set(cacheKey, { status: 'error', error: errText });
-                    });
+                if (!items.length) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-eye-slash"></i>
+                            <h3>No hidden strings</h3>
+                            <p>All English source keys are present in this language export</p>
+                        </div>
+                    `;
+                    return;
                 }
 
-                if (requestToken === this.crowdinApprovalRequestToken && String(this.currentLangCode || '').trim() === langCode) {
-                    this.applyCrowdinApprovalBadges(root);
-                }
+                container.innerHTML = items.map((item) => this.buildHiddenStringCardHtml(item)).join('');
             }
 
             getCompareStateKey(itemId, langCode = this.currentLangCode) {
@@ -7567,7 +7840,15 @@
 
             async regenerateAudio(itemId) {
                 if (this.currentTab === 'noaudio') {
-                    this.setStatus('Generate is disabled in the No Audio Yet tab.', 'warning');
+                    this.setStatus('Generate is disabled in the Missing Audio tab.', 'warning');
+                    return;
+                }
+                if (this.currentTab === 'missingtranslation') {
+                    this.setStatus('Generate is disabled in the Missing Translation tab.', 'warning');
+                    return;
+                }
+                if (this.currentTab === 'hiddenstrings') {
+                    this.setStatus('Generate is disabled in the Hidden Strings tab.', 'warning');
                     return;
                 }
                 this.setAudioActionLoading(itemId, 'regenerate', true, 'Generating...');
@@ -7647,13 +7928,9 @@
                     
                     // Refresh current tab to update button states (especially for No Audio tab)
                     if (this.currentTab === 'noaudio') {
-                        const withTranslations = this.data.filter(item => {
-                            const text = this.getTextForItem(item, this.currentLangCode);
-                            return text && text.trim();
-                        });
-                        const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                        const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
-                        this.renderNoAudioItems(itemsWithoutAudio);
+                        const taskFilteredOk = this.applyTaskFilterToItems(this.getOkTranslationItems());
+                        const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredOk);
+                        this.renderMissingAudioItems(itemsWithoutAudio);
                     } else {
                         await this.refreshItemsForCurrentTab();
                     }
@@ -8384,6 +8661,10 @@
                     container = document.getElementById('itemsListApproved');
                 } else if (this.currentTab === 'noaudio') {
                     container = document.getElementById('itemsListNoAudio');
+                } else if (this.currentTab === 'missingtranslation') {
+                    container = document.getElementById('itemsListMissingTranslation');
+                } else if (this.currentTab === 'hiddenstrings') {
+                    container = document.getElementById('itemsListHiddenStrings');
                 }
                 
                 if (!container) return;
@@ -8420,16 +8701,20 @@
             }
 
             async handleTaskFilterChange(taskName) {
-                this.currentTaskFilter = String(taskName || '__all__');
+                const requestedTask = String(taskName || '__all__');
+                this.currentTaskFilter = this.isNonTaskBucketName(requestedTask) ? '__all__' : requestedTask;
                 const storageKey = this.getTaskFilterStorageKey(this.currentLangCode);
                 if (this.currentTaskFilter === '__all__') {
                     localStorage.removeItem(storageKey);
                 } else {
                     localStorage.setItem(storageKey, this.currentTaskFilter);
                 }
+                // Update Approve/Unapprove task button labels immediately on dropdown change.
+                this.updateRefreshIndicator();
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
                 }
+                this.updateRefreshIndicator();
             }
 
             async promoteStagedApprovalsForTask(taskName) {
@@ -8466,7 +8751,9 @@
                                 path: audioPath,
                                 task: selectedTask,
                                 langCode: this.currentLangCode,
-                                copyTaskTranslations: !requestedTranslationCopy
+                                copyTaskTranslations: !requestedTranslationCopy,
+                                approver: String(this.currentUserEmail || '').trim(),
+                                approvedAt: new Date().toISOString()
                             })
                         });
                         const movePayload = await moveResponse.json().catch(() => ({}));
@@ -8507,6 +8794,48 @@
                 return result;
             }
 
+            formatLanguageOptionsFinishNote(languageOptions) {
+                const info = languageOptions && typeof languageOptions === 'object' ? languageOptions : {};
+                if (info.updated === true) {
+                    const slug = String(info.taskSlug || '').trim();
+                    const lang = String(info.languageKey || info.langCode || '').trim();
+                    if (slug && lang) return `, and added "${slug}" to language options for ${lang}`;
+                    if (slug) return `, and added "${slug}" to language options`;
+                    return ', and updated language options';
+                }
+                if (info.alreadyPresent === true) {
+                    const slug = String(info.taskSlug || '').trim();
+                    return slug
+                        ? `; "${slug}" was already in language options`
+                        : '; task was already in language options';
+                }
+                const reason = String(info.reason || '').trim();
+                if (reason === 'language_not_found') {
+                    const lang = String(info.langCode || '').trim();
+                    return lang
+                        ? `; language options not updated (${lang} not found in languageoptions.json)`
+                        : '; language options not updated (language not found in languageoptions.json)';
+                }
+                if (reason === 'file_not_found') {
+                    return '; language options not updated (languageoptions.json not found)';
+                }
+                if (reason === 'update_failed' || reason === 'invalid_json') {
+                    const detail = String(info.message || reason || 'update failed').trim();
+                    return `; language options not updated (${detail})`;
+                }
+                return '';
+            }
+
+            languageOptionsFinishStatusType(languageOptions, fallbackType = 'success') {
+                const info = languageOptions && typeof languageOptions === 'object' ? languageOptions : {};
+                if (info.updated === true || info.alreadyPresent === true) return fallbackType;
+                const reason = String(info.reason || '').trim();
+                if (reason && reason !== 'already_finished' && reason !== 'not_attempted') {
+                    return 'warning';
+                }
+                return fallbackType;
+            }
+
             async handleFinishedTaskClick() {
                 const selectedTask = this.getSelectedTaskFilter();
                 if (selectedTask === '__all__') return;
@@ -8544,9 +8873,13 @@
                     this.markTaskFinishedLocal(this.currentLangCode, selectedTask);
                     this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
                     const slackSent = payload?.slack?.sent === true;
+                    const languageOptionsNote = this.formatLanguageOptionsFinishNote(payload?.languageOptions);
+                    const slackNote = slackSent ? ', and posted to Slack' : '';
+                    const statusMessage = `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved). Promoted ${promotionResult.moved} staged item(s), ${promotionResult.skipped} already in approved bucket, ${promotionResult.failed} failed${slackNote}${languageOptionsNote || ''}.`;
+                    const baseStatusType = promotionResult.failed > 0 ? 'warning' : 'success';
                     this.setStatus(
-                        `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved). Promoted ${promotionResult.moved} staged item(s), ${promotionResult.skipped} already in approved bucket, ${promotionResult.failed} failed${slackSent ? ', and posted to Slack.' : '.'}`,
-                        promotionResult.failed > 0 ? 'warning' : 'success'
+                        statusMessage,
+                        this.languageOptionsFinishStatusType(payload?.languageOptions, baseStatusType)
                     );
                 } catch (error) {
                     this.setStatus(`Could not mark task finished: ${error?.message || error}`, 'error');
