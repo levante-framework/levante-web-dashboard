@@ -1,22 +1,12 @@
 import { Storage } from '@google-cloud/storage';
+import { getStorageClientFromEnv } from './lib/gcp-credentials.js';
 
-const DEFAULT_SOURCE_BUCKET = process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
+const DEFAULT_SOURCE_BUCKET = (process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft').trim().replace(/\\n$/g, '').replace(/\n+$/g, '');
 
 let storageClient = null;
 function getStorage() {
   if (storageClient) return storageClient;
-  try {
-    const json = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-    if (json) {
-      const credentials = JSON.parse(json);
-      storageClient = new Storage({ credentials, projectId: credentials.project_id });
-    } else {
-      storageClient = new Storage();
-    }
-  } catch (error) {
-    console.error('delete-draft-audio: failed to init storage client', error);
-    storageClient = null;
-  }
+  storageClient = getStorageClientFromEnv(Storage);
   return storageClient;
 }
 

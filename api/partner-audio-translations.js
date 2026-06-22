@@ -1,11 +1,23 @@
 import { Storage } from '@google-cloud/storage';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import {
+  buildLanguageBundle,
+  normalizeLangCode as normalizeRequestedLangCode,
+} from './lib/partner-audio-translations-bundle.js';
+import {
+  canonicalizeItembankLangCode,
+  isAudioCapableLangCode,
+  loadLanguageConfigLanguages,
+} from './lib/partner-audio-language-config.js';
+import { getStorageClientFromEnv } from './lib/gcp-credentials.js';
 
 function sanitizeEnvString(value) {
   return String(value ?? '')
     .trim()
-    .replace(/^['"]+|['"]+$/g, '');
+    .replace(/^['"]+|['"]+$/g, '')
+    .replace(/\\n$/g, '')
+    .replace(/\n+$/g, '');
 }
 
 function sanitizeBucketName(value, fallback) {
@@ -42,7 +54,7 @@ const LANG_ID_TO_CODE = {
   'de-ch': 'de-CH',
   'fr-ca': 'fr-CA',
   fr: 'fr-CA',
-  nl: 'nl',
+  nl: 'nl-NL',
   pt: 'pt-PT',
   'pt-pt': 'pt-PT',
   'pt-br': 'pt-BR',
@@ -53,18 +65,12 @@ let memoryCache = {
   csvText: '',
   source: '',
 };
+const langBundleCache = new Map();
 let taskIndexCache = null;
 let taskOverrideCache = null;
 
 function getStorageClient() {
-  const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (!raw) return null;
-  try {
-    const credentials = JSON.parse(raw);
-    return new Storage({ credentials, projectId: credentials.project_id });
-  } catch (_) {
-    return null;
-  }
+  return getStorageClientFromEnv(Storage);
 }
 
 async function readFromGcs(storage, bucketName, objectPath) {
@@ -590,6 +596,19 @@ function sourceModeLabel() {
   return 'task-json';
 }
 
+function getCachedLangBundle(lang) {
+  const entry = langBundleCache.get(lang);
+  if (!entry || Date.now() >= entry.expiresAt) return null;
+  return entry.payload;
+}
+
+function setCachedLangBundle(lang, payload) {
+  langBundleCache.set(lang, {
+    expiresAt: Date.now() + CACHE_TTL_MS,
+    payload,
+  });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -598,6 +617,42 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'method_not_allowed' });
 
   try {
+    const query = req.query || {};
+    const requestedLang = canonicalizeItembankLangCode(normalizeRequestedLangCode(query.lang || ''));
+
+    if (requestedLang) {
+      const cached = getCachedLangBundle(requestedLang);
+      if (cached) {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(cached);
+      }
+      const storage = getStorageClient();
+      if (!storage) {
+        return res.status(500).json({ ok: false, error: 'gcs_unavailable' });
+      }
+      const languages = await loadLanguageConfigLanguages(storage);
+      if (!isAudioCapableLangCode(languages, requestedLang)) {
+        return res.status(400).json({
+          ok: false,
+          error: 'lang_not_audio_capable',
+          lang: normalizeRequestedLangCode(requestedLang),
+        });
+      }
+      try {
+        const payload = await buildLanguageBundle(storage, DEFAULT_DRAFT_BUCKET, requestedLang);
+        setCachedLangBundle(requestedLang, payload);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-store');
+        return res.status(200).json(payload);
+      } catch (error) {
+        if (String(error?.message || '') === 'missing_lang') {
+          return res.status(400).json({ ok: false, error: 'missing_lang' });
+        }
+        throw error;
+      }
+    }
+
     if (Date.now() < memoryCache.expiresAt && memoryCache.csvText) {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Cache-Control', 'no-store');

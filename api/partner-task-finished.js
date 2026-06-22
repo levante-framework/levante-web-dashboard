@@ -1,25 +1,16 @@
 import { Storage } from '@google-cloud/storage';
+import { getStorageClientFromEnv, trimEnvValue } from './lib/gcp-credentials.js';
+import { appendTaskToLanguageOptions } from './lib/language-options-task-options.js';
 
-const DEFAULT_BUCKET = String(process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft').trim();
+const DEFAULT_BUCKET = trimEnvValue(process.env.ASSETS_DRAFT_BUCKET, 'levante-assets-draft');
 const STATUS_PREFIX = String(process.env.PARTNER_TASK_FINISHED_PREFIX || 'logs/partner-task-finished').trim().replace(/^\/+|\/+$/g, '');
 
 let storageClient = null;
 
 function getStorage() {
   if (storageClient) return storageClient;
-  try {
-    const json = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON;
-    if (json) {
-      const credentials = JSON.parse(json);
-      storageClient = new Storage({ credentials, projectId: credentials.project_id });
-      return storageClient;
-    }
-    storageClient = new Storage();
-    return storageClient;
-  } catch (error) {
-    console.warn('partner-task-finished: failed to init storage client', error);
-    return null;
-  }
+  storageClient = getStorageClientFromEnv(Storage);
+  return storageClient;
 }
 
 function safeText(value, maxLen = 200) {
@@ -249,9 +240,20 @@ export default async function handler(req, res) {
       totalAudio,
       finishedAt: new Date().toISOString()
     };
+    let languageOptions = { updated: false, reason: alreadyFinished ? 'already_finished' : 'not_attempted' };
     if (!alreadyFinished) {
       tasks[taskKey] = record;
       await writeLanguageStatus(bucket, langCode, tasks);
+      try {
+        languageOptions = await appendTaskToLanguageOptions(storage, { langCode, task });
+      } catch (error) {
+        console.warn('partner-task-finished: languageoptions update failed:', error?.message || error);
+        languageOptions = {
+          updated: false,
+          reason: 'update_failed',
+          message: String(error?.message || error),
+        };
+      }
     }
 
     let slack = { sent: false, reason: alreadyFinished ? 'already_finished' : 'not_attempted' };
@@ -275,6 +277,7 @@ export default async function handler(req, res) {
       success: true,
       alreadyFinished,
       task: record,
+      languageOptions,
       slack
     });
   } catch (error) {

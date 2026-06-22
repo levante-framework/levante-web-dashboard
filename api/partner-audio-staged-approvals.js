@@ -1,10 +1,13 @@
 import { Storage } from '@google-cloud/storage';
+import { getStorageClientFromEnv, trimEnvValue } from './lib/gcp-credentials.js';
 
-const BUCKET_NAME = process.env.PARTNER_AUDIO_STAGED_APPROVALS_BUCKET
-  || process.env.VALIDATION_BUCKET
-  || process.env.TOOLS_BUCKET
-  || process.env.ASSETS_DRAFT_BUCKET
-  || 'levante-assets-draft';
+const BUCKET_NAME = trimEnvValue(
+  process.env.PARTNER_AUDIO_STAGED_APPROVALS_BUCKET
+    || process.env.VALIDATION_BUCKET
+    || process.env.TOOLS_BUCKET
+    || process.env.ASSETS_DRAFT_BUCKET,
+  'levante-assets-draft'
+);
 const PREFIX = String(process.env.PARTNER_AUDIO_STAGED_APPROVALS_PREFIX || 'partner-audio/staged-approvals')
   .trim()
   .replace(/^\/+|\/+$/g, '');
@@ -12,15 +15,8 @@ const PREFIX = String(process.env.PARTNER_AUDIO_STAGED_APPROVALS_PREFIX || 'part
 let storageClient = null;
 function getStorageClient() {
   if (storageClient) return storageClient;
-  const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (!raw) return null;
-  try {
-    const credentials = JSON.parse(raw);
-    storageClient = new Storage({ credentials });
-    return storageClient;
-  } catch (_) {
-    return null;
-  }
+  storageClient = getStorageClientFromEnv(Storage);
+  return storageClient;
 }
 
 function sanitizeLangCode(langCode) {
