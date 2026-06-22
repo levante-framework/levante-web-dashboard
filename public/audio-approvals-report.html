@@ -6,7 +6,7 @@
   <title>Cockpit Audio Approvals Report</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link href="./styles.css" rel="stylesheet"/>
-  <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
+  <link href="./images/chart-column.svg" rel="icon" type="image/svg+xml"/>
   <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" rel="stylesheet"/>
   <style>
     body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; background: var(--color-bg); background-image: radial-gradient(circle at 0% 0%, rgba(12, 126, 155, 0.08), transparent 42%), radial-gradient(circle at 100% 100%, rgba(181, 120, 26, 0.06), transparent 42%); background-attachment: fixed; color: var(--text-primary); min-height: 100vh; }
@@ -24,6 +24,41 @@
     .card .v { margin-top: 6px; font-size: 24px; font-weight: 700; color: var(--accent); }
     .panel { background: var(--surface-1); border: 1px solid var(--border-subtle); border-radius: 14px; margin-top: 2px; overflow: hidden; box-shadow: var(--shadow-lg); }
     .panel h2 { margin: 0; padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); font-size: 16px; color: var(--text-primary); background: var(--surface-2); }
+    .panel-collapsible > summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      list-style: none;
+      cursor: pointer;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 16px;
+      color: var(--text-primary);
+      background: var(--surface-2);
+      font-weight: 600;
+    }
+    .panel-collapsible > summary::-webkit-details-marker { display: none; }
+    .panel-collapsible > summary::after {
+      content: '▾';
+      margin-left: auto;
+      color: var(--text-secondary);
+      font-size: 14px;
+      transition: transform .15s ease;
+    }
+    .panel-collapsible:not([open]) > summary::after {
+      content: '▸';
+    }
+    .panel-collapsible > summary h2 {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .panel-collapsible .panel-body {
+      border-top: 0;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { padding: 8px 10px; border-bottom: 1px solid var(--border-subtle); text-align: left; vertical-align: top; }
     th { background: var(--accent); color: var(--accent-contrast); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
@@ -39,10 +74,69 @@
     .status { margin-top: 2px; font-size: 13px; }
     .back-to-cockpit { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--accent-border); color: var(--accent); padding: 8px 14px; border-radius: 999px; text-decoration: none; font-weight: 600; transition: all .2s ease; }
     .back-to-cockpit:hover { background: var(--accent); color: var(--accent-contrast); transform: translateY(-1px); }
+    .loading-overlay[hidden] { display: none; }
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.52);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .loading-card {
+      width: min(560px, 100%);
+      background: var(--surface-1);
+      border: 2px solid var(--color-warning-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
+      padding: 20px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 3px solid var(--accent-soft);
+      border-top-color: var(--accent);
+      animation: reportSpin 0.9s linear infinite;
+      flex: 0 0 24px;
+      margin-top: 2px;
+    }
+    .loading-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+      line-height: 1.25;
+    }
+    .loading-detail {
+      margin-top: 8px;
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    @keyframes reportSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
     @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(140px, 1fr)); } .diff { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
+  <div class="loading-overlay" id="loadingOverlay" hidden aria-live="polite" aria-busy="true">
+    <div class="loading-card" role="status">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <div>
+        <p class="loading-title" id="loadingTitle">Loading report...</p>
+        <div class="loading-detail" id="loadingDetail">Preparing request.</div>
+      </div>
+    </div>
+  </div>
   <div class="wrap">
     <div class="top">
       <div>
@@ -55,7 +149,7 @@
         <select id="langFilter"><option value="__all__">All</option></select>
         <label class="muted" for="sinceDays">Since days</label>
         <input id="sinceDays" type="number" min="0" step="1" value="30" title="0 = all available logs" />
-        <label><input type="checkbox" id="changedOnly" /> Changed text only</label>
+        <label><input type="checkbox" id="changedOnly" /> Enhanced changed only</label>
         <button id="refreshBtn">Refresh</button>
       </div>
     </div>
@@ -86,29 +180,52 @@
       </table>
     </div>
 
-    <div class="panel">
-      <h2>Enhanced Text Inspector (per approval)</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Approval Time</th>
-            <th>Language</th>
-            <th>Item</th>
-            <th>Approver</th>
-            <th>Regen</th>
-            <th>Enhanced</th>
-            <th>Changed</th>
-            <th>Details</th>
-          </tr>
-        </thead>
-        <tbody id="detailBody"></tbody>
-      </table>
-    </div>
+    <details class="panel panel-collapsible" open>
+      <summary><h2>Approved Events</h2></summary>
+      <div class="panel-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Approval Date</th>
+              <th>Language</th>
+              <th>Item</th>
+              <th>Task</th>
+              <th>Approver</th>
+              <th>Approval Type</th>
+              <th>Regens Before Approval</th>
+              <th>Used Enhanced</th>
+              <th>Enhanced Changed</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="panel panel-collapsible" open>
+      <summary><h2>Approvals With Enhanced Audio</h2></summary>
+      <div class="panel-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Approval Date</th>
+              <th>Language</th>
+              <th>Item</th>
+              <th>Task</th>
+              <th>Approver</th>
+              <th>Enhanced Changed</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="enhancedBody"></tbody>
+        </table>
+      </div>
+    </details>
     <div class="status muted" id="statusLine"></div>
   </div>
 
   <script>
-    const state = { payload: null, filteredDetails: [], compactionNote: '', partialLoadNote: '' };
+    const state = { payload: null, filteredDetails: [], compactionNote: '', partialLoadNote: '', isLoading: false };
 
     function el(id) { return document.getElementById(id); }
     function esc(v) {
@@ -123,6 +240,28 @@
     function fmtDate(v) {
       const d = new Date(v || '');
       return Number.isNaN(d.getTime()) ? (v || '') : d.toLocaleString();
+    }
+
+    function setLoading(isLoading, title, detail = '') {
+      state.isLoading = isLoading === true;
+      const overlay = el('loadingOverlay');
+      const titleEl = el('loadingTitle');
+      const detailEl = el('loadingDetail');
+      const refreshBtn = el('refreshBtn');
+      const sinceDaysInput = el('sinceDays');
+      const langSelect = el('langFilter');
+      const changedOnly = el('changedOnly');
+
+      if (titleEl) titleEl.textContent = title || 'Loading report...';
+      if (detailEl) detailEl.textContent = detail || '';
+      if (overlay) overlay.hidden = !state.isLoading;
+      if (refreshBtn) {
+        refreshBtn.disabled = state.isLoading;
+        refreshBtn.textContent = state.isLoading ? 'Refreshing...' : 'Refresh';
+      }
+      if (sinceDaysInput) sinceDaysInput.disabled = state.isLoading;
+      if (langSelect) langSelect.disabled = state.isLoading;
+      if (changedOnly) changedOnly.disabled = state.isLoading;
     }
 
     function normalizeLangCode(v) {
@@ -214,12 +353,37 @@
     function renderDetails(rows) {
       const body = el('detailBody');
       if (!rows.length) {
-        body.innerHTML = '<tr><td colspan="8" class="muted">No approvals match current filters.</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="muted">No approvals match current filters.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((r) => {
+        const usedEnhanced = r.hadPriorEnhancedRegen === true;
+        const changed = Boolean(r.latestPriorEnhanced && r.latestPriorEnhanced.enhancedTextChanged === true);
+        return `
+          <tr>
+            <td>${esc(fmtDate(r.approvalAt))}</td>
+            <td>${esc(r.langCode)}</td>
+            <td>${esc(r.itemId)}</td>
+            <td>${esc(r.task || '—')}</td>
+            <td>${esc(r.approver)}</td>
+            <td>${esc(r.approvalType || '')}</td>
+            <td>${Number(r.regensBeforeApproval || 0)}</td>
+            <td><span class="pill ${usedEnhanced ? 'yes' : 'no'}">${usedEnhanced ? 'Yes' : 'No'}</span></td>
+            <td><span class="pill ${changed ? 'changed' : 'no'}">${changed ? 'Changed' : 'No change'}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderEnhancedDetails(rows) {
+      const body = el('enhancedBody');
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="muted">No enhanced-audio approvals match current filters.</td></tr>';
         return;
       }
       body.innerHTML = rows.map((r) => {
         const enhanced = r.latestPriorEnhanced || null;
-        const changed = enhanced && enhanced.enhancedTextChanged === true;
+        const changed = Boolean(enhanced && enhanced.enhancedTextChanged === true);
         const original = enhanced ? enhanced.originalTranslation : '';
         const modified = enhanced ? enhanced.audioEnhancedText : '';
         return `
@@ -227,9 +391,8 @@
             <td>${esc(fmtDate(r.approvalAt))}</td>
             <td>${esc(r.langCode)}</td>
             <td>${esc(r.itemId)}</td>
+            <td>${esc(r.task || '—')}</td>
             <td>${esc(r.approver)}</td>
-            <td><span class="pill ${r.hadPriorRegen ? 'yes' : 'no'}">${r.hadPriorRegen ? `Yes (${r.regensBeforeApproval})` : 'No'}</span></td>
-            <td><span class="pill ${r.hadPriorEnhancedRegen ? 'yes' : 'no'}">${r.hadPriorEnhancedRegen ? 'Yes' : 'No'}</span></td>
             <td><span class="pill ${changed ? 'changed' : 'no'}">${changed ? 'Changed' : 'No change'}</span></td>
             <td>
               ${enhanced ? `
@@ -237,7 +400,7 @@
                   <div class="box"><b>Original</b>${esc(original)}</div>
                   <div class="box"><b>Audio-Enhanced</b>${esc(modified)}</div>
                 </div>
-              ` : '<span class="muted">No enhanced text logged before this approval.</span>'}
+              ` : '<span class="muted">No enhanced details logged.</span>'}
             </td>
           </tr>
         `;
@@ -269,6 +432,7 @@
 
       const filteredDetails = details.filter((row) => (lang === '__all__' || normalizeLangCode(row.langCode) === lang))
         .filter((row) => !changedOnly || (row.latestPriorEnhanced && row.latestPriorEnhanced.enhancedTextChanged === true));
+      const enhancedRows = filteredDetails.filter((row) => row.hadPriorEnhancedRegen === true);
 
       state.filteredDetails = filteredDetails;
       const totals = sumRows(filteredSummary);
@@ -279,25 +443,31 @@
       renderCards(totals);
       renderSummary(filteredSummary);
       renderDetails(filteredDetails);
+      renderEnhancedDetails(enhancedRows);
       const suffix = state.compactionNote ? ` • ${state.compactionNote}` : '';
       const partial = state.partialLoadNote ? ` • ${state.partialLoadNote}` : '';
       const detailsLoaded = state.payload?.includeDetails === true;
       const detailsNote = detailsLoaded ? '' : ' • Details omitted for faster load; pick a language to load details.';
-      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records${suffix}${partial}${detailsNote}`;
+      el('statusLine').textContent = `Showing ${filteredDetails.length} approval records and ${enhancedRows.length} enhanced-audio records${suffix}${partial}${detailsNote}`;
     }
 
     async function loadReport() {
-      el('metaLine').innerHTML = '<strong>Updating Log Files...</strong>';
-      el('statusLine').innerHTML = '<strong>Updating Log Files...</strong>';
       const sinceDays = Math.max(0, Number(el('sinceDays').value || 0));
+      setLoading(
+        true,
+        'Updating audio approvals report',
+        `Updating log files and loading events for the last ${sinceDays === 0 ? 'all available days' : `${sinceDays} day${sinceDays === 1 ? '' : 's'}`}.`
+      );
+      el('metaLine').innerHTML = '<strong>Loading in progress...</strong>';
+      el('statusLine').innerHTML = '<strong>Loading in progress...</strong>';
       const selectedLang = normalizeLangCode(el('langFilter').value);
       const hasLangFilter = selectedLang && selectedLang !== '__all__';
-      // When a language is selected, users expect per-approval detail rows.
-      // Keep details enabled; chunking/runtime guards control server cost.
-      const includeDetails = hasLangFilter;
-      const includeTodayRaw = hasLangFilter;
-      const rawFallback = hasLangFilter && sinceDays <= 30;
-      const compactMissing = hasLangFilter && sinceDays <= 30;
+      // Keep detailed approval-event rows enabled so this report always shows
+      // a complete event table, not only enhanced-text subsets.
+      const includeDetails = true;
+      const includeTodayRaw = true;
+      const rawFallback = sinceDays <= 30;
+      const compactMissing = sinceDays <= 30;
       const maxDaysPerRequest = sinceDays >= 365 ? 90 : (sinceDays >= 120 ? 60 : 30);
       const params = new URLSearchParams({
         sinceDays: String(sinceDays),
@@ -361,8 +531,13 @@
         chunkCount += 1;
         hasMore = payload.hasMore === true && Number.isFinite(Number(payload.nextDayCursor));
         cursor = hasMore ? Number(payload.nextDayCursor) : 0;
+        setLoading(
+          true,
+          'Updating audio approvals report',
+          `Loading chunk ${chunkCount}${totalDaysToProcess > 0 ? ` • processed ${totalProcessedDays}/${totalDaysToProcess} day ranges` : ''}${compacted > 0 ? ` • updated ${compacted} log day${compacted === 1 ? '' : 's'}` : ''}.`
+        );
         if (hasMore) {
-          el('statusLine').textContent = `Loading report chunks (${chunkCount})... days processed: ${totalProcessedDays}/${totalDaysToProcess || '?'} `;
+          el('statusLine').innerHTML = `<strong>Loading in progress...</strong> chunk ${chunkCount}, days processed: ${totalProcessedDays}/${totalDaysToProcess || '?'}`;
         }
       } while (hasMore && chunkCount < 60);
 
@@ -418,6 +593,7 @@
       const partialLabel = stoppedEarly ? ` • Partial load: ${totalProcessedDays}/${totalDaysToProcess || '?'} days` : '';
       el('metaLine').textContent = `Generated ${fmtDate(payload.generatedAt)} • Events scanned: ${Number(payload.eventsScanned || 0)} • Bucket: ${payload.bucket}${filterLabel}${detailsLabel}${todayLabel}${rawLabel}${compactLabel}${partialLabel}`;
       applyFilters();
+      setLoading(false, '', '');
     }
 
     async function refresh() {
@@ -427,6 +603,7 @@
         const message = error?.name === 'AbortError'
           ? 'Report request timed out. Try reducing "Since days" (e.g., 7 or 14) and refresh.'
           : `Error: ${error?.message || error}`;
+        setLoading(false, '', '');
         el('metaLine').textContent = message;
         el('statusLine').textContent = message;
       }
