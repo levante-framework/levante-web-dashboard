@@ -166,7 +166,6 @@
 		const langs=normalizeLangsForUrls(lang);
 		const urls=[];
 		for(const lc of langs){
-			urls.push(`https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(lc)}/${encodeURIComponent(itemId)}.mp3`);
 			urls.push(`https://storage.googleapis.com/levante-assets-dev/audio/${encodeURIComponent(lc)}/${encodeURIComponent(itemId)}.mp3`);
 		}
 		return urls;
@@ -179,9 +178,8 @@
 			if(Array.isArray(urlCandidates) && urlCandidates.length){
 				for(const u of urlCandidates){ const d=await fetch(`/api/read-tags?url=${encodeURIComponent(u)}`); if(d.ok){ const data=await d.json(); return data?.id3Tags?.voice || data?.id3Tags?.userDefinedText?.find?.(t=>t?.description==='voice')?.value || ''; } }
 			}
-			// Fallback: item/lang then repo
+			// Fallback: item/lang lookup against the bucket
 			let r=await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(lang||'')}`);
-			if(!r.ok){ r=await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(lang||'')}&source=repo`); }
 			if(!r.ok) return '';
 			const data=await r.json(); return data?.id3Tags?.voice || data?.id3Tags?.userDefinedText?.find?.(t=>t?.description==='voice')?.value || '';
 		}catch{ return ''; }

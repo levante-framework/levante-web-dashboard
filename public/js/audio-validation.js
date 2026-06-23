@@ -27,11 +27,9 @@ function initAudioValidationApp() {
 				const itemId = stripExt(base(r.audio_path || ''));
 				const urls = [];
 				if (lang && itemId) {
-					urls.push(`https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(lang)}/${encodeURIComponent(itemId)}.mp3`);
 					urls.push(`https://storage.googleapis.com/levante-assets-dev/audio/${encodeURIComponent(lang)}/${encodeURIComponent(itemId)}.mp3`);
 					if (lang.includes('-')) {
 						const baseLang = lang.split('-')[0];
-						urls.push(`https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(baseLang)}/${encodeURIComponent(itemId)}.mp3`);
 						urls.push(`https://storage.googleapis.com/levante-assets-dev/audio/${encodeURIComponent(baseLang)}/${encodeURIComponent(itemId)}.mp3`);
 					}
 				}
@@ -105,7 +103,7 @@ function initAudioValidationApp() {
 					const lang = (first.language || '').trim();
 					const itemId = stripExt(base(first.audio_path || ''));
 					if (!lang || !itemId) { voiceName.value = ''; return; }
-					const resp = await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(lang)}&source=repo`);
+					const resp = await fetch(`/api/read-tags?itemId=${encodeURIComponent(itemId)}&langCode=${encodeURIComponent(lang)}`);
 					if (!resp.ok) { voiceName.value = ''; return; }
 					const data = await resp.json();
 					const v = data?.id3Tags?.voice || data?.id3Tags?.userDefinedText?.find?.(t => t?.description === 'voice')?.value || '';

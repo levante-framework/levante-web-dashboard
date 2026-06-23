@@ -103,7 +103,6 @@
 <div class="source-card">
 <div class="source-title">Source</div>
 <div class="source-controls">
-<button class="pill" id="useRepo">Repo</button>
 <button class="pill" id="useDraft">-draft</button>
 <button class="pill" id="useDev">-dev</button>
 <button class="pill" id="useProd">-prod</button>
@@ -140,7 +139,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
 <script>
     // Bucket selection helpers
-    let currentSource = 'dev'; // 'repo' | 'draft' | 'dev' | 'prod' | 'bucket'
+    let currentSource = 'dev'; // 'draft' | 'dev' | 'prod' | 'bucket'
     const urlParams = new URLSearchParams(window.location.search);
     const requestedLangs = parseRequestedLangs(urlParams.get('langs'));
 
@@ -164,22 +163,18 @@
         document.getElementById('useDraft').click();
       } else if (env === 'dev') {
         document.getElementById('useDev').click();
-      } else if (env === 'repo') {
-        document.getElementById('useRepo').click();
       }
     }
     function rememberBucket(val){ try{ localStorage.setItem('levante_audio_bucket', val); }catch(_){} }
     function rememberSource(val){ try{ localStorage.setItem('levante_audio_source', val); }catch(_){} }
     function updateSourceUI(){
-      const repoBtn = document.getElementById('useRepo');
       const draftBtn = document.getElementById('useDraft');
       const devBtn = document.getElementById('useDev');
       const prodBtn = document.getElementById('useProd');
-      [repoBtn, draftBtn, devBtn, prodBtn].forEach(btn => { if(btn){ btn.classList.remove('active'); }});
+      [draftBtn, devBtn, prodBtn].forEach(btn => { if(btn){ btn.classList.remove('active'); }});
       const bucketVal = String(document.getElementById('bucketInput').value || '').toLowerCase();
       let activeBtn = null;
-      if (currentSource === 'repo') activeBtn = repoBtn;
-      else if (currentSource === 'draft') activeBtn = draftBtn;
+      if (currentSource === 'draft') activeBtn = draftBtn;
       else if (currentSource === 'prod') activeBtn = prodBtn;
       else if (currentSource === 'dev') activeBtn = devBtn;
       else if (bucketVal.includes('-draft')) activeBtn = draftBtn;
@@ -189,32 +184,24 @@
       const labelEl = document.querySelector('.source-detail label');
       const inputEl = document.getElementById('bucketInput');
       const hintEl = document.querySelector('.source-detail .hint');
-      if(currentSource === 'repo'){
-        if(labelEl) labelEl.textContent = 'Repository';
-        if(inputEl){ inputEl.disabled = true; inputEl.placeholder = 'levante-framework/levante_translations (audio_files/*)'; }
-        if(hintEl) hintEl.innerHTML = 'audio URLs: <code>https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/&lt;lang&gt;/&lt;id&gt;.mp3</code>';
-      } else {
-        if(labelEl) labelEl.textContent = 'Bucket';
-        if(inputEl){ inputEl.disabled = false; if(!inputEl.value) inputEl.value = 'levante-assets-dev'; }
-        if(hintEl) hintEl.innerHTML = 'audio URLs: <code>gs://&lt;bucket&gt;/audio/&lt;lang&gt;/&lt;id&gt;.mp3</code>';
-      }
+      if(labelEl) labelEl.textContent = 'Bucket';
+      if(inputEl){ inputEl.disabled = false; if(!inputEl.value) inputEl.value = 'levante-assets-dev'; }
+      if(hintEl) hintEl.innerHTML = 'audio URLs: <code>gs://&lt;bucket&gt;/audio/&lt;lang&gt;/&lt;id&gt;.mp3</code>';
     }
     function restoreSelectors(){
       try{
         const saved = localStorage.getItem('levante_audio_bucket');
         if(saved){ document.getElementById('bucketInput').value = saved; }
         const s = localStorage.getItem('levante_audio_source');
-        if(s){ currentSource = s; }
+        if(s && s !== 'repo'){ currentSource = s; }
       }catch(_){}
     }
     (function initBucketUI(){
       restoreSelectors();
-      const repoBtn = document.getElementById('useRepo');
       const draftBtn = document.getElementById('useDraft');
       const devBtn = document.getElementById('useDev');
       const prodBtn = document.getElementById('useProd');
       const rescanBtn = document.getElementById('rescanBtn');
-      if(repoBtn){ repoBtn.addEventListener('click', ()=>{ currentSource='repo'; rememberSource('repo'); updateSourceUI(); }); }
       if(draftBtn){ draftBtn.addEventListener('click', ()=>{ currentSource='draft'; document.getElementById('bucketInput').value='levante-assets-draft'; rememberBucket('levante-assets-draft'); rememberSource('draft'); updateSourceUI(); }); }
       if(devBtn){ devBtn.addEventListener('click', ()=>{ currentSource='dev'; document.getElementById('bucketInput').value='levante-assets-dev'; rememberBucket('levante-assets-dev'); rememberSource('dev'); updateSourceUI(); }); }
       if(prodBtn){ prodBtn.addEventListener('click', ()=>{ currentSource='prod'; document.getElementById('bucketInput').value='levante-assets-prod'; rememberBucket('levante-assets-prod'); rememberSource('prod'); updateSourceUI(); }); }
@@ -333,9 +320,6 @@
 
     async function listAudio(language){
       const ids = await getAllItemIds();
-      if(currentSource === 'repo'){
-        return ids.map(id => ({ lang: language, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(language)}/${encodeURIComponent(id)}.mp3` }));
-      }
       const bucket = getSelectedBucket();
       return ids.map(id => ({ lang: language, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(language)}/${encodeURIComponent(id)}.mp3` }));
     }
@@ -359,12 +343,8 @@
           const params = new URLSearchParams();
           params.set('list', '1');
           params.set('files', '1');
-          params.set('prefix', currentSource === 'repo' ? `audio_files/${lang}/` : `audio/${lang}/`);
-          if(currentSource === 'repo'){
-            params.set('source', 'repo');
-          } else {
-            params.set('bucket', getSelectedBucket());
-          }
+          params.set('prefix', `audio/${lang}/`);
+          params.set('bucket', getSelectedBucket());
           const listed = await fetchJson(`/api/read-tags?${params.toString()}`);
           const files = Array.isArray(listed.files) ? listed.files : [];
           for(const path of files){
@@ -376,9 +356,7 @@
             items.push({
               lang,
               id,
-              url: currentSource === 'repo'
-                ? `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(lang)}/${encodeURIComponent(id)}.mp3`
-                : `https://storage.googleapis.com/${encodeURIComponent(getSelectedBucket())}/audio/${encodeURIComponent(lang)}/${encodeURIComponent(id)}.mp3`
+              url: `https://storage.googleapis.com/${encodeURIComponent(getSelectedBucket())}/audio/${encodeURIComponent(lang)}/${encodeURIComponent(id)}.mp3`
             });
           }
         } catch (err){
@@ -394,11 +372,7 @@
         params.set('itemId', item.id);
         params.set('langCode', item.lang);
         params.set('strict', '1');
-        if(currentSource === 'repo'){
-          params.set('source', 'repo');
-        } else {
-          params.set('bucket', getSelectedBucket());
-        }
+        params.set('bucket', getSelectedBucket());
         
         // Add child-survey prefix if this is a child-survey file
         if (item.isChildSurvey) {
@@ -475,11 +449,7 @@
       try {
         const params = new URLSearchParams();
         params.set('list','1');
-        if(currentSource === 'repo'){
-          params.set('source','repo');
-        } else {
-          params.set('bucket', getSelectedBucket());
-        }
+        params.set('bucket', getSelectedBucket());
         const listed = await fetchJson(`/api/read-tags?${params.toString()}`);
         bucketCodes = Array.isArray(listed.languages) ? listed.languages : [];
       } catch (e) {
@@ -518,28 +488,15 @@
       // Legacy fallback: when discovery is unavailable, probe expected IDs from CSV
       if (allItems.length === 0 && ids.length > 0) {
         allItems = [];
-        if(currentSource === 'repo'){
-          for(const code of langCodes){
-            for(const id of ids){
-              // Standard audio files
-              allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
-              // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
-              // if (includeChildSurvey) {
-              //   allItems.push({ lang: code, id, url: `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
-              // }
-            }
-          }
-        } else {
-          const bucket = getSelectedBucket();
-          for(const code of langCodes){
-            for(const id of ids){
-              // Standard audio files
-              allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
-              // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
-              // if (includeChildSurvey) {
-              //   allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
-              // }
-            }
+        const bucket = getSelectedBucket();
+        for(const code of langCodes){
+          for(const id of ids){
+            // Standard audio files
+            allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3` });
+            // Child-survey audio files (optional) - COMMENTED OUT: survey items are duplicates of main audio files
+            // if (includeChildSurvey) {
+            //   allItems.push({ lang: code, id, url: `https://storage.googleapis.com/${encodeURIComponent(bucket)}/audio/child-survey/${encodeURIComponent(code)}/${encodeURIComponent(id)}.mp3`, isChildSurvey: true });
+            // }
           }
         }
       }
@@ -594,8 +551,7 @@
       }
 
       updateSummary(0, 0);
-      // Increased concurrency for faster scanning (30 for GCS, 12 for GitHub)
-      const concurrencyLimit = currentSource === 'repo' ? 12 : 30;
+      const concurrencyLimit = 30;
       const results = await processWithConcurrency(allItems, concurrencyLimit);
       const grouped = groupCounts(results);
 
@@ -722,21 +678,19 @@
       const okCountFinal = results.filter(r => r && r.ok).length;
       const errCountFinal = results.filter(r => !r || !r.ok).length;
 
-      if (currentSource !== 'repo') {
-        const summaryPayload = {
-          bucket: getSelectedBucket(),
-          expectedCount: total,
-          availableCount: okCountFinal,
-          missingCount: errCountFinal,
-          noTagCount,
-          coveragePercent: total > 0 ? Math.round((okCountFinal / total) * 1000) / 10 : 0,
-          languages: langCodes,
-          generatedAt: new Date().toISOString(),
-          source: currentSource
-        };
+      const summaryPayload = {
+        bucket: getSelectedBucket(),
+        expectedCount: total,
+        availableCount: okCountFinal,
+        missingCount: errCountFinal,
+        noTagCount,
+        coveragePercent: total > 0 ? Math.round((okCountFinal / total) * 1000) / 10 : 0,
+        languages: langCodes,
+        generatedAt: new Date().toISOString(),
+        source: currentSource
+      };
 
-        await postCoverageSummary(summaryPayload);
-      }
+      await postCoverageSummary(summaryPayload);
 
       // Add child-survey section (only if checkbox is checked) - COMMENTED OUT: survey items are duplicates
       // if (includeChildSurvey) {
@@ -769,9 +723,7 @@
       const testLang = 'de';
       const testIds = ids.slice(0, 3);
       for(const id of testIds) {
-        const url = currentSource === 'repo' 
-          ? `https://raw.githubusercontent.com/levante-framework/levante_translations/main/audio_files/${testLang}/${id}.mp3`
-          : `https://storage.googleapis.com/${bucket}/audio/${testLang}/${id}.mp3`;
+        const url = `https://storage.googleapis.com/${bucket}/audio/${testLang}/${id}.mp3`;
         console.log(`Testing: ${url}`);
         try {
           const result = await readTag({lang: testLang, id});
