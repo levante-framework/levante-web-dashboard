@@ -21,6 +21,7 @@
     "test:partner-audio-regression": "node scripts/check-partner-audio-approval-regression.js",
     "test:partner-audio-regression:unit": "node --test scripts/check-partner-audio-approval-regression.test.js",
     "test:partner-audio-translations:unit": "node --test scripts/partner-audio-translations.test.js",
+    "test:lang-codes:unit": "node --test scripts/lang-codes.test.js",
     "test:language-options-task-options:unit": "node --test scripts/language-options-task-options.test.js",
     "test:validation-manual-approval:unit": "node --test scripts/validation-manual-approval.test.js",
     "test:validation-storage:unit": "node --test scripts/validation-storage-merge.test.js",

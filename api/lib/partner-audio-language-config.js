@@ -1,42 +1,13 @@
 /**
- * Partner Audio Approval Tool only — language_config.json helpers.
- *
- * Config may store short codes (en, de, nl) for ElevenLabs; itembank GCS paths use
- * full BCP-47 (en-US, de-DE, nl-NL). Map at this boundary without mutating config.
+ * Partner Audio Approval Tool — language_config.json helpers.
  */
-const CONFIG_SHORT_TO_ITEMBANK = Object.freeze({
-  en: 'en-US',
-  de: 'de-DE',
-  nl: 'nl-NL',
-  eo: 'eo-UY',
-});
+import { langCodesMatchForItembank } from './lang-codes.js';
 
-function normalizeLangCode(value) {
-  const raw = String(value || '').trim().replace(/_/g, '-');
-  if (!raw) return '';
-  const parts = raw.split('-').filter(Boolean);
-  const lang = parts[0].toLowerCase();
-  if (parts.length === 1) return lang;
-  const rest = parts.slice(1).join('-');
-  const region = rest.length <= 3 ? rest.toUpperCase() : rest;
-  return `${lang}-${region}`;
-}
-
-export function canonicalizeItembankLangCode(value) {
-  const normalized = normalizeLangCode(value);
-  if (!normalized) return '';
-  if (!normalized.includes('-')) {
-    const mapped = CONFIG_SHORT_TO_ITEMBANK[normalized.toLowerCase()];
-    if (mapped) return mapped;
-  }
-  return normalized;
-}
-
-export function langCodesMatchForItembank(left, right) {
-  const a = canonicalizeItembankLangCode(left).toLowerCase();
-  const b = canonicalizeItembankLangCode(right).toLowerCase();
-  return Boolean(a) && a === b;
-}
+export {
+  canonicalizeItembankLangCode,
+  langCodesMatchForItembank,
+  resolveLangCode,
+} from './lang-codes.js';
 
 export function isAudioCapableLanguageEntry(cfg) {
   const hasLang = Boolean(String(cfg?.lang_code || '').trim());

@@ -1,5 +1,5 @@
-import { canonicalizeItembankLangCode } from './partner-audio-language-config.js';
-import { getTaskSlugCandidates } from '../move-audio-to-dev.js';
+import { resolveLangCode } from './lang-codes.js';
+import { resolveCanonicalTaskSlug } from './task-slugs.js';
 
 const DEFAULT_BUCKET = String(
   process.env.ASSETS_DEV_BUCKET || process.env.AUDIO_DEV_BUCKET || 'levante-assets-dev'
@@ -8,20 +8,11 @@ const DEFAULT_OBJECT = String(
   process.env.LANGUAGE_OPTIONS_OBJECT || 'translations/dashboard-consolidated-flat/languageoptions.json'
 ).trim().replace(/^\/+/, '');
 
-export function resolveCanonicalTaskSlug(taskName) {
-  const candidates = getTaskSlugCandidates(taskName);
-  if (candidates.length) return candidates[0];
-  const raw = String(taskName || '').trim().toLowerCase();
-  if (!raw) return '';
-  return raw
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
+export { resolveCanonicalTaskSlug } from './task-slugs.js';
 
 export function findLanguageOptionsKey(optionsRoot, langCode) {
   const root = optionsRoot && typeof optionsRoot === 'object' ? optionsRoot : {};
-  const canonical = canonicalizeItembankLangCode(langCode);
+  const canonical = resolveLangCode(langCode);
   if (!canonical) return null;
   const keys = Object.keys(root);
   const exact = keys.find((key) => key === canonical);
@@ -63,7 +54,11 @@ export function applyTaskSlugToLanguageOptionsDocument(doc, { langCode, task }) 
 
   const languageKey = findLanguageOptionsKey(root, langCode);
   if (!languageKey) {
-    return { changed: false, reason: 'language_not_found', langCode: canonicalizeItembankLangCode(langCode) };
+    return {
+      changed: false,
+      reason: 'language_not_found',
+      langCode: resolveLangCode(langCode),
+    };
   }
 
   const taskSlug = resolveCanonicalTaskSlug(task);
@@ -71,7 +66,7 @@ export function applyTaskSlugToLanguageOptionsDocument(doc, { langCode, task }) 
   return {
     ...result,
     languageKey,
-    langCode: canonicalizeItembankLangCode(langCode),
+    langCode: resolveLangCode(langCode),
     objectPath: DEFAULT_OBJECT,
     bucket: DEFAULT_BUCKET,
   };

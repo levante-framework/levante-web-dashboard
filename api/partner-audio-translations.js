@@ -1,16 +1,13 @@
 import { Storage } from '@google-cloud/storage';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { buildLanguageBundle, normalizeLangCode } from './lib/itembank-translations.js';
 import {
-  buildLanguageBundle,
-  normalizeLangCode as normalizeRequestedLangCode,
-} from './lib/partner-audio-translations-bundle.js';
-import {
-  canonicalizeItembankLangCode,
   isAudioCapableLangCode,
   loadLanguageConfigLanguages,
 } from './lib/partner-audio-language-config.js';
 import { getStorageClientFromEnv } from './lib/gcp-credentials.js';
+import { resolveLangCode } from './lib/lang-codes.js';
 
 function sanitizeEnvString(value) {
   return String(value ?? '')
@@ -40,25 +37,6 @@ const ENABLE_XLIFF_SOURCE = String(
 ).trim().toLowerCase() === 'true';
 const CACHE_TTL_MS = Math.max(10_000, Number(process.env.PARTNER_AUDIO_TRANSLATIONS_CACHE_TTL_MS || 120_000));
 const MAX_SCAN_FILES = Math.max(1000, Number(process.env.PARTNER_AUDIO_TRANSLATIONS_MAX_SCAN_FILES || 25000));
-
-const LANG_ID_TO_CODE = {
-  en: 'en-US',
-  'en-us': 'en-US',
-  'en-gb': 'en-GB',
-  'en-gh': 'en-GH',
-  'es-co': 'es-CO',
-  es: 'es-CO',
-  'es-ar': 'es-AR',
-  de: 'de-DE',
-  'de-de': 'de-DE',
-  'de-ch': 'de-CH',
-  'fr-ca': 'fr-CA',
-  fr: 'fr-CA',
-  nl: 'nl-NL',
-  pt: 'pt-PT',
-  'pt-pt': 'pt-PT',
-  'pt-br': 'pt-BR',
-};
 
 let memoryCache = {
   expiresAt: 0,
@@ -107,13 +85,6 @@ function hasItembankSegment(pathValue) {
 
 function looksLikeLangSegment(segment) {
   return /^[a-z]{2}(?:[-_][a-z0-9]{2,8})?$/i.test(String(segment || '').trim());
-}
-
-function normalizeLangCode(value) {
-  const code = String(value || '').trim().replace(/_/g, '-');
-  if (!code) return '';
-  const lower = code.toLowerCase();
-  return LANG_ID_TO_CODE[lower] || code;
 }
 
 function toCsvValue(value) {
@@ -186,7 +157,7 @@ function extractLangFromJsonPath(pathValue) {
   for (const idx of probeOrder) {
     const segment = String(segments[idx] || '').trim();
     if (looksLikeLangSegment(segment)) {
-      return normalizeLangCode(segment);
+      return resolveLangCode(segment);
     }
   }
   return '';
@@ -533,9 +504,9 @@ function extractTaskFromXliffPath(pathValue) {
 function extractLangFromXliffPath(pathValue, xliffText) {
   const normalized = normalizePath(pathValue);
   const matchFromPath = normalized.match(/(?:^|\/)([a-z]{2}(?:-[A-Za-z0-9]{2,8})?)\/main\/itembank_by_task\//i);
-  if (matchFromPath && matchFromPath[1]) return normalizeLangCode(matchFromPath[1]);
+  if (matchFromPath && matchFromPath[1]) return resolveLangCode(matchFromPath[1]);
   const headerMatch = String(xliffText || '').match(/\b(?:target-language|trgLang)\s*=\s*"([^"]+)"/i);
-  return headerMatch && headerMatch[1] ? normalizeLangCode(headerMatch[1]) : '';
+  return headerMatch && headerMatch[1] ? resolveLangCode(headerMatch[1]) : '';
 }
 
 async function buildFromDraftItembankFolders(storage, bucketName) {
@@ -618,7 +589,7 @@ export default async function handler(req, res) {
 
   try {
     const query = req.query || {};
-    const requestedLang = canonicalizeItembankLangCode(normalizeRequestedLangCode(query.lang || ''));
+    const requestedLang = resolveLangCode(query.lang || '');
 
     if (requestedLang) {
       const cached = getCachedLangBundle(requestedLang);
@@ -636,7 +607,7 @@ export default async function handler(req, res) {
         return res.status(400).json({
           ok: false,
           error: 'lang_not_audio_capable',
-          lang: normalizeRequestedLangCode(requestedLang),
+          lang: normalizeLangCode(requestedLang),
         });
       }
       try {

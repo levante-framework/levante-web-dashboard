@@ -2,11 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  canonicalizeItembankLangCode,
   filterAudioCapableLanguages,
   isAudioCapableLanguageEntry,
   isAudioCapableLangCode,
-  langCodesMatchForItembank,
   listAudioCapableLangCodes,
 } from '../api/lib/partner-audio-language-config.js';
 import {
@@ -14,12 +12,9 @@ import {
   isPlaceholderText,
   classifyTranslationStatus,
   buildTaskItems,
-  langCodesMatch,
-  isLegacyShortLangFolder,
   filterCanonicalTranslationPaths,
-  getReferenceSourceLang,
   entriesToMap,
-} from '../api/lib/partner-audio-translations-bundle.js';
+} from '../api/lib/itembank-translations.js';
 
 test('parseItembankTranslationPath matches canonical bucket layout', () => {
   const parsed = parseItembankTranslationPath(
@@ -82,13 +77,6 @@ test('buildTaskItems splits valid, placeholder, and en-only keys', () => {
   assert.equal(byId['item-c'].translationText, '');
 });
 
-test('langCodesMatch requires exact canonical codes', () => {
-  assert.equal(langCodesMatch('es-AR', 'es-AR'), true);
-  assert.equal(langCodesMatch('es-AR', 'es-ar'), true);
-  assert.equal(langCodesMatch('es-AR', 'es'), false);
-  assert.equal(langCodesMatch('es-AR', 'de-DE'), false);
-});
-
 test('filterCanonicalTranslationPaths drops legacy short lang folders', () => {
   const paths = [
     { langSegment: 'es-AR' },
@@ -96,18 +84,10 @@ test('filterCanonicalTranslationPaths drops legacy short lang folders', () => {
     { langSegment: 'de' },
     { langSegment: 'de-DE' },
   ];
-  assert.equal(isLegacyShortLangFolder('nl'), true);
-  assert.equal(isLegacyShortLangFolder('de-DE'), false);
   assert.deepEqual(
     filterCanonicalTranslationPaths(paths).map((entry) => entry.langSegment),
     ['es-AR', 'de-DE']
   );
-});
-
-test('getReferenceSourceLang uses en-US for non-US locales', () => {
-  assert.equal(getReferenceSourceLang('en-US'), 'en-US');
-  assert.equal(getReferenceSourceLang('es-AR'), 'en-US');
-  assert.equal(getReferenceSourceLang('en-GB'), 'en-US');
 });
 
 test('entriesToMap keeps real translations over placeholders', () => {
@@ -139,18 +119,4 @@ test('filterAudioCapableLanguages keeps only configured audio languages', () => 
   assert.equal(isAudioCapableLangCode(languages, 'es-AR'), true);
   assert.equal(isAudioCapableLangCode(languages, 'de-DE'), true);
   assert.equal(isAudioCapableLangCode(languages, 'fr-CA'), false);
-});
-
-test('canonicalizeItembankLangCode maps short config codes to itembank folders', () => {
-  assert.equal(canonicalizeItembankLangCode('en'), 'en-US');
-  assert.equal(canonicalizeItembankLangCode('de'), 'de-DE');
-  assert.equal(canonicalizeItembankLangCode('nl'), 'nl-NL');
-  assert.equal(canonicalizeItembankLangCode('eo'), 'eo-UY');
-});
-
-test('langCodesMatchForItembank treats config shorthand as equivalent to itembank paths', () => {
-  assert.equal(langCodesMatchForItembank('nl', 'nl-NL'), true);
-  assert.equal(langCodesMatchForItembank('de', 'de-DE'), true);
-  assert.equal(langCodesMatchForItembank('en', 'en-US'), true);
-  assert.equal(langCodesMatchForItembank('es-AR', 'es-CO'), false);
 });

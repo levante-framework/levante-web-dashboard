@@ -1,6 +1,14 @@
+import {
+  getReferenceSourceLang,
+  isLegacyShortLangFolder,
+  langCodesMatch,
+  normalizeLangCode,
+  REFERENCE_SOURCE_LANG,
+  resolveLangCode,
+} from './lang-codes.js';
+
 export const ITEM_BANK_TRANSLATIONS_FILE = 'item-bank-translations.json';
 export const ITEMBANK_TRANSLATIONS_PREFIX = 'translations/itembank/';
-export const REFERENCE_SOURCE_LANG = 'en-US';
 
 /** Canonical string in item-bank-translations.json when Crowdin has no approved translation. */
 export const NO_APPROVED_TRANSLATION_TEXT = 'NO APPROVED TRANSLATION';
@@ -9,41 +17,8 @@ export function normalizePath(value) {
   return String(value || '').replace(/\\/g, '/').trim();
 }
 
-export function normalizeLangCode(value) {
-  const raw = String(value || '').trim().replace(/_/g, '-');
-  if (!raw) return '';
-  const parts = raw.split('-').filter(Boolean);
-  const lang = parts[0].toLowerCase();
-  if (parts.length === 1) return lang;
-  const rest = parts.slice(1).join('-');
-  const region = rest.length <= 3 ? rest.toUpperCase() : rest;
-  return `${lang}-${region}`;
-}
-
-export function langCodesMatch(requestedLang, pathLangSegment) {
-  const left = normalizeLangCode(requestedLang).toLowerCase();
-  const right = normalizeLangCode(pathLangSegment).toLowerCase();
-  return Boolean(left) && left === right;
-}
-
-/** Legacy two-letter folders (nl, de, es) — ignore; canonical paths use full codes. */
-export function isLegacyShortLangFolder(langSegment) {
-  return /^[a-z]{2}$/i.test(String(langSegment || '').trim());
-}
-
 export function filterCanonicalTranslationPaths(paths) {
   return (paths || []).filter((entry) => !isLegacyShortLangFolder(entry.langSegment));
-}
-
-export function isEnglishLangCode(langCode) {
-  const normalized = normalizeLangCode(langCode).toLowerCase();
-  return normalized === 'en-us' || normalized === 'en-gb' || normalized === 'en-gh';
-}
-
-export function getReferenceSourceLang(requestedLang) {
-  const lang = normalizeLangCode(requestedLang);
-  if (lang.toLowerCase() === 'en-us') return lang;
-  return REFERENCE_SOURCE_LANG;
 }
 
 export function parseItembankTranslationPath(pathName) {
@@ -60,6 +35,15 @@ export function parseItembankTranslationPath(pathName) {
     langSegment: String(match[2] || '').trim(),
     path,
   };
+}
+
+export function isLikelyTaskTranslationPath(pathName, slugCandidates, langAliases) {
+  const normalizedPath = String(pathName || '').replace(/\\/g, '/').toLowerCase();
+  if (!normalizedPath.endsWith('.json')) return false;
+  if (!normalizedPath.includes('/itembank/')) return false;
+  if (!slugCandidates.some((slug) => normalizedPath.includes(`/itembank/${slug}/`))) return false;
+  if (!langAliases.some((alias) => normalizedPath.includes(`/${alias}/`))) return false;
+  return true;
 }
 
 export function isPlaceholderText(value) {
@@ -88,19 +72,6 @@ export function normalizeItemId(rawKey) {
     return String(suffix || raw).trim();
   }
   return raw;
-}
-
-function inferTaskFromPrefix(prefix) {
-  const raw = String(prefix || '').trim();
-  if (!raw) return '';
-  const segments = raw.split('.').map((seg) => String(seg || '').trim()).filter(Boolean);
-  for (let i = segments.length - 1; i >= 0; i -= 1) {
-    const segment = segments[i];
-    if (/^\d+$/.test(segment)) continue;
-    if (['translations', 'itembank', 'items', 'data', 'records'].includes(segment.toLowerCase())) continue;
-    return String(segment || '').trim();
-  }
-  return '';
 }
 
 function getRecordText(record) {
@@ -253,7 +224,7 @@ export async function readTranslationMap(file) {
 }
 
 export async function buildLanguageBundle(storage, bucketName, requestedLang) {
-  const lang = normalizeLangCode(requestedLang);
+  const lang = resolveLangCode(requestedLang);
   if (!lang) {
     throw new Error('missing_lang');
   }
@@ -261,7 +232,7 @@ export async function buildLanguageBundle(storage, bucketName, requestedLang) {
   const bucket = storage.bucket(bucketName);
   const allPaths = filterCanonicalTranslationPaths(await listItembankTranslationPaths(bucket));
   const referenceLang = getReferenceSourceLang(lang);
-  const targetPaths = allPaths.filter((entry) => langCodesMatch(lang, entry.langSegment));
+  const targetPaths = allPaths.filter((entry) => langCodesMatch(lang, entry.langSegment, { context: 'exact' }));
   const tasks = Array.from(new Set(targetPaths.map((entry) => entry.task))).sort();
 
   const items = [];
