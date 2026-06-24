@@ -257,43 +257,41 @@
             </ul>
 
             <h3>2. Review Items</h3>
-            <p>The dashboard shows three tabs:</p>
+            <p>The dashboard shows these tabs (counts reflect the selected task filter when one is active):</p>
             
-            <h4><strong>To Be Approved Tab</strong></h4>
+            <h4><strong>To Be Approved</strong></h4>
             <ul>
-                <li>Displays all audio items that need review</li>
-                <li>Shows source text (English) and translated text</li>
-                <li>Each item includes:
-                    <ul>
-                        <li><strong>Source (English)</strong>: The original English text</li>
-                        <li><strong>Translation</strong>: The translated text in your language</li>
-                        <li><strong>Audio-enhanced string</strong>: (Optional) Editable text field for custom audio generation</li>
-                        <li><strong>Action buttons</strong>: Play, Approve, Regenerate, Approve & Save</li>
-                    </ul>
-                </li>
+                <li>Valid translations that still need audio review for the current task</li>
+                <li>Shows source text (English), translated text, optional audio-enhanced string, and action buttons (Play, Approve, Regenerate, Save, Save &amp; Approve)</li>
+                <li>Approving <strong>stages</strong> the item for the current task; audio stays in the draft bucket until the task is marked finished</li>
             </ul>
 
-            <h4><strong>Approved Tab</strong></h4>
+            <h4><strong>Approved in task</strong></h4>
             <ul>
-                <li>Shows all items you've approved</li>
-                <li>Compact view with item ID, translated text, and Unapprove button</li>
-                <li>Items in this tab have been moved to the approved bucket (<code>levante-assets-dev</code>)</li>
-                <li>Unapproving moves items back to the draft bucket</li>
+                <li>Items approved for the currently selected task (staged and/or already promoted)</li>
             </ul>
 
-            <h4><strong>No Audio Tab</strong></h4>
+            <h4><strong>Approved</strong></h4>
             <ul>
-                <li>Displays items that don't have audio files yet</li>
-                <li>Compact card layout showing:
-                    <ul>
-                        <li>Item ID</li>
-                        <li>Source text (English)</li>
-                        <li>Translated text</li>
-                        <li><strong>Generate Audio</strong> button: Creates audio from the translated text</li>
-                        <li><strong>Save & Approve</strong> button: Saves generated audio and immediately approves it</li>
-                    </ul>
-                </li>
-                <li>Items can be generated and approved in one workflow</li>
+                <li>Items whose audio exists in the dev bucket (<code>levante-assets-dev</code>)</li>
+                <li>Unapproving a promoted item moves audio back to the draft bucket</li>
+            </ul>
+
+            <h4><strong>Missing Audio</strong></h4>
+            <ul>
+                <li>Valid translations with no draft or dev audio file yet</li>
+                <li>Audio is normally generated upstream by DCC; use <strong>To Be Approved</strong> after audio exists</li>
+            </ul>
+
+            <h4><strong>Missing Translation</strong></h4>
+            <ul>
+                <li>Strings exported as <code>NO APPROVED TRANSLATION</code> in the language JSON bundle</li>
+            </ul>
+
+            <h4><strong>Hidden Strings</strong> (DCC / superadmin only)</h4>
+            <ul>
+                <li>English source keys missing from the target language export</li>
+                <li>Tab is disabled when the count is zero</li>
             </ul>
 
             <h3>3. Listen to Audio</h3>
@@ -325,18 +323,25 @@
                 <li>Click <strong>Approve</strong> to immediately approve the audio</li>
             </ol>
 
-            <h3>6. Approve Items</h3>
-            <p><strong>Immediate Approval Workflow:</strong></p>
+            <h3>6. Approve Items (staged workflow)</h3>
             <ul>
-                <li>Click the <strong>Approve</strong> button on any item</li>
-                <li>The audio file is immediately moved from <code>levante-assets-draft</code> to <code>levante-assets-dev</code></li>
-                <li>The item disappears from the "To Be Approved" tab</li>
-                <li>The item appears in the "Approved" tab</li>
-                <li>Statistics update automatically</li>
-                <li>No batch confirmation needed</li>
+                <li>Click <strong>Approve</strong> (or <strong>Save &amp; Approve</strong> after generating audio) to stage the item for the current task</li>
+                <li>Staged approvals are stored per language and task; draft audio remains in <code>levante-assets-draft</code> until promotion</li>
+                <li>Use <strong>Approve all audio (task)</strong> to stage every pending item for the selected task</li>
+                <li>Statistics and tab counts update immediately</li>
             </ul>
 
-            <h3>7. Unapprove Items (if needed)</h3>
+            <h3>7. Mark task finished (promotion)</h3>
+            <p>When every item for the selected task has approved audio:</p>
+            <ol>
+                <li>Select the task in the <strong>Task</strong> dropdown</li>
+                <li>Click <strong>Mark task finished</strong></li>
+                <li>Staged audio is promoted from draft → dev bucket (<code>levante-assets-dev</code>)</li>
+                <li>The task slug is appended to <code>taskOptions</code> for your language in <code>languageoptions.json</code> (dashboard consolidated config)</li>
+                <li>The status bar reports promotion counts, Slack notification (if configured), and the language-options update outcome</li>
+            </ol>
+
+            <h3>8. Unapprove Items (if needed)</h3>
             <ul>
                 <li>Switch to the <strong>Approved</strong> tab</li>
                 <li>Click <strong>Unapprove</strong> on any item</li>
@@ -368,7 +373,8 @@
             <ul>
                 <li>Use the <strong>Task</strong> dropdown next to search to focus on one task at a time.</li>
                 <li>Select <strong>All tasks</strong> to show everything for the current language.</li>
-                <li>The selected task applies across all tabs (<strong>To Be Approved</strong>, <strong>Approved</strong>, and <strong>No Audio</strong>).</li>
+                <li>The selected task applies across all tabs.</li>
+                <li>Use <strong>Mark task finished</strong> when all task audio is approved (see workflow above).</li>
                 <li>Dashboard statistics update based on the active task filter.</li>
                 <li>Your task selection is saved per language in your browser and restored automatically.</li>
             </ul>
@@ -385,10 +391,11 @@
             <h2>Statistics</h2>
             <p>The top of the dashboard shows four statistics:</p>
             <ul>
-                <li><strong>Total Items</strong>: All items with translations for your language</li>
-                <li><strong>Approved</strong>: Items that have been approved and moved to dev bucket</li>
-                <li><strong>Pending</strong>: Items still awaiting approval in the draft bucket</li>
-                <li><strong>No Audio</strong>: Items without audio files that need generation</li>
+                <li><strong>Total Items</strong>: Valid translations for the active task filter</li>
+                <li><strong>Approved</strong>: Items approved (staged or in dev bucket)</li>
+                <li><strong>Pending</strong>: Valid translations still awaiting approval</li>
+                <li><strong>Missing Audio</strong>: Valid translations without audio files</li>
+                <li><strong>Missing Translation</strong>: Strings marked <code>NO APPROVED TRANSLATION</code></li>
             </ul>
             <p>Statistics update automatically as you approve/unapprove items.</p>
         </div>
@@ -410,7 +417,7 @@
 
             <h3>"No items found"</h3>
             <ul>
-                <li>Ensure your language has translations in the CSV file</li>
+                <li>Ensure task JSON bundles exist under <code>translations/itembank/&lt;task&gt;/&lt;lang&gt;/</code> in the draft bucket</li>
                 <li>Check that translations exist for your language</li>
                 <li>Clear Search and set Task to <strong>All tasks</strong> to rule out active filters</li>
                 <li>Contact Levante support if items should be available</li>
@@ -452,10 +459,9 @@
 
             <h3>Approval Process</h3>
             <ol>
-                <li>User clicks "Approve" → File immediately moves from draft to dev bucket</li>
-                <li>UI updates to show item in "Approved" tab</li>
-                <li>Statistics update automatically</li>
-                <li>No batch confirmation needed</li>
+                <li>User approves item → staged for current task (draft audio unchanged)</li>
+                <li>User marks task finished → staged audio promoted draft → dev; task slug added to <code>languageoptions.json</code></li>
+                <li>UI and statistics update after each step</li>
             </ol>
 
             <h3>Unapproval Process</h3>
@@ -474,6 +480,10 @@
                 <li>Check the documentation link at the top of the dashboard</li>
                 <li>Review the console for error messages (F12 → Console)</li>
             </ul>
+        </div>
+
+        <div class="note">
+            <strong>Developer QA:</strong> See <code>docs/partner-audio-qa-checklist.md</code> in the repo for pre-deploy verification steps.
         </div>
 
         

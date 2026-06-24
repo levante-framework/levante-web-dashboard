@@ -59,6 +59,36 @@ const CONTRACTS = [
     message: 'Unapprove flow must invalidate dev cache for moved item.'
   },
   {
+    kind: 'forbid',
+    pattern: /renderCrowdinApprovalBadge|crowdin-approval-badge|crowdin-approved-item/,
+    message: 'Crowdin approval badges were removed; do not reintroduce lookup UI or API calls.'
+  },
+  {
+    kind: 'expect',
+    pattern: /formatLanguageOptionsFinishNote\s*\(/,
+    message: 'Task-finish flow must surface languageoptions.json update outcome in status message.'
+  },
+  {
+    kind: 'expect',
+    pattern: /itemsListMissingTranslation|renderMissingTranslationItems/,
+    message: 'Missing Translation tab render path must remain present.'
+  },
+  {
+    kind: 'expect',
+    pattern: /itemsListHiddenStrings|renderHiddenStringItems/,
+    message: 'Hidden Strings tab render path must remain present.'
+  },
+  {
+    kind: 'expect',
+    pattern: /setLanguageShellState\s*\(/,
+    message: 'Language shell must gate main dashboard content until language data is loaded.'
+  },
+  {
+    kind: 'expect',
+    pattern: /id="languageSetupPrompt"|id="dashboardMainContent"|id="languageLoadingPanel"/,
+    message: 'Language setup prompt, loader panel, and gated main content regions must exist.'
+  },
+  {
     kind: 'expect',
     pattern: /invalidateAudioCache\(this\.audioBuckets\.draft,\s*this\.currentLangCode,\s*normalizedBaseId\)/,
     message: 'Unapprove flow must invalidate draft cache for moved item.'

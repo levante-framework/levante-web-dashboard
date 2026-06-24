@@ -11,6 +11,7 @@
     <link rel="alternate icon" href="favicon-32x32.png">
     <link rel="apple-touch-icon" href="favicon-192x192.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="js/lang-codes.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -207,15 +208,77 @@
             background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
             border-bottom: 1px solid #e4e4e7;
             display: flex;
-            gap: 16px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .language-setup-prompt {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #3f3f46;
+            line-height: 1.5;
+        }
+
+        .language-loading-panel {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            flex-wrap: wrap;
+            gap: 16px;
+            padding: 32px 16px 48px;
+            background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 100%);
+            border-bottom: 1px solid #e4e4e7;
+        }
+
+        .language-loading-panel[hidden] {
+            display: none !important;
+        }
+
+        .dashboard-main-content[hidden] {
+            display: none !important;
+        }
+
+        .language-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e4e4e7;
+            border-top-color: #0e7490;
+            border-radius: 50%;
+            animation: language-load-spin 0.8s linear infinite;
+        }
+
+        @keyframes language-load-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .language-loading-spinner {
+                animation: none;
+                border-top-color: #0e7490;
+            }
+        }
+
+        .language-loading-text {
+            margin: 0;
+            font-size: 0.95rem;
+            color: #52525b;
+        }
+
+        .language-loading-error {
+            margin: 0;
+            max-width: 36rem;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #9a3412;
+            line-height: 1.5;
         }
 
         .language-select {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .language-select label {
@@ -380,6 +443,8 @@
 
         .tabs-container {
             display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
             gap: 8px;
             margin-bottom: 16px;
             border-bottom: 2px solid #e4e4e7;
@@ -838,12 +903,59 @@
             border-bottom-color: #da3d16;
         }
 
+        .tab-button.tab-button-inactive,
+        .tab-button:disabled {
+            color: #a1a1aa;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+
+        .tab-button.tab-button-inactive:hover,
+        .tab-button:disabled:hover {
+            color: #a1a1aa;
+        }
+
+        .tab-button.tab-button-superadmin {
+            margin-left: auto;
+        }
+
         .tab-content {
             display: none;
         }
 
         .tab-content.active {
             display: block;
+        }
+
+        .tab-info-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .missing-translation-subsection {
+            margin-bottom: 28px;
+        }
+
+        .missing-translation-subsection:last-child {
+            margin-bottom: 0;
+        }
+
+        .missing-translation-subsection h3 {
+            font-size: 1rem;
+            margin: 0 0 8px;
+            color: #0f172a;
+        }
+
+        .missing-translation-subsection-note {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin: 0 0 12px;
         }
 
         .no-audio-meta {
@@ -1080,48 +1192,6 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-        }
-
-        .crowdin-approval-badge {
-            display: inline-flex;
-            align-items: center;
-            width: fit-content;
-            font-size: 11px;
-            font-weight: 600;
-            border-radius: 999px;
-            padding: 2px 8px;
-            border: 1px solid transparent;
-            line-height: 1.3;
-        }
-
-        .crowdin-approval-badge.is-checking {
-            background: #eff6ff;
-            border-color: #bfdbfe;
-            color: #1d4ed8;
-        }
-
-        .crowdin-approval-badge.is-approved {
-            background: #ecfdf3;
-            border-color: #86efac;
-            color: #166534;
-        }
-
-        .crowdin-approval-badge.is-not-approved {
-            background: #fff7ed;
-            border-color: #fdba74;
-            color: #9a3412;
-        }
-
-        .crowdin-approval-badge.is-error {
-            background: #fef2f2;
-            border-color: #fca5a5;
-            color: #991b1b;
-        }
-
-        .crowdin-approval-badge.is-unknown {
-            background: #f4f4f5;
-            border-color: #d4d4d8;
-            color: #52525b;
         }
 
         .item-card-compact-source {
@@ -1952,8 +2022,9 @@
             </div>
         </div>
 
-        <div class="controls">
-            <div class="language-select">
+        <div class="controls" id="languageSetupPanel">
+            <p class="language-setup-prompt" id="languageSetupPrompt">Select a language to get started</p>
+            <div class="language-select" id="languageSelectWrap">
                 <label for="languageSelect">
                     <i class="fas fa-globe"></i>
                     <span
@@ -1967,6 +2038,14 @@
                 </select>
             </div>
         </div>
+
+        <div class="language-loading-panel" id="languageLoadingPanel" hidden>
+            <div class="language-loading-spinner" id="languageLoadingSpinner" aria-hidden="true"></div>
+            <p class="language-loading-text" id="languageLoadingText" hidden></p>
+            <p class="language-loading-error" id="languageLoadingError" hidden role="alert"></p>
+        </div>
+
+        <div id="dashboardMainContent" class="dashboard-main-content" hidden>
         <div class="refresh-status">
             <span id="refreshTimestamp">Last refreshed: Not yet</span>
             <button class="refresh-button" id="refreshDataBtn" disabled>
@@ -2004,8 +2083,12 @@
                         <span class="stat-value stat-pending" id="statPending">0</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">No Audio</span>
+                        <span class="stat-label">Missing Audio</span>
                         <span class="stat-value stat-noaudio" id="statNoAudio">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Missing Translation</span>
+                        <span class="stat-value stat-missing-translation" id="statMissingTranslation">0</span>
                     </div>
                 </div>
             </div>
@@ -2038,7 +2121,28 @@
                     data-layout-editable="true"
                     data-layout-page="partner-audio-dashboard"
                     data-layout-region="tab-noaudio-label"
-                >No Audio Yet</span>
+                >Missing Audio</span>
+            </button>
+            <button class="tab-button" id="tabMissingTranslation" onclick="dashboard.switchTab('missingtranslation')">
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-missing-translation-label"
+                >Missing Translation</span>
+            </button>
+            <button
+                class="tab-button tab-button-superadmin"
+                id="tabHiddenStrings"
+                type="button"
+                onclick="dashboard.switchTab('hiddenstrings')"
+                style="display: none;"
+                disabled
+            >
+                <span
+                    data-layout-editable="true"
+                    data-layout-page="partner-audio-dashboard"
+                    data-layout-region="tab-hidden-strings-label"
+                >Hidden Strings</span>
             </button>
         </div>
         <div class="search-container">
@@ -2139,6 +2243,12 @@
             </div>
         </div>
         <div class="tab-content" id="tabContentNoAudio">
+            <div
+                class="tab-info-panel"
+                data-layout-editable="true"
+                data-layout-page="partner-audio-dashboard"
+                data-layout-region="missing-audio-info"
+            >No audio files were found for these strings. Audio may need to be generated by the DCC.</div>
             <div class="no-audio-meta" id="noAudioScanInfo"></div>
             <div class="items-list" id="itemsListNoAudio">
                 <div class="empty-state">
@@ -2148,11 +2258,54 @@
                         data-layout-page="partner-audio-dashboard"
                         data-layout-region="empty-noaudio-copy"
                     >
-                        <h3>No items without audio</h3>
-                        <p>Items without audio files will appear here</p>
+                        <h3>No missing audio items</h3>
+                        <p>Valid translations without audio files will appear here</p>
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="tab-content" id="tabContentMissingTranslation">
+            <div
+                class="tab-info-panel"
+                data-layout-editable="true"
+                data-layout-page="partner-audio-dashboard"
+                data-layout-region="missing-translation-info"
+            >These strings have <strong>NO APPROVED TRANSLATION</strong> in the selected language export.</div>
+            <div class="items-list" id="itemsListMissingTranslation">
+                <div class="empty-state">
+                    <i class="fas fa-language"></i>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-missing-translation-copy"
+                    >
+                        <h3>No missing translation items</h3>
+                        <p>Strings with NO APPROVED TRANSLATION will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-content" id="tabContentHiddenStrings">
+            <div
+                class="tab-info-panel"
+                data-layout-editable="true"
+                data-layout-page="partner-audio-dashboard"
+                data-layout-region="hidden-strings-info"
+            >English source keys that are missing from the selected language task export. Note: these strings may be deliberately hidden.</div>
+            <div class="items-list" id="itemsListHiddenStrings">
+                <div class="empty-state">
+                    <i class="fas fa-eye-slash"></i>
+                    <div
+                        data-layout-editable="true"
+                        data-layout-page="partner-audio-dashboard"
+                        data-layout-region="empty-hidden-strings-copy"
+                    >
+                        <h3>No hidden strings</h3>
+                        <p>All English source keys are present in this language export</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         </div>
     </div>
 
@@ -2175,7 +2328,7 @@
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Melody - Ecommerce Voice', voice_id: 'bN1bDXgDIGX5lw0rtY2B' },
                     'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
                     'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet', display_name: 'French (Canada)' },
-                    'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
+                    'Dutch': { lang_code: 'nl-NL', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' },
                     'Portuguese (Brazil)': { lang_code: 'pt-BR', service: 'ElevenLabs', voice: 'Liam', display_name: 'Portuguese (Brazil)' }
                 };
@@ -2193,8 +2346,8 @@
                 this.devApprovedItems = new Set(); // Track items that are actually in dev bucket
                 this.stagedApprovedByLang = new Map(); // langCode -> Map(taskName -> Set(baseId))
                 this.unapprovedItems = new Set(); // Track explicitly unapproved items (to prevent re-adding)
-                this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0 };
-                this.currentTab = 'pending'; // Current tab: 'pending' or 'approved'
+                this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0, missingTranslation: 0 };
+                this.currentTab = 'pending';
                 
                 this.data = [];
                 this.currentLanguage = null;
@@ -2216,7 +2369,8 @@
                 this.noAudioScanSummary = null;
                 this.audioBehaviorByItem = new Map();
                 this.audioBehaviorSessionId = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-                this.translationCsvHeaders = [];
+                this.loadedLangCode = null;
+                this.languageBundleMeta = null;
                 this.clientVersionCurrent = '';
                 this.clientVersionPollTimer = null;
                 this.clientVersionReloadTriggered = false;
@@ -2249,8 +2403,6 @@
                 this.commonAudioTagsStorageKeyPrefix = 'partnerAudioCommonTags';
                 this.contextMenuTargetInput = null;
                 this.enhancedTagContextMenuEl = null;
-                this.crowdinApprovalByLang = new Map();
-                this.crowdinApprovalRequestToken = 0;
                 this.approvalDetailsByLang = new Map();
                 this._hasShownNoSoundHint = false;
                 this._activePlaybackProbe = null;
@@ -2909,6 +3061,10 @@
                     container = document.getElementById('itemsListApproved');
                 } else if (this.currentTab === 'noaudio') {
                     container = document.getElementById('itemsListNoAudio');
+                } else if (this.currentTab === 'missingtranslation') {
+                    container = null;
+                } else if (this.currentTab === 'hiddenstrings') {
+                    container = null;
                 }
                 if (!container) return [];
                 const inputs = Array.from(container.querySelectorAll('.audio-enhanced-input'));
@@ -3813,17 +3969,14 @@
                 const normalizedRequestedCode = this.normalizeLangCode(requested).toLowerCase();
                 if (/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(normalizedRequestedCode)) {
                     const byRequestedCode = Object.keys(this.languages).find((name) => {
-                        const cfgCode = this.normalizeLangCode(this.languages[name]?.lang_code || '').toLowerCase();
-                        return cfgCode === normalizedRequestedCode;
+                        return this.langCodesMatchItembank(this.languages[name]?.lang_code || '', requested);
                     });
                     if (byRequestedCode) return byRequestedCode;
                 }
                 const desiredCode = this.legacyLanguageCodeByName[requested];
                 if (desiredCode) {
-                    const normalizedDesired = this.normalizeLangCode(desiredCode).toLowerCase();
                     const byCode = Object.keys(this.languages).find((name) => {
-                        const cfgCode = this.normalizeLangCode(this.languages[name]?.lang_code || '').toLowerCase();
-                        return cfgCode === normalizedDesired;
+                        return this.langCodesMatchItembank(this.languages[name]?.lang_code || '', desiredCode);
                     });
                     if (byCode) return byCode;
                 }
@@ -3855,6 +4008,92 @@
                 return this.normalizeLanguageLabel(key, this.languages[key] || {});
             }
 
+            isSingleLanguageRestrictedUser() {
+                const resolved = this.resolveLanguageKey(this.canonicalizeAllowedLanguageInput(this.allowedLanguage));
+                return Boolean(resolved);
+            }
+
+            setLanguageShellState(state, languageName = '', errorMessage = '') {
+                const prompt = document.getElementById('languageSetupPrompt');
+                const selectWrap = document.getElementById('languageSelectWrap');
+                const loaderPanel = document.getElementById('languageLoadingPanel');
+                const spinner = document.getElementById('languageLoadingSpinner');
+                const loaderText = document.getElementById('languageLoadingText');
+                const loaderError = document.getElementById('languageLoadingError');
+                const main = document.getElementById('dashboardMainContent');
+                const select = document.getElementById('languageSelect');
+                const single = this.isSingleLanguageRestrictedUser();
+                const displayName = languageName ? this.getLanguageDisplayName(languageName) : '';
+
+                if (loaderError) {
+                    loaderError.textContent = errorMessage ? String(errorMessage) : '';
+                    loaderError.hidden = state !== 'error' || !errorMessage;
+                }
+                if (spinner) {
+                    spinner.hidden = state === 'error';
+                }
+
+                if (state === 'awaiting-selection') {
+                    if (prompt) {
+                        prompt.hidden = false;
+                        prompt.textContent = 'Select a language to get started';
+                    }
+                    if (selectWrap) selectWrap.hidden = false;
+                    if (select) select.disabled = false;
+                    if (loaderPanel) loaderPanel.hidden = true;
+                    if (loaderText) loaderText.hidden = true;
+                    if (main) main.hidden = true;
+                    return;
+                }
+
+                if (state === 'loading') {
+                    if (prompt) {
+                        prompt.hidden = false;
+                        prompt.textContent = single
+                            ? `Loading ${displayName} audio...`
+                            : 'Select a language to get started';
+                    }
+                    if (selectWrap) selectWrap.hidden = single;
+                    if (select) select.disabled = true;
+                    if (loaderPanel) loaderPanel.hidden = false;
+                    if (loaderText) {
+                        if (single) {
+                            loaderText.hidden = true;
+                            loaderText.textContent = '';
+                        } else {
+                            loaderText.hidden = false;
+                            loaderText.textContent = displayName ? `Loading ${displayName}...` : 'Loading...';
+                        }
+                    }
+                    if (main) main.hidden = true;
+                    return;
+                }
+
+                if (state === 'ready') {
+                    if (prompt) prompt.hidden = single;
+                    if (selectWrap) selectWrap.hidden = single;
+                    if (select && !single) select.disabled = false;
+                    if (loaderPanel) loaderPanel.hidden = true;
+                    if (loaderText) loaderText.hidden = true;
+                    if (main) main.hidden = false;
+                    return;
+                }
+
+                if (state === 'error') {
+                    if (prompt) {
+                        prompt.hidden = false;
+                        prompt.textContent = single && displayName
+                            ? `Could not load ${displayName} audio`
+                            : 'Select a language to get started';
+                    }
+                    if (selectWrap) selectWrap.hidden = single;
+                    if (select) select.disabled = false;
+                    if (loaderPanel) loaderPanel.hidden = false;
+                    if (loaderText) loaderText.hidden = true;
+                    if (main) main.hidden = true;
+                }
+            }
+
             normalizeLanguageLabel(fallbackName, cfg = {}) {
                 const langCode = String(cfg.lang_code || '').trim().toLowerCase();
                 const preferred = String(cfg.display_name || fallbackName || '').trim();
@@ -3879,7 +4118,27 @@
             }
 
             normalizeLangCode(langCode) {
+                const LC = window.LevanteLangCodes;
+                if (LC && typeof LC.normalizeLangCode === 'function') {
+                    return LC.normalizeLangCode(langCode);
+                }
                 return String(langCode || '').trim().replace(/_/g, '-');
+            }
+
+            resolveLangCode(langCode, options) {
+                const LC = window.LevanteLangCodes;
+                if (LC && typeof LC.resolveLangCode === 'function') {
+                    return LC.resolveLangCode(langCode, options);
+                }
+                return this.normalizeLangCode(langCode);
+            }
+
+            langCodesMatchItembank(left, right) {
+                const LC = window.LevanteLangCodes;
+                if (LC && typeof LC.langCodesMatch === 'function') {
+                    return LC.langCodesMatch(left, right, { context: 'itembank' });
+                }
+                return this.normalizeLangCode(left).toLowerCase() === this.normalizeLangCode(right).toLowerCase();
             }
 
             isLikelyLanguageCodeHeader(headerName) {
@@ -3924,70 +4183,227 @@
                 return languageName;
             }
 
-            mergeDiscoveredLanguagesFromCsvHeaders() {
-                if (!Array.isArray(this.translationCsvHeaders) || this.translationCsvHeaders.length === 0) return;
-                const existingByCode = new Set(
-                    Object.values(this.languages || {}).map((cfg) => this.normalizeLangCode(cfg?.lang_code).toLowerCase()).filter(Boolean)
-                );
+            isValidTranslationItem(item) {
+                if (!item) return false;
+                return item.translationStatus === 'ok'
+                    && String(item.translationText || '').trim() !== '';
+            }
 
-                const discovered = {};
-                this.translationCsvHeaders.forEach((header) => {
-                    const code = this.normalizeLangCode(header);
-                    const codeKey = code.toLowerCase();
-                    if (!this.isLikelyLanguageCodeHeader(code)) return;
-                    if (!codeKey || existingByCode.has(codeKey)) return;
-                    const displayName = this.getLanguageDisplayNameFromCode(code) || code;
-                    let languageKey = displayName;
-                    if (this.languages[languageKey] || discovered[languageKey]) {
-                        languageKey = `${displayName} [${code}]`;
+            isNoApprovedTranslationItem(item) {
+                if (!item) return false;
+                return item.translationStatus === 'no_approved_translation';
+            }
+
+            isHiddenStringItem(item) {
+                if (!item) return false;
+                return item.translationStatus === 'missing_key';
+            }
+
+            getItemsWithTranslationStatus(items, status) {
+                const wanted = String(status || '').trim();
+                if (!wanted) return [];
+                return (Array.isArray(items) ? items : []).filter((item) => item?.translationStatus === wanted);
+            }
+
+            getOkTranslationItems() {
+                return (Array.isArray(this.data) ? this.data : []).filter((item) => this.isValidTranslationItem(item));
+            }
+
+            getMissingTranslationItems() {
+                return (Array.isArray(this.data) ? this.data : []).filter((item) => this.isNoApprovedTranslationItem(item));
+            }
+
+            getHiddenStringItems() {
+                return (Array.isArray(this.data) ? this.data : []).filter((item) => this.isHiddenStringItem(item));
+            }
+
+            isSuperAdminUser() {
+                return this.authMethod === 'superadmin';
+            }
+
+            updateHiddenStringsTabState() {
+                const tabBtn = document.getElementById('tabHiddenStrings');
+                if (!tabBtn) return;
+
+                const isSuper = this.isSuperAdminUser();
+                tabBtn.style.display = isSuper ? '' : 'none';
+
+                if (!isSuper) {
+                    tabBtn.disabled = true;
+                    tabBtn.classList.remove('tab-button-inactive');
+                    if (this.currentTab === 'hiddenstrings') {
+                        this.currentTab = 'pending';
+                        this.setActiveTabPanels();
                     }
-                    discovered[languageKey] = {
-                        lang_code: code,
-                        service: 'ElevenLabs',
-                        voice: '',
-                        display_name: displayName,
-                        auto_discovered: true
-                    };
-                    existingByCode.add(codeKey);
-                });
+                    return;
+                }
 
-                if (Object.keys(discovered).length > 0) {
-                    this.languages = this.normalizeLanguageEntries({
-                        ...this.languages,
-                        ...discovered
-                    });
+                const count = this.currentLangCode
+                    ? this.applyTaskFilterToItems(this.getHiddenStringItems()).length
+                    : 0;
+                tabBtn.disabled = count === 0;
+                tabBtn.classList.toggle('tab-button-inactive', count === 0);
+                tabBtn.setAttribute('aria-disabled', count === 0 ? 'true' : 'false');
+
+                if (count === 0 && this.currentTab === 'hiddenstrings') {
+                    this.currentTab = 'pending';
+                    this.setActiveTabPanels();
                 }
             }
 
-            async loadLanguagesFromConfig() {
-                try {
-                    const response = await fetch('/api/language-config', { cache: 'no-store' });
-                    if (!response.ok) {
-                        console.warn(`Language config fetch failed: HTTP ${response.status}; using fallback language list.`);
-                        return;
+            setActiveTabPanels() {
+                const tab = this.currentTab;
+                document.getElementById('tabPending')?.classList.toggle('active', tab === 'pending');
+                document.getElementById('tabApproved')?.classList.toggle('active', tab === 'approved');
+                document.getElementById('tabNoAudio')?.classList.toggle('active', tab === 'noaudio');
+                document.getElementById('tabMissingTranslation')?.classList.toggle('active', tab === 'missingtranslation');
+                document.getElementById('tabHiddenStrings')?.classList.toggle('active', tab === 'hiddenstrings');
+                document.getElementById('tabContentPending')?.classList.toggle('active', tab === 'pending');
+                document.getElementById('tabContentApproved')?.classList.toggle('active', tab === 'approved');
+                document.getElementById('tabContentNoAudio')?.classList.toggle('active', tab === 'noaudio');
+                document.getElementById('tabContentMissingTranslation')?.classList.toggle('active', tab === 'missingtranslation');
+                document.getElementById('tabContentHiddenStrings')?.classList.toggle('active', tab === 'hiddenstrings');
+            }
+
+            getSourceForItem(item) {
+                if (!item) return '';
+                return String(item.sourceText || '').trim();
+            }
+
+            getTextForItem(item, langCode) {
+                void langCode;
+                if (!item) return '';
+                if (item.translationStatus !== 'ok') return '';
+                return String(item.translationText || '').trim();
+            }
+
+            async loadLanguageData(langCode) {
+                const normalized = this.resolveLangCode(String(langCode || '').trim());
+                if (!normalized) {
+                    throw new Error('Missing language code');
+                }
+
+                const url = `/api/partner-audio-translations?lang=${encodeURIComponent(normalized)}&ts=${Date.now()}`;
+                const response = await fetch(url, { cache: 'no-store' });
+                if (!response.ok) {
+                    let message = `HTTP ${response.status}`;
+                    try {
+                        const err = await response.json();
+                        if (err?.error === 'lang_not_audio_capable') {
+                            message = 'Language is not configured for audio approval (lang_code and voice or voice_id required in language_config.json)';
+                        } else if (err?.error === 'gcs_unavailable') {
+                            message = 'Translation storage unavailable (check GCP credentials)';
+                        } else if (err?.error) {
+                            message = String(err.error);
+                        }
+                    } catch (_) {}
+                    throw new Error(message);
+                }
+
+                const payload = await response.json();
+                this.data = Array.isArray(payload?.items) ? payload.items : [];
+                this.loadedLangCode = normalized;
+                this.languageBundleMeta = {
+                    lang: payload?.lang || normalized,
+                    tasks: Array.isArray(payload?.tasks) ? payload.tasks : [],
+                    counts: payload?.counts && typeof payload.counts === 'object' ? payload.counts : {},
+                };
+                console.log(`Loaded ${this.data.length} items for ${normalized} from JSON bundle`, this.languageBundleMeta.counts);
+                return payload;
+            }
+
+            isAudioCapableLanguageEntry(cfg) {
+                const hasLang = Boolean(String(cfg?.lang_code || '').trim());
+                const hasVoice = Boolean(String(cfg?.voice || '').trim());
+                const hasVoiceId = Boolean(String(cfg?.voice_id || '').trim());
+                return hasLang && (hasVoice || hasVoiceId);
+            }
+
+            mergeLanguageConfigWithDefaults(remoteLanguages, defaultLanguages) {
+                const merged = this.normalizeLanguageEntries({
+                    ...JSON.parse(JSON.stringify(defaultLanguages || {})),
+                    ...JSON.parse(JSON.stringify(remoteLanguages || {})),
+                });
+                const defaultEntries = Object.values(defaultLanguages || {});
+                Object.keys(merged).forEach((name) => {
+                    const cfg = merged[name];
+                    if (String(cfg?.voice_id || '').trim()) return;
+                    const aliases = new Set(
+                        this.getAudioLangAliases(cfg?.lang_code || '')
+                            .map((code) => this.normalizeLangCode(code).toLowerCase())
+                            .filter(Boolean)
+                    );
+                    const fallback = defaultEntries.find((entry) => {
+                        const entryAliases = this.getAudioLangAliases(entry?.lang_code || '')
+                            .map((code) => this.normalizeLangCode(code).toLowerCase())
+                            .filter(Boolean);
+                        return entryAliases.some((code) => aliases.has(code));
+                    });
+                    if (fallback?.voice_id) {
+                        merged[name] = { ...cfg, voice_id: fallback.voice_id };
                     }
-                    const data = await response.json();
-                    const remoteLanguages = data && data.languages && typeof data.languages === 'object' ? data.languages : null;
-                    if (remoteLanguages && Object.keys(remoteLanguages).length > 0) {
-                        const normalizedRemote = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(remoteLanguages)));
-                        // Keep fallback/default language definitions available so CSV-active languages
-                        // (e.g., en-US/de-DE) still appear even when remote config is partial.
-                        this.languages = this.normalizeLanguageEntries({
-                            ...JSON.parse(JSON.stringify(this.defaultLanguages)),
-                            ...normalizedRemote
-                        });
-                        this.mergeDiscoveredLanguagesFromCsvHeaders();
-                        console.log(`Loaded ${Object.keys(normalizedRemote).length} remote languages (${Object.keys(this.languages).length} total with defaults) from /api/language-config`);
+                });
+                return merged;
+            }
+
+            getSelectableLanguageKeys() {
+                const keys = Object.keys(this.languages || {});
+                const audioCapable = keys.filter((key) => this.isAudioCapableLanguageEntry(this.languages[key]));
+                if (audioCapable.length > 0) return audioCapable;
+                const withLangCode = keys.filter((key) => String(this.languages[key]?.lang_code || '').trim());
+                return withLangCode.length > 0 ? withLangCode : keys;
+            }
+
+            filterAudioCapableLanguages(languagesObject) {
+                const input = languagesObject && typeof languagesObject === 'object' ? languagesObject : {};
+                const filtered = {};
+                Object.entries(input).forEach(([name, cfg]) => {
+                    if (this.isAudioCapableLanguageEntry(cfg)) filtered[name] = cfg;
+                });
+                return filtered;
+            }
+
+            async loadLanguagesFromConfig() {
+                const publicConfigUrl = 'https://storage.googleapis.com/levante-assets-dev/language_config.json';
+
+                const applyRemoteLanguages = (remoteLanguages) => {
+                    if (!remoteLanguages || typeof remoteLanguages !== 'object') return false;
+                    if (Object.keys(remoteLanguages).length === 0) return false;
+                    this.languages = this.mergeLanguageConfigWithDefaults(remoteLanguages, this.defaultLanguages);
+                    console.log(
+                        `Loaded ${Object.keys(remoteLanguages).length} remote languages `
+                        + `(${Object.keys(this.languages).length} total with defaults)`
+                    );
+                    return true;
+                };
+
+                try {
+                    const response = await fetch('/api/partner-audio-language-config', { cache: 'no-store' });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (applyRemoteLanguages(data?.languages)) return;
                     } else {
-                        console.warn('Remote language config empty; using fallback language list.');
-                        this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
-                        this.mergeDiscoveredLanguagesFromCsvHeaders();
+                        console.warn(`Partner audio language config fetch failed: HTTP ${response.status}`);
                     }
                 } catch (error) {
-                    console.warn('Failed to load remote language config; using fallback language list:', error);
-                    this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
-                    this.mergeDiscoveredLanguagesFromCsvHeaders();
+                    console.warn('Failed to load partner audio language config:', error);
                 }
+
+                try {
+                    const response = await fetch(publicConfigUrl, { cache: 'no-store' });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (applyRemoteLanguages(data?.languages)) {
+                            console.log('Loaded languages from public language_config.json fallback');
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Failed to load public language_config.json fallback:', error);
+                }
+
+                console.warn('Remote language config unavailable; using fallback language list.');
+                this.languages = this.normalizeLanguageEntries(JSON.parse(JSON.stringify(this.defaultLanguages)));
             }
             
             switchAuthTab(tab) {
@@ -4035,12 +4451,10 @@
                         });
                     }
 
-                    if (forceReloadData || !Array.isArray(this.data) || this.data.length === 0) {
-                        await this.loadData();
-                    }
                     await this.loadLanguagesFromConfig();
 
                     if (forceReloadData && this.currentLangCode) {
+                        await this.loadLanguageData(this.currentLangCode);
                         await this.loadApprovalStatus();
                     }
 
@@ -4066,12 +4480,14 @@
                         (refreshCurrentLanguage && this.currentLanguage);
 
                     if (shouldRefreshLanguage && this.currentLanguage) {
+                        this.setLanguageShellState('loading', this.currentLanguage);
                         await this.selectLanguage(this.currentLanguage);
                     } else {
-                        this.setStatus('Ready - Select a language to begin', 'success');
+                        this.setLanguageShellState('awaiting-selection');
                     }
 
                     this.updateRefreshIndicator();
+                    this.updateHiddenStringsTabState();
                     console.log('initDashboard() completed', {
                         authMethod: this.authMethod,
                         user: this.currentUserEmail,
@@ -4079,6 +4495,11 @@
                     });
                 } catch (error) {
                     console.error('initDashboard() error:', error);
+                    this.setLanguageShellState(
+                        'error',
+                        this.currentLanguage || '',
+                        error.message || error
+                    );
                     this.setStatus('Error initializing dashboard: ' + (error.message || error), 'error');
                 }
             }
@@ -4167,7 +4588,9 @@
                     this.setStatus(`Refreshing ${this.currentLanguage}...`, 'loading');
                     this.audioListCache.clear();
                     this.audioPathCache.clear();
-                    await this.loadData();
+                    if (this.currentLangCode) {
+                        await this.loadLanguageData(this.currentLangCode);
+                    }
                     await this.selectLanguage(this.currentLanguage);
                 } catch (error) {
                     console.error('Manual refresh failed:', error);
@@ -4282,29 +4705,26 @@
                 
                 // Populate languages (filtered if restricted)
                 this.populateLanguageSelect();
-                
-                this.setStatus('Loading translation data...', 'loading');
-                
-                try {
-                    if (!Array.isArray(this.data) || this.data.length === 0) {
-                        await this.loadData();
-                        // Rebuild language options using actual translation availability in the loaded CSV.
-                        this.populateLanguageSelect();
+
+                this.loadCrowdinScreenshotArtifact().then((loaded) => {
+                    if (loaded && this.currentLanguage && this.currentLangCode) {
+                        this.refreshItemsForCurrentTab();
                     }
-                    this.loadCrowdinScreenshotArtifact().then((loaded) => {
-                        if (loaded && this.currentLanguage && this.currentLangCode) {
-                            this.refreshItemsForCurrentTab();
-                        }
-                    }).catch((error) => {
-                        console.warn('Screenshot artifact load warning:', error?.message || error);
-                    });
-                    if (this.currentLangCode) {
-                        await this.loadApprovalStatus();
+                }).catch((error) => {
+                    console.warn('Screenshot artifact load warning:', error?.message || error);
+                });
+
+                if (this.currentLanguage && this.currentLangCode) {
+                    this.setLanguageShellState('loading', this.currentLanguage);
+                    try {
+                        await this.selectLanguage(this.currentLanguage);
+                    } catch (error) {
+                        console.error('Dashboard initialization error:', error);
+                        this.setLanguageShellState('error', this.currentLanguage, error.message || error);
+                        this.setStatus(`Error loading translations: ${error.message}`, 'error');
                     }
-                    this.setStatus('Ready - Select a language to begin', 'success');
-                } catch (error) {
-                    console.error('Dashboard initialization error:', error);
-                    this.setStatus('Error loading translation data: ' + error.message + '. You can still select a language.', 'error');
+                } else {
+                    this.setLanguageShellState('awaiting-selection');
                 }
             }
 
@@ -5453,16 +5873,13 @@
             }
 
             async updateApprovalStats() {
-                // Calculate stats from all items with translations and audio
                 if (!this.currentLangCode) return;
-                
-                // Get all items with translations
-                const withTranslations = this.data.filter(item => {
-                    const text = this.getTextForItem(item, this.currentLangCode);
-                    return text && text.trim();
-                });
-                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                
+
+                const okItems = this.getOkTranslationItems();
+                const missingTranslationItems = this.getMissingTranslationItems();
+                const taskFilteredOk = this.applyTaskFilterToItems(okItems);
+                const taskFilteredMissingTranslation = this.applyTaskFilterToItems(missingTranslationItems);
+
                 const [draftInfo, devInfo] = await Promise.all([
                     this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode),
                     this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
@@ -5471,7 +5888,7 @@
 
                 const taskAudioIds = new Set();
                 const taskApprovedAudioIds = new Set();
-                taskFilteredTranslations.forEach(item => {
+                taskFilteredOk.forEach(item => {
                     const baseId = this.extractBaseId(item.item_id || '');
                     if (!baseId || !combinedIds.has(baseId)) return;
                     taskAudioIds.add(baseId);
@@ -5479,14 +5896,15 @@
                         taskApprovedAudioIds.add(baseId);
                     }
                 });
-                
-                const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
-                const total = taskFilteredTranslations.length;
+
+                const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredOk);
+                const total = taskFilteredOk.length;
                 const noAudio = itemsWithoutAudio.length;
+                const missingTranslation = taskFilteredMissingTranslation.length;
                 let approved = 0;
                 let pending = 0;
-                
-                taskFilteredTranslations.forEach(item => {
+
+                taskFilteredOk.forEach(item => {
                     const baseId = this.extractBaseId(item.item_id || '');
                     if (!baseId || !combinedIds.has(baseId)) {
                         return;
@@ -5497,31 +5915,29 @@
                         pending++;
                     }
                 });
-                // Keep standalone total aligned with the visible approved metric.
-                // This prevents confusing mismatches between "Approved" and "Total Approved".
                 const totalApproved = approved;
-                
+
                 this.approvalStats.total = total;
                 this.approvalStats.totalApproved = totalApproved;
                 this.approvalStats.approved = approved;
                 this.approvalStats.pending = pending;
                 this.approvalStats.noAudio = noAudio;
-                
-                // Update UI elements
+                this.approvalStats.missingTranslation = missingTranslation;
+
                 const statTotal = document.getElementById('statTotal');
                 const statTotalApproved = document.getElementById('statTotalApproved');
                 const statApproved = document.getElementById('statApproved');
                 const statPending = document.getElementById('statPending');
                 const statNoAudio = document.getElementById('statNoAudio');
-                
+                const statMissingTranslation = document.getElementById('statMissingTranslation');
+
                 if (statTotal) statTotal.textContent = total;
                 if (statTotalApproved) statTotalApproved.textContent = totalApproved;
                 if (statApproved) statApproved.textContent = approved;
                 if (statPending) statPending.textContent = pending;
                 if (statNoAudio) statNoAudio.textContent = noAudio;
-                
-                
-                // Show stats container
+                if (statMissingTranslation) statMissingTranslation.textContent = missingTranslation;
+
                 const statsEl = document.getElementById('approvalStats');
                 if (statsEl) {
                     statsEl.style.display = 'flex';
@@ -5530,149 +5946,6 @@
                     totalAudio: taskAudioIds.size,
                     approvedAudio: taskApprovedAudioIds.size
                 });
-            }
-
-            async loadData() {
-                try {
-                    const cacheBust = `ts=${Date.now()}`;
-                    const apiSource = '/api/partner-audio-translations';
-                    const csvSources = [apiSource];
-
-                    let csvText = '';
-                    let loadedFrom = '';
-                    const failures = [];
-                    for (const source of csvSources) {
-                        try {
-                            const separator = source.includes('?') ? '&' : '?';
-                            const url = `${source}${separator}${cacheBust}`;
-                            const csvResponse = await fetch(url, { cache: 'no-store' });
-                            if (!csvResponse.ok) {
-                                failures.push(`${source} -> HTTP ${csvResponse.status}`);
-                                continue;
-                            }
-                            const candidateText = await csvResponse.text();
-                            if (!candidateText || !candidateText.trim()) {
-                                failures.push(`${source} -> empty body`);
-                                continue;
-                            }
-                            csvText = candidateText;
-                            loadedFrom = source;
-                            break;
-                        } catch (sourceError) {
-                            failures.push(`${source} -> ${sourceError?.message || sourceError}`);
-                        }
-                    }
-
-                    if (!csvText || csvText.trim().length === 0) {
-                        throw new Error(`Failed to load translation CSV from ${apiSource}. Tried: ${failures.join(' | ')}. If this endpoint is 404, deploy the latest dashboard API changes.`);
-                    }
-                    const allItems = this.parseCSV(csvText);
-                    
-                    // Store all items - filtering by audio will happen when language is selected
-                    this.data = allItems;
-                    
-                    console.log(`Loaded ${this.data.length} items from CSV source: ${loadedFrom || 'unknown'}`);
-                } catch (error) {
-                    console.error('Failed to load translation data:', error);
-                    throw error;
-                }
-            }
-
-            parseCSV(csvText) {
-                if (!csvText || !String(csvText).trim()) return [];
-
-                // Parse full CSV content so quoted newlines do not break row alignment.
-                const rows = [];
-                let row = [];
-                let current = '';
-                let inQuotes = false;
-
-                for (let i = 0; i < csvText.length; i++) {
-                    const char = csvText[i];
-                    const nextChar = i + 1 < csvText.length ? csvText[i + 1] : null;
-
-                    if (char === '"') {
-                        if (inQuotes && nextChar === '"') {
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = !inQuotes;
-                        }
-                    } else if (char === ',' && !inQuotes) {
-                        row.push(current);
-                        current = '';
-                    } else if ((char === '\n' || char === '\r') && !inQuotes) {
-                        if (char === '\r' && nextChar === '\n') {
-                            i++;
-                        }
-                        row.push(current);
-                        current = '';
-                        if (row.some(cell => String(cell || '').trim() !== '')) {
-                            rows.push(row.map(cell => String(cell || '').trim()));
-                        }
-                        row = [];
-                    } else {
-                        current += char;
-                    }
-                }
-
-                if (current.length > 0 || row.length > 0) {
-                    row.push(current);
-                    if (row.some(cell => String(cell || '').trim() !== '')) {
-                        rows.push(row.map(cell => String(cell || '').trim()));
-                    }
-                }
-
-                if (rows.length === 0) return [];
-
-                const headers = rows[0].map(h => String(h || '').trim().replace(/^\uFEFF/, '').replace(/^"|"$/g, ''));
-                this.translationCsvHeaders = headers.slice();
-                const data = [];
-
-                for (let i = 1; i < rows.length; i++) {
-                    const values = rows[i];
-                    if (!values || values.length === 0) continue;
-
-                    const item = {};
-                    headers.forEach((header, index) => {
-                        item[header] = values[index] !== undefined ? values[index] : '';
-                    });
-
-                    const itemId = item.identifier || item.item_id || item.id || item.ID || item.Item_ID || null;
-                    if (itemId) {
-                        item.item_id = itemId;
-                        data.push(item);
-                    }
-                }
-                
-                return data;
-            }
-
-            parseCSVLine(line) {
-                const values = [];
-                let current = '';
-                let inQuotes = false;
-                
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    const nextChar = i + 1 < line.length ? line[i + 1] : null;
-                    
-                    if (char === '"') {
-                        if (inQuotes && nextChar === '"') {
-                            current += '"';
-                            i++;
-                        } else {
-                            inQuotes = !inQuotes;
-                        }
-                    } else if (char === ',' && !inQuotes) {
-                        values.push(current.trim());
-                        current = '';
-                    } else {
-                        current += char;
-                    }
-                }
-                values.push(current.trim());
-                return values;
             }
 
             populateLanguageSelect() {
@@ -5709,12 +5982,14 @@
                     'de-CH': 'de-CH',
                     'fr-CA': 'fr-CA',
                     'nl': 'nl',
+                    'eo': 'eo',
+                    'eo-UY': 'eo',
                     'en': 'en',
                     'en-US': 'en'
                 };
                 
                 // Populate languages (filtered if restricted)
-                let languageKeys = Object.keys(this.languages);
+                let languageKeys = this.getSelectableLanguageKeys();
                 
                 // Check if user is a Translator (not Owner/Manager) with language restrictions
                 let accessibleLanguages = null;
@@ -5742,16 +6017,10 @@
                     select.disabled = false;
                 }
 
-                // Hide languages that do not currently have any translation text in the loaded CSV.
-                if (Array.isArray(this.data) && this.data.length > 0) {
-                    const languagesWithTranslations = this.getLanguagesWithActiveTranslations(languageKeys);
-                    languageKeys = languageKeys.filter((lang) => languagesWithTranslations.has(lang));
-                }
-                
                 console.log('Populating languages:', languageKeys);
-                
+
                 if (languageKeys.length === 0) {
-                    console.warn('No languages with active translations found in current CSV.');
+                    console.warn('No audio-capable languages available in language config.');
                     return;
                 }
                 
@@ -5792,128 +6061,15 @@
                 select.onchange = (e) => {
                     this.selectLanguage(e.target.value);
                 };
-
-                // Auto-select if restricted (but not for superadmins/override emails)
-                if (resolvedAllowedLanguage && select.disabled) {
-                    this.selectLanguage(resolvedAllowedLanguage);
-                }
                 
                 console.log(`Successfully populated ${languageKeys.length} languages in dropdown`);
-            }
-
-            getLanguagesWithActiveTranslations(languageKeys) {
-                const result = new Set();
-                if (!Array.isArray(languageKeys) || languageKeys.length === 0) return result;
-                if (!Array.isArray(this.data) || this.data.length === 0) return result;
-
-                const remaining = new Set(languageKeys);
-                for (let i = 0; i < this.data.length; i++) {
-                    if (remaining.size === 0) break;
-                    const row = this.data[i];
-                    for (const languageName of Array.from(remaining)) {
-                        const langCode = String(this.languages?.[languageName]?.lang_code || '').trim();
-                        if (!langCode) {
-                            remaining.delete(languageName);
-                            continue;
-                        }
-                        const text = String(this.getExactTranslationForLanguage(row, langCode) || '').trim();
-                        if (text) {
-                            result.add(languageName);
-                            remaining.delete(languageName);
-                        }
-                    }
-                }
-
-                return result;
-            }
-
-            getTranslationColumnCandidates(langCode) {
-                const candidates = new Set();
-                const add = (value) => {
-                    const text = String(value || '').trim();
-                    if (!text) return;
-                    candidates.add(text);
-                    candidates.add(text.toLowerCase());
-                };
-
-                const aliases = this.getAudioLangAliases(langCode);
-                aliases.forEach((alias) => {
-                    const aliasText = String(alias || '').trim();
-                    if (!aliasText) return;
-                    add(aliasText);
-                    add(aliasText.replace(/-/g, '_'));
-                    add(aliasText.replace(/_/g, '-'));
-                });
-
-                const normalizedAliases = new Set(
-                    aliases.map((code) => this.normalizeLangCode(code).toLowerCase()).filter(Boolean)
-                );
-
-                // Include configured language display names that map to the same language code.
-                Object.entries(this.languages || {}).forEach(([name, cfg]) => {
-                    const cfgCode = this.normalizeLangCode(cfg?.lang_code).toLowerCase();
-                    if (!cfgCode) return;
-                    const cfgAliases = this.getAudioLangAliases(cfgCode)
-                        .map((code) => this.normalizeLangCode(code).toLowerCase())
-                        .filter(Boolean);
-                    const overlaps = cfgAliases.some((code) => normalizedAliases.has(code));
-                    if (!overlaps) return;
-                    add(name);
-                    add(cfg?.display_name);
-                });
-
-                // Legacy names can appear as CSV headers in some exports.
-                Object.entries(this.legacyLanguageCodeByName || {}).forEach(([legacyName, legacyCode]) => {
-                    const normalizedLegacy = this.normalizeLangCode(legacyCode).toLowerCase();
-                    if (!normalizedLegacy) return;
-                    if (normalizedAliases.has(normalizedLegacy)) {
-                        add(legacyName);
-                    }
-                });
-
-                // Portuguese exports are not always consistent; include common readable headers.
-                if (normalizedAliases.has('pt') || normalizedAliases.has('pt-br') || normalizedAliases.has('pt-pt')) {
-                    [
-                        'Portuguese',
-                        'Portuguese (Brazil)',
-                        'Portuguese (Portugal)',
-                        'Portuguese_Brazil',
-                        'Portuguese_Brasil',
-                        'Portuguese (Brasil)',
-                        'Portugues',
-                        'Português'
-                    ].forEach(add);
-                }
-
-                return Array.from(candidates).filter(Boolean);
-            }
-
-            getTranslationFromCandidates(item, candidateColumns) {
-                if (!item || !Array.isArray(candidateColumns) || candidateColumns.length === 0) return '';
-                const keys = Object.keys(item || {});
-                for (let i = 0; i < candidateColumns.length; i++) {
-                    const target = String(candidateColumns[i] || '').trim().toLowerCase();
-                    if (!target) continue;
-                    const exactKey = keys.find((key) => String(key || '').trim().toLowerCase() === target);
-                    if (!exactKey) continue;
-                    const value = item[exactKey];
-                    if (value && String(value).trim()) {
-                        return String(value).trim();
-                    }
-                }
-                return '';
-            }
-
-            getExactTranslationForLanguage(item, langCode) {
-                if (!item || !langCode) return '';
-                const candidates = this.getTranslationColumnCandidates(langCode);
-                return this.getTranslationFromCandidates(item, candidates);
             }
 
             async selectLanguage(language) {
                 if (!language || !this.languages[language]) {
                     this.currentLanguage = null;
                     this.currentLangCode = null;
+                    this.setLanguageShellState('awaiting-selection');
                     this.loadCommonAudioTags();
                     this.renderCommonAudioTags();
                     await this.renderItems([]);
@@ -5927,9 +6083,12 @@
                 // Check permissions for local auth modes (superadmin/firebase/approver-config).
                 const hasAccess = await this.checkLanguageAccess(langCode);
                 if (!hasAccess) {
+                    this.setLanguageShellState('awaiting-selection');
                     this.setStatus(`Access denied: You do not have permission for ${language}.`, 'error');
                     return;
                 }
+
+                this.setLanguageShellState('loading', language);
                 
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
@@ -5945,79 +6104,65 @@
                 this.unapprovedItems.clear();
                 
                 this.setStatus(`Loading items for ${language}...`, 'loading');
-                
+
+                try {
+                    await this.loadLanguageData(langCode);
+                } catch (error) {
+                    console.error('Failed to load language bundle:', error);
+                    this.setLanguageShellState('error', language, error.message || error);
+                    this.setStatus(`Failed to load translations: ${error.message || error}`, 'error');
+                    await this.renderItems([]);
+                    return;
+                }
+
                 // Load approval status first (populates approvedItems set)
                 await this.loadApprovalStatus();
-                
-                // First filter by translation availability
-                const withTranslations = this.data.filter(item => {
-                    try {
-                        const text = this.getTextForItem(item, this.currentLangCode);
-                        const hasText = text && text.trim() && text.trim() !== '';
-                        return hasText;
-                    } catch (error) {
-                        console.warn(`Error getting text for item ${item.item_id || 'unknown'}:`, error);
-                        return false;
-                    }
-                });
-                
-                console.log(`Found ${withTranslations.length} items with translations for ${this.currentLangCode} (out of ${this.data.length} total items)`);
-                
-                // Debug: Check a sample item to see what columns exist
-                if (this.data.length > 0 && (this.currentLangCode === 'pt-PT' || this.currentLangCode === 'pt-BR' || this.currentLangCode === 'pt')) {
-                    const sampleItem = this.data[0];
-                    const sampleText = this.getTextForItem(sampleItem, this.currentLangCode);
-                    console.log('Sample item check:', {
-                        itemId: sampleItem.item_id,
-                        hasTranslation: !!sampleText,
-                        ptColumns: Object.keys(sampleItem).filter(k => k.toLowerCase().includes('pt')),
-                        allColumns: Object.keys(sampleItem).slice(0, 20),
-                        samplePtValue: sampleItem['pt'] ? sampleItem['pt'].substring(0, 50) : '(no pt column)',
-                        samplePtPTValue: sampleItem['pt-PT'] ? sampleItem['pt-PT'].substring(0, 50) : '(no pt-PT column)',
-                        samplePtBRValue: sampleItem['pt-BR'] ? sampleItem['pt-BR'].substring(0, 50) : '(no pt-BR column)'
-                    });
-                }
-                
-                // Then check which items have audio files
-                this.setStatus(`Checking audio availability for ${withTranslations.length} items...`, 'loading');
-                this.populateTaskFilter(withTranslations);
-                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                
-                // Get all items with audio (both draft and dev buckets) for stats
-                const allItemsWithAudio = await this.getAllItemsWithAudio(taskFilteredTranslations);
-                
-                // Filter based on current tab
+
+                const okItems = this.getOkTranslationItems();
+                console.log(`Found ${okItems.length} items with valid translations for ${this.currentLangCode} (out of ${this.data.length} total items)`);
+
+                this.setStatus(`Checking audio availability for ${okItems.length} items...`, 'loading');
+                this.populateTaskFilter(this.data);
+                const taskFilteredOk = this.applyTaskFilterToItems(okItems);
+                const taskFilteredMissingTranslation = this.applyTaskFilterToItems(this.getMissingTranslationItems());
+                const taskFilteredHiddenStrings = this.applyTaskFilterToItems(this.getHiddenStringItems());
+
+                const allItemsWithAudio = await this.getAllItemsWithAudio(taskFilteredOk);
+
                 let itemsToShow;
                 if (this.currentTab === 'approved') {
-                    // For approved tab, get items from dev bucket
-                    itemsToShow = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    itemsToShow = await this.getApprovedItemsFromDev(taskFilteredOk);
                 } else if (this.currentTab === 'noaudio') {
-                    // For no audio tab, get items without audio
-                    itemsToShow = await this.getItemsWithoutAudio(taskFilteredTranslations);
+                    itemsToShow = await this.getItemsWithoutAudio(taskFilteredOk);
+                } else if (this.currentTab === 'missingtranslation') {
+                    itemsToShow = taskFilteredMissingTranslation;
+                } else if (this.currentTab === 'hiddenstrings') {
+                    itemsToShow = taskFilteredHiddenStrings;
                 } else {
-                    // For pending tab, get items from draft bucket (excluding approved)
-                    itemsToShow = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    itemsToShow = await this.filterItemsWithAudio(taskFilteredOk);
                 }
-                
+
                 console.log(`Found ${allItemsWithAudio.length} total items with audio (${itemsToShow.length} shown in ${this.currentTab} tab)`);
-                
-                // Ensure current tab content is visible
-                document.getElementById('tabContentPending').classList.toggle('active', this.currentTab === 'pending');
-                document.getElementById('tabContentApproved').classList.toggle('active', this.currentTab === 'approved');
-                document.getElementById('tabContentNoAudio').classList.toggle('active', this.currentTab === 'noaudio');
-                
-                // Render items directly for the current tab (don't re-filter)
+
+                this.setActiveTabPanels();
+
                 if (this.currentTab === 'approved') {
                     await this.loadApprovalDetailsFromServer(itemsToShow, this.currentLangCode);
                     this.renderApprovedItems(itemsToShow);
                     this.setStatus(`Finished loading - ${itemsToShow.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
-                    this.renderNoAudioItems(itemsToShow);
-                    this.setStatus(`Finished loading - ${itemsToShow.length} items without audio`, 'success');
+                    this.renderMissingAudioItems(itemsToShow);
+                    this.setStatus(`Finished loading - ${itemsToShow.length} items missing audio`, 'success');
+                } else if (this.currentTab === 'missingtranslation') {
+                    this.renderMissingTranslationItems(itemsToShow);
+                    this.setStatus(`Finished loading - ${itemsToShow.length} items with NO APPROVED TRANSLATION`, 'success');
+                } else if (this.currentTab === 'hiddenstrings') {
+                    this.renderHiddenStringItems(itemsToShow);
+                    this.setStatus(`Finished loading - ${itemsToShow.length} hidden strings`, 'success');
                 } else {
                     await this.renderPendingItems(itemsToShow);
                     if (itemsToShow.length === 0 && allItemsWithAudio.length > 0) {
-                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredOk);
                         if (approvedItemsList.length > 0) {
                             await this.switchTab('approved');
                             this.setStatus(
@@ -6037,6 +6182,7 @@
                 
                 // Update stats with all items
                 await this.updateApprovalStats();
+                this.updateHiddenStringsTabState();
                 
                 // Apply search filter if active
                 if (this.currentSearchQuery) {
@@ -6045,6 +6191,7 @@
 
                 this.lastRefreshTime = new Date();
                 this.updateRefreshIndicator();
+                this.setLanguageShellState('ready', language);
             }
 
             async getAllItemsWithAudio(items) {
@@ -6111,159 +6258,20 @@
                 }
             }
 
-            getTextForItem(item, langCode) {
-                // Debug: log available keys for first item
-                if (!this._debuggedKeys && Object.keys(item).length > 0) {
-                    const ptKeys = Object.keys(item).filter(k => k.toLowerCase().includes('pt') || k.toLowerCase().includes('portuguese'));
-                    console.log('Available CSV columns with "pt":', ptKeys);
-                    console.log('All CSV columns:', Object.keys(item));
-                    console.log('Looking for langCode:', langCode);
-                    this._debuggedKeys = true;
-                }
-                
-                const keys = Object.keys(item);
-                const langAliases = this.getAudioLangAliases(langCode);
-                const candidateColumns = this.getTranslationColumnCandidates(langCode);
-
-                // First pass: unified candidate matching across code-based and name-based headers.
-                const candidateMatch = this.getTranslationFromCandidates(item, candidateColumns);
-                if (candidateMatch) {
-                    return candidateMatch;
-                }
-                
-                // For Portuguese variants, check multiple possible column names
-                if (langCode === 'pt-PT' || langCode === 'pt-BR' || langCode === 'pt') {
-                    // Try exact match FIRST (pt-PT is the correct column name)
-                    if (item['pt-PT'] && item['pt-PT'].trim()) {
-                        return item['pt-PT'].trim();
-                    }
-                    if (item['pt-BR'] && item['pt-BR'].trim()) {
-                        return item['pt-BR'].trim();
-                    }
-                    // Try all other possible Portuguese column name variations
-                    const ptColumnNames = ['pt', 'pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt'];
-                    for (const colName of ptColumnNames) {
-                        if (item[colName] && item[colName].trim()) {
-                            console.log(`Found Portuguese translation in '${colName}' column for item ${item.item_id || 'unknown'}`);
-                            return item[colName].trim();
-                        }
-                    }
-                    // Try case-insensitive match for 'pt'
-                    const ptMatch = keys.find(k => k.toLowerCase() === 'pt');
-                    if (ptMatch && item[ptMatch] && item[ptMatch].trim()) {
-                        console.log(`Found Portuguese translation in '${ptMatch}' column (case-insensitive)`);
-                        return item[ptMatch].trim();
-                    }
-                }
-                
-                // Try exact + case-insensitive matches across aliases (e.g., en <-> en-US, de <-> de-DE)
-                for (const code of langAliases) {
-                    const direct = item[code];
-                    if (direct && direct.trim()) {
-                        return direct.trim();
-                    }
-                    const ciMatch = keys.find(k => k.toLowerCase() === String(code).toLowerCase());
-                    if (ciMatch && item[ciMatch] && item[ciMatch].trim()) {
-                        return item[ciMatch].trim();
-                    }
-                }
-                
-                // Try base language if langCode has a hyphen (e.g., es-CO -> es)
-                if (langCode.includes('-')) {
-                    const base = langCode.split('-')[0];
-                    if (item[base] && item[base].trim()) {
-                        return item[base].trim();
-                    }
-                    // Also try case-insensitive base match
-                    const baseMatch = keys.find(k => k.toLowerCase() === base.toLowerCase());
-                    if (baseMatch && item[baseMatch] && item[baseMatch].trim()) {
-                        return item[baseMatch].trim();
-                    }
-                }
-                
-                // Try alternative column names (common variations)
-                const altNames = {
-                    'en': ['en-us', 'en_US', 'en_us', 'enus', 'en-gb', 'en_GB', 'en_gb', 'engb'],
-                    'en-US': ['en-us', 'en_US', 'en_us', 'enus', 'en'],
-                    'en-GB': ['en-gb', 'en_GB', 'en_gb', 'engb', 'en'],
-                    'de': ['de-de', 'de_DE', 'de_de', 'dede'],
-                    'de-DE': ['de-de', 'de_DE', 'de_de', 'dede', 'de'],
-                    'es-CO': ['es-co', 'es_CO', 'es_co', 'esco'],
-                    'es-AR': ['es-ar', 'es_AR', 'es_ar', 'esar'],
-                    'de-CH': ['de-ch', 'de_CH', 'de_ch', 'dech'],
-                    'fr-CA': ['fr-ca', 'fr_CA', 'fr_ca', 'frca'],
-                    'pt-PT': ['pt-pt', 'pt_PT', 'pt_pt', 'ptpt'], // Note: 'pt' already checked above
-                    'pt-BR': ['pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt']
-                };
-                
-                if (altNames[langCode]) {
-                    for (const altName of altNames[langCode]) {
-                        if (item[altName] && item[altName].trim()) {
-                            return item[altName].trim();
-                        }
-                    }
-                }
-
-                // English in item-bank CSV is typically stored in source text columns (e.g., `text`).
-                // Allow this fallback only for English so other languages never silently fall back to source.
-                const normalizedLangCode = String(langCode || '').toLowerCase().replace(/_/g, '-');
-                if (normalizedLangCode === 'en' || normalizedLangCode.startsWith('en-')) {
-                    const sourceCandidates = ['text', 'source_text', 'source'];
-                    for (const candidate of sourceCandidates) {
-                        const direct = item[candidate];
-                        if (direct && direct.trim()) {
-                            return direct.trim();
-                        }
-                        const ciMatch = keys.find(k => k.toLowerCase() === candidate);
-                        if (ciMatch && item[ciMatch] && item[ciMatch].trim()) {
-                            return item[ciMatch].trim();
-                        }
-                    }
-                }
-                
-                // Try to find any column that contains the language code (for debugging)
-                const langMatch = keys.find(k => {
-                    const kLower = k.toLowerCase();
-                    const langLower = langCode.toLowerCase();
-                    return kLower.includes(langLower) || langLower.includes(kLower);
-                });
-                if (langMatch && item[langMatch] && item[langMatch].trim()) {
-                    console.log(`Found translation using fuzzy match: column '${langMatch}' for langCode '${langCode}'`);
-                    return item[langMatch].trim();
-                }
-                
-                // Debug: Log what we tried for Portuguese variants (throttled to avoid console flooding)
-                if (langCode === 'pt-PT' || langCode === 'pt-BR' || langCode === 'pt') {
-                    const ptKeys = keys.filter(k => k.toLowerCase().includes('pt'));
-                    this._missingPtTranslationWarnCount = Number(this._missingPtTranslationWarnCount || 0);
-                    if (this._missingPtTranslationWarnCount < 20) {
-                        this._missingPtTranslationWarnCount += 1;
-                        console.warn(`Could not find Portuguese translation for item ${item.item_id || 'unknown'}. Tried columns:`, ['pt', 'pt-BR', 'pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-PT', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt', ...candidateColumns, ...ptKeys]);
-                    }
-                }
-                
-                // Return empty string - do NOT fall back to English
-                // This ensures we don't show English when Portuguese translation is missing
-                return '';
-            }
-
             async switchTab(tab) {
+                if (tab === 'hiddenstrings') {
+                    if (!this.isSuperAdminUser()) return;
+                    const count = this.currentLangCode
+                        ? this.applyTaskFilterToItems(this.getHiddenStringItems()).length
+                        : 0;
+                    if (count === 0) return;
+                }
+
                 this.currentTab = tab;
-                
-                // Update tab buttons
-                document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
-                document.getElementById('tabApproved').classList.toggle('active', tab === 'approved');
-                document.getElementById('tabNoAudio').classList.toggle('active', tab === 'noaudio');
-                
-                // Update tab content
-                document.getElementById('tabContentPending').classList.toggle('active', tab === 'pending');
-                document.getElementById('tabContentApproved').classList.toggle('active', tab === 'approved');
-                document.getElementById('tabContentNoAudio').classList.toggle('active', tab === 'noaudio');
-                
-                // Re-render items for the selected tab
+                this.setActiveTabPanels();
+
                 if (this.currentLanguage && this.currentLangCode) {
                     await this.refreshItemsForCurrentTab();
-                    // Search filter is already applied in refreshItemsForCurrentTab()
                 }
                 this.updateRefreshIndicator();
             }
@@ -6696,31 +6704,32 @@
             }
 
             async refreshItemsForCurrentTab() {
-                // Get all items with translations
-                const withTranslations = this.data.filter(item => {
-                    const text = this.getTextForItem(item, this.currentLangCode);
-                    return text && text.trim();
-                });
-                this.populateTaskFilter(withTranslations);
-                const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                
+                const okItems = this.getOkTranslationItems();
+                this.populateTaskFilter(this.data);
+                const taskFilteredOk = this.applyTaskFilterToItems(okItems);
+                const taskFilteredMissingTranslation = this.applyTaskFilterToItems(this.getMissingTranslationItems());
+                const taskFilteredHiddenStrings = this.applyTaskFilterToItems(this.getHiddenStringItems());
+
                 if (this.currentTab === 'approved') {
-                    // For approved tab, get items from dev bucket
-                    const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                    const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredOk);
                     await this.loadApprovalDetailsFromServer(approvedItemsList, this.currentLangCode);
                     this.renderApprovedItems(approvedItemsList);
                     this.setStatus(`Showing ${approvedItemsList.length} approved items`, 'success');
                 } else if (this.currentTab === 'noaudio') {
-                    // For no audio tab, get items without audio files
-                    const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
-                    this.renderNoAudioItems(itemsWithoutAudio);
-                    this.setStatus(`Showing ${itemsWithoutAudio.length} items without audio`, 'success');
+                    const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredOk);
+                    this.renderMissingAudioItems(itemsWithoutAudio);
+                    this.setStatus(`Showing ${itemsWithoutAudio.length} items missing audio`, 'success');
+                } else if (this.currentTab === 'missingtranslation') {
+                    this.renderMissingTranslationItems(taskFilteredMissingTranslation);
+                    this.setStatus(`Showing ${taskFilteredMissingTranslation.length} items with NO APPROVED TRANSLATION`, 'success');
+                } else if (this.currentTab === 'hiddenstrings') {
+                    this.renderHiddenStringItems(taskFilteredHiddenStrings);
+                    this.setStatus(`Showing ${taskFilteredHiddenStrings.length} hidden strings`, 'success');
                 } else {
-                    // For pending tab, get items from draft bucket (excluding approved)
-                    const itemsWithAudio = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    const itemsWithAudio = await this.filterItemsWithAudio(taskFilteredOk);
                     await this.renderPendingItems(itemsWithAudio);
                     if (itemsWithAudio.length === 0) {
-                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
+                        const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredOk);
                         this.setStatus(
                             `Showing 0 items in To Be Approved. ${approvedItemsList.length} items are in Approved.`,
                             'info'
@@ -6729,11 +6738,10 @@
                         this.setStatus(`Showing ${itemsWithAudio.length} items in To Be Approved tab`, 'success');
                     }
                 }
-                
-                // Update stats after rendering
+
                 await this.updateApprovalStats();
-                
-                // Apply search filter if active
+                this.updateHiddenStringsTabState();
+
                 if (this.currentSearchQuery) {
                     this.applySearchFilter(this.currentSearchQuery);
                 }
@@ -6946,7 +6954,7 @@
             async renderItems(items) {
                 // This function is called from selectLanguage but refreshItemsForCurrentTab handles rendering
                 // So we just ensure status is cleared here
-                if (items.length === 0 && this.currentTab !== 'noaudio') {
+                if (items.length === 0 && this.currentTab !== 'noaudio' && this.currentTab !== 'missingtranslation' && this.currentTab !== 'hiddenstrings') {
                     this.setStatus('No items found', 'success');
                 }
             }
@@ -6981,24 +6989,8 @@
                         throw new Error(`Invalid item id: ${itemId}`);
                     }
                     // Try multiple possible column names for English source
-                    const sourceText = item.en || item.english || item.text || item['en-US'] || item['en_US'] || '';
+                    const sourceText = this.getSourceForItem(item);
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
-                    
-                    // Debug: Log source text for first few items
-                    if (items.indexOf(item) < 3) {
-                        console.log(`Item ${itemId} source text check:`, {
-                            'item.en': item.en,
-                            'item.english': item.english,
-                            'item.text': item.text,
-                            'sourceText': sourceText,
-                            'availableKeys': Object.keys(item).filter(k => k.toLowerCase().includes('en') || k.toLowerCase() === 'text')
-                        });
-                    }
-                    
-                    // Debug: Log if translation is empty or same as source
-                    if (!translatedText || translatedText === sourceText) {
-                        console.warn(`Item ${itemId}: Translation empty or matches source. LangCode: ${this.currentLangCode}, Available keys:`, Object.keys(item).filter(k => k.toLowerCase().includes('pt') || k.toLowerCase().includes(this.currentLangCode.toLowerCase())));
-                    }
                     
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
@@ -7086,7 +7078,6 @@
                 
                 // Update save button states
                 this.updateSaveButtonStates();
-                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
             renderApprovedItems(items) {
@@ -7139,18 +7130,17 @@
                         </div>
                     `;
                 }).join('');
-                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
-            renderNoAudioItems(items) {
+            renderMissingAudioItems(items) {
                 const container = document.getElementById('itemsListNoAudio');
                 
                 if (items.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-volume-mute"></i>
-                            <h3>No items without audio</h3>
-                            <p>All items have audio files</p>
+                            <h3>No missing audio items</h3>
+                            <p>All valid translations have audio files</p>
                         </div>
                     `;
                     return;
@@ -7158,14 +7148,13 @@
                 
                 container.innerHTML = items.map(item => {
                     const itemId = item.item_id || 'unknown';
-                    const sourceText = item.en || item.english || item.text || '';
+                    const sourceText = this.getSourceForItem(item);
                     const translatedText = this.getTextForItem(item, this.currentLangCode);
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const escapedTranslated = this.escapeHtml(translatedText || '');
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
-                    // Check if audio has been generated for this item
                     const pendingKey = this.pendingSaveKey;
                     const key = `${this.currentLangCode}::${itemId}`;
                     const isPending = Boolean(
@@ -7187,7 +7176,7 @@
                                 <div class="item-card-compact-text">${escapedTranslated || '<em style="color: #999;">Translation not available</em>'}</div>
                             </div>
                             <div class="item-card-compact-actions">
-                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generation is disabled in No Audio Yet; use To Be Approved after audio exists" disabled>
+                                <button class="btn btn-primary" data-audio-action="regenerate" data-audio-item-id="${escapedItemId}" onclick="dashboard.regenerateAudio('${escapedItemId}')" title="Generation is disabled in Missing Audio; use To Be Approved after audio exists" disabled>
                                     <i class="fas fa-microphone"></i> Generate Audio
                                 </button>
                                 <button class="btn btn-success save-approve-btn" data-audio-action="save-approve" data-audio-item-id="${escapedItemId}" data-item-id="${escapedItemId}" onclick="dashboard.saveAndApproveAudio('${escapedItemId}')" ${isPending ? '' : 'disabled'} title="${isPending ? 'Save generated audio and approve immediately' : 'Generate audio before saving and approving'}">
@@ -7198,178 +7187,85 @@
                     `;
                 }).join('');
                 
-                // Update save button states
                 this.updateSaveButtonStates();
-                this.hydrateCrowdinApprovalForRenderedItems(container);
             }
 
-            getCrowdinTaskKeyFromItem(item = null, itemId = '') {
-                const taskName = item
-                    ? this.extractTaskName(item)
-                    : this.extractTaskName(
-                        (Array.isArray(this.data) ? this.data : []).find((entry) => String(entry?.item_id || '').trim() === String(itemId || '').trim())
-                    );
-                return this.normalizeTaskLookupKey(taskName || '');
+            buildMissingTranslationCardHtml(item) {
+                const itemId = item.item_id || 'unknown';
+                const sourceText = this.getSourceForItem(item);
+                const escapedItemId = this.escapeHtml(itemId);
+                const escapedSource = this.escapeHtml(sourceText);
+                const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
+
+                return `
+                    <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact-info">
+                            <div class="item-card-compact-id-wrap">
+                                <div class="item-card-compact-id">${escapedItemId}</div>
+                                ${screenshotThumbHtml}
+                            </div>
+                            <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
+                            <div class="item-card-compact-text"><em>NO APPROVED TRANSLATION</em></div>
+                        </div>
+                    </div>
+                `;
             }
 
-            normalizeCrowdinApprovalKey(itemId, taskKey = '') {
-                const normalizedItemId = String(itemId || '').trim().toLowerCase();
-                const normalizedTaskKey = String(taskKey || '').trim().toLowerCase();
-                if (!normalizedTaskKey) return normalizedItemId;
-                return `${normalizedItemId}::${normalizedTaskKey}`;
+            buildHiddenStringCardHtml(item) {
+                const itemId = item.item_id || 'unknown';
+                const sourceText = this.getSourceForItem(item);
+                const escapedItemId = this.escapeHtml(itemId);
+                const escapedSource = this.escapeHtml(sourceText);
+                const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
+
+                return `
+                    <div class="item-card-compact" data-item-id="${escapedItemId}">
+                        <div class="item-card-compact-info">
+                            <div class="item-card-compact-id-wrap">
+                                <div class="item-card-compact-id">${escapedItemId}</div>
+                                ${screenshotThumbHtml}
+                            </div>
+                            <div class="item-card-compact-source">${escapedSource || '<em style="color: #999;">Source text not available</em>'}</div>
+                            <div class="item-card-compact-text"><em>Not present in this language export</em></div>
+                        </div>
+                    </div>
+                `;
             }
 
-            getCrowdinApprovalLangCache(langCode, create = false) {
-                const key = String(langCode || '').trim().toLowerCase();
-                if (!key) return null;
-                if (!this.crowdinApprovalByLang.has(key) && create) {
-                    this.crowdinApprovalByLang.set(key, new Map());
+            renderMissingTranslationItems(items) {
+                const container = document.getElementById('itemsListMissingTranslation');
+                if (!container) return;
+
+                if (!items.length) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-language"></i>
+                            <h3>No missing translation items</h3>
+                            <p>Strings with NO APPROVED TRANSLATION will appear here</p>
+                        </div>
+                    `;
+                    return;
                 }
-                return this.crowdinApprovalByLang.get(key) || null;
+
+                container.innerHTML = items.map((item) => this.buildMissingTranslationCardHtml(item)).join('');
             }
 
-            getCrowdinApprovalDisplay(entry) {
-                const status = String(entry?.status || 'unknown');
-                if (status === 'checking') {
-                    return { className: 'is-checking', label: 'Crowdin: checking...', title: 'Looking up approved translation in Crowdin.' };
-                }
-                if (status === 'approved') {
-                    const task = String(entry?.task || '').trim();
-                    return {
-                        className: 'is-approved',
-                        label: 'Crowdin: approved',
-                        title: task ? `Approved in Crowdin under task: ${task}` : 'Approved in Crowdin.'
-                    };
-                }
-                if (status === 'not_approved') {
-                    return { className: 'is-not-approved', label: 'Crowdin: not approved', title: 'No approved translation found in Crowdin export.' };
-                }
-                if (status === 'error') {
-                    return { className: 'is-error', label: 'Crowdin: check failed', title: String(entry?.error || 'Crowdin lookup failed.') };
-                }
-                return { className: 'is-unknown', label: 'Crowdin: not checked', title: 'Crowdin approval status has not been checked yet.' };
-            }
+            renderHiddenStringItems(items) {
+                const container = document.getElementById('itemsListHiddenStrings');
+                if (!container) return;
 
-            renderCrowdinApprovalBadge(itemId, item = null) {
-                const rawItemId = String(itemId || '').trim();
-                const escapedItemId = this.escapeHtml(rawItemId);
-                const taskKey = this.getCrowdinTaskKeyFromItem(item, rawItemId);
-                const escapedTaskKey = this.escapeHtml(taskKey);
-                const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
-                const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
-                const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
-                return `<span class="crowdin-approval-badge ${display.className}" data-crowdin-approval-badge="1" data-item-id="${escapedItemId}" data-crowdin-task-key="${escapedTaskKey}" title="${this.escapeHtml(display.title)}">${this.escapeHtml(display.label)}</span>`;
-            }
-
-            applyCrowdinApprovalBadges(root = document) {
-                const langCache = this.getCrowdinApprovalLangCache(this.currentLangCode, false);
-                if (!root || !root.querySelectorAll) return;
-                root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]').forEach((node) => {
-                    const rawItemId = String(node.dataset?.itemId || '').trim();
-                    if (!rawItemId) return;
-                    const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
-                    const display = this.getCrowdinApprovalDisplay(langCache ? langCache.get(cacheKey) : null);
-                    node.className = `crowdin-approval-badge ${display.className}`;
-                    node.textContent = display.label;
-                    node.title = display.title;
-                });
-            }
-
-            resolveCrowdinBestMatchForTask(result, taskKey = '') {
-                const matches = Array.isArray(result?.matches) ? result.matches : [];
-                const normalizedTaskKey = this.normalizeTaskLookupKey(taskKey || '');
-                if (normalizedTaskKey) {
-                    const taskMatched = matches.find((entry) => {
-                        const entryTaskKey = this.normalizeTaskLookupKey(String(entry?.task || '').trim());
-                        return entryTaskKey && entryTaskKey === normalizedTaskKey && String(entry?.target || '').trim();
-                    });
-                    if (taskMatched) return taskMatched;
-                }
-                const bestMatch = result?.bestMatch || null;
-                if (String(bestMatch?.target || '').trim()) return bestMatch;
-                return matches.find((entry) => String(entry?.target || '').trim()) || null;
-            }
-
-            async hydrateCrowdinApprovalForRenderedItems(container = null) {
-                const langCode = String(this.currentLangCode || '').trim();
-                if (!langCode) return;
-                const root = container || document;
-                if (!root || !root.querySelectorAll) return;
-
-                const badgeNodes = Array.from(root.querySelectorAll('[data-crowdin-approval-badge][data-item-id]'));
-                if (!badgeNodes.length) return;
-
-                const langCache = this.getCrowdinApprovalLangCache(langCode, true);
-                const toLookupSet = new Set();
-                badgeNodes.forEach((node) => {
-                    const rawItemId = String(node.dataset?.itemId || '').trim();
-                    if (!rawItemId) return;
-                    const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
-                    const cacheKey = this.normalizeCrowdinApprovalKey(rawItemId, taskKey);
-                    if (!langCache.has(cacheKey)) {
-                        langCache.set(cacheKey, { status: 'checking' });
-                        toLookupSet.add(rawItemId);
-                    }
-                });
-
-                this.applyCrowdinApprovalBadges(root);
-                const toLookup = Array.from(toLookupSet.values());
-                if (!toLookup.length) return;
-
-                const requestToken = ++this.crowdinApprovalRequestToken;
-                try {
-                    const response = await fetch('/api/crowdin-approved-item', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            lang: langCode,
-                            itemIds: toLookup,
-                            approvedOnly: true,
-                        }),
-                    });
-                    const payload = await response.json().catch(() => ({}));
-                    if (!response.ok || payload?.ok !== true) {
-                        throw new Error(String(payload?.message || payload?.error || `HTTP ${response.status}`));
-                    }
-
-                    const results = payload?.resultsByItemId && typeof payload.resultsByItemId === 'object'
-                        ? payload.resultsByItemId
-                        : {};
-                    badgeNodes.forEach((node) => {
-                        const itemId = String(node.dataset?.itemId || '').trim();
-                        if (!itemId || !toLookupSet.has(itemId)) return;
-                        const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId, taskKey);
-                        const result = results[itemId] || null;
-                        const bestMatch = this.resolveCrowdinBestMatchForTask(result, taskKey);
-                        const target = String(bestMatch?.target || '').trim();
-                        if (target) {
-                            langCache.set(cacheKey, {
-                                status: 'approved',
-                                task: String(bestMatch?.task || ''),
-                                target,
-                            });
-                            return;
-                        }
-                        langCache.set(cacheKey, {
-                            status: 'not_approved',
-                        });
-                    });
-                } catch (error) {
-                    const errText = String(error?.message || error || 'Crowdin lookup failed');
-                    badgeNodes.forEach((node) => {
-                        const itemId = String(node.dataset?.itemId || '').trim();
-                        if (!itemId || !toLookupSet.has(itemId)) return;
-                        const taskKey = String(node.dataset?.crowdinTaskKey || '').trim();
-                        const cacheKey = this.normalizeCrowdinApprovalKey(itemId, taskKey);
-                        langCache.set(cacheKey, { status: 'error', error: errText });
-                    });
+                if (!items.length) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-eye-slash"></i>
+                            <h3>No hidden strings</h3>
+                            <p>All English source keys are present in this language export</p>
+                        </div>
+                    `;
+                    return;
                 }
 
-                if (requestToken === this.crowdinApprovalRequestToken && String(this.currentLangCode || '').trim() === langCode) {
-                    this.applyCrowdinApprovalBadges(root);
-                }
+                container.innerHTML = items.map((item) => this.buildHiddenStringCardHtml(item)).join('');
             }
 
             getCompareStateKey(itemId, langCode = this.currentLangCode) {
@@ -7948,7 +7844,15 @@
 
             async regenerateAudio(itemId) {
                 if (this.currentTab === 'noaudio') {
-                    this.setStatus('Generate is disabled in the No Audio Yet tab.', 'warning');
+                    this.setStatus('Generate is disabled in the Missing Audio tab.', 'warning');
+                    return;
+                }
+                if (this.currentTab === 'missingtranslation') {
+                    this.setStatus('Generate is disabled in the Missing Translation tab.', 'warning');
+                    return;
+                }
+                if (this.currentTab === 'hiddenstrings') {
+                    this.setStatus('Generate is disabled in the Hidden Strings tab.', 'warning');
                     return;
                 }
                 this.setAudioActionLoading(itemId, 'regenerate', true, 'Generating...');
@@ -8028,13 +7932,9 @@
                     
                     // Refresh current tab to update button states (especially for No Audio tab)
                     if (this.currentTab === 'noaudio') {
-                        const withTranslations = this.data.filter(item => {
-                            const text = this.getTextForItem(item, this.currentLangCode);
-                            return text && text.trim();
-                        });
-                        const taskFilteredTranslations = this.applyTaskFilterToItems(withTranslations);
-                        const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredTranslations);
-                        this.renderNoAudioItems(itemsWithoutAudio);
+                        const taskFilteredOk = this.applyTaskFilterToItems(this.getOkTranslationItems());
+                        const itemsWithoutAudio = await this.getItemsWithoutAudio(taskFilteredOk);
+                        this.renderMissingAudioItems(itemsWithoutAudio);
                     } else {
                         await this.refreshItemsForCurrentTab();
                     }
@@ -8147,10 +8047,12 @@
                     return currentBase === 'en' && cfgBase === 'en' && cfgLabel === 'english (united states)';
                 };
 
-                return configs.find((cfg) => {
-                    const hasVoice = String(cfg?.voice || '').trim() || String(cfg?.voice_id || '').trim();
-                    return hasVoice && isMatch(cfg);
-                }) || selectedConfig;
+                const hasRequiredVoice = (cfg) => Boolean(
+                    String(cfg?.voice || '').trim() && String(cfg?.voice_id || '').trim()
+                );
+
+                return configs.find((cfg) => hasRequiredVoice(cfg) && isMatch(cfg))
+                    || (hasRequiredVoice(selectedConfig) ? selectedConfig : null);
             }
 
             getCredentials() {
@@ -8763,6 +8665,10 @@
                     container = document.getElementById('itemsListApproved');
                 } else if (this.currentTab === 'noaudio') {
                     container = document.getElementById('itemsListNoAudio');
+                } else if (this.currentTab === 'missingtranslation') {
+                    container = document.getElementById('itemsListMissingTranslation');
+                } else if (this.currentTab === 'hiddenstrings') {
+                    container = document.getElementById('itemsListHiddenStrings');
                 }
                 
                 if (!container) return;
@@ -8892,6 +8798,48 @@
                 return result;
             }
 
+            formatLanguageOptionsFinishNote(languageOptions) {
+                const info = languageOptions && typeof languageOptions === 'object' ? languageOptions : {};
+                if (info.updated === true) {
+                    const slug = String(info.taskSlug || '').trim();
+                    const lang = String(info.languageKey || info.langCode || '').trim();
+                    if (slug && lang) return `, and added "${slug}" to language options for ${lang}`;
+                    if (slug) return `, and added "${slug}" to language options`;
+                    return ', and updated language options';
+                }
+                if (info.alreadyPresent === true) {
+                    const slug = String(info.taskSlug || '').trim();
+                    return slug
+                        ? `; "${slug}" was already in language options`
+                        : '; task was already in language options';
+                }
+                const reason = String(info.reason || '').trim();
+                if (reason === 'language_not_found') {
+                    const lang = String(info.langCode || '').trim();
+                    return lang
+                        ? `; language options not updated (${lang} not found in languageoptions.json)`
+                        : '; language options not updated (language not found in languageoptions.json)';
+                }
+                if (reason === 'file_not_found') {
+                    return '; language options not updated (languageoptions.json not found)';
+                }
+                if (reason === 'update_failed' || reason === 'invalid_json') {
+                    const detail = String(info.message || reason || 'update failed').trim();
+                    return `; language options not updated (${detail})`;
+                }
+                return '';
+            }
+
+            languageOptionsFinishStatusType(languageOptions, fallbackType = 'success') {
+                const info = languageOptions && typeof languageOptions === 'object' ? languageOptions : {};
+                if (info.updated === true || info.alreadyPresent === true) return fallbackType;
+                const reason = String(info.reason || '').trim();
+                if (reason && reason !== 'already_finished' && reason !== 'not_attempted') {
+                    return 'warning';
+                }
+                return fallbackType;
+            }
+
             async handleFinishedTaskClick() {
                 const selectedTask = this.getSelectedTaskFilter();
                 if (selectedTask === '__all__') return;
@@ -8929,9 +8877,13 @@
                     this.markTaskFinishedLocal(this.currentLangCode, selectedTask);
                     this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
                     const slackSent = payload?.slack?.sent === true;
+                    const languageOptionsNote = this.formatLanguageOptionsFinishNote(payload?.languageOptions);
+                    const slackNote = slackSent ? ', and posted to Slack' : '';
+                    const statusMessage = `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved). Promoted ${promotionResult.moved} staged item(s), ${promotionResult.skipped} already in approved bucket, ${promotionResult.failed} failed${slackNote}${languageOptionsNote || ''}.`;
+                    const baseStatusType = promotionResult.failed > 0 ? 'warning' : 'success';
                     this.setStatus(
-                        `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved). Promoted ${promotionResult.moved} staged item(s), ${promotionResult.skipped} already in approved bucket, ${promotionResult.failed} failed${slackSent ? ', and posted to Slack.' : '.'}`,
-                        promotionResult.failed > 0 ? 'warning' : 'success'
+                        statusMessage,
+                        this.languageOptionsFinishStatusType(payload?.languageOptions, baseStatusType)
                     );
                 } catch (error) {
                     this.setStatus(`Could not mark task finished: ${error?.message || error}`, 'error');

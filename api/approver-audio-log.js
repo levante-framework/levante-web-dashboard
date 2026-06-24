@@ -1,26 +1,16 @@
 import { Storage } from '@google-cloud/storage';
 import crypto from 'crypto';
+import { getStorageClientFromEnv, trimEnvValue } from './lib/gcp-credentials.js';
 
-const DEFAULT_BUCKET = String(process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft').trim();
+const DEFAULT_BUCKET = trimEnvValue(process.env.ASSETS_DRAFT_BUCKET, 'levante-assets-draft');
 const LOG_PREFIX = 'logs/approver-audio-events';
 
 let storageClient = null;
 
 function getStorage() {
   if (storageClient) return storageClient;
-  try {
-    const json = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON;
-    if (json) {
-      const credentials = JSON.parse(json);
-      storageClient = new Storage({ credentials, projectId: credentials.project_id });
-      return storageClient;
-    }
-    storageClient = new Storage();
-    return storageClient;
-  } catch (error) {
-    console.warn('approver-audio-log: failed to init storage client', error);
-    return null;
-  }
+  storageClient = getStorageClientFromEnv(Storage);
+  return storageClient;
 }
 
 function safeText(value, maxLen = 500) {
