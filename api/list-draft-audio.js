@@ -1,20 +1,13 @@
 import { Storage } from '@google-cloud/storage';
+import { getStorageClientFromEnv } from './lib/gcp-credentials.js';
 
-const DEV_BUCKET = process.env.ASSETS_DEV_BUCKET || 'levante-assets-dev';
+const DEV_BUCKET = (process.env.ASSETS_DEV_BUCKET || 'levante-assets-dev').trim().replace(/\\n$/g, '').replace(/\n+$/g, '');
 
 let storageClient = null;
 function getStorage() {
     if (storageClient) return storageClient;
-    try {
-        const json = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON;
-        if (!json) throw new Error('Missing GOOGLE_APPLICATION_CREDENTIALS_JSON');
-        const credentials = JSON.parse(json);
-        storageClient = new Storage({ credentials, projectId: credentials.project_id });
-        return storageClient;
-    } catch (error) {
-        console.warn('GCS init failed', error);
-        return null;
-    }
+    storageClient = getStorageClientFromEnv(Storage);
+    return storageClient;
 }
 
 function stripExtension(fileName = '') {
@@ -125,7 +118,10 @@ export default async function handler(req, res) {
             return res.status(500).json({ success: false, error: 'gcs_unavailable', message: 'Could not initialize Google Cloud Storage client.' });
         }
 
-        const bucketName = (req.query.bucket && String(req.query.bucket)) || process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
+        const bucketName = ((req.query.bucket && String(req.query.bucket)) || process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft')
+            .trim()
+            .replace(/\\n$/g, '')
+            .replace(/\n+$/g, '');
         const prefix = (req.query.prefix && String(req.query.prefix)) || 'audio/';
         const limitRaw = req.query.limit ? Number(req.query.limit) : Infinity;
         const requestedLimit = Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : Infinity;

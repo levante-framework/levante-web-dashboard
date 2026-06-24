@@ -1,18 +1,11 @@
 import { Storage } from '@google-cloud/storage';
+import { getStorageClientFromEnv } from './lib/gcp-credentials.js';
 
 let storageClient = null;
 function getStorage() {
     if (storageClient) return storageClient;
-    try {
-        const json = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || process.env.GCP_SERVICE_ACCOUNT_JSON;
-        if (!json) throw new Error('Missing GOOGLE_APPLICATION_CREDENTIALS_JSON');
-        const credentials = JSON.parse(json);
-        storageClient = new Storage({ credentials, projectId: credentials.project_id });
-        return storageClient;
-    } catch (error) {
-        console.warn('GCS init failed', error);
-        return null;
-    }
+    storageClient = getStorageClientFromEnv(Storage);
+    return storageClient;
 }
 
 export default async function handler(req, res) {
