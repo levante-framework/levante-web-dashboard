@@ -3,6 +3,7 @@ node_modules/
 data/geonames/
 data/geonames_cities5000.zip
 .env
+secrets/
 
 data/tiger/
 .env*.local
@@ -57,3 +58,4 @@ public/adm-packs/us/adm9/
 public/adm-packs/us/adm10/
 node_modules
 node_modules
+.env*

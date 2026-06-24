@@ -62,6 +62,16 @@ const CONTRACTS = [
     kind: 'expect',
     pattern: /invalidateAudioCache\(this\.audioBuckets\.draft,\s*this\.currentLangCode,\s*normalizedBaseId\)/,
     message: 'Unapprove flow must invalidate draft cache for moved item.'
+  },
+  {
+    kind: 'expect',
+    pattern: /setLanguageShellState\s*\(/,
+    message: 'Language shell must gate main dashboard content until language data is loaded.'
+  },
+  {
+    kind: 'expect',
+    pattern: /id="languageSetupPrompt"|id="dashboardMainContent"|id="languageLoadingPanel"/,
+    message: 'Language setup prompt, loader panel, and gated main content regions must exist.'
   }
 ];
 

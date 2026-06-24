@@ -1,17 +1,14 @@
 import { Storage } from '@google-cloud/storage';
+import { getStorageClientFromEnv, trimEnvValue } from './lib/gcp-credentials.js';
 
-const BUCKET_NAME = process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET || 'levante-tools';
+const BUCKET_NAME = trimEnvValue(process.env.VALIDATION_BUCKET || process.env.TOOLS_BUCKET, 'levante-tools');
 const PREFIX = process.env.PARTNER_AUDIO_ENHANCED_TEXT_PREFIX || 'partner-audio/enhanced-text';
 
+let storageClient = null;
 function getStorageClient() {
-  const raw = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  if (!raw) return null;
-  try {
-    const credentials = JSON.parse(raw);
-    return new Storage({ credentials });
-  } catch (_) {
-    return null;
-  }
+  if (storageClient) return storageClient;
+  storageClient = getStorageClientFromEnv(Storage);
+  return storageClient;
 }
 
 function sanitizeLangCode(langCode) {
