@@ -4930,32 +4930,12 @@
                 };
 
                 const canonical = normalize(raw);
-                const lower = canonical.toLowerCase();
-                const aliases = new Set([raw, canonical, canonical.replace('-', '_')]);
+                const aliases = new Set([raw, canonical]);
 
-                // Expand common aliases so English/German resolve across 2-letter and regional folders/columns.
-                if (lower === 'en' || lower === 'en-us' || lower === 'en-gb' || lower === 'en-gh') {
-                    aliases.add('en');
-                    aliases.add('en-US');
-                    aliases.add('en_US');
-                    aliases.add('en-GB');
-                    aliases.add('en_GB');
-                    aliases.add('en-GH');
-                    aliases.add('en_GH');
-                } else if (lower === 'de' || lower === 'de-de') {
-                    aliases.add('de');
-                    aliases.add('de-DE');
-                    aliases.add('de_DE');
-                } else if (lower === 'nl' || lower === 'nl-nl') {
-                    aliases.add('nl');
-                    aliases.add('nl-NL');
-                    aliases.add('nl_NL');
-                } else if (lower === 'pt' || lower === 'pt-br' || lower === 'pt-pt') {
-                    aliases.add('pt');
-                    aliases.add('pt-BR');
-                    aliases.add('pt_BR');
-                    aliases.add('pt-PT');
-                    aliases.add('pt_PT');
+                // Strict matching: never downgrade regional codes (e.g. nl-NL -> nl).
+                // Only include separator variants for the exact same code.
+                if (canonical.includes('-')) {
+                    aliases.add(canonical.replace('-', '_'));
                 }
 
                 return Array.from(aliases).filter(Boolean);
