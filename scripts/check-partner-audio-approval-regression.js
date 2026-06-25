@@ -62,6 +62,21 @@ const CONTRACTS = [
     kind: 'expect',
     pattern: /invalidateAudioCache\(this\.audioBuckets\.draft,\s*this\.currentLangCode,\s*normalizedBaseId\)/,
     message: 'Unapprove flow must invalidate draft cache for moved item.'
+  },
+  {
+    kind: 'expect',
+    pattern: /partner-audio-lang-aliases\.js/,
+    message: 'Partner audio dashboard must load shared locale alias module.'
+  },
+  {
+    kind: 'expect',
+    pattern: /PartnerAudioLangAliases\.getAudioLangAliases/,
+    message: 'Partner audio dashboard must delegate locale aliases to shared module.'
+  },
+  {
+    kind: 'forbid',
+    pattern: /if\s*\(\s*lower\s*===\s*'en'\s*\|\|\s*lower\s*===\s*'en-us'\s*\|\|\s*lower\s*===\s*'en-gb'/,
+    message: 'Do not merge English regional locales into one shared alias block.'
   }
 ];
 

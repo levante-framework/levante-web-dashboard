@@ -7,13 +7,18 @@ function normalizeAudioItemId(itemId) {
 }
 
 function mapAudioBucketLangCode(langCode) {
-    const normalized = String(langCode || '').trim().toLowerCase();
-    if (normalized === 'en-us') return 'en';
-    if (normalized === 'de-de') return 'de';
-    return String(langCode || '').trim();
+    const normalized = String(langCode || '').trim();
+    if (!normalized) return '';
+    const lower = normalized.toLowerCase().replace(/_/g, '-');
+    if (lower === 'en') return 'en-US';
+    if (lower === 'de-de') return 'de';
+    return normalized;
 }
 
 function getAudioLangCandidates(langCode) {
+    if (typeof PartnerAudioLangAliases !== 'undefined') {
+        return PartnerAudioLangAliases.getAudioLangAliases(langCode);
+    }
     const canonical = mapAudioBucketLangCode(langCode);
     const requested = String(langCode || '').trim();
     return Array.from(new Set([canonical, requested].filter(Boolean)));
