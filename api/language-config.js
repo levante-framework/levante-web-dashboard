@@ -7,6 +7,7 @@
  * - GCP_SERVICE_ACCOUNT_JSON: JSON string of the GCP service account key
  * - AUDIO_DEV_BUCKET: Bucket name (default: "levante-assets-dev")
  * - LANGUAGE_CONFIG_OBJECT: Object name (default: "language_config.json")
+ * - LANGUAGE_CONFIG_PUBLIC_URL: Optional override for public JSON fallback URL
  */
 
 import { Storage } from '@google-cloud/storage';
@@ -15,6 +16,49 @@ import crypto from 'crypto';
 const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || 'levante-assets-dev';
 const OBJECT_NAME = process.env.LANGUAGE_CONFIG_OBJECT || 'language_config.json';
 const HASH_PREFIX = 'scrypt$';
+
+function sanitizeEnvString(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^['"]+|['"]+$/g, '');
+}
+
+function getLanguageConfigPublicUrl() {
+  const explicit = sanitizeEnvString(process.env.LANGUAGE_CONFIG_PUBLIC_URL);
+  if (explicit) return explicit;
+  const objectPath = String(OBJECT_NAME || 'language_config.json').replace(/^\/+/, '');
+  return `https://storage.googleapis.com/${BUCKET_NAME}/${objectPath}`;
+}
+
+async function loadLanguageConfigFromPublicUrl() {
+  const url = getLanguageConfigPublicUrl();
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const text = await response.text();
+    if (!String(text || '').trim()) return null;
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (error) {
+    console.warn('language-config public URL read failed:', error?.message || error);
+    return null;
+  }
+}
+
+async function loadLanguageConfigFromGcs() {
+  try {
+    const storage = getStorageClient();
+    const bucket = storage.bucket(BUCKET_NAME);
+    const file = bucket.file(OBJECT_NAME);
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    const [contents] = await file.download();
+    const parsed = JSON.parse(contents.toString('utf8'));
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
 
 function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -94,13 +138,17 @@ function findMatchingApprover(languages, userId, password) {
 }
 
 async function loadRemoteLanguageConfigObject() {
-  const storage = getStorageClient();
-  const bucket = storage.bucket(BUCKET_NAME);
-  const file = bucket.file(OBJECT_NAME);
-  const [exists] = await file.exists();
-  if (!exists) return {};
-  const [contents] = await file.download();
-  return JSON.parse(contents.toString('utf8'));
+  try {
+    const fromGcs = await loadLanguageConfigFromGcs();
+    if (fromGcs) return fromGcs;
+  } catch (error) {
+    console.warn('language-config GCS read failed, trying public URL:', error?.message || error);
+  }
+
+  const fromPublic = await loadLanguageConfigFromPublicUrl();
+  if (fromPublic) return fromPublic;
+
+  return {};
 }
 
 function stripApproverPasswords(languages) {

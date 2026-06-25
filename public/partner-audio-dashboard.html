@@ -2156,6 +2156,7 @@
         </div>
     </div>
 
+    <script src="./js/partner-audio-lang-aliases.js"></script>
     <script>
         // IMMEDIATE VERSION CHECK - Runs before anything else
         (function() {
@@ -4288,6 +4289,8 @@
                 try {
                     if (!Array.isArray(this.data) || this.data.length === 0) {
                         await this.loadData();
+                        // CSV headers arrive in loadData(); merge languages discovered from columns.
+                        this.mergeDiscoveredLanguagesFromCsvHeaders();
                         // Rebuild language options using actual translation availability in the loaded CSV.
                         this.populateLanguageSelect();
                     }
@@ -4918,47 +4921,11 @@
             }
 
             getAudioLangAliases(langCode) {
-                const raw = String(langCode || '').trim();
-                if (!raw) return [];
-
-                const normalize = (code) => {
-                    const cleaned = String(code || '').trim().replace(/_/g, '-');
-                    if (!cleaned) return '';
-                    const parts = cleaned.split('-').filter(Boolean);
-                    if (parts.length < 2) return parts[0].toLowerCase();
-                    return `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`;
-                };
-
-                const canonical = normalize(raw);
-                const lower = canonical.toLowerCase();
-                const aliases = new Set([raw, canonical, canonical.replace('-', '_')]);
-
-                // Expand common aliases so English/German resolve across 2-letter and regional folders/columns.
-                if (lower === 'en' || lower === 'en-us' || lower === 'en-gb' || lower === 'en-gh') {
-                    aliases.add('en');
-                    aliases.add('en-US');
-                    aliases.add('en_US');
-                    aliases.add('en-GB');
-                    aliases.add('en_GB');
-                    aliases.add('en-GH');
-                    aliases.add('en_GH');
-                } else if (lower === 'de' || lower === 'de-de') {
-                    aliases.add('de');
-                    aliases.add('de-DE');
-                    aliases.add('de_DE');
-                } else if (lower === 'nl' || lower === 'nl-nl') {
-                    aliases.add('nl');
-                    aliases.add('nl-NL');
-                    aliases.add('nl_NL');
-                } else if (lower === 'pt' || lower === 'pt-br' || lower === 'pt-pt') {
-                    aliases.add('pt');
-                    aliases.add('pt-BR');
-                    aliases.add('pt_BR');
-                    aliases.add('pt-PT');
-                    aliases.add('pt_PT');
+                if (window.PartnerAudioLangAliases) {
+                    return window.PartnerAudioLangAliases.getAudioLangAliases(langCode);
                 }
-
-                return Array.from(aliases).filter(Boolean);
+                const raw = String(langCode || '').trim();
+                return raw ? [raw] : [];
             }
 
             getAudioPrefixes(langCode) {
@@ -6168,8 +6135,12 @@
                     }
                 }
                 
-                // Try base language if langCode has a hyphen (e.g., es-CO -> es)
-                if (langCode.includes('-')) {
+                // Try base language if langCode has a hyphen (e.g., es-CO -> es).
+                // Skip for English regional codes so en-GB does not inherit en / en-US columns.
+                const allowBaseFallback = window.PartnerAudioLangAliases
+                    ? window.PartnerAudioLangAliases.shouldUseBaseLanguageFallback(langCode)
+                    : !String(langCode || '').toLowerCase().startsWith('en-');
+                if (allowBaseFallback && langCode.includes('-')) {
                     const base = langCode.split('-')[0];
                     if (item[base] && item[base].trim()) {
                         return item[base].trim();
@@ -6181,42 +6152,32 @@
                     }
                 }
                 
-                // Try alternative column names (common variations)
-                const altNames = {
-                    'en': ['en-us', 'en_US', 'en_us', 'enus', 'en-gb', 'en_GB', 'en_gb', 'engb'],
-                    'en-US': ['en-us', 'en_US', 'en_us', 'enus', 'en'],
-                    'en-GB': ['en-gb', 'en_GB', 'en_gb', 'engb', 'en'],
-                    'de': ['de-de', 'de_DE', 'de_de', 'dede'],
-                    'de-DE': ['de-de', 'de_DE', 'de_de', 'dede', 'de'],
-                    'es-CO': ['es-co', 'es_CO', 'es_co', 'esco'],
-                    'es-AR': ['es-ar', 'es_AR', 'es_ar', 'esar'],
-                    'de-CH': ['de-ch', 'de_CH', 'de_ch', 'dech'],
-                    'fr-CA': ['fr-ca', 'fr_CA', 'fr_ca', 'frca'],
-                    'pt-PT': ['pt-pt', 'pt_PT', 'pt_pt', 'ptpt'], // Note: 'pt' already checked above
-                    'pt-BR': ['pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt']
-                };
-                
-                if (altNames[langCode]) {
-                    for (const altName of altNames[langCode]) {
+                // Try alternative column names (spelling variants within the same locale).
+                const altNamesList = window.PartnerAudioLangAliases
+                    ? window.PartnerAudioLangAliases.getTranslationAltNames(langCode)
+                    : [];
+                if (altNamesList.length) {
+                    for (const altName of altNamesList) {
                         if (item[altName] && item[altName].trim()) {
                             return item[altName].trim();
                         }
                     }
-                }
-
-                // English in item-bank CSV is typically stored in source text columns (e.g., `text`).
-                // Allow this fallback only for English so other languages never silently fall back to source.
-                const normalizedLangCode = String(langCode || '').toLowerCase().replace(/_/g, '-');
-                if (normalizedLangCode === 'en' || normalizedLangCode.startsWith('en-')) {
-                    const sourceCandidates = ['text', 'source_text', 'source'];
-                    for (const candidate of sourceCandidates) {
-                        const direct = item[candidate];
-                        if (direct && direct.trim()) {
-                            return direct.trim();
-                        }
-                        const ciMatch = keys.find(k => k.toLowerCase() === candidate);
-                        if (ciMatch && item[ciMatch] && item[ciMatch].trim()) {
-                            return item[ciMatch].trim();
+                } else {
+                    const altNames = {
+                        'de': ['de-de', 'de_DE', 'de_de', 'dede'],
+                        'de-DE': ['de-de', 'de_DE', 'de_de', 'dede', 'de'],
+                        'es-CO': ['es-co', 'es_CO', 'es_co', 'esco'],
+                        'es-AR': ['es-ar', 'es_AR', 'es_ar', 'esar'],
+                        'de-CH': ['de-ch', 'de_CH', 'de_ch', 'dech'],
+                        'fr-CA': ['fr-ca', 'fr_CA', 'fr_ca', 'frca'],
+                        'pt-PT': ['pt-pt', 'pt_PT', 'pt_pt', 'ptpt'],
+                        'pt-BR': ['pt-br', 'pt_BR', 'pt_br', 'ptbr', 'pt-pt', 'pt_PT', 'pt_pt', 'ptpt']
+                    };
+                    if (altNames[langCode]) {
+                        for (const altName of altNames[langCode]) {
+                            if (item[altName] && item[altName].trim()) {
+                                return item[altName].trim();
+                            }
                         }
                     }
                 }
