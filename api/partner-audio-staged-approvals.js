@@ -51,6 +51,22 @@ function normalizeTasks(tasks) {
   return normalized;
 }
 
+// Approval baselines: baseId -> draft "updated" timestamp (ms) captured when the
+// item was approved. Shared with staged approvals so the reopen logic behaves
+// consistently across devices/users.
+function normalizeBaselines(baselines) {
+  const normalized = {};
+  if (!baselines || typeof baselines !== 'object' || Array.isArray(baselines)) return normalized;
+  Object.entries(baselines).forEach(([baseId, ts]) => {
+    const cleanId = String(baseId || '').trim().toLowerCase();
+    const numericTs = Number(ts);
+    if (cleanId && Number.isFinite(numericTs) && numericTs > 0) {
+      normalized[cleanId] = numericTs;
+    }
+  });
+  return normalized;
+}
+
 async function readLangPayload(storage, langCode) {
   const objectPath = objectPathForLang(langCode);
   if (!objectPath) return { tasks: {}, objectPath: '' };
@@ -66,22 +82,34 @@ async function readLangPayload(storage, langCode) {
     parsed = {};
   }
   const tasks = normalizeTasks(parsed?.tasks || {});
-  return { tasks, objectPath, metadata: parsed?.metadata || {} };
+  const baselines = normalizeBaselines(parsed?.baselines || {});
+  return { tasks, baselines, objectPath, metadata: parsed?.metadata || {} };
 }
 
-async function writeLangPayload(storage, langCode, tasks) {
+async function writeLangPayload(storage, langCode, tasks, baselines) {
   const objectPath = objectPathForLang(langCode);
   if (!objectPath) throw new Error('Invalid langCode');
   const bucket = storage.bucket(BUCKET_NAME);
   const file = bucket.file(objectPath);
   const normalizedTasks = normalizeTasks(tasks);
+  // When the caller omits baselines, preserve whatever is already stored so a
+  // tasks-only writer doesn't wipe baselines written by another client.
+  let normalizedBaselines;
+  if (baselines === undefined) {
+    const existing = await readLangPayload(storage, langCode);
+    normalizedBaselines = existing.baselines || {};
+  } else {
+    normalizedBaselines = normalizeBaselines(baselines);
+  }
   const payload = {
     metadata: {
       langCode: sanitizeLangCode(langCode),
       updatedAt: new Date().toISOString(),
-      taskCount: Object.keys(normalizedTasks).length
+      taskCount: Object.keys(normalizedTasks).length,
+      baselineCount: Object.keys(normalizedBaselines).length
     },
-    tasks: normalizedTasks
+    tasks: normalizedTasks,
+    baselines: normalizedBaselines
   };
   await file.save(JSON.stringify(payload, null, 2), {
     contentType: 'application/json',
@@ -109,13 +137,14 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const langCode = String(req.query?.langCode || '').trim();
       if (!langCode) return res.status(400).json({ ok: false, error: 'Missing langCode query param' });
-      const { tasks, objectPath, metadata } = await readLangPayload(storage, langCode);
+      const { tasks, baselines, objectPath, metadata } = await readLangPayload(storage, langCode);
       return res.status(200).json({
         ok: true,
         langCode: sanitizeLangCode(langCode),
         bucket: BUCKET_NAME,
         objectPath,
         tasks,
+        baselines,
         metadata
       });
     }
@@ -123,14 +152,19 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const langCode = String(req.body?.langCode || '').trim();
       const tasks = normalizeTasks(req.body?.tasks || {});
+      // Only treat baselines as authoritative when the field is present; otherwise
+      // leave the stored baselines untouched (preserved by writeLangPayload).
+      const hasBaselines = Object.prototype.hasOwnProperty.call(req.body || {}, 'baselines');
+      const baselines = hasBaselines ? normalizeBaselines(req.body?.baselines || {}) : undefined;
       if (!langCode) {
         return res.status(400).json({ ok: false, error: 'Missing required field: langCode' });
       }
-      const objectPath = await writeLangPayload(storage, langCode, tasks);
+      const objectPath = await writeLangPayload(storage, langCode, tasks, baselines);
       return res.status(200).json({
         ok: true,
         langCode: sanitizeLangCode(langCode),
         taskCount: Object.keys(tasks).length,
+        baselineCount: baselines ? Object.keys(baselines).length : undefined,
         bucket: BUCKET_NAME,
         objectPath
       });

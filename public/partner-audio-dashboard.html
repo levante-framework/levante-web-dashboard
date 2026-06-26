@@ -617,6 +617,31 @@
             gap: 10px;
         }
 
+        .common-tags-panel.is-disabled .common-tags-header,
+        .common-tags-panel.is-disabled .common-tags-controls,
+        .common-tags-panel.is-disabled .common-tags-list {
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .common-tags-disabled-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #92400e;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .common-tags-disabled-note[hidden] {
+            display: none;
+        }
+
         .common-tags-header {
             display: flex;
             align-items: center;
@@ -2068,7 +2093,10 @@
                 </button>
             </div>
         </div>
-        <div class="common-tags-panel">
+        <div class="common-tags-panel" id="commonTagsPanel">
+            <div class="common-tags-disabled-note" id="commonTagsDisabledNote" hidden>
+                <i class="fas fa-lock"></i> Tagging is disabled on the Approved tab. Switch to "To Be Approved" to edit tags.
+            </div>
             <div class="common-tags-header">
                 <div>
                     <div class="common-tags-title"><i class="fas fa-tags"></i> Common Audio Tags</div>
@@ -2192,6 +2220,7 @@
                 this.approvedItems = new Set(); // Track approved item IDs (already moved to dev)
                 this.devApprovedItems = new Set(); // Track items that are actually in dev bucket
                 this.stagedApprovedByLang = new Map(); // langCode -> Map(taskName -> Set(baseId))
+                this.approvalBaselineByLang = new Map(); // langCode -> Map(baseId -> draft updated ms at approval time)
                 this.unapprovedItems = new Set(); // Track explicitly unapproved items (to prevent re-adding)
                 this.approvalStats = { total: 0, totalApproved: 0, approved: 0, pending: 0, noAudio: 0 };
                 this.currentTab = 'pending'; // Current tab: 'pending' or 'approved'
@@ -2498,6 +2527,19 @@
                     });
                     this.stagedApprovedByLang.set(normalized, taskMap);
                     this.saveStagedApprovals(langCode);
+                    // Adopt server-side approval baselines as authoritative.
+                    if (payload.baselines && typeof payload.baselines === 'object' && !Array.isArray(payload.baselines)) {
+                        const baselineMap = new Map();
+                        Object.entries(payload.baselines).forEach(([baseId, ts]) => {
+                            const normalizedId = this.extractBaseId(baseId);
+                            const numericTs = Number(ts);
+                            if (normalizedId && Number.isFinite(numericTs) && numericTs > 0) {
+                                baselineMap.set(normalizedId, numericTs);
+                            }
+                        });
+                        this.approvalBaselineByLang.set(normalized, baselineMap);
+                        this.saveApprovalBaselines(langCode, { sync: false });
+                    }
                     return taskMap;
                 } catch (_) {
                     return this.getStagedApprovalTaskMap(langCode);
@@ -2531,13 +2573,21 @@
                     const ids = Array.from(idSet).filter(Boolean);
                     if (ids.length > 0) tasks[taskName] = ids;
                 });
+                // Send approval baselines alongside the staged approvals so the
+                // reopen logic is shared across devices/users.
+                const baselineMap = this.getApprovalBaselineMap(langCode);
+                const baselines = {};
+                baselineMap.forEach((ts, baseId) => {
+                    if (baseId && Number.isFinite(ts) && ts > 0) baselines[baseId] = ts;
+                });
                 try {
                     await fetch('/api/partner-audio-staged-approvals', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             langCode: normalized,
-                            tasks
+                            tasks,
+                            baselines
                         })
                     });
                 } catch (_) {
@@ -2625,7 +2675,101 @@
                 if (removed) {
                     this.saveStagedApprovals(langCode);
                 }
+                // Drop any approval baseline; it only applies while the item is staged.
+                this.clearApprovalBaseline(normalizedBaseId, langCode);
                 return removed;
+            }
+
+            // --- Approval baselines -------------------------------------------------
+            // Records the draft audio's "updated" timestamp captured when an item was
+            // approved (staged). The reopen logic compares the current draft timestamp
+            // against this baseline so an item is only re-opened when its audio is
+            // genuinely regenerated AFTER approval — not merely because a stale, older
+            // copy still sits in -dev (which caused approved items to bounce back to
+            // "To Be Approved" on every refresh).
+            getApprovalBaselineStorageKey(langCode) {
+                const normalized = this.normalizeEnhancedLangCode(langCode);
+                return normalized
+                    ? `partnerAudioApprovalBaseline::${normalized}`
+                    : 'partnerAudioApprovalBaseline::global';
+            }
+
+            getApprovalBaselineMap(langCode = this.currentLangCode) {
+                const key = this.normalizeEnhancedLangCode(langCode);
+                if (!this.approvalBaselineByLang.has(key)) {
+                    this.approvalBaselineByLang.set(key, new Map());
+                }
+                return this.approvalBaselineByLang.get(key);
+            }
+
+            loadApprovalBaselines(langCode = this.currentLangCode) {
+                const key = this.normalizeEnhancedLangCode(langCode);
+                const map = new Map();
+                try {
+                    const raw = localStorage.getItem(this.getApprovalBaselineStorageKey(langCode));
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                            Object.entries(parsed).forEach(([baseId, ts]) => {
+                                const normalizedId = this.extractBaseId(baseId);
+                                const numericTs = Number(ts);
+                                if (normalizedId && Number.isFinite(numericTs) && numericTs > 0) {
+                                    map.set(normalizedId, numericTs);
+                                }
+                            });
+                        }
+                    }
+                } catch (_) {
+                    // Ignore malformed baseline data.
+                }
+                this.approvalBaselineByLang.set(key, map);
+                return map;
+            }
+
+            saveApprovalBaselines(langCode = this.currentLangCode, options = {}) {
+                const sync = options.sync !== false;
+                const map = this.getApprovalBaselineMap(langCode);
+                const payload = {};
+                map.forEach((ts, baseId) => {
+                    if (baseId && Number.isFinite(ts) && ts > 0) payload[baseId] = ts;
+                });
+                const storageKey = this.getApprovalBaselineStorageKey(langCode);
+                try {
+                    if (Object.keys(payload).length === 0) {
+                        localStorage.removeItem(storageKey);
+                    } else {
+                        localStorage.setItem(storageKey, JSON.stringify(payload));
+                    }
+                } catch (_) {
+                    // Ignore storage write failures.
+                }
+                // Persist to the shared server store alongside staged approvals.
+                if (sync) {
+                    this.queueStagedApprovalsSync(langCode);
+                }
+            }
+
+            getApprovalBaseline(baseId, langCode = this.currentLangCode) {
+                const normalizedId = this.extractBaseId(baseId);
+                if (!normalizedId) return 0;
+                return this.getApprovalBaselineMap(langCode).get(normalizedId) || 0;
+            }
+
+            setApprovalBaseline(baseId, tsMs, langCode = this.currentLangCode) {
+                const normalizedId = this.extractBaseId(baseId);
+                const numericTs = Number(tsMs);
+                if (!normalizedId || !Number.isFinite(numericTs) || numericTs <= 0) return;
+                this.getApprovalBaselineMap(langCode).set(normalizedId, numericTs);
+                this.saveApprovalBaselines(langCode);
+            }
+
+            clearApprovalBaseline(baseId, langCode = this.currentLangCode) {
+                const normalizedId = this.extractBaseId(baseId);
+                if (!normalizedId) return;
+                const map = this.getApprovalBaselineMap(langCode);
+                if (map.delete(normalizedId)) {
+                    this.saveApprovalBaselines(langCode);
+                }
             }
 
             recomputeApprovedItems() {
@@ -2780,6 +2924,10 @@
             }
 
             addCommonAudioTag(rawTag) {
+                if (this.isTaggingDisabledTab()) {
+                    this.setStatus('Tagging is disabled on the Approved tab.', 'warning');
+                    return;
+                }
                 const tag = String(rawTag || '').trim();
                 if (!tag) return;
                 const exists = this.commonAudioTags.some((existing) => String(existing || '').toLowerCase() === tag.toLowerCase());
@@ -2880,6 +3028,37 @@
                         }
                     });
                 }
+                this.updateTaggingControlsForTab();
+            }
+
+            // Tagging features are only valid where enhanced-audio text is editable
+            // (the To Be Approved / No Audio tabs). The Approved tab is read-only, so
+            // the entire Common Audio Tags panel is disabled there to prevent any edits
+            // (which would otherwise bump the draft timestamp and re-open approvals).
+            isTaggingDisabledTab() {
+                return this.currentTab === 'approved';
+            }
+
+            updateTaggingControlsForTab() {
+                const panel = document.getElementById('commonTagsPanel');
+                const note = document.getElementById('commonTagsDisabledNote');
+                if (!panel) return;
+                const disabled = this.isTaggingDisabledTab();
+                panel.classList.toggle('is-disabled', disabled);
+                if (note) note.hidden = !disabled;
+                panel.querySelectorAll('button, input, select').forEach((el) => {
+                    if (el.id === 'commonTagsDisabledNote') return;
+                    el.disabled = disabled;
+                    if (disabled) {
+                        el.setAttribute('tabindex', '-1');
+                    } else {
+                        el.removeAttribute('tabindex');
+                    }
+                });
+                if (!disabled) {
+                    // Restore the selection-dependent enabled state for apply/un-apply.
+                    this.refreshCommonTagBulkSelect();
+                }
             }
 
             refreshCommonTagBulkSelect() {
@@ -2898,9 +3077,11 @@
                 } else {
                     select.value = '';
                 }
+                const taggingDisabled = this.isTaggingDisabledTab();
                 const hasSelection = Boolean(String(select.value || '').trim());
-                if (applyBtn) applyBtn.disabled = !hasSelection;
-                if (unapplyBtn) unapplyBtn.disabled = !hasSelection;
+                if (taggingDisabled) select.disabled = true;
+                if (applyBtn) applyBtn.disabled = taggingDisabled || !hasSelection;
+                if (unapplyBtn) unapplyBtn.disabled = taggingDisabled || !hasSelection;
             }
 
             getVisibleEnhancedTextInputs() {
@@ -2930,6 +3111,10 @@
             }
 
             applySelectedCommonTagToDisplayedItems() {
+                if (this.isTaggingDisabledTab()) {
+                    this.setStatus('Tagging is disabled on the Approved tab.', 'warning');
+                    return;
+                }
                 const tag = this.getSelectedCommonTagForBulkAction();
                 if (!tag) return;
                 const inputs = this.getVisibleEnhancedTextInputs();
@@ -2959,6 +3144,10 @@
             }
 
             unapplySelectedCommonTagFromDisplayedItems() {
+                if (this.isTaggingDisabledTab()) {
+                    this.setStatus('Tagging is disabled on the Approved tab.', 'warning');
+                    return;
+                }
                 const tag = this.getSelectedCommonTagForBulkAction();
                 if (!tag) return;
                 const inputs = this.getVisibleEnhancedTextInputs();
@@ -5408,19 +5597,26 @@
                         }
                     });
 
-                    // Reopen previously approved/finished items whose draft audio is now
-                    // newer than the promoted dev copy. Staged approvals persist
-                    // server-side, so without this a task marked "Task finished" stays
-                    // hidden from "To Be Approved" even after its audio is regenerated.
-                    // Only reopen items that were actually promoted (a dev copy exists)
-                    // but whose draft is strictly newer; items staged without a dev copy
-                    // are awaiting their first promotion and must stay staged.
+                    // Reopen staged items whose draft audio was regenerated AFTER they were
+                    // approved. We compare the current draft timestamp against an approval
+                    // baseline captured when the item was staged — NOT against the -dev copy.
+                    // Comparing against -dev wrongly bounced approved items back to "To Be
+                    // Approved" whenever a stale, older copy still sat in -dev (the common
+                    // case for items re-approved with freshly generated audio that has not
+                    // yet been promoted). The first time we see a staged item without a
+                    // baseline we adopt its current draft timestamp, so it stays approved;
+                    // only a later regeneration (draft newer than the baseline) reopens it.
                     let reopenedCount = 0;
                     const stagedIds = this.getAllStagedApprovedIds(this.currentLangCode);
                     stagedIds.forEach(baseId => {
-                        const devUpdated = devInfo.updatedById?.get(baseId) || 0;
                         const draftUpdated = draftInfo.updatedById?.get(baseId) || 0;
-                        if (devUpdated > 0 && draftUpdated > devUpdated) {
+                        if (draftUpdated <= 0) return;
+                        let baseline = this.getApprovalBaseline(baseId, this.currentLangCode);
+                        if (!baseline) {
+                            this.setApprovalBaseline(baseId, draftUpdated, this.currentLangCode);
+                            baseline = draftUpdated;
+                        }
+                        if (draftUpdated > baseline) {
                             if (this.unstageApprovedItem(baseId, this.currentLangCode)) {
                                 reopenedCount++;
                             }
@@ -5919,6 +6115,7 @@
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
                 this.loadStagedApprovals(this.currentLangCode);
+                this.loadApprovalBaselines(this.currentLangCode);
                 await this.loadStagedApprovalsFromServer(this.currentLangCode);
                 this.loadCommonAudioTags();
                 this.renderCommonAudioTags();
@@ -6234,6 +6431,7 @@
 
             async switchTab(tab) {
                 this.currentTab = tab;
+                this.updateTaggingControlsForTab();
                 
                 // Update tab buttons
                 document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
@@ -6963,6 +7161,12 @@
                     if (payload?.tagsWritten) {
                         // Drop any cached path/list so subsequent tag reads see the rewritten file.
                         this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, normalizedBaseId);
+                    }
+                    // Record the approval baseline from the file's post-stamp timestamp so a
+                    // later refresh doesn't mistake the approval rewrite for a regeneration.
+                    const updatedTs = payload?.updatedAt ? Date.parse(payload.updatedAt) : NaN;
+                    if (Number.isFinite(updatedTs) && updatedTs > 0) {
+                        this.setApprovalBaseline(normalizedBaseId, updatedTs, this.currentLangCode);
                     }
                     return payload?.tagsWritten === true;
                 } catch (error) {
