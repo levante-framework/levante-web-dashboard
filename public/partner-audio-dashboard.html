@@ -5524,6 +5524,42 @@
                 return info.paths.get(normalizedBaseId) || null;
             }
 
+            async resolveApprovedAudioSource(baseId, langCode = this.currentLangCode, options = {}) {
+                // Resolves the {bucket, path} that represents the current approved audio
+                // for an item: the staged/draft newest version when staged, otherwise the
+                // newest of draft/dev. Returns versioned paths (e.g. *_v002.mp3) so callers
+                // act on the audio the approver actually approved, not a stale canonical copy.
+                const normalizedBaseId = this.extractBaseId(baseId || '') || String(baseId || '').trim().toLowerCase();
+                if (!normalizedBaseId) return { bucket: this.audioBuckets.dev, path: null };
+                const forceRefresh = options.forceRefresh === true;
+                const [draftInfo, devInfo] = await Promise.all([
+                    this.fetchAudioFileIds(this.audioBuckets.draft, langCode, { forceRefresh }),
+                    this.fetchAudioFileIds(this.audioBuckets.dev, langCode, { forceRefresh })
+                ]);
+                const draftPath = draftInfo.paths.get(normalizedBaseId) || null;
+                const devPath = devInfo.paths.get(normalizedBaseId) || null;
+                const draftUpdated = Number(draftInfo.updatedById?.get(normalizedBaseId) || 0);
+                const devUpdated = Number(devInfo.updatedById?.get(normalizedBaseId) || 0);
+                const isStagedApproved = this.getAllStagedApprovedIds(langCode).has(normalizedBaseId);
+
+                // Staged approvals represent the newest approved intent; use draft when present.
+                if (isStagedApproved && draftPath) {
+                    return { bucket: this.audioBuckets.draft, path: draftPath };
+                }
+
+                // If both exist, choose the newest copy.
+                if (draftPath && devPath) {
+                    return draftUpdated >= devUpdated
+                        ? { bucket: this.audioBuckets.draft, path: draftPath }
+                        : { bucket: this.audioBuckets.dev, path: devPath };
+                }
+
+                if (draftPath) return { bucket: this.audioBuckets.draft, path: draftPath };
+                if (devPath) return { bucket: this.audioBuckets.dev, path: devPath };
+
+                return { bucket: this.audioBuckets.dev, path: null };
+            }
+
             async resolvePlaybackSource(itemId, baseId) {
                 const normalizedBaseId = this.extractBaseId(baseId || itemId || '');
                 if (!normalizedBaseId) {
@@ -5542,33 +5578,8 @@
                     };
                 }
 
-                // Approved tab: prefer the most current approved source.
-                const [draftInfo, devInfo] = await Promise.all([
-                    this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode, { forceRefresh: true }),
-                    this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode, { forceRefresh: true })
-                ]);
-                const draftPath = draftInfo.paths.get(normalizedBaseId) || null;
-                const devPath = devInfo.paths.get(normalizedBaseId) || null;
-                const draftUpdated = Number(draftInfo.updatedById?.get(normalizedBaseId) || 0);
-                const devUpdated = Number(devInfo.updatedById?.get(normalizedBaseId) || 0);
-                const isStagedApproved = this.getAllStagedApprovedIds(this.currentLangCode).has(normalizedBaseId);
-
-                // Staged approvals represent the newest approved intent; use draft when present.
-                if (isStagedApproved && draftPath) {
-                    return { bucket: this.audioBuckets.draft, path: draftPath };
-                }
-
-                // If both exist, choose the newest copy.
-                if (draftPath && devPath) {
-                    return draftUpdated >= devUpdated
-                        ? { bucket: this.audioBuckets.draft, path: draftPath }
-                        : { bucket: this.audioBuckets.dev, path: devPath };
-                }
-
-                if (draftPath) return { bucket: this.audioBuckets.draft, path: draftPath };
-                if (devPath) return { bucket: this.audioBuckets.dev, path: devPath };
-
-                return { bucket: this.audioBuckets.dev, path: null };
+                // Approved tab: prefer the most current approved source (newest version).
+                return this.resolveApprovedAudioSource(normalizedBaseId, this.currentLangCode, { forceRefresh: true });
             }
 
             async loadApprovalStatus() {
@@ -7089,6 +7100,16 @@
                 return Boolean(detail.approver || detail.approvedAt || detail.enhancedText || detail.approvedText);
             }
 
+            mapId3TagsToApprovalDetail(id3Tags) {
+                const tags = id3Tags || {};
+                return {
+                    approver: String(tags.approved_by || '').trim(),
+                    approvedAt: String(tags.approved_at || '').trim(),
+                    enhancedText: String(tags.audio_enhanced_text || '').trim(),
+                    approvedText: String(tags.text || '').trim()
+                };
+            }
+
             async readApprovalTagsFromBucket(bucket, normalizedItemId, langCode) {
                 // Reads ID3 approval details for an item from a single bucket.
                 // Returns null when the file is missing or unreadable so callers can fall back.
@@ -7105,13 +7126,28 @@
                     if (!response.ok) return null;
                     const payload = await response.json().catch(() => ({}));
                     if (!payload || payload.error) return null;
-                    const id3Tags = payload?.id3Tags || {};
-                    return {
-                        approver: String(id3Tags?.approved_by || '').trim(),
-                        approvedAt: String(id3Tags?.approved_at || '').trim(),
-                        enhancedText: String(id3Tags?.audio_enhanced_text || '').trim(),
-                        approvedText: String(id3Tags?.text || '').trim()
-                    };
+                    return this.mapId3TagsToApprovalDetail(payload.id3Tags);
+                } catch (_error) {
+                    return null;
+                }
+            }
+
+            async readApprovalTagsByPath(bucket, path) {
+                // Reads ID3 approval details from an exact object path, preserving any
+                // version suffix (e.g. *_v002.mp3). Unlike the itemId lookup, this does not
+                // collapse to the unversioned canonical file, so it surfaces the tags on the
+                // version the approver actually approved.
+                if (!bucket || !path) return null;
+                try {
+                    const encodedPath = String(path).split('/').map(encodeURIComponent).join('/');
+                    const url = `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${encodedPath}`;
+                    const response = await fetch(`/api/read-tags?url=${encodeURIComponent(url)}`, {
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) return null;
+                    const payload = await response.json().catch(() => ({}));
+                    if (!payload || payload.error) return null;
+                    return this.mapId3TagsToApprovalDetail(payload.id3Tags);
                 } catch (_error) {
                     return null;
                 }
@@ -7121,9 +7157,23 @@
                 const emptyDetail = { approver: '', approvedAt: '', enhancedText: '', approvedText: '' };
                 if (!normalizedItemId) return emptyDetail;
 
-                // Prefer the approved (-dev) copy. Items that have been approved in the tool
-                // but not yet promoted to -dev still carry their ID3 details in -draft, so
-                // fall back to the draft bucket rather than showing blank details.
+                // Read tags from the actual newest approved version (e.g. *_v002.mp3) rather
+                // than the unversioned canonical file. read-tags?itemId collapses to the
+                // canonical path, which can still hold a stale, previously-promoted stamp;
+                // resolving the real approved source makes the Approved tab reflect what the
+                // approver approved (current approver/time + enhanced text).
+                try {
+                    const source = await this.resolveApprovedAudioSource(normalizedItemId, langCode);
+                    if (source && source.path) {
+                        const detail = await this.readApprovalTagsByPath(source.bucket, source.path);
+                        if (this.hasUsefulApprovalDetail(detail)) return detail;
+                    }
+                } catch (error) {
+                    console.warn('Approval detail source resolution failed:', error?.message || error);
+                }
+
+                // Fallback: legacy itemId lookup. Prefer the approved (-dev) copy, then -draft
+                // for items approved in the tool but not yet promoted.
                 const devDetail = await this.readApprovalTagsFromBucket(this.audioBuckets.dev, normalizedItemId, langCode);
                 if (this.hasUsefulApprovalDetail(devDetail)) return devDetail;
 
