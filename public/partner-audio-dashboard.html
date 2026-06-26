@@ -6770,32 +6770,23 @@
             }
 
             async getApprovedItemsFromDev(items) {
-                // Get approved items that exist in dev bucket
-                // Respects unapprovedItems set to exclude explicitly unapproved items
+                // Returns every approved item for the Approved tab.
+                // "Approved" includes both items promoted to -dev AND items approved in the
+                // tool but not yet promoted (staged). Staged approvals must show here too,
+                // otherwise an approved item appears stuck in "To Be Approved".
                 try {
-                    const devInfo = await this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode);
+                    // Refresh the approved set so newly staged approvals are reflected
+                    // immediately, even before promotion to -dev completes.
+                    this.recomputeApprovedItems();
                     const approvedItemIds = new Set(this.approvedItems);
-                    let excludedCount = 0;
-                    
-                    if (devInfo && devInfo.ids instanceof Set) {
-                        devInfo.ids.forEach(baseId => {
-                            if (!baseId) {
-                                return;
-                            }
-                            const approvedByRule = approvedItemIds.has(baseId) && !this.unapprovedItems.has(baseId);
-                            if (!approvedByRule) {
-                                excludedCount++;
-                                return;
-                            }
-                        });
-                    }
-                    
+
                     const approvedItemsList = items.filter(item => {
                         const baseId = this.extractBaseId(item.item_id || '');
-                        return baseId && approvedItemIds.has(baseId);
+                        if (!baseId) return false;
+                        return approvedItemIds.has(baseId) && !this.unapprovedItems.has(baseId);
                     });
-                    
-                    console.log(`Found ${approvedItemsList.length} approved items (${excludedCount} excluded by timestamp/unapproved rule)`);
+
+                    console.log(`Found ${approvedItemsList.length} approved items (staged + promoted)`);
                     return approvedItemsList;
                 } catch (error) {
                     console.error('Error getting approved items from dev:', error);
@@ -6875,41 +6866,8 @@
                 entry.loadingPromise = (async () => {
                     const targets = forceRefresh ? itemIds : missingIds;
                     await Promise.all(targets.map(async (normalizedItemId) => {
-                        try {
-                            const params = new URLSearchParams({
-                                bucket: this.audioBuckets.dev,
-                                strict: '1',
-                                langCode: normalizedLang,
-                                itemId: normalizedItemId
-                            });
-                            const response = await fetch(`/api/read-tags?${params.toString()}`, {
-                                cache: 'no-store'
-                            });
-                            if (!response.ok) {
-                                entry.byItem.set(normalizedItemId, {
-                                    approver: '',
-                                    approvedAt: '',
-                                    enhancedText: '',
-                                    approvedText: ''
-                                });
-                                return;
-                            }
-                            const payload = await response.json().catch(() => ({}));
-                            const id3Tags = payload?.id3Tags || {};
-                            entry.byItem.set(normalizedItemId, {
-                                approver: String(id3Tags?.approved_by || '').trim(),
-                                approvedAt: String(id3Tags?.approved_at || '').trim(),
-                                enhancedText: String(id3Tags?.audio_enhanced_text || '').trim(),
-                                approvedText: String(id3Tags?.text || '').trim()
-                            });
-                        } catch (_error) {
-                            entry.byItem.set(normalizedItemId, {
-                                approver: '',
-                                approvedAt: '',
-                                enhancedText: '',
-                                approvedText: ''
-                            });
-                        }
+                        const detail = await this.fetchApprovalDetailForItem(normalizedItemId, normalizedLang);
+                        entry.byItem.set(normalizedItemId, detail);
                     }));
                     entry.loadedAt = Date.now();
                     return entry.byItem;
@@ -6921,6 +6879,91 @@
                 });
 
                 return entry.loadingPromise;
+            }
+
+            hasUsefulApprovalDetail(detail) {
+                if (!detail) return false;
+                return Boolean(detail.approver || detail.approvedAt || detail.enhancedText || detail.approvedText);
+            }
+
+            async readApprovalTagsFromBucket(bucket, normalizedItemId, langCode) {
+                // Reads ID3 approval details for an item from a single bucket.
+                // Returns null when the file is missing or unreadable so callers can fall back.
+                try {
+                    const params = new URLSearchParams({
+                        bucket,
+                        strict: '1',
+                        langCode,
+                        itemId: normalizedItemId
+                    });
+                    const response = await fetch(`/api/read-tags?${params.toString()}`, {
+                        cache: 'no-store'
+                    });
+                    if (!response.ok) return null;
+                    const payload = await response.json().catch(() => ({}));
+                    if (!payload || payload.error) return null;
+                    const id3Tags = payload?.id3Tags || {};
+                    return {
+                        approver: String(id3Tags?.approved_by || '').trim(),
+                        approvedAt: String(id3Tags?.approved_at || '').trim(),
+                        enhancedText: String(id3Tags?.audio_enhanced_text || '').trim(),
+                        approvedText: String(id3Tags?.text || '').trim()
+                    };
+                } catch (_error) {
+                    return null;
+                }
+            }
+
+            async fetchApprovalDetailForItem(normalizedItemId, langCode) {
+                const emptyDetail = { approver: '', approvedAt: '', enhancedText: '', approvedText: '' };
+                if (!normalizedItemId) return emptyDetail;
+
+                // Prefer the approved (-dev) copy. Items that have been approved in the tool
+                // but not yet promoted to -dev still carry their ID3 details in -draft, so
+                // fall back to the draft bucket rather than showing blank details.
+                const devDetail = await this.readApprovalTagsFromBucket(this.audioBuckets.dev, normalizedItemId, langCode);
+                if (this.hasUsefulApprovalDetail(devDetail)) return devDetail;
+
+                const draftDetail = await this.readApprovalTagsFromBucket(this.audioBuckets.draft, normalizedItemId, langCode);
+                if (this.hasUsefulApprovalDetail(draftDetail)) return draftDetail;
+
+                return devDetail || draftDetail || emptyDetail;
+            }
+
+            invalidateApprovalDetailForItem(itemId, langCode = this.currentLangCode) {
+                const entry = this.getApprovalDetailsCacheEntry(langCode, false);
+                if (!entry || !(entry.byItem instanceof Map)) return;
+                const key = this.normalizeApprovalDetailItemId(itemId);
+                if (key) entry.byItem.delete(key);
+            }
+
+            async writeApprovalTagsToDraft(baseId, audioPath, approver, approvedAt) {
+                // Writes approved_by / approved_at ID3 tags onto the draft audio file so the
+                // approver and approval time are captured at the moment of approval.
+                const normalizedBaseId = this.extractBaseId(baseId || '');
+                if (!normalizedBaseId || !audioPath) return false;
+                try {
+                    const response = await fetch('/api/apply-approval-tags', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            bucket: this.audioBuckets.draft,
+                            path: audioPath,
+                            approver: String(approver || '').trim(),
+                            approvedAt: String(approvedAt || '').trim() || new Date().toISOString()
+                        })
+                    });
+                    if (!response.ok) return false;
+                    const payload = await response.json().catch(() => ({}));
+                    if (payload?.tagsWritten) {
+                        // Drop any cached path/list so subsequent tag reads see the rewritten file.
+                        this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, normalizedBaseId);
+                    }
+                    return payload?.tagsWritten === true;
+                } catch (error) {
+                    console.warn('Failed to write approval tags to draft:', error?.message || error);
+                    return false;
+                }
             }
 
             async renderItems(items) {
@@ -8390,9 +8433,21 @@
 
                     this.stageApprovedItem(baseId, this.findTaskNameForBaseId(baseId), this.currentLangCode);
                     this.recomputeApprovedItems();
+
+                    // Stamp approval metadata onto the draft audio immediately so the
+                    // approver/date are recorded at approval time, even before the item
+                    // is promoted to -dev. Failure here must not block the approval.
+                    const approvedAt = new Date().toISOString();
+                    const approver = String(this.currentUserEmail || '').trim();
+                    const approvalTagsWritten = await this.writeApprovalTagsToDraft(baseId, audioPath, approver, approvedAt);
+                    this.invalidateApprovalDetailForItem(baseId, this.currentLangCode);
+
                     await this.logApproverAudioEvent('approve_single_staged', itemId, {
                         saveBucket: this.audioBuckets.draft,
                         savePath: audioPath,
+                        approver,
+                        approvedAt,
+                        approvalTagsWritten,
                         hadPendingGeneratedAudio: false,
                         savedGeneratedAudio: false
                     });
