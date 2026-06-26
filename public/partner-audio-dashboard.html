@@ -5384,9 +5384,14 @@
 
             async loadApprovalStatus() {
                 try {
+                    // Always read fresh listings: approval status is authoritative and must
+                    // not be computed from a stale (CDN/browser) cache, otherwise items that
+                    // were just promoted to -dev (and removed from -draft) can incorrectly
+                    // remain in "To Be Approved". This also primes the in-memory cache with
+                    // fresh data for the tab filters that run later in the same render.
                     const [draftInfo, devInfo] = await Promise.all([
-                        this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode),
-                        this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode)
+                        this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode, { forceRefresh: true }),
+                        this.fetchAudioFileIds(this.audioBuckets.dev, this.currentLangCode, { forceRefresh: true })
                     ]);
                     this.devApprovedItems.clear();
                     let approvedCount = 0;
