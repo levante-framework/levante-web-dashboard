@@ -2527,6 +2527,19 @@
                     });
                     this.stagedApprovedByLang.set(normalized, taskMap);
                     this.saveStagedApprovals(langCode);
+                    // Adopt server-side approval baselines as authoritative.
+                    if (payload.baselines && typeof payload.baselines === 'object' && !Array.isArray(payload.baselines)) {
+                        const baselineMap = new Map();
+                        Object.entries(payload.baselines).forEach(([baseId, ts]) => {
+                            const normalizedId = this.extractBaseId(baseId);
+                            const numericTs = Number(ts);
+                            if (normalizedId && Number.isFinite(numericTs) && numericTs > 0) {
+                                baselineMap.set(normalizedId, numericTs);
+                            }
+                        });
+                        this.approvalBaselineByLang.set(normalized, baselineMap);
+                        this.saveApprovalBaselines(langCode, { sync: false });
+                    }
                     return taskMap;
                 } catch (_) {
                     return this.getStagedApprovalTaskMap(langCode);
@@ -2560,13 +2573,21 @@
                     const ids = Array.from(idSet).filter(Boolean);
                     if (ids.length > 0) tasks[taskName] = ids;
                 });
+                // Send approval baselines alongside the staged approvals so the
+                // reopen logic is shared across devices/users.
+                const baselineMap = this.getApprovalBaselineMap(langCode);
+                const baselines = {};
+                baselineMap.forEach((ts, baseId) => {
+                    if (baseId && Number.isFinite(ts) && ts > 0) baselines[baseId] = ts;
+                });
                 try {
                     await fetch('/api/partner-audio-staged-approvals', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             langCode: normalized,
-                            tasks
+                            tasks,
+                            baselines
                         })
                     });
                 } catch (_) {
@@ -2705,7 +2726,8 @@
                 return map;
             }
 
-            saveApprovalBaselines(langCode = this.currentLangCode) {
+            saveApprovalBaselines(langCode = this.currentLangCode, options = {}) {
+                const sync = options.sync !== false;
                 const map = this.getApprovalBaselineMap(langCode);
                 const payload = {};
                 map.forEach((ts, baseId) => {
@@ -2715,11 +2737,15 @@
                 try {
                     if (Object.keys(payload).length === 0) {
                         localStorage.removeItem(storageKey);
-                        return;
+                    } else {
+                        localStorage.setItem(storageKey, JSON.stringify(payload));
                     }
-                    localStorage.setItem(storageKey, JSON.stringify(payload));
                 } catch (_) {
                     // Ignore storage write failures.
+                }
+                // Persist to the shared server store alongside staged approvals.
+                if (sync) {
+                    this.queueStagedApprovalsSync(langCode);
                 }
             }
 
@@ -6089,8 +6115,8 @@
                 this.currentLanguage = language;
                 this.currentLangCode = langCode;
                 this.loadStagedApprovals(this.currentLangCode);
-                await this.loadStagedApprovalsFromServer(this.currentLangCode);
                 this.loadApprovalBaselines(this.currentLangCode);
+                await this.loadStagedApprovalsFromServer(this.currentLangCode);
                 this.loadCommonAudioTags();
                 this.renderCommonAudioTags();
                 this.resetNoAudioDebugInfo();
