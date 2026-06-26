@@ -232,6 +232,39 @@ async function readAudioMetadata(audioUrl) {
     }
 }
 
+// Resolve the actual stored object path for an item, tolerating case
+// differences and version suffixes (e.g. itemId "schoolhappy" -> SchoolHappy.mp3,
+// "item" -> item_v003.mp3). Returns the storage.googleapis.com URL or null.
+async function resolveCaseInsensitiveAudioUrl(bucketName, langCode, itemId, prefix) {
+    try {
+        const storage = await initializeGCS();
+        const bucket = storage.bucket(bucketName);
+        const folder = prefix ? `audio/${prefix}/${langCode}/` : `audio/${langCode}/`;
+        const [files] = await bucket.getFiles({ prefix: folder });
+        const target = String(itemId || '').trim().toLowerCase();
+        if (!target) return null;
+        const stripBase = (name) => String(name || '')
+            .split('/').pop()
+            .replace(/\.mp3$/i, '')
+            .replace(/_v\d{3}$/i, '')
+            .toLowerCase();
+        // Prefer an exact (canonical, unversioned) match; otherwise newest versioned.
+        let best = null;
+        (files || []).forEach((file) => {
+            const name = String(file?.name || '');
+            if (!name.toLowerCase().endsWith('.mp3')) return;
+            if (stripBase(name) !== target) return;
+            const updated = Date.parse(file.metadata?.updated || file.metadata?.timeCreated || '') || 0;
+            if (!best || updated >= best.updated) best = { name, updated };
+        });
+        if (!best) return null;
+        return `https://storage.googleapis.com/${encodeURIComponent(bucketName)}/${best.name.split('/').map(encodeURIComponent).join('/')}`;
+    } catch (err) {
+        console.warn('⚠️ Case-insensitive audio resolution failed:', err.message);
+        return null;
+    }
+}
+
 // List language prefixes under audio/ in the assets bucket
 async function listAudioLanguagesFromBucket(bucketName) {
     try {
@@ -411,6 +444,20 @@ export default async function handler(req, res) {
                 altMeta.note = 'Using legacy top-level path';
                 res.status(200).json(altMeta);
                 return;
+            }
+        }
+
+        if (metadata && metadata.error) {
+            // Case-insensitive / versioned resolution: the requested itemId casing
+            // may differ from the stored filename (e.g. schoolhappy vs SchoolHappy).
+            const resolvedUrl = await resolveCaseInsensitiveAudioUrl(targetBucket, langCode, itemId, prefix);
+            if (resolvedUrl) {
+                const resolvedMeta = await readAudioMetadata(resolvedUrl);
+                if (!resolvedMeta.error) {
+                    resolvedMeta.note = 'Resolved by case-insensitive filename match';
+                    res.status(200).json(resolvedMeta);
+                    return;
+                }
             }
         }
         
