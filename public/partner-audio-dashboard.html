@@ -617,6 +617,31 @@
             gap: 10px;
         }
 
+        .common-tags-panel.is-disabled .common-tags-header,
+        .common-tags-panel.is-disabled .common-tags-controls,
+        .common-tags-panel.is-disabled .common-tags-list {
+            opacity: 0.5;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .common-tags-disabled-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #92400e;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 8px 10px;
+        }
+
+        .common-tags-disabled-note[hidden] {
+            display: none;
+        }
+
         .common-tags-header {
             display: flex;
             align-items: center;
@@ -2068,7 +2093,10 @@
                 </button>
             </div>
         </div>
-        <div class="common-tags-panel">
+        <div class="common-tags-panel" id="commonTagsPanel">
+            <div class="common-tags-disabled-note" id="commonTagsDisabledNote" hidden>
+                <i class="fas fa-lock"></i> Tagging is disabled on the Approved tab. Switch to "To Be Approved" to edit tags.
+            </div>
             <div class="common-tags-header">
                 <div>
                     <div class="common-tags-title"><i class="fas fa-tags"></i> Common Audio Tags</div>
@@ -2780,6 +2808,10 @@
             }
 
             addCommonAudioTag(rawTag) {
+                if (this.isTaggingDisabledTab()) {
+                    this.setStatus('Tagging is disabled on the Approved tab.', 'warning');
+                    return;
+                }
                 const tag = String(rawTag || '').trim();
                 if (!tag) return;
                 const exists = this.commonAudioTags.some((existing) => String(existing || '').toLowerCase() === tag.toLowerCase());
@@ -2880,6 +2912,37 @@
                         }
                     });
                 }
+                this.updateTaggingControlsForTab();
+            }
+
+            // Tagging features are only valid where enhanced-audio text is editable
+            // (the To Be Approved / No Audio tabs). The Approved tab is read-only, so
+            // the entire Common Audio Tags panel is disabled there to prevent any edits
+            // (which would otherwise bump the draft timestamp and re-open approvals).
+            isTaggingDisabledTab() {
+                return this.currentTab === 'approved';
+            }
+
+            updateTaggingControlsForTab() {
+                const panel = document.getElementById('commonTagsPanel');
+                const note = document.getElementById('commonTagsDisabledNote');
+                if (!panel) return;
+                const disabled = this.isTaggingDisabledTab();
+                panel.classList.toggle('is-disabled', disabled);
+                if (note) note.hidden = !disabled;
+                panel.querySelectorAll('button, input, select').forEach((el) => {
+                    if (el.id === 'commonTagsDisabledNote') return;
+                    el.disabled = disabled;
+                    if (disabled) {
+                        el.setAttribute('tabindex', '-1');
+                    } else {
+                        el.removeAttribute('tabindex');
+                    }
+                });
+                if (!disabled) {
+                    // Restore the selection-dependent enabled state for apply/un-apply.
+                    this.refreshCommonTagBulkSelect();
+                }
             }
 
             refreshCommonTagBulkSelect() {
@@ -2898,9 +2961,11 @@
                 } else {
                     select.value = '';
                 }
+                const taggingDisabled = this.isTaggingDisabledTab();
                 const hasSelection = Boolean(String(select.value || '').trim());
-                if (applyBtn) applyBtn.disabled = !hasSelection;
-                if (unapplyBtn) unapplyBtn.disabled = !hasSelection;
+                if (taggingDisabled) select.disabled = true;
+                if (applyBtn) applyBtn.disabled = taggingDisabled || !hasSelection;
+                if (unapplyBtn) unapplyBtn.disabled = taggingDisabled || !hasSelection;
             }
 
             getVisibleEnhancedTextInputs() {
@@ -2930,6 +2995,10 @@
             }
 
             applySelectedCommonTagToDisplayedItems() {
+                if (this.isTaggingDisabledTab()) {
+                    this.setStatus('Tagging is disabled on the Approved tab.', 'warning');
+                    return;
+                }
                 const tag = this.getSelectedCommonTagForBulkAction();
                 if (!tag) return;
                 const inputs = this.getVisibleEnhancedTextInputs();
@@ -2959,6 +3028,10 @@
             }
 
             unapplySelectedCommonTagFromDisplayedItems() {
+                if (this.isTaggingDisabledTab()) {
+                    this.setStatus('Tagging is disabled on the Approved tab.', 'warning');
+                    return;
+                }
                 const tag = this.getSelectedCommonTagForBulkAction();
                 if (!tag) return;
                 const inputs = this.getVisibleEnhancedTextInputs();
@@ -6234,6 +6307,7 @@
 
             async switchTab(tab) {
                 this.currentTab = tab;
+                this.updateTaggingControlsForTab();
                 
                 // Update tab buttons
                 document.getElementById('tabPending').classList.toggle('active', tab === 'pending');
