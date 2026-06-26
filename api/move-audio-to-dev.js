@@ -78,8 +78,23 @@ async function applyApprovalId3Tags(file, { approver, approvedAt }) {
   }
 
   let userDefinedText = normalizeUserDefinedTextEntries(existingTags.userDefinedText);
-  userDefinedText = upsertUserDefinedTag(userDefinedText, 'approved_by', approverTag);
-  userDefinedText = upsertUserDefinedTag(userDefinedText, 'approved_at', approvedAtTag);
+
+  // Preserve an approval stamp written at per-item approval time. Promotion should
+  // not overwrite who/when the item was originally approved; only fill gaps.
+  const findExisting = (description) => {
+    const match = userDefinedText.find((entry) => entry.description === description);
+    return match ? match.value : '';
+  };
+  const existingApprover = findExisting('approved_by');
+  const existingApprovedAt = findExisting('approved_at');
+
+  userDefinedText = upsertUserDefinedTag(userDefinedText, 'approved_by', existingApprover || approverTag);
+  userDefinedText = upsertUserDefinedTag(userDefinedText, 'approved_at', existingApprovedAt || approvedAtTag);
+
+  // If nothing changed (stamp already present and no new values), skip the rewrite.
+  if (existingApprover && existingApprovedAt) {
+    return false;
+  }
 
   let taggedAudio = rawAudio;
   try {
