@@ -137,11 +137,22 @@ export default async function handler(req, res) {
       approvedAt: approvedAtTag
     });
 
+    // Return the file's current "updated" timestamp so the client can record an
+    // accurate approval baseline (used to detect later audio regenerations).
+    let updatedAt = '';
+    try {
+      const [metadata] = await file.getMetadata();
+      updatedAt = String(metadata?.updated || '');
+    } catch (_) {
+      updatedAt = '';
+    }
+
     res.status(200).json({
       success: true,
       bucket: bucketName,
       path: sanitizedPath,
       tagsWritten,
+      updatedAt,
       approver: approverTag,
       approvedAt: approvedAtTag
     });
