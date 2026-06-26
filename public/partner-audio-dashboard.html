@@ -3361,9 +3361,22 @@
                 }
             }
 
+            getEmbeddedEnhancedTextForItem(itemId) {
+                // Enhanced text (with audio tags) embedded in the existing audio file's
+                // audio_enhanced_text ID3 tag, surfaced from the approval-detail cache. Lets
+                // the To Be Approved tab show the same tags the Approved tab shows.
+                const detail = this.getApprovalDetailForItem(itemId, this.currentLangCode);
+                return String(detail?.enhancedText || '').trim();
+            }
+
             getEnhancedTextForItem(itemId, fallbackText = '') {
                 const entry = this.getEnhancedEntryForItem(itemId, String(fallbackText || '').trim());
                 if (entry && entry.text) return entry.text;
+                // No local enhanced edit: fall back to the enhanced text embedded in the
+                // existing audio so its tags stay visible (and reusable on regenerate)
+                // before the plain translation fallback.
+                const embedded = this.getEmbeddedEnhancedTextForItem(itemId);
+                if (embedded) return embedded;
                 return String(fallbackText || '');
             }
 
@@ -3456,6 +3469,7 @@
                     const item = (Array.isArray(this.data) ? this.data : []).find((entry) => String(entry?.item_id || '').trim() === itemId);
                     const translatedText = item ? String(this.getTextForItem(item, this.currentLangCode) || '').trim() : String(input.value || '').trim();
                     const enhancedEntry = this.getEnhancedEntryForItem(itemId, translatedText);
+                    const embeddedEnhanced = enhancedEntry ? '' : this.getEmbeddedEnhancedTextForItem(itemId);
                     const enhancedText = this.getEnhancedTextForItem(itemId, translatedText || '');
                     if (document.activeElement !== input && enhancedText !== input.value) {
                         input.value = enhancedText;
@@ -3464,7 +3478,7 @@
                     if (metaEl) {
                         const metaText = enhancedEntry
                             ? `${enhancedEntry.updatedBy ? `Edited by ${enhancedEntry.updatedBy}` : 'Edited'}${enhancedEntry.updatedAt ? ` • ${new Date(enhancedEntry.updatedAt).toLocaleString()}` : ''}`
-                            : 'Using translation text';
+                            : (embeddedEnhanced ? "Using existing audio's enhanced text" : 'Using translation text');
                         metaEl.textContent = metaText;
                     }
                 });
@@ -6208,6 +6222,7 @@
                     this.renderNoAudioItems(itemsToShow);
                     this.setStatus(`Finished loading - ${itemsToShow.length} items without audio`, 'success');
                 } else {
+                    await this.loadApprovalDetailsFromServer(itemsToShow, this.currentLangCode);
                     await this.renderPendingItems(itemsToShow);
                     if (itemsToShow.length === 0 && allItemsWithAudio.length > 0) {
                         const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
@@ -6912,6 +6927,7 @@
                 } else {
                     // For pending tab, get items from draft bucket (excluding approved)
                     const itemsWithAudio = await this.filterItemsWithAudio(taskFilteredTranslations);
+                    await this.loadApprovalDetailsFromServer(itemsWithAudio, this.currentLangCode);
                     await this.renderPendingItems(itemsWithAudio);
                     if (itemsWithAudio.length === 0) {
                         const approvedItemsList = await this.getApprovedItemsFromDev(taskFilteredTranslations);
@@ -7285,12 +7301,13 @@
                     const escapedItemId = this.escapeHtml(itemId);
                     const escapedSource = this.escapeHtml(sourceText);
                     const enhancedEntry = this.getEnhancedEntryForItem(itemId, translatedText || '');
+                    const embeddedEnhanced = enhancedEntry ? '' : this.getEmbeddedEnhancedTextForItem(itemId);
                     const enhancedText = this.getEnhancedTextForItem(itemId, translatedText || '');
                     const escapedTranslated = this.escapeHtml(translatedText || ''); // Ensure empty string if no translation
                     const escapedEnhancedText = this.escapeHtml(enhancedText || '');
                     const enhancedMetaText = enhancedEntry
                         ? `${enhancedEntry.updatedBy ? `Edited by ${enhancedEntry.updatedBy}` : 'Edited'}${enhancedEntry.updatedAt ? ` • ${new Date(enhancedEntry.updatedAt).toLocaleString()}` : ''}`
-                        : 'Using translation text';
+                        : (embeddedEnhanced ? "Using existing audio's enhanced text" : 'Using translation text');
                     const escapedEnhancedMeta = this.escapeHtml(enhancedMetaText);
                     const screenshotThumbHtml = this.buildScreenshotThumbHtml(itemId);
                     
