@@ -16,6 +16,15 @@ function getStorage() {
 	}
 }
 
+// Audio assets use regional locale folders (en-US, de-DE, nl-NL, ...).
+// Normalize legacy generic codes so dashboard writes always land in the
+// canonical folder and the stored lang_code tag matches the path.
+function toRegionalAudioLangCode(code) {
+	const c = String(code || '').trim();
+	const map = { 'en': 'en-US', 'en-us': 'en-US', 'de': 'de-DE', 'de-de': 'de-DE', 'nl': 'nl-NL', 'nl-nl': 'nl-NL' };
+	return map[c.toLowerCase()] || c;
+}
+
 export default async function handler(req, res) {
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -31,6 +40,7 @@ export default async function handler(req, res) {
 		if (!langCode || !itemId) {
 			return res.status(400).json({ success: false, error: 'bad_request', message: 'langCode and itemId are required' });
 		}
+		const audioLangCode = toRegionalAudioLangCode(langCode);
 
 		const b64 = audioBase64.replace(/^data:audio\/\w+;base64,/, '');
 		let audioBuffer;
@@ -52,14 +62,14 @@ export default async function handler(req, res) {
 
 		// Audio writes go to draft assets bucket under audio/<lang>/<item>.mp3
 		const bucketName = bucket || process.env.ASSETS_DRAFT_BUCKET || 'levante-assets-draft';
-		let objectPath = `audio/${langCode}/${itemId}.mp3`;
+		let objectPath = `audio/${audioLangCode}/${itemId}.mp3`;
 		let version = null;
 		const enableVersioning = versioning === true || versioning === 'true';
 
 		try {
 			const gcsBucket = storage.bucket(bucketName);
 			if (enableVersioning) {
-				const prefix = `audio/${langCode}/${itemId}`;
+				const prefix = `audio/${audioLangCode}/${itemId}`;
 				const [existingFiles] = await gcsBucket.getFiles({ prefix });
 				let maxVersion = 0;
 				existingFiles.forEach(file => {
@@ -90,7 +100,7 @@ export default async function handler(req, res) {
 		pushCustomTag('voice_id', resolvedVoiceId);
 		pushCustomTag('voiceId', resolvedVoiceId);
 		pushCustomTag('model_id', tags?.model_id);
-		pushCustomTag('lang_code', tags?.lang_code || langCode);
+		pushCustomTag('lang_code', toRegionalAudioLangCode(tags?.lang_code || langCode));
 		pushCustomTag('text', tags?.text);
 		pushCustomTag('original_translation_text', tags?.original_translation_text);
 		pushCustomTag('audio_enhanced_text', tags?.audio_enhanced_text);
@@ -102,7 +112,7 @@ export default async function handler(req, res) {
 		const id3 = {
 			title: tags?.title || itemId,
 			artist: tags?.artist || 'Levante Project',
-			album: tags?.album || langCode,
+			album: tags?.album || audioLangCode,
 			genre: tags?.genre || 'Speech Synthesis'
 		};
 		if (commentValue) {
@@ -124,7 +134,7 @@ export default async function handler(req, res) {
 			await file.save(audioBuffer, { contentType: 'audio/mpeg', resumable: false, public: false });
 			return res.status(200).json({ success: true, bucket: bucketName, path: objectPath, version });
 		} catch (e) {
-			return res.status(500).json({ success:false, error:'upload_failed', message:e.message, bucket: bucketName, path: objectPath || `audio/${langCode}/${itemId}.mp3` });
+			return res.status(500).json({ success:false, error:'upload_failed', message:e.message, bucket: bucketName, path: objectPath || `audio/${audioLangCode}/${itemId}.mp3` });
 		}
 	} catch (error) {
 		return res.status(500).json({ success: false, error: 'internal_error', message: error.message });
