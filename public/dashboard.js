@@ -3773,7 +3773,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 </div>
                             </div>
                         </div>
-                        <div class="audio-controls">
+                        <div class="audio-controls" style="display: none;">
                             <span class="edited-text-indicator" data-item-id="${escapedItemId}" title="Regen will use edited text from the text box">Edited text</span>
                             <button class="play-btn" onclick="playAudio('${escapedItemId}', '${langCode}')" title="Play existing audio">
                                 <i class="fas fa-play"></i>
