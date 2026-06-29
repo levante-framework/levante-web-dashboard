@@ -101,7 +101,7 @@
                     </div>
                 </div>
             </div>
-            <div class="controls-section" id="voiceToolsSection">
+            <div class="controls-section" id="voiceToolsSection" style="display: none;">
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                     <label style="margin: 0; font-weight: 600; color: var(--text-primary);"><i class="fas fa-volume-up"></i> Voice Tools:</label>
                     <button
@@ -318,7 +318,14 @@
             </div>
             
             <div class="tabs">
-                <div class="tab-buttons" id="tabButtons"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div class="tab-buttons" id="tabButtons"></div>
+                    <div style="padding-right: 15px;">
+                        <button type="button" class="btn btn-secondary btn-compact" id="toggleExternalScoresBtn" onclick="toggleExternalScores()">
+                            <i class="fas fa-flask"></i> Show ML QA Scores
+                        </button>
+                    </div>
+                </div>
             </div>
             <div id="tabContent"></div>
         </div>

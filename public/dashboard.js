@@ -185,6 +185,17 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
             }
 
             setupGlobalActions() {
+                if (window.hideMlQaScores === undefined) window.hideMlQaScores = true;
+                window.toggleExternalScores = () => {
+                    window.hideMlQaScores = !window.hideMlQaScores;
+                    const btn = document.getElementById('toggleExternalScoresBtn');
+                    if (btn) {
+                        btn.innerHTML = window.hideMlQaScores ? '<i class="fas fa-flask"></i> Show ML QA Scores' : '<i class="fas fa-flask"></i> Hide ML QA Scores';
+                    }
+                    if (window.dashboard) {
+                        window.dashboard.populateDataTable();
+                    }
+                };
                 setTimeout(() => this.bindCopyDraftLinkButton(), 0);
             }
 
@@ -969,6 +980,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
             }
 
             getEmbeddingAdvisoryEntry(itemId, langCode) {
+                if (window.hideMlQaScores) return null;
                 const rawItemId = String(itemId || '').trim();
                 if (!rawItemId) return null;
                 const candidates = [rawItemId];
