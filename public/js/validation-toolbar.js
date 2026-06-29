@@ -12,17 +12,9 @@
 				viewBtn.onclick=function(){ if(typeof showValidationSummaryReport==='function') showValidationSummaryReport(); };
 				viewBtn.title='View summary of all validation results';
 			}
-			// Add separate Audio Validation button (do not replace View report)
-			if(!bar.querySelector('.audio-validation-btn')){
-				const btn=document.createElement('button');
-				btn.className='btn btn-info btn-compact audio-validation-btn';
-				btn.innerHTML='<i class="fas fa-wave-square"></i> Audio Validation';
-				btn.title='Open ASR/Whisper validation report in a new tab';
-				btn.onclick=(e)=>{ e.preventDefault(); window.open('./audio-validation.html','_blank'); return false; };
-				const clearBtn=bar.querySelector('button[onclick*="clearCacheAndReload"]');
-				if(clearBtn&&clearBtn.parentElement===bar){ clearBtn.insertAdjacentElement('afterend', btn); }
-				else { bar.appendChild(btn); }
-			}
+			// Audio Validation button intentionally hidden; remove if a cached build injected it.
+			const existingAudioBtn=bar.querySelector('.audio-validation-btn');
+			if(existingAudioBtn){ existingAudioBtn.remove(); }
 			applied=true; return;
 		}catch(e){ console.warn('audio-validation toolbar init error', e); }
 	}
