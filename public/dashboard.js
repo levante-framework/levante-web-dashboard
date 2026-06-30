@@ -39,6 +39,13 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 this._unsavedValidationResolve = null;
                 this.sharedValidationSource = 'unknown';
                 this.loadedValidationLanguageCodes = new Set();
+                /** Deep clone of validation_results last confirmed in shared storage (basis for delta autosave). */
+                this.lastSharedSyncSnapshot = {};
+                /** Always-on two-way sync (delta autosave + periodic autoload) state. */
+                this.validationLiveSyncStarted = false;
+                this.validationLiveSyncTimer = null;
+                this.validationLiveSyncInFlight = false;
+                this.validationLiveSyncIntervalMs = 30000;
                 this.excludedValidationPrefixes = [
                     'main/Z_LEGACY_DO_NOT_TRANSLATE/',
                     'main/LEGACY_DO_NOT_TRANSLATE/'
@@ -2852,9 +2859,14 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     this.validation_results = {};
                 }
                 this.updateValidationSaveBaseline();
+                // Establish the delta-sync baseline (covers no-shared / static-JSON fallback paths
+                // where loadFromSharedStorage did not run).
+                this.captureSharedSyncSnapshot();
                 // First render runs in createTabs() before validation finishes loading; refresh so rows/summary match storage.
                 this.noteValidationResultsChanged();
                 this.populateDataTable();
+                // Keep this tab continuously in sync with the shared bucket (no manual Save/Load needed).
+                this.startValidationLiveSync();
             }
 
             /** Deterministic JSON for dirty-checking validation_results (sorted keys at every object level). */
@@ -3070,18 +3082,136 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 }
             }
 
+            /** Deep clone helper used for shared-sync snapshots. */
+            cloneValidationData(data) {
+                try {
+                    return typeof structuredClone === 'function'
+                        ? structuredClone(data)
+                        : JSON.parse(JSON.stringify(data || {}));
+                } catch (_) {
+                    try { return JSON.parse(JSON.stringify(data || {})); } catch (__) { return {}; }
+                }
+            }
+
+            /** Record the current validation_results as the last state confirmed in shared storage. */
+            captureSharedSyncSnapshot() {
+                this.lastSharedSyncSnapshot = this.cloneValidationData(this.validation_results || {});
+            }
+
+            /**
+             * Build a delta of validation_results vs the last shared-sync snapshot.
+             * Only changed/new item+language entries are included, so autosave posts a
+             * minimal payload the server merges per-item without clobbering other users.
+             */
+            buildSharedSaveDelta() {
+                const current = this.validation_results || {};
+                const snapshot = this.lastSharedSyncSnapshot || {};
+                const delta = {};
+                let touched = 0;
+                Object.keys(current).forEach((itemId) => {
+                    if (this.isExcludedValidationItemId(itemId)) return;
+                    const byLang = current[itemId];
+                    if (!byLang || typeof byLang !== 'object') return;
+                    const snapByLang = (snapshot[itemId] && typeof snapshot[itemId] === 'object') ? snapshot[itemId] : {};
+                    Object.keys(byLang).forEach((langCode) => {
+                        const entry = byLang[langCode];
+                        if (!entry || typeof entry !== 'object') return;
+                        const prev = snapByLang[langCode];
+                        if (prev === undefined
+                            || this.stableStringifyValidationResults(entry) !== this.stableStringifyValidationResults(prev)) {
+                            if (!delta[itemId]) delta[itemId] = {};
+                            delta[itemId][langCode] = entry;
+                            touched += 1;
+                        }
+                    });
+                });
+                return { delta, touched };
+            }
+
+            /** Fold a successfully-saved delta into the shared-sync snapshot. */
+            mergeDeltaIntoSyncSnapshot(delta) {
+                if (!delta || typeof delta !== 'object') return;
+                if (!this.lastSharedSyncSnapshot || typeof this.lastSharedSyncSnapshot !== 'object') this.lastSharedSyncSnapshot = {};
+                Object.keys(delta).forEach((itemId) => {
+                    const byLang = delta[itemId];
+                    if (!byLang || typeof byLang !== 'object') return;
+                    if (!this.lastSharedSyncSnapshot[itemId]) this.lastSharedSyncSnapshot[itemId] = {};
+                    Object.keys(byLang).forEach((langCode) => {
+                        this.lastSharedSyncSnapshot[itemId][langCode] = this.cloneValidationData(byLang[langCode]);
+                    });
+                });
+            }
+
+            /** Human-readable relative time for the sync indicator. */
+            formatAgo(ms) {
+                const s = Math.max(0, Math.round(ms / 1000));
+                if (s < 5) return 'just now';
+                if (s < 60) return `${s}s ago`;
+                const m = Math.round(s / 60);
+                if (m < 60) return `${m}m ago`;
+                const h = Math.round(m / 60);
+                return `${h}h ago`;
+            }
+
+            /** Update the always-on sync indicator. States: saving | synced | error. */
+            setSyncStatus(state, detail = '') {
+                this._syncState = state;
+                this._syncDetail = detail;
+                if (state === 'synced') this.lastValidationSyncAt = Date.now();
+                this.renderSyncStatus();
+            }
+
+            /** Re-render the sync indicator (also refreshes the relative "ago" label). */
+            renderSyncStatus() {
+                if (typeof document === 'undefined') return;
+                const el = document.getElementById('validationSyncStatus');
+                if (!el) return;
+                const state = this._syncState || 'synced';
+                let text;
+                let cls = 'val-sync-status';
+                let title = this._syncDetail || '';
+                if (state === 'saving') {
+                    text = '⏳ Saving…';
+                    cls += ' val-sync-saving';
+                    if (!title) title = 'Syncing your changes to shared team storage';
+                } else if (state === 'error') {
+                    text = '⚠️ Sync failed — retrying';
+                    cls += ' val-sync-error';
+                    if (!title) title = 'Will retry automatically on the next change or refresh';
+                } else {
+                    const ago = this.lastValidationSyncAt ? this.formatAgo(Date.now() - this.lastValidationSyncAt) : '';
+                    text = ago ? `✓ Synced ${ago}` : '✓ Synced';
+                    cls += ' val-sync-ok';
+                    if (!title) title = 'Validation changes save automatically and pull teammates\u2019 updates';
+                }
+                el.textContent = text;
+                el.className = cls;
+                el.title = title;
+            }
+
             async saveToSharedStorage(options = {}) {
                 const silent = options && options.silent === true;
+                const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                const elapsed = () => Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - startedAt);
                 try {
-                    console.log('🌐 Saving validation results to shared storage...');
-                    
+                    const { delta, touched } = this.buildSharedSaveDelta();
+                    if (touched === 0) {
+                        // Nothing changed since the last successful sync; skip the network round-trip.
+                        return true;
+                    }
+                    const langs = Array.from(new Set(
+                        Object.values(delta).flatMap((byLang) => Object.keys(byLang || {}))
+                    ));
+                    console.log(`[val-sync] save: posting delta of ${touched} entr${touched === 1 ? 'y' : 'ies'} (langs: ${langs.join(', ') || 'n/a'})`);
+                    this.setSyncStatus('saving');
+
                     const exportData = {
-                        validation_results: this.validation_results,
+                        validation_results: delta,
                         metadata: {
                             saved_by: 'Levante Cockpit Dashboard',
                             version: '1.0',
-                            total_items: Object.keys(this.validation_results).length,
-                            languages: Object.keys(this.languages),
+                            delta: true,
+                            touched_entries: touched,
                             saved_at: new Date().toISOString()
                         }
                     };
@@ -3095,19 +3225,87 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     });
 
                     if (response.ok) {
-                        const result = await response.json();
-                        console.log('✅ Successfully saved to shared storage:', result.metadata);
-                        if (!silent) this.setStatus('💾 Validation results saved to shared session storage for team access', 'success');
+                        const result = await response.json().catch(() => ({}));
+                        // The server merged this delta into shared storage; treat it as synced.
+                        this.mergeDeltaIntoSyncSnapshot(delta);
+                        // Keep the unsaved-changes baseline aligned so the leave-page guard stays quiet.
+                        this.updateValidationSaveBaseline();
+                        const sourceLabel = String(result?.source || 'gcs');
+                        console.log(`[val-sync] save OK: ${touched} entr${touched === 1 ? 'y' : 'ies'} → ${sourceLabel} in ${elapsed()}ms`);
+                        this.setSyncStatus('synced');
+                        if (!silent) this.setStatus('💾 Saved to shared team storage', 'success');
                         return true;
-                    } else {
-                        console.warn('⚠️ Failed to save to shared storage, but localStorage backup is available');
-                        return false;
                     }
+                    let body = '';
+                    try { body = await response.text(); } catch (_) { /* ignore */ }
+                    console.warn(`[val-sync] save FAILED: HTTP ${response.status} after ${elapsed()}ms — ${String(body).slice(0, 300)}`);
+                    this.setSyncStatus('error', `HTTP ${response.status}`);
+                    // Failures must be visible now that there is no manual Save button.
+                    this.setStatus(`⚠️ Save to shared storage failed (HTTP ${response.status}). Changes are kept locally and will retry.`, 'warning');
+                    return false;
                 } catch (error) {
-                    console.warn('⚠️ Could not save to shared storage:', error.message);
-                    // Don't throw error - localStorage save is the primary backup
+                    console.warn(`[val-sync] save ERROR after ${elapsed()}ms: ${error?.message || error}`);
+                    this.setSyncStatus('error', error?.message || 'network error');
+                    this.setStatus(`⚠️ Could not reach shared storage (${error?.message || 'network error'}). Changes are kept locally and will retry.`, 'warning');
+                    // Don't throw - localStorage save is the primary backup and the next change retries.
                     return false;
                 }
+            }
+
+            async liveSyncValidationFromShared() {
+                if (this.validationLiveSyncInFlight) return;
+                if (typeof document !== 'undefined' && document.hidden) return;
+                this.validationLiveSyncInFlight = true;
+                try {
+                    // Push any locally-pending edits up first so a remote merge never overwrites them.
+                    if (typeof window !== 'undefined' && typeof window.flushValidationAutoSave === 'function') {
+                        try { await window.flushValidationAutoSave(); } catch (_) { /* best effort */ }
+                    }
+                    const langCode = String(this.languages?.[this.currentLanguage]?.lang_code || '').trim();
+                    const before = this.stableStringifyValidationResults(this.validation_results);
+                    const loaded = await this.loadFromSharedStorage(langCode, { force: true });
+                    if (!loaded) {
+                        console.log(`[val-sync] poll: no shared payload for lang=${langCode || 'n/a'}`);
+                        return;
+                    }
+                    const after = this.stableStringifyValidationResults(this.validation_results);
+                    const changed = after !== before;
+                    console.log(`[val-sync] poll OK: lang=${langCode || 'n/a'} changed=${changed}`);
+                    this.setSyncStatus('synced');
+                    if (changed) {
+                        this.noteValidationResultsChanged();
+                        this.populateDataTable();
+                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    }
+                } catch (e) {
+                    console.warn(`[val-sync] poll FAILED: ${e?.message || e}`);
+                    this.setSyncStatus('error', e?.message || 'network error');
+                    this.setStatus(`⚠️ Could not pull latest team validations (${e?.message || 'network error'}). Will retry.`, 'warning');
+                } finally {
+                    this.validationLiveSyncInFlight = false;
+                }
+            }
+
+            startValidationLiveSync() {
+                if (this.validationLiveSyncStarted) return;
+                this.validationLiveSyncStarted = true;
+                const trigger = () => { this.liveSyncValidationFromShared(); };
+                if (this.validationLiveSyncTimer) clearInterval(this.validationLiveSyncTimer);
+                this.validationLiveSyncTimer = setInterval(() => {
+                    if (typeof document !== 'undefined' && document.hidden) return;
+                    this.liveSyncValidationFromShared();
+                }, this.validationLiveSyncIntervalMs);
+                // Lightweight ticker so the "Synced Xs ago" label stays current between syncs.
+                this.validationSyncLabelTimer = setInterval(() => this.renderSyncStatus(), 10000);
+                if (typeof document !== 'undefined') {
+                    document.addEventListener('visibilitychange', () => { if (!document.hidden) trigger(); });
+                }
+                if (typeof window !== 'undefined') {
+                    window.addEventListener('focus', trigger);
+                }
+                // Show an initial "synced" state (initial load already reconciled with shared).
+                this.setSyncStatus('synced');
+                console.log(`[val-sync] live sync enabled: poll every ${Math.round(this.validationLiveSyncIntervalMs / 1000)}s + on focus/visibility`);
             }
 
             buildCompactValidationResultsSnapshot() {
@@ -3306,6 +3504,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 : this.sharedValidationSource;
                         this.setStatus(`🌐 Loaded validation results from ${sourceLabel}`, this.sharedValidationSource === 'memory' ? 'warning' : 'success');
                         this.updateValidationSaveBaseline();
+                        // Any locally-pending edits were flushed before this load, so the merged
+                        // state now reflects shared storage — use it as the delta-sync baseline.
+                        this.captureSharedSyncSnapshot();
                         return true;
                     }
                 } catch (error) {
