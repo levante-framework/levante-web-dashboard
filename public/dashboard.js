@@ -47,6 +47,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 this.embeddingAdvisoryEnabled = (window.CONFIG?.embeddingAdvisoryEnabled !== false);
                 this.embeddingAdvisoryMeta = null;
                 this.embeddingAdvisoryByItem = {};
+                // levante-qa translation validation agent issues (translation-quality.json)
+                this.qaIssuesMeta = null;
+                this.qaIssuesByItem = {};
                 this.latestGeneratedAudio = null;
                 this.audioCopyright = DEFAULT_AUDIO_COPYRIGHT;
                 this.audioMetadataCache = new Map();
@@ -336,6 +339,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     // Load validation results from previous sessions (but don't apply yet)
                     await this.loadValidationResults();
                     await this.loadEmbeddingAdvisory();
+                    await this.loadTranslationQualityIssues();
                     
                     // Setup auto-save on page unload
                     this.setupAutoSave();
@@ -1001,6 +1005,103 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
 
                 for (let i = 0; i < candidates.length; i++) {
                     const byItem = this.embeddingAdvisoryByItem?.[candidates[i]];
+                    if (!byItem) continue;
+                    for (let j = 0; j < langCandidates.length; j++) {
+                        const code = langCandidates[j];
+                        if (byItem[code]) return byItem[code];
+                    }
+                }
+                return null;
+            }
+
+            getTranslationQualityIssuesUrls() {
+                const configured = window.CONFIG?.translationQualityUrl;
+                if (Array.isArray(configured)) return configured.filter(Boolean);
+                if (typeof configured === 'string' && configured.trim()) return [configured.trim()];
+                return ['./data/translation-quality.json'];
+            }
+
+            async loadTranslationQualityIssues() {
+                this.qaIssuesByItem = {};
+                this.qaIssuesMeta = null;
+                const urls = this.getTranslationQualityIssuesUrls();
+                for (const url of urls) {
+                    try {
+                        const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`, { cache: 'no-store' });
+                        if (!response.ok) continue;
+                        const payload = await response.json();
+                        const records = Array.isArray(payload?.records) ? payload.records : [];
+                        if (!records.length) continue;
+
+                        const index = {};
+                        const putIndex = (key, langCode, issue) => {
+                            const normalizedKey = String(key || '').trim();
+                            if (!normalizedKey) return;
+                            [normalizedKey, normalizedKey.toLowerCase()].forEach((k) => {
+                                if (!index[k]) index[k] = {};
+                                // Keep the most severe issue if multiple records collide on a key.
+                                const existing = index[k][langCode];
+                                if (!existing || (existing.tier === 'review' && issue.tier === 'likely_bad')) {
+                                    index[k][langCode] = issue;
+                                }
+                            });
+                        };
+                        let flaggedCount = 0;
+                        records.forEach((recordRaw) => {
+                            const record = recordRaw && typeof recordRaw === 'object' ? recordRaw : {};
+                            const tier = String(record.flag_tier || '').trim().toLowerCase();
+                            if (tier !== 'likely_bad' && tier !== 'review') return;
+                            const itemId = String(record.item_id || '').trim();
+                            const langCode = String(record.target_lang || '').trim();
+                            if (!itemId || !langCode) return;
+                            const issue = {
+                                itemId,
+                                langCode,
+                                tier,
+                                reasons: String(record.reasons || '').trim(),
+                                task: String(record.task || '').trim(),
+                            };
+                            putIndex(itemId, langCode, issue);
+                            // Dashboard ids are often "path::key"; the QA artifact carries the short "key".
+                            if (itemId.includes('::')) {
+                                const tail = String(itemId.split('::').pop() || '').trim();
+                                if (tail) putIndex(tail, langCode, issue);
+                            }
+                            flaggedCount++;
+                        });
+                        this.qaIssuesByItem = index;
+                        this.qaIssuesMeta = {
+                            sourceUrl: url,
+                            generatedAt: payload?.generated_at || null,
+                            flaggedCount,
+                        };
+                        console.log(`✅ Loaded levante-qa translation issues: ${flaggedCount} flagged from ${url}`);
+                        return true;
+                    } catch (error) {
+                        console.log(`Translation-quality issues load skipped for ${url}:`, error?.message || error);
+                    }
+                }
+                console.log('No translation-quality artifact found; continuing without QA issue flags.');
+                return false;
+            }
+
+            getQaIssueForItem(itemId, langCode) {
+                const rawItemId = String(itemId || '').trim();
+                if (!rawItemId) return null;
+                const candidates = [rawItemId, rawItemId.toLowerCase()];
+                if (rawItemId.includes('::')) {
+                    const tail = String(rawItemId.split('::').pop() || '').trim();
+                    if (tail) candidates.push(tail, tail.toLowerCase());
+                }
+
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const langCandidates = [langCode, preferred, ...aliases]
+                    .map((code) => String(code || '').trim())
+                    .filter(Boolean);
+
+                for (let i = 0; i < candidates.length; i++) {
+                    const byItem = this.qaIssuesByItem?.[candidates[i]];
                     if (!byItem) continue;
                     for (let j = 0; j < langCandidates.length; j++) {
                         const code = langCandidates[j];
@@ -3710,6 +3811,21 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         const advisoryDatasetLabel = advisoryDataset ? ` ${escapeHtml(advisoryDataset)}` : '';
                         embeddingRowHtml = `<div class="item-embedding-score ${rowStatusClass}" title="${escapeHtml(advisoryTitle)}"><span class="item-embedding-label">Embedding${advisoryDatasetLabel}:</span> <span class="item-embedding-value">${advisoryScoreRounded}%</span> <span class="item-embedding-status">(${advisoryLabel})</span></div>`;
                     }
+                    // levante-qa validation agents: show a red button only when an issue was detected,
+                    // linking to that item's record on the Translation Quality report.
+                    let qaIssueHtml = '';
+                    const qaIssue = this.getQaIssueForItem(itemId, langCode);
+                    if (qaIssue) {
+                        const issueLang = String(qaIssue.langCode || langCode || '').trim();
+                        const issueHref = `./translation-quality.html?item=${encodeURIComponent(qaIssue.itemId || itemId)}&lang=${encodeURIComponent(issueLang)}`;
+                        const issueLabel = qaIssue.tier === 'likely_bad' ? 'Likely issue' : 'Review issue';
+                        const issueTitleParts = [
+                            'levante-qa flagged this translation',
+                            qaIssue.tier ? `Tier: ${qaIssue.tier}` : '',
+                            qaIssue.reasons ? `Reasons: ${qaIssue.reasons}` : ''
+                        ].filter(Boolean);
+                        qaIssueHtml = `<a class="qa-issue-btn" href="${issueHref}" target="_blank" rel="noopener" title="${escapeHtml(issueTitleParts.join(' | '))}" onclick="event.stopPropagation();"><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(issueLabel)}</a>`;
+                    }
                     const manualApproved = this.isManualApprovedEntry(storedResult);
                     approvedHtml = `<label class="approved-toggle-label" title="Manual approval sets score to 100% and marks source as Manual" style="display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; color: ${manualApproved ? '#2e7d32' : '#6c757d'}; cursor: pointer;"><input type="checkbox" class="approved-checkbox" data-item-id="${escapedItemId}" data-lang-code="${langCode}" ${manualApproved ? 'checked' : ''} onchange="window.setManualApprovalForValidation && window.setManualApprovalForValidation('${escapedItemId}', '${langCode}', this.checked, this.closest('.data-row'))" style="cursor: pointer;">Approved</label>`;
                     
@@ -3738,6 +3854,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 <span class="item-type" title="${escapedTypeName}">${escapedTypeName}</span>
                             </div>
                             ${embeddingRowHtml}
+                            ${qaIssueHtml}
                         </div>
                         <div class="item-english">
                             <div class="item-english-source">${escapedOriginalText}</div>

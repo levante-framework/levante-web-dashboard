@@ -100,6 +100,7 @@
       .item.tier-likely_bad { border-left: 6px solid var(--color-danger, #e25555); }
       .item.tier-review { border-left: 6px solid #e0a800; }
       .item.tier-ok { border-left: 6px solid var(--color-success, #38a169); }
+      .item.qa-deeplink-highlight { outline: 3px solid var(--color-danger, #e25555); outline-offset: 2px; box-shadow: 0 0 0 6px rgba(226, 85, 85, 0.18); }
       .item-row { display: flex; gap: 16px; align-items: flex-start; }
       .item-shot {
         flex: 0 0 192px;
@@ -268,7 +269,7 @@
             `<img loading="lazy" src="${esc(r.screenshot)}" alt="screenshot for ${esc(r.item_id)}"></a></div>`
           : "";
         return (
-          `<div class="item tier-${esc(r.flag_tier)}"><div class="item-row">` +
+          `<div class="item tier-${esc(r.flag_tier)}" data-item-id="${esc(r.item_id)}" data-lang="${esc(r.target_lang)}"><div class="item-row">` +
           shot +
           `<div class="item-body">` +
           `<h3><code>${esc(r.item_id)}</code> &mdash; ${esc(r.task || "unknown")} ` +
@@ -344,12 +345,44 @@
         }
       }
 
+      function focusFromUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        const item = (params.get("item") || "").trim();
+        const lang = (params.get("lang") || "").trim();
+        if (!item) return;
+        // The dashboard passes "path::key" or short ids; match on the short tail.
+        const itemTail = item.includes("::") ? item.split("::").pop() : item;
+        const searchEl = document.getElementById("search");
+        searchEl.value = itemTail;
+        document.getElementById("tierFilter").value = "flagged";
+        const langSel = document.getElementById("langFilter");
+        if (lang && [...langSel.options].some((o) => o.value === lang)) {
+          langSel.value = lang;
+        }
+        apply();
+        // Scroll to and highlight the matching card.
+        const needle = itemTail.toLowerCase();
+        const cards = [...document.querySelectorAll("#cards .item")];
+        const match = cards.find((c) => {
+          const id = (c.getAttribute("data-item-id") || "").toLowerCase();
+          const cardLang = (c.getAttribute("data-lang") || "").toLowerCase();
+          const idOk = id === needle || id.endsWith("::" + needle) || id.includes(needle);
+          const langOk = !lang || cardLang === lang.toLowerCase();
+          return idOk && langOk;
+        }) || cards[0];
+        if (match) {
+          match.scrollIntoView({ behavior: "smooth", block: "center" });
+          match.classList.add("qa-deeplink-highlight");
+          setTimeout(() => match.classList.remove("qa-deeplink-highlight"), 4000);
+        }
+      }
+
       ["tierFilter", "langFilter", "taskFilter"].forEach((id) =>
         document.getElementById(id).addEventListener("change", apply)
       );
       document.getElementById("search").addEventListener("input", apply);
       document.getElementById("refreshBtn").addEventListener("click", load);
-      load();
+      load().then(focusFromUrlParams);
     </script>
   </body>
 </html>
