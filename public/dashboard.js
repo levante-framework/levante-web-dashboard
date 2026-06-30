@@ -57,6 +57,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 // levante-qa translation validation agent issues (translation-quality.json)
                 this.qaIssuesMeta = null;
                 this.qaIssuesByItem = {};
+                // Back-translations from the same levante-qa artifact (any tier), used as a
+                // display fallback when the dashboard has no locally-generated back-translation.
+                this.qaBackTranslationByItem = {};
                 this.latestGeneratedAudio = null;
                 this.audioCopyright = DEFAULT_AUDIO_COPYRIGHT;
                 this.audioMetadataCache = new Map();
@@ -1030,6 +1033,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
 
             async loadTranslationQualityIssues() {
                 this.qaIssuesByItem = {};
+                this.qaBackTranslationByItem = {};
                 this.qaIssuesMeta = null;
                 const urls = this.getTranslationQualityIssuesUrls();
                 for (const url of urls) {
@@ -1053,36 +1057,72 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 }
                             });
                         };
+                        const btIndex = {};
+                        const putBt = (key, langCode, bt) => {
+                            const normalizedKey = String(key || '').trim();
+                            if (!normalizedKey) return;
+                            const langKeys = Array.from(new Set([langCode, String(langCode || '').toLowerCase()].filter(Boolean)));
+                            [normalizedKey, normalizedKey.toLowerCase()].forEach((k) => {
+                                if (!btIndex[k]) btIndex[k] = {};
+                                langKeys.forEach((lk) => {
+                                    if (!btIndex[k][lk]) btIndex[k][lk] = bt;
+                                });
+                            });
+                        };
                         let flaggedCount = 0;
+                        let backTranslationCount = 0;
                         records.forEach((recordRaw) => {
                             const record = recordRaw && typeof recordRaw === 'object' ? recordRaw : {};
+                            const recordItemId = String(record.item_id || '').trim();
+                            const recordLang = String(record.target_lang || '').trim();
+
+                            // Back-translation fallback index: keep for every tier (including "ok"),
+                            // so the dashboard can show levante-qa back-translations even when the
+                            // local validation store has none.
+                            const backText = String(record.back_translation || '').trim();
+                            if (recordItemId && recordLang && backText) {
+                                const bt = {
+                                    itemId: recordItemId,
+                                    langCode: recordLang,
+                                    backTranslation: backText,
+                                    qualityScore: Number(record.quality_score),
+                                    tier: String(record.flag_tier || '').trim().toLowerCase(),
+                                };
+                                putBt(recordItemId, recordLang, bt);
+                                if (recordItemId.includes('::')) {
+                                    const tail = String(recordItemId.split('::').pop() || '').trim();
+                                    if (tail) putBt(tail, recordLang, bt);
+                                }
+                                backTranslationCount++;
+                            }
+
                             const tier = String(record.flag_tier || '').trim().toLowerCase();
                             if (tier !== 'likely_bad' && tier !== 'review') return;
-                            const itemId = String(record.item_id || '').trim();
-                            const langCode = String(record.target_lang || '').trim();
-                            if (!itemId || !langCode) return;
+                            if (!recordItemId || !recordLang) return;
                             const issue = {
-                                itemId,
-                                langCode,
+                                itemId: recordItemId,
+                                langCode: recordLang,
                                 tier,
                                 reasons: String(record.reasons || '').trim(),
                                 task: String(record.task || '').trim(),
                             };
-                            putIndex(itemId, langCode, issue);
+                            putIndex(recordItemId, recordLang, issue);
                             // Dashboard ids are often "path::key"; the QA artifact carries the short "key".
-                            if (itemId.includes('::')) {
-                                const tail = String(itemId.split('::').pop() || '').trim();
-                                if (tail) putIndex(tail, langCode, issue);
+                            if (recordItemId.includes('::')) {
+                                const tail = String(recordItemId.split('::').pop() || '').trim();
+                                if (tail) putIndex(tail, recordLang, issue);
                             }
                             flaggedCount++;
                         });
                         this.qaIssuesByItem = index;
+                        this.qaBackTranslationByItem = btIndex;
                         this.qaIssuesMeta = {
                             sourceUrl: url,
                             generatedAt: payload?.generated_at || null,
                             flaggedCount,
+                            backTranslationCount,
                         };
-                        console.log(`✅ Loaded levante-qa translation issues: ${flaggedCount} flagged from ${url}`);
+                        console.log(`✅ Loaded levante-qa translation data: ${flaggedCount} flagged, ${backTranslationCount} back-translations from ${url}`);
                         return true;
                     } catch (error) {
                         console.log(`Translation-quality issues load skipped for ${url}:`, error?.message || error);
@@ -1109,6 +1149,34 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
 
                 for (let i = 0; i < candidates.length; i++) {
                     const byItem = this.qaIssuesByItem?.[candidates[i]];
+                    if (!byItem) continue;
+                    for (let j = 0; j < langCandidates.length; j++) {
+                        const code = langCandidates[j];
+                        if (byItem[code]) return byItem[code];
+                    }
+                }
+                return null;
+            }
+
+            getQaBackTranslationForItem(itemId, langCode) {
+                const rawItemId = String(itemId || '').trim();
+                if (!rawItemId) return null;
+                const candidates = [rawItemId, rawItemId.toLowerCase()];
+                if (rawItemId.includes('::')) {
+                    const tail = String(rawItemId.split('::').pop() || '').trim();
+                    if (tail) candidates.push(tail, tail.toLowerCase());
+                }
+
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const langCandidates = Array.from(new Set([langCode, preferred, ...aliases]
+                    .flatMap((code) => {
+                        const trimmed = String(code || '').trim();
+                        return trimmed ? [trimmed, trimmed.toLowerCase()] : [];
+                    })));
+
+                for (let i = 0; i < candidates.length; i++) {
+                    const byItem = this.qaBackTranslationByItem?.[candidates[i]];
                     if (!byItem) continue;
                     for (let j = 0; j < langCandidates.length; j++) {
                         const code = langCandidates[j];
@@ -3883,16 +3951,29 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const translationUpdated = requiresRevalidation
                         && (changeKind === 'translation' || changeKind === 'source+translation');
                     const reviewReason = storedResult?.reason || '';
-                    const backTranslation = storedResult?.backTranslation || '';
                     const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    const hasBackTranslation = !!String(backTranslation).trim();
-                    const backTranslationDisplayText = hasBackTranslation
-                        ? String(backTranslation).trim()
-                        : 'Back-translation unavailable (click View Results to generate)';
+                    const storedBackTranslation = String(storedResult?.backTranslation || '').trim();
+                    // Fall back to the levante-qa artifact when the local store has no back-translation.
+                    const qaBack = storedBackTranslation ? null : this.getQaBackTranslationForItem(itemId, langCode);
+                    const qaBackText = qaBack ? String(qaBack.backTranslation || '').trim() : '';
+                    const fromQa = !storedBackTranslation && !!qaBackText;
+                    const effectiveBackTranslation = storedBackTranslation || qaBackText;
+                    const hasBackTranslation = !!effectiveBackTranslation;
                     const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined) && !requiresRevalidation;
                     let backTranslationHtml = '';
-                    if (hasAnyStoredScore) {
-                        backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`;
+                    if (hasAnyStoredScore || hasBackTranslation) {
+                        if (fromQa) {
+                            const qaScorePct = Number.isFinite(Number(qaBack.qualityScore))
+                                ? `${Math.round(Number(qaBack.qualityScore) * 100)}%`
+                                : '';
+                            const qaTitle = ['Back-translation from levante-qa',
+                                qaBack.tier ? `Tier: ${qaBack.tier}` : '',
+                                qaScorePct ? `QA score: ${qaScorePct}` : ''].filter(Boolean).join(' | ');
+                            backTranslationHtml = `<div class="item-backtranslation item-backtranslation-qa" title="${escapeHtml(qaTitle)}"><span class="bt-source-tag" title="${escapeHtml(qaTitle)}">levante-qa</span> ${escapeHtml(qaBackText)}</div>`;
+                        } else {
+                            const displayText = effectiveBackTranslation || 'Back-translation unavailable (click View Results to generate)';
+                            backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(displayText)}</div>`;
+                        }
                     } else if (requiresRevalidation && canValidateTranslation) {
                         backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing" title="Back-translation">Validation is stale after translation update — click Revalidate to regenerate back-translation.</div>`;
                     } else if (canValidateTranslation) {
