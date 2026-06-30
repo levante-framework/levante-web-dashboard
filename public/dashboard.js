@@ -1087,6 +1087,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                     backTranslation: backText,
                                     qualityScore: Number(record.quality_score),
                                     tier: String(record.flag_tier || '').trim().toLowerCase(),
+                                    // The translation text the QA run actually back-translated; used to
+                                    // detect whether the current translation has changed since.
+                                    targetText: String(record.target_text || '').trim(),
                                 };
                                 putBt(recordItemId, recordLang, bt);
                                 if (recordItemId.includes('::')) {
@@ -1184,6 +1187,18 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     }
                 }
                 return null;
+            }
+
+            getQaArtifactDateLabel() {
+                const raw = this.qaIssuesMeta?.generatedAt;
+                if (!raw) return '';
+                const date = new Date(raw);
+                if (Number.isNaN(date.getTime())) return '';
+                try {
+                    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                } catch (_) {
+                    return date.toISOString().slice(0, 10);
+                }
             }
 
             getCanonicalAudioLangCode(langCode) {
@@ -3957,11 +3972,25 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const qaBack = storedBackTranslation ? null : this.getQaBackTranslationForItem(itemId, langCode);
                     const qaBackText = qaBack ? String(qaBack.backTranslation || '').trim() : '';
                     const fromQa = !storedBackTranslation && !!qaBackText;
+                    // A levante-qa back-translation is out of date when the current translation no
+                    // longer matches the translation the QA run back-translated.
+                    const qaStale = fromQa
+                        && !!String(qaBack.targetText || '').trim()
+                        && this.normalizeComparableText(text) !== this.normalizeComparableText(qaBack.targetText);
                     const effectiveBackTranslation = storedBackTranslation || qaBackText;
                     const hasBackTranslation = !!effectiveBackTranslation;
                     const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined) && !requiresRevalidation;
                     let backTranslationHtml = '';
-                    if (hasAnyStoredScore || hasBackTranslation) {
+                    if (fromQa && qaStale) {
+                        const qaDate = this.getQaArtifactDateLabel();
+                        const staleTitle = [
+                            'Back-translation is out of date',
+                            'The translation changed since the levante-qa run' + (qaDate ? ` (${qaDate})` : ''),
+                            'Click Validate to regenerate a current back-translation.',
+                            `Outdated levante-qa back-translation: ${qaBackText}`
+                        ].join(' — ');
+                        backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing item-backtranslation-stale" title="${escapeHtml(staleTitle)}"><span class="bt-source-tag bt-source-stale" title="${escapeHtml(staleTitle)}">out of date</span> Back-translation is out of date${qaDate ? ` (translation changed since the levante-qa run on ${escapeHtml(qaDate)})` : ' (translation changed since the levante-qa run)'} — click Validate to refresh.</div>`;
+                    } else if (hasAnyStoredScore || hasBackTranslation) {
                         if (fromQa) {
                             const qaScorePct = Number.isFinite(Number(qaBack.qualityScore))
                                 ? `${Math.round(Number(qaBack.qualityScore) * 100)}%`

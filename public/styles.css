@@ -149,6 +149,8 @@ body { font-family: var(--font-sans); background: var(--color-bg); background-im
 .item-backtranslation-missing { color: var(--text-muted); border-left-color: var(--border-default); font-style: italic; }
 .item-backtranslation-qa { border-left-color: var(--accent-strong); }
 .item-backtranslation-qa .bt-source-tag { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--accent-strong); font-size: 0.85em; font-weight: 700; letter-spacing: 0.03em; vertical-align: baseline; }
+.item-backtranslation-stale { border-left-color: var(--color-warning, #c77700); color: var(--color-warning, #c77700); font-style: normal; }
+.item-backtranslation-stale .bt-source-stale { background: var(--color-warning-soft, #fdf1dd); color: var(--color-warning, #c77700); }
 .item-task { background: var(--accent-soft); padding: 2px 6px; border-radius: var(--radius-pill); font-size: 0.7em; color: var(--accent-strong); white-space: nowrap; letter-spacing: 0.05em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 
 /* Audio Controls */
