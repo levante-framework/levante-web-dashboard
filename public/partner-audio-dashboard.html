@@ -7879,6 +7879,29 @@
                 }
             }
 
+            syncEnhancedTextFieldToVersion(itemId, enhancedText) {
+                // Keep the Enhanced Audio field in lockstep with the version now selected for
+                // save/approve. Empty enhanced text clears the local + shared override so the
+                // field falls back to the embedded tag / plain translation (option a). This
+                // prevents a stale tag edit (e.g. an accent) from lingering after the approver
+                // switches to a different comparison version that does not use it.
+                if (this.isTaggingDisabledTab && this.isTaggingDisabledTab()) return;
+                const normalized = String(enhancedText || '').trim();
+                const item = (Array.isArray(this.data) ? this.data : [])
+                    .find((entry) => String(entry?.item_id || '').trim() === String(itemId || '').trim());
+                const sourceTranslationText = item
+                    ? String(this.getTextForItem(item, this.currentLangCode) || '').trim()
+                    : '';
+                this.setEnhancedTextForItem(itemId, normalized, { userEdited: false, sourceTranslationText });
+                this.queueEnhancedTextServerSync(itemId, normalized, { userEdited: false, sourceTranslationText });
+                try {
+                    const safeId = (window.CSS && typeof CSS.escape === 'function') ? CSS.escape(itemId) : String(itemId);
+                    document.querySelectorAll(`.audio-enhanced-input[data-item-id="${safeId}"]`).forEach((input) => {
+                        input.value = normalized || this.getEnhancedTextForItem(itemId, sourceTranslationText);
+                    });
+                } catch (_) { /* visible-field refresh is best-effort */ }
+            }
+
             useCompareSlot(itemId, slotIndex) {
                 const state = this.getCompareState(itemId, false);
                 const slot = state?.slots?.[slotIndex];
@@ -7894,6 +7917,9 @@
                 this.latestGeneratedAudio = nextAudio;
                 this.pendingSaveKey = `${this.currentLangCode}::${itemId}`;
                 state.activeIndex = Number(slotIndex);
+                // Reset the Enhanced Audio field to this version's actual enhanced text so the
+                // editor never shows a tag (e.g. accent) that isn't in the audio about to be saved.
+                this.syncEnhancedTextFieldToVersion(itemId, nextAudio.audioEnhancedText);
                 this.refreshCompareControlsForItem(itemId);
                 this.updateSaveButtonStates();
                 this.setStatus(`Compare slot #${Number(slotIndex) + 1} is now current for save actions.`, 'success');
