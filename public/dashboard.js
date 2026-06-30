@@ -1375,14 +1375,17 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const itemId = item?.item_id || item?.identifier || '';
                     const storedResult = this.getCachedValidationEntry(entryCache, item, normalizedLang);
                     const requiresRevalidation = storedResult?.requiresRevalidation === true;
+                    // Manual approval is authoritative: a human-approved item counts as approved
+                    // even if its text later changed (requiresRevalidation). See "fix manual approvals".
+                    const manualApproved = this.isManualApprovedEntry(storedResult);
                     if (storedResult?.needsReview === true) needsReview++;
-                    if (!requiresRevalidation && this.isManualApprovedEntry(storedResult)) approved++;
+                    if (manualApproved) approved++;
 
                     const translatedText = this.extractTextForItem(item || {}, normalizedLang);
                     const hasTranslatedText = !!String(translatedText || '').trim();
                     const canValidateTranslation = isSourceEnglishTab || hasTranslatedText;
 
-                    if (requiresRevalidation) {
+                    if (requiresRevalidation && !manualApproved) {
                         pending++;
                         return;
                     }
@@ -3831,8 +3834,8 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     
                     row.dataset.score = scoreValue;
                     row.dataset.needsReview = needsReview ? '1' : '0';
-                    row.dataset.approved = (!requiresRevalidation && manualApproved) ? '1' : '0';
-                    if (!requiresRevalidation && manualApproved) {
+                    row.dataset.approved = manualApproved ? '1' : '0';
+                    if (manualApproved) {
                         row.style.outline = '2px solid rgba(76,175,80,0.45)';
                         row.style.outlineOffset = '-2px';
                         row.style.background = 'rgba(46,125,50,0.08)';
@@ -3870,14 +3873,14 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 </div>
                                 ${scoreBadgeHtml}
                                 ${sourceBadgeHtml}
-                                ${requiresRevalidation
+                                ${(requiresRevalidation && !manualApproved)
                                     ? (
                                         translationUpdated
                                             ? '<span class="translation-updated-indicator" title="Translation changed since the previous reviewed/validated version." style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#0d47a1; background:#e3f2fd; border:1px solid #90caf9; border-radius:4px; padding:1px 6px;">🆕 Updated</span>'
                                             : '<span class="stale-validation-indicator" title="Source changed; revalidate to refresh review status." style="display:inline-flex; align-items:center; gap:4px; margin-left:6px; font-size:11px; font-weight:700; color:#b26a00; background:#fff3e0; border:1px solid #ffcc80; border-radius:4px; padding:1px 6px;">⚠ Revalidate</span>'
                                     )
                                     : ''}
-                                <span class="approved-indicator" style="display: ${(!requiresRevalidation && manualApproved) ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
+                                <span class="approved-indicator" style="display: ${manualApproved ? 'inline-flex' : 'none'}; align-items: center; gap: 4px; margin-left: 6px; font-size: 11px; font-weight: 700; color: #1b5e20; background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 4px; padding: 1px 6px;">✅ Approved</span>
                             </div>
                             <div class="needs-review-container" style="margin-top: 6px; display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;">
                                 ${approvedHtml}
