@@ -227,12 +227,15 @@
                             <option value="force">Force all (overwrite scores)</option>
                         </select>
                         <input type="hidden" id="validateSpeedMode" value="turbo">
-                        <button id="saveValidations" class="btn btn-success btn-compact" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
+                        <!-- Save/Load are now automatic: edits delta-sync to shared storage on change,
+                             and this tab auto-pulls teammates' updates every 30s and on focus. -->
+                        <button id="saveValidations" class="btn btn-success btn-compact" style="display: none;" onclick="saveValidationsManually()" title="Save validation results to browser storage and shared team storage">
                             <i class="fas fa-save"></i> Save Reviews
                         </button>
-                        <button id="loadValidations" class="btn btn-compact" style="background: var(--accent); color: var(--accent-contrast); border: 1px solid var(--accent-strong);" onclick="loadValidationsFromShared()" title="Sync latest validation results from shared team storage">
+                        <button id="loadValidations" class="btn btn-compact" style="display: none; background: var(--accent); color: var(--accent-contrast); border: 1px solid var(--accent-strong);" onclick="loadValidationsFromShared()" title="Sync latest validation results from shared team storage">
                             <i class="fas fa-cloud-download-alt"></i> Load Reviews
                         </button>
+                        <span id="validationSyncStatus" class="val-sync-status val-sync-ok" role="status" aria-live="polite" title="Validation changes save automatically and pull teammates&rsquo; updates">✓ Synced</span>
                         <button id="exportValidations" class="btn btn-compact" style="background: var(--surface-2); color: var(--text-primary); border: 1px solid var(--border-default); display: none;" onclick="exportValidationsToJSONFile()" title="Download validation results as JSON file for backup">
                             <i class="fas fa-download"></i> Export
                         </button>
@@ -292,6 +295,10 @@
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <span style="font-size: 18px; font-weight: bold; color: var(--color-success);" id="approvedCount">0</span>
                                     <span style="color: var(--text-secondary); font-size: 0.9em;">Approved</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 18px; font-weight: bold; color: var(--color-danger);" id="notApprovedCount">0</span>
+                                    <span style="color: var(--text-secondary); font-size: 0.9em;">Not Approved</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     <span

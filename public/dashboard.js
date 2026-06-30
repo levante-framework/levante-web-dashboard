@@ -39,6 +39,13 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 this._unsavedValidationResolve = null;
                 this.sharedValidationSource = 'unknown';
                 this.loadedValidationLanguageCodes = new Set();
+                /** Deep clone of validation_results last confirmed in shared storage (basis for delta autosave). */
+                this.lastSharedSyncSnapshot = {};
+                /** Always-on two-way sync (delta autosave + periodic autoload) state. */
+                this.validationLiveSyncStarted = false;
+                this.validationLiveSyncTimer = null;
+                this.validationLiveSyncInFlight = false;
+                this.validationLiveSyncIntervalMs = 30000;
                 this.excludedValidationPrefixes = [
                     'main/Z_LEGACY_DO_NOT_TRANSLATE/',
                     'main/LEGACY_DO_NOT_TRANSLATE/'
@@ -50,6 +57,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 // levante-qa translation validation agent issues (translation-quality.json)
                 this.qaIssuesMeta = null;
                 this.qaIssuesByItem = {};
+                // Back-translations from the same levante-qa artifact (any tier), used as a
+                // display fallback when the dashboard has no locally-generated back-translation.
+                this.qaBackTranslationByItem = {};
                 this.latestGeneratedAudio = null;
                 this.audioCopyright = DEFAULT_AUDIO_COPYRIGHT;
                 this.audioMetadataCache = new Map();
@@ -1023,6 +1033,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
 
             async loadTranslationQualityIssues() {
                 this.qaIssuesByItem = {};
+                this.qaBackTranslationByItem = {};
                 this.qaIssuesMeta = null;
                 const urls = this.getTranslationQualityIssuesUrls();
                 for (const url of urls) {
@@ -1046,36 +1057,75 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 }
                             });
                         };
+                        const btIndex = {};
+                        const putBt = (key, langCode, bt) => {
+                            const normalizedKey = String(key || '').trim();
+                            if (!normalizedKey) return;
+                            const langKeys = Array.from(new Set([langCode, String(langCode || '').toLowerCase()].filter(Boolean)));
+                            [normalizedKey, normalizedKey.toLowerCase()].forEach((k) => {
+                                if (!btIndex[k]) btIndex[k] = {};
+                                langKeys.forEach((lk) => {
+                                    if (!btIndex[k][lk]) btIndex[k][lk] = bt;
+                                });
+                            });
+                        };
                         let flaggedCount = 0;
+                        let backTranslationCount = 0;
                         records.forEach((recordRaw) => {
                             const record = recordRaw && typeof recordRaw === 'object' ? recordRaw : {};
+                            const recordItemId = String(record.item_id || '').trim();
+                            const recordLang = String(record.target_lang || '').trim();
+
+                            // Back-translation fallback index: keep for every tier (including "ok"),
+                            // so the dashboard can show levante-qa back-translations even when the
+                            // local validation store has none.
+                            const backText = String(record.back_translation || '').trim();
+                            if (recordItemId && recordLang && backText) {
+                                const bt = {
+                                    itemId: recordItemId,
+                                    langCode: recordLang,
+                                    backTranslation: backText,
+                                    qualityScore: Number(record.quality_score),
+                                    tier: String(record.flag_tier || '').trim().toLowerCase(),
+                                    // The translation text the QA run actually back-translated; used to
+                                    // detect whether the current translation has changed since.
+                                    targetText: String(record.target_text || '').trim(),
+                                };
+                                putBt(recordItemId, recordLang, bt);
+                                if (recordItemId.includes('::')) {
+                                    const tail = String(recordItemId.split('::').pop() || '').trim();
+                                    if (tail) putBt(tail, recordLang, bt);
+                                }
+                                backTranslationCount++;
+                            }
+
                             const tier = String(record.flag_tier || '').trim().toLowerCase();
                             if (tier !== 'likely_bad' && tier !== 'review') return;
-                            const itemId = String(record.item_id || '').trim();
-                            const langCode = String(record.target_lang || '').trim();
-                            if (!itemId || !langCode) return;
+                            if (!recordItemId || !recordLang) return;
                             const issue = {
-                                itemId,
-                                langCode,
+                                itemId: recordItemId,
+                                langCode: recordLang,
                                 tier,
                                 reasons: String(record.reasons || '').trim(),
                                 task: String(record.task || '').trim(),
                             };
-                            putIndex(itemId, langCode, issue);
+                            putIndex(recordItemId, recordLang, issue);
                             // Dashboard ids are often "path::key"; the QA artifact carries the short "key".
-                            if (itemId.includes('::')) {
-                                const tail = String(itemId.split('::').pop() || '').trim();
-                                if (tail) putIndex(tail, langCode, issue);
+                            if (recordItemId.includes('::')) {
+                                const tail = String(recordItemId.split('::').pop() || '').trim();
+                                if (tail) putIndex(tail, recordLang, issue);
                             }
                             flaggedCount++;
                         });
                         this.qaIssuesByItem = index;
+                        this.qaBackTranslationByItem = btIndex;
                         this.qaIssuesMeta = {
                             sourceUrl: url,
                             generatedAt: payload?.generated_at || null,
                             flaggedCount,
+                            backTranslationCount,
                         };
-                        console.log(`✅ Loaded levante-qa translation issues: ${flaggedCount} flagged from ${url}`);
+                        console.log(`✅ Loaded levante-qa translation data: ${flaggedCount} flagged, ${backTranslationCount} back-translations from ${url}`);
                         return true;
                     } catch (error) {
                         console.log(`Translation-quality issues load skipped for ${url}:`, error?.message || error);
@@ -1109,6 +1159,46 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     }
                 }
                 return null;
+            }
+
+            getQaBackTranslationForItem(itemId, langCode) {
+                const rawItemId = String(itemId || '').trim();
+                if (!rawItemId) return null;
+                const candidates = [rawItemId, rawItemId.toLowerCase()];
+                if (rawItemId.includes('::')) {
+                    const tail = String(rawItemId.split('::').pop() || '').trim();
+                    if (tail) candidates.push(tail, tail.toLowerCase());
+                }
+
+                const aliases = this.getLanguageAliasCodes(langCode);
+                const preferred = this.resolvePreferredLangCode(langCode);
+                const langCandidates = Array.from(new Set([langCode, preferred, ...aliases]
+                    .flatMap((code) => {
+                        const trimmed = String(code || '').trim();
+                        return trimmed ? [trimmed, trimmed.toLowerCase()] : [];
+                    })));
+
+                for (let i = 0; i < candidates.length; i++) {
+                    const byItem = this.qaBackTranslationByItem?.[candidates[i]];
+                    if (!byItem) continue;
+                    for (let j = 0; j < langCandidates.length; j++) {
+                        const code = langCandidates[j];
+                        if (byItem[code]) return byItem[code];
+                    }
+                }
+                return null;
+            }
+
+            getQaArtifactDateLabel() {
+                const raw = this.qaIssuesMeta?.generatedAt;
+                if (!raw) return '';
+                const date = new Date(raw);
+                if (Number.isNaN(date.getTime())) return '';
+                try {
+                    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+                } catch (_) {
+                    return date.toISOString().slice(0, 10);
+                }
             }
 
             getCanonicalAudioLangCode(langCode) {
@@ -1368,7 +1458,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
             }
 
             computeValidationSummaryCountsForRows(rows, langCode, entryCache = null) {
-                let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
+                let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, notApproved = 0, pending = 0;
                 const normalizedLang = String(langCode || '').trim();
                 const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
                 (rows || []).forEach((item) => {
@@ -1380,6 +1470,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const manualApproved = this.isManualApprovedEntry(storedResult);
                     if (storedResult?.needsReview === true) needsReview++;
                     if (manualApproved) approved++;
+                    else notApproved++;
 
                     const translatedText = this.extractTextForItem(item || {}, normalizedLang);
                     const hasTranslatedText = !!String(translatedText || '').trim();
@@ -1398,7 +1489,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         pending++;
                     }
                 });
-                return { good, warning, error, needsReview, approved, pending };
+                return { good, warning, error, needsReview, approved, notApproved, pending };
             }
 
             setTableLoadingState(language, isLoading, loadedCount = 0, totalCount = 0) {
@@ -2852,9 +2943,14 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     this.validation_results = {};
                 }
                 this.updateValidationSaveBaseline();
+                // Establish the delta-sync baseline (covers no-shared / static-JSON fallback paths
+                // where loadFromSharedStorage did not run).
+                this.captureSharedSyncSnapshot();
                 // First render runs in createTabs() before validation finishes loading; refresh so rows/summary match storage.
                 this.noteValidationResultsChanged();
                 this.populateDataTable();
+                // Keep this tab continuously in sync with the shared bucket (no manual Save/Load needed).
+                this.startValidationLiveSync();
             }
 
             /** Deterministic JSON for dirty-checking validation_results (sorted keys at every object level). */
@@ -3070,18 +3166,136 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                 }
             }
 
+            /** Deep clone helper used for shared-sync snapshots. */
+            cloneValidationData(data) {
+                try {
+                    return typeof structuredClone === 'function'
+                        ? structuredClone(data)
+                        : JSON.parse(JSON.stringify(data || {}));
+                } catch (_) {
+                    try { return JSON.parse(JSON.stringify(data || {})); } catch (__) { return {}; }
+                }
+            }
+
+            /** Record the current validation_results as the last state confirmed in shared storage. */
+            captureSharedSyncSnapshot() {
+                this.lastSharedSyncSnapshot = this.cloneValidationData(this.validation_results || {});
+            }
+
+            /**
+             * Build a delta of validation_results vs the last shared-sync snapshot.
+             * Only changed/new item+language entries are included, so autosave posts a
+             * minimal payload the server merges per-item without clobbering other users.
+             */
+            buildSharedSaveDelta() {
+                const current = this.validation_results || {};
+                const snapshot = this.lastSharedSyncSnapshot || {};
+                const delta = {};
+                let touched = 0;
+                Object.keys(current).forEach((itemId) => {
+                    if (this.isExcludedValidationItemId(itemId)) return;
+                    const byLang = current[itemId];
+                    if (!byLang || typeof byLang !== 'object') return;
+                    const snapByLang = (snapshot[itemId] && typeof snapshot[itemId] === 'object') ? snapshot[itemId] : {};
+                    Object.keys(byLang).forEach((langCode) => {
+                        const entry = byLang[langCode];
+                        if (!entry || typeof entry !== 'object') return;
+                        const prev = snapByLang[langCode];
+                        if (prev === undefined
+                            || this.stableStringifyValidationResults(entry) !== this.stableStringifyValidationResults(prev)) {
+                            if (!delta[itemId]) delta[itemId] = {};
+                            delta[itemId][langCode] = entry;
+                            touched += 1;
+                        }
+                    });
+                });
+                return { delta, touched };
+            }
+
+            /** Fold a successfully-saved delta into the shared-sync snapshot. */
+            mergeDeltaIntoSyncSnapshot(delta) {
+                if (!delta || typeof delta !== 'object') return;
+                if (!this.lastSharedSyncSnapshot || typeof this.lastSharedSyncSnapshot !== 'object') this.lastSharedSyncSnapshot = {};
+                Object.keys(delta).forEach((itemId) => {
+                    const byLang = delta[itemId];
+                    if (!byLang || typeof byLang !== 'object') return;
+                    if (!this.lastSharedSyncSnapshot[itemId]) this.lastSharedSyncSnapshot[itemId] = {};
+                    Object.keys(byLang).forEach((langCode) => {
+                        this.lastSharedSyncSnapshot[itemId][langCode] = this.cloneValidationData(byLang[langCode]);
+                    });
+                });
+            }
+
+            /** Human-readable relative time for the sync indicator. */
+            formatAgo(ms) {
+                const s = Math.max(0, Math.round(ms / 1000));
+                if (s < 5) return 'just now';
+                if (s < 60) return `${s}s ago`;
+                const m = Math.round(s / 60);
+                if (m < 60) return `${m}m ago`;
+                const h = Math.round(m / 60);
+                return `${h}h ago`;
+            }
+
+            /** Update the always-on sync indicator. States: saving | synced | error. */
+            setSyncStatus(state, detail = '') {
+                this._syncState = state;
+                this._syncDetail = detail;
+                if (state === 'synced') this.lastValidationSyncAt = Date.now();
+                this.renderSyncStatus();
+            }
+
+            /** Re-render the sync indicator (also refreshes the relative "ago" label). */
+            renderSyncStatus() {
+                if (typeof document === 'undefined') return;
+                const el = document.getElementById('validationSyncStatus');
+                if (!el) return;
+                const state = this._syncState || 'synced';
+                let text;
+                let cls = 'val-sync-status';
+                let title = this._syncDetail || '';
+                if (state === 'saving') {
+                    text = '⏳ Saving…';
+                    cls += ' val-sync-saving';
+                    if (!title) title = 'Syncing your changes to shared team storage';
+                } else if (state === 'error') {
+                    text = '⚠️ Sync failed — retrying';
+                    cls += ' val-sync-error';
+                    if (!title) title = 'Will retry automatically on the next change or refresh';
+                } else {
+                    const ago = this.lastValidationSyncAt ? this.formatAgo(Date.now() - this.lastValidationSyncAt) : '';
+                    text = ago ? `✓ Synced ${ago}` : '✓ Synced';
+                    cls += ' val-sync-ok';
+                    if (!title) title = 'Validation changes save automatically and pull teammates\u2019 updates';
+                }
+                el.textContent = text;
+                el.className = cls;
+                el.title = title;
+            }
+
             async saveToSharedStorage(options = {}) {
                 const silent = options && options.silent === true;
+                const startedAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                const elapsed = () => Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - startedAt);
                 try {
-                    console.log('🌐 Saving validation results to shared storage...');
-                    
+                    const { delta, touched } = this.buildSharedSaveDelta();
+                    if (touched === 0) {
+                        // Nothing changed since the last successful sync; skip the network round-trip.
+                        return true;
+                    }
+                    const langs = Array.from(new Set(
+                        Object.values(delta).flatMap((byLang) => Object.keys(byLang || {}))
+                    ));
+                    console.log(`[val-sync] save: posting delta of ${touched} entr${touched === 1 ? 'y' : 'ies'} (langs: ${langs.join(', ') || 'n/a'})`);
+                    this.setSyncStatus('saving');
+
                     const exportData = {
-                        validation_results: this.validation_results,
+                        validation_results: delta,
                         metadata: {
                             saved_by: 'Levante Cockpit Dashboard',
                             version: '1.0',
-                            total_items: Object.keys(this.validation_results).length,
-                            languages: Object.keys(this.languages),
+                            delta: true,
+                            touched_entries: touched,
                             saved_at: new Date().toISOString()
                         }
                     };
@@ -3095,19 +3309,87 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     });
 
                     if (response.ok) {
-                        const result = await response.json();
-                        console.log('✅ Successfully saved to shared storage:', result.metadata);
-                        if (!silent) this.setStatus('💾 Validation results saved to shared session storage for team access', 'success');
+                        const result = await response.json().catch(() => ({}));
+                        // The server merged this delta into shared storage; treat it as synced.
+                        this.mergeDeltaIntoSyncSnapshot(delta);
+                        // Keep the unsaved-changes baseline aligned so the leave-page guard stays quiet.
+                        this.updateValidationSaveBaseline();
+                        const sourceLabel = String(result?.source || 'gcs');
+                        console.log(`[val-sync] save OK: ${touched} entr${touched === 1 ? 'y' : 'ies'} → ${sourceLabel} in ${elapsed()}ms`);
+                        this.setSyncStatus('synced');
+                        if (!silent) this.setStatus('💾 Saved to shared team storage', 'success');
                         return true;
-                    } else {
-                        console.warn('⚠️ Failed to save to shared storage, but localStorage backup is available');
-                        return false;
                     }
+                    let body = '';
+                    try { body = await response.text(); } catch (_) { /* ignore */ }
+                    console.warn(`[val-sync] save FAILED: HTTP ${response.status} after ${elapsed()}ms — ${String(body).slice(0, 300)}`);
+                    this.setSyncStatus('error', `HTTP ${response.status}`);
+                    // Failures must be visible now that there is no manual Save button.
+                    this.setStatus(`⚠️ Save to shared storage failed (HTTP ${response.status}). Changes are kept locally and will retry.`, 'warning');
+                    return false;
                 } catch (error) {
-                    console.warn('⚠️ Could not save to shared storage:', error.message);
-                    // Don't throw error - localStorage save is the primary backup
+                    console.warn(`[val-sync] save ERROR after ${elapsed()}ms: ${error?.message || error}`);
+                    this.setSyncStatus('error', error?.message || 'network error');
+                    this.setStatus(`⚠️ Could not reach shared storage (${error?.message || 'network error'}). Changes are kept locally and will retry.`, 'warning');
+                    // Don't throw - localStorage save is the primary backup and the next change retries.
                     return false;
                 }
+            }
+
+            async liveSyncValidationFromShared() {
+                if (this.validationLiveSyncInFlight) return;
+                if (typeof document !== 'undefined' && document.hidden) return;
+                this.validationLiveSyncInFlight = true;
+                try {
+                    // Push any locally-pending edits up first so a remote merge never overwrites them.
+                    if (typeof window !== 'undefined' && typeof window.flushValidationAutoSave === 'function') {
+                        try { await window.flushValidationAutoSave(); } catch (_) { /* best effort */ }
+                    }
+                    const langCode = String(this.languages?.[this.currentLanguage]?.lang_code || '').trim();
+                    const before = this.stableStringifyValidationResults(this.validation_results);
+                    const loaded = await this.loadFromSharedStorage(langCode, { force: true });
+                    if (!loaded) {
+                        console.log(`[val-sync] poll: no shared payload for lang=${langCode || 'n/a'}`);
+                        return;
+                    }
+                    const after = this.stableStringifyValidationResults(this.validation_results);
+                    const changed = after !== before;
+                    console.log(`[val-sync] poll OK: lang=${langCode || 'n/a'} changed=${changed}`);
+                    this.setSyncStatus('synced');
+                    if (changed) {
+                        this.noteValidationResultsChanged();
+                        this.populateDataTable();
+                        if (typeof updateValidationSummary === 'function') updateValidationSummary();
+                    }
+                } catch (e) {
+                    console.warn(`[val-sync] poll FAILED: ${e?.message || e}`);
+                    this.setSyncStatus('error', e?.message || 'network error');
+                    this.setStatus(`⚠️ Could not pull latest team validations (${e?.message || 'network error'}). Will retry.`, 'warning');
+                } finally {
+                    this.validationLiveSyncInFlight = false;
+                }
+            }
+
+            startValidationLiveSync() {
+                if (this.validationLiveSyncStarted) return;
+                this.validationLiveSyncStarted = true;
+                const trigger = () => { this.liveSyncValidationFromShared(); };
+                if (this.validationLiveSyncTimer) clearInterval(this.validationLiveSyncTimer);
+                this.validationLiveSyncTimer = setInterval(() => {
+                    if (typeof document !== 'undefined' && document.hidden) return;
+                    this.liveSyncValidationFromShared();
+                }, this.validationLiveSyncIntervalMs);
+                // Lightweight ticker so the "Synced Xs ago" label stays current between syncs.
+                this.validationSyncLabelTimer = setInterval(() => this.renderSyncStatus(), 10000);
+                if (typeof document !== 'undefined') {
+                    document.addEventListener('visibilitychange', () => { if (!document.hidden) trigger(); });
+                }
+                if (typeof window !== 'undefined') {
+                    window.addEventListener('focus', trigger);
+                }
+                // Show an initial "synced" state (initial load already reconciled with shared).
+                this.setSyncStatus('synced');
+                console.log(`[val-sync] live sync enabled: poll every ${Math.round(this.validationLiveSyncIntervalMs / 1000)}s + on focus/visibility`);
             }
 
             buildCompactValidationResultsSnapshot() {
@@ -3306,6 +3588,9 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 : this.sharedValidationSource;
                         this.setStatus(`🌐 Loaded validation results from ${sourceLabel}`, this.sharedValidationSource === 'memory' ? 'warning' : 'success');
                         this.updateValidationSaveBaseline();
+                        // Any locally-pending edits were flushed before this load, so the merged
+                        // state now reflects shared storage — use it as the delta-sync baseline.
+                        this.captureSharedSyncSnapshot();
                         return true;
                     }
                 } catch (error) {
@@ -3682,16 +3967,43 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const translationUpdated = requiresRevalidation
                         && (changeKind === 'translation' || changeKind === 'source+translation');
                     const reviewReason = storedResult?.reason || '';
-                    const backTranslation = storedResult?.backTranslation || '';
                     const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    const hasBackTranslation = !!String(backTranslation).trim();
-                    const backTranslationDisplayText = hasBackTranslation
-                        ? String(backTranslation).trim()
-                        : 'Back-translation unavailable (click View Results to generate)';
+                    const storedBackTranslation = String(storedResult?.backTranslation || '').trim();
+                    // Fall back to the levante-qa artifact when the local store has no back-translation.
+                    const qaBack = storedBackTranslation ? null : this.getQaBackTranslationForItem(itemId, langCode);
+                    const qaBackText = qaBack ? String(qaBack.backTranslation || '').trim() : '';
+                    const fromQa = !storedBackTranslation && !!qaBackText;
+                    // A levante-qa back-translation is out of date when the current translation no
+                    // longer matches the translation the QA run back-translated.
+                    const qaStale = fromQa
+                        && !!String(qaBack.targetText || '').trim()
+                        && this.normalizeComparableText(text) !== this.normalizeComparableText(qaBack.targetText);
+                    const effectiveBackTranslation = storedBackTranslation || qaBackText;
+                    const hasBackTranslation = !!effectiveBackTranslation;
                     const hasAnyStoredScore = !!(storedResult && storedResult.score !== undefined) && !requiresRevalidation;
                     let backTranslationHtml = '';
-                    if (hasAnyStoredScore) {
-                        backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(backTranslationDisplayText)}</div>`;
+                    if (fromQa && qaStale) {
+                        const qaDate = this.getQaArtifactDateLabel();
+                        const staleTitle = [
+                            'Back-translation is out of date',
+                            'The translation changed since the levante-qa run' + (qaDate ? ` (${qaDate})` : ''),
+                            'Click Validate to regenerate a current back-translation.',
+                            `Outdated levante-qa back-translation: ${qaBackText}`
+                        ].join(' — ');
+                        backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing item-backtranslation-stale" title="${escapeHtml(staleTitle)}"><span class="bt-source-tag bt-source-stale" title="${escapeHtml(staleTitle)}">out of date</span> Back-translation is out of date${qaDate ? ` (translation changed since the levante-qa run on ${escapeHtml(qaDate)})` : ' (translation changed since the levante-qa run)'} — click Validate to refresh.</div>`;
+                    } else if (hasAnyStoredScore || hasBackTranslation) {
+                        if (fromQa) {
+                            const qaScorePct = Number.isFinite(Number(qaBack.qualityScore))
+                                ? `${Math.round(Number(qaBack.qualityScore) * 100)}%`
+                                : '';
+                            const qaTitle = ['Back-translation from levante-qa',
+                                qaBack.tier ? `Tier: ${qaBack.tier}` : '',
+                                qaScorePct ? `QA score: ${qaScorePct}` : ''].filter(Boolean).join(' | ');
+                            backTranslationHtml = `<div class="item-backtranslation item-backtranslation-qa" title="${escapeHtml(qaTitle)}"><span class="bt-source-tag" title="${escapeHtml(qaTitle)}">levante-qa</span> ${escapeHtml(qaBackText)}</div>`;
+                        } else {
+                            const displayText = effectiveBackTranslation || 'Back-translation unavailable (click View Results to generate)';
+                            backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(displayText)}</div>`;
+                        }
                     } else if (requiresRevalidation && canValidateTranslation) {
                         backTranslationHtml = `<div class="item-backtranslation item-backtranslation-missing" title="Back-translation">Validation is stale after translation update — click Revalidate to regenerate back-translation.</div>`;
                     } else if (canValidateTranslation) {

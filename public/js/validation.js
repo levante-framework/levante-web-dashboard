@@ -1719,7 +1719,7 @@ function exportValidationsToJSONFile() {
 }
 
 function setValidationSummaryLoading(loading) {
-    const ids = ['goodCount', 'warningCount', 'errorCount', 'needsReviewCount', 'approvedCount', 'pendingCount'];
+    const ids = ['goodCount', 'warningCount', 'errorCount', 'needsReviewCount', 'approvedCount', 'notApprovedCount', 'pendingCount'];
     const spinner = '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>';
     const loadingLabel = document.getElementById('validationSummaryLoadingLabel');
     ids.forEach(id => {
@@ -1738,12 +1738,14 @@ function setValidationSummaryCounts(counts) {
     const errorEl = document.getElementById('errorCount');
     const needsReviewEl = document.getElementById('needsReviewCount');
     const approvedEl = document.getElementById('approvedCount');
+    const notApprovedEl = document.getElementById('notApprovedCount');
     const pendingEl = document.getElementById('pendingCount');
     if (goodEl) goodEl.textContent = Number(counts?.good || 0);
     if (warningEl) warningEl.textContent = Number(counts?.warning || 0);
     if (errorEl) errorEl.textContent = Number(counts?.error || 0);
     if (needsReviewEl) needsReviewEl.textContent = Number(counts?.needsReview || 0);
     if (approvedEl) approvedEl.textContent = Number(counts?.approved || 0);
+    if (notApprovedEl) notApprovedEl.textContent = Number(counts?.notApproved || 0);
     if (pendingEl) pendingEl.textContent = Number(counts?.pending || 0);
 }
 
@@ -1769,19 +1771,20 @@ function updateValidationSummary() {
     if (filter !== 'all' && typeof getReviewTableAllowedItemIds === 'function') {
         allowedIds = getReviewTableAllowedItemIds();
     }
-    let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
+    let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, notApproved = 0, pending = 0;
     indicators.forEach(indicator => {
         const row = indicator.closest('.data-row');
         const itemId = row ? row.dataset.itemId : indicator.getAttribute('data-item-id');
         if (allowedIds && itemId != null && !allowedIds.has(String(itemId))) return;
         if (row && row.dataset.needsReview === '1') needsReview++;
         if (row && row.dataset.approved === '1') approved++;
+        else notApproved++;
         if (indicator.classList.contains('status-good')) good++;
         else if (indicator.classList.contains('status-warning')) warning++;
         else if (indicator.classList.contains('status-error')) error++;
         else pending++;
     });
-    setValidationSummaryCounts({ good, warning, error, needsReview, approved, pending });
+    setValidationSummaryCounts({ good, warning, error, needsReview, approved, notApproved, pending });
 }
 
 // Ensure inline HTML handlers can resolve these functions.

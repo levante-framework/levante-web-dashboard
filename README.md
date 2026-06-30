@@ -386,6 +386,16 @@ See `README_VALIDATION.md` for detailed validation system documentation.
 
 For a chronological log of January 2026 dashboard updates, see `docs/dashboard-updates-2026-01.md`.
 
+### Translation Validation Sync + Back-Translation Sourcing (June 2026)
+- **Always-on validation sync (no Save/Load buttons)**: The Translation Dashboard now keeps validation results in sync with shared team storage automatically.
+  - **Delta autosave**: Only changed item+language entries are POSTed to `/api/validation-storage`, which merges them server-side (protecting approval/review flags by timestamp). This removes the full-store overwrite risk that the old manual **Save Reviews** flow had.
+  - **Live autoload**: The active language pulls teammates' updates every 30s and immediately on tab focus/visibility change.
+  - **Sync status indicator**: A visible `✓ Synced` / `Saving…` / `⚠ error` badge surfaces sync state; failures show the HTTP status and are retried. Client logs are namespaced `[val-sync]`.
+  - The legacy **Save Reviews** / **Load Reviews** buttons are hidden (sync is automatic).
+- **levante-qa back-translation fallback**: When the local validation store has no back-translation, the dashboard falls back to the back-translation in the levante-qa artifact (`public/data/translation-quality.json`), tagged `levante-qa`. This is indexed for every tier (including `ok`), not just flagged items.
+- **Stale back-translation detection**: The artifact records the `target_text` it back-translated; when the current translation no longer matches, the back-translation is flagged **out of date** (with the QA run date) instead of being shown as current.
+- **"Not Approved" summary count**: The validation summary now shows a **Not Approved** tally next to **Approved**, making the distinction between *not yet scored* (Pending) and *scored but not manually approved* (Not Approved) explicit.
+
 ### Translation + Partner Audio Workstream (Jan 2026)
 - **Crowdin cache-first loading**: Dashboard now prefers cached Crowdin exports and only refreshes from Crowdin on explicit **Update Translations**.
 - **Crowdin export behavior**: Export endpoint uses approved-only translations; build conflicts are handled by reusing in-progress builds.
