@@ -1458,7 +1458,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
             }
 
             computeValidationSummaryCountsForRows(rows, langCode, entryCache = null) {
-                let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, pending = 0;
+                let good = 0, warning = 0, error = 0, needsReview = 0, approved = 0, notApproved = 0, pending = 0;
                 const normalizedLang = String(langCode || '').trim();
                 const isSourceEnglishTab = String(normalizedLang).split('-')[0].toLowerCase() === 'en';
                 (rows || []).forEach((item) => {
@@ -1470,6 +1470,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     const manualApproved = this.isManualApprovedEntry(storedResult);
                     if (storedResult?.needsReview === true) needsReview++;
                     if (manualApproved) approved++;
+                    else notApproved++;
 
                     const translatedText = this.extractTextForItem(item || {}, normalizedLang);
                     const hasTranslatedText = !!String(translatedText || '').trim();
@@ -1488,7 +1489,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                         pending++;
                     }
                 });
-                return { good, warning, error, needsReview, approved, pending };
+                return { good, warning, error, needsReview, approved, notApproved, pending };
             }
 
             setTableLoadingState(language, isLoading, loadedCount = 0, totalCount = 0) {
