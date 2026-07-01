@@ -12,6 +12,10 @@ interface LanguageConfig {
     approver1_password?: string;
     approver2_userid?: string;
     approver2_password?: string;
+    approver3_userid?: string;
+    approver3_password?: string;
+    approver4_userid?: string;
+    approver4_password?: string;
 }
 type StatusType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 interface Voice {

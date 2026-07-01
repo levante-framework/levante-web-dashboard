@@ -94,7 +94,11 @@ function initLanguageConfigApp() {
                     approver1_userid: '',
                     approver1_password: '',
                     approver2_userid: '',
-                    approver2_password: ''
+                    approver2_password: '',
+                    approver3_userid: '',
+                    approver3_password: '',
+                    approver4_userid: '',
+                    approver4_password: ''
                 }
             };
         },
@@ -209,6 +213,10 @@ function initLanguageConfigApp() {
                     approver1_password: self.newLang.approver1_password,
                     approver2_userid: self.newLang.approver2_userid,
                     approver2_password: self.newLang.approver2_password,
+                    approver3_userid: self.newLang.approver3_userid,
+                    approver3_password: self.newLang.approver3_password,
+                    approver4_userid: self.newLang.approver4_userid,
+                    approver4_password: self.newLang.approver4_password,
                     display_name: name // Use the display name as entered
                 };
                 // clear form
@@ -220,7 +228,11 @@ function initLanguageConfigApp() {
                     approver1_userid: '',
                     approver1_password: '',
                     approver2_userid: '',
-                    approver2_password: ''
+                    approver2_password: '',
+                    approver3_userid: '',
+                    approver3_password: '',
+                    approver4_userid: '',
+                    approver4_password: ''
                 };
             },
             removeLanguage(name) {

@@ -15,6 +15,9 @@ import crypto from 'crypto';
 const BUCKET_NAME = process.env.AUDIO_DEV_BUCKET || 'levante-assets-dev';
 const OBJECT_NAME = process.env.LANGUAGE_CONFIG_OBJECT || 'language_config.json';
 const HASH_PREFIX = 'scrypt$';
+// Number of approver credential slots supported per language. Update this single
+// value to change how many approvers each language can have.
+const APPROVER_SLOTS = [1, 2, 3, 4];
 
 function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -79,7 +82,7 @@ function findMatchingApprover(languages, userId, password) {
   if (!normalized || !providedPassword) return null;
   for (const [languageName, cfgRaw] of Object.entries(languages || {})) {
     const cfg = isObject(cfgRaw) ? cfgRaw : {};
-    for (const slot of [1, 2]) {
+    for (const slot of APPROVER_SLOTS) {
       const userKey = `approver${slot}_userid`;
       const passKey = `approver${slot}_password`;
       const candidateUser = normalizeUserId(cfg[userKey]);
@@ -108,12 +111,12 @@ function stripApproverPasswords(languages) {
   const redacted = {};
   Object.entries(input).forEach(([name, cfgRaw]) => {
     const cfg = isObject(cfgRaw) ? { ...cfgRaw } : {};
-    const approver1PasswordRaw = String(cfg.approver1_password || '');
-    const approver2PasswordRaw = String(cfg.approver2_password || '');
-    delete cfg.approver1_password;
-    delete cfg.approver2_password;
-    cfg.approver1_password_set = Boolean(approver1PasswordRaw);
-    cfg.approver2_password_set = Boolean(approver2PasswordRaw);
+    for (const slot of APPROVER_SLOTS) {
+      const passKey = `approver${slot}_password`;
+      const passwordRaw = String(cfg[passKey] || '');
+      delete cfg[passKey];
+      cfg[`approver${slot}_password_set`] = Boolean(passwordRaw);
+    }
     redacted[name] = cfg;
   });
   return redacted;
@@ -128,7 +131,7 @@ function mergeAndHashApproverCredentials(nextLanguages, existingLanguages) {
     const cfg = isObject(cfgRaw) ? { ...cfgRaw } : {};
     const previous = isObject(existing[name]) ? { ...existing[name] } : {};
 
-    for (const slot of [1, 2]) {
+    for (const slot of APPROVER_SLOTS) {
       const userKey = `approver${slot}_userid`;
       const passKey = `approver${slot}_password`;
       const nextUserId = normalizeUserId(cfg[userKey]);
@@ -161,8 +164,9 @@ function mergeAndHashApproverCredentials(nextLanguages, existingLanguages) {
       }
     }
 
-    delete cfg.approver1_password_set;
-    delete cfg.approver2_password_set;
+    for (const slot of APPROVER_SLOTS) {
+      delete cfg[`approver${slot}_password_set`];
+    }
     merged[name] = cfg;
   });
 
