@@ -2203,7 +2203,7 @@
                     'Spanish (Argentina)': { lang_code: 'es-AR', service: 'ElevenLabs', voice: 'Melody - Ecommerce Voice', voice_id: 'bN1bDXgDIGX5lw0rtY2B' },
                     'German (Germany)': { lang_code: 'de-DE', service: 'ElevenLabs', voice: 'Julia' },
                     'French': { lang_code: 'fr-CA', service: 'ElevenLabs', voice: 'Caroline - Top France - Narrative, warm, sweet', display_name: 'French (Canada)' },
-                    'Dutch': { lang_code: 'nl', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch' },
+                    'Dutch (Netherlands)': { lang_code: 'nl-NL', service: 'ElevenLabs', voice: 'Emma - Natural conversations in Dutch', display_name: 'Dutch (Netherlands)' },
                     'German (Switzerland)': { lang_code: 'de-CH', service: 'ElevenLabs', voice: 'Julia' },
                     'Portuguese (Brazil)': { lang_code: 'pt-BR', service: 'ElevenLabs', voice: 'Liam', display_name: 'Portuguese (Brazil)' }
                 };
@@ -2215,6 +2215,9 @@
                 // Backward compatibility for older approver configs/claims that used generic Portuguese naming.
                 this.legacyLanguageCodeByName['Portuguese'] = 'pt-BR';
                 this.legacyLanguageCodeByName['Portuguese (Portugal)'] = 'pt-PT';
+                // Older approver configs/claims may reference plain "Dutch" (nl); it now resolves
+                // to the canonical regional entry that actually has audio (nl-NL).
+                this.legacyLanguageCodeByName['Dutch'] = 'nl-NL';
                 
                 this.allowedLanguage = null; // Will be set based on user's site
                 this.approvedItems = new Set(); // Track approved item IDs (already moved to dev)
@@ -4049,6 +4052,9 @@
                 if (lower === 'pt' || lower === 'pt-br' || lower === 'pt_pt' || lower === 'pt-pt') {
                     return 'Portuguese (Brazil)';
                 }
+                if (lower === 'dutch' || lower === 'dutch (netherlands)' || lower === 'nl' || lower === 'nl-nl' || lower === 'nl_nl') {
+                    return 'Dutch (Netherlands)';
+                }
                 return raw;
             }
 
@@ -4066,7 +4072,18 @@
                 if (langCode === 'fr-ca' && (/^french$/i.test(preferred) || /french\s*\(canada\)/i.test(preferred))) return 'French (Canada)';
                 if ((langCode === 'en' || langCode === 'en-us') && (/^english$/i.test(preferred) || /english\s*\(united states\)/i.test(preferred))) return 'English (United States)';
                 if ((langCode === 'de' || langCode === 'de-de') && (/^german$/i.test(preferred) || /german\s*\(germany\)/i.test(preferred))) return 'German (Germany)';
+                // Dutch: audio + the translation CSV column both use the regional code nl-NL.
+                // Collapse the bare "nl" alias to one canonical label so it never presents as a
+                // separate audio-less "Dutch" entry alongside "Dutch (Netherlands)".
+                if (langCode === 'nl' || langCode === 'nl-nl') return 'Dutch (Netherlands)';
                 return preferred || String(fallbackName || '').trim();
+            }
+
+            canonicalizeLangCode(langCode) {
+                const normalized = this.normalizeLangCode(langCode).toLowerCase();
+                // Dutch audio and translations live under nl-NL; treat bare nl as that region.
+                if (normalized === 'nl' || normalized === 'nl-nl') return 'nl-NL';
+                return this.normalizeLangCode(langCode);
             }
 
             normalizeLanguageEntries(inputLanguages) {
@@ -4074,6 +4091,9 @@
                 const normalized = {};
                 Object.entries(input).forEach(([name, cfgRaw]) => {
                     const cfg = cfgRaw && typeof cfgRaw === 'object' ? { ...cfgRaw } : {};
+                    // Canonicalize ambiguous codes (e.g. Dutch nl -> nl-NL) before labeling so a
+                    // stale config entry and the CSV-discovered regional entry collapse into one.
+                    if (cfg.lang_code) cfg.lang_code = this.canonicalizeLangCode(cfg.lang_code);
                     const label = this.normalizeLanguageLabel(name, cfg);
                     cfg.display_name = label;
                     normalized[label] = cfg;
@@ -4626,7 +4646,8 @@
                                     'de': 'German (Germany)',
                                     'de-DE': 'German (Germany)',
                                     'fr-CA': 'French (Canada)',
-                                    'nl': 'Dutch',
+                                    'nl': 'Dutch (Netherlands)',
+                                    'nl-NL': 'Dutch (Netherlands)',
                                     'de-CH': 'German (Switzerland)',
                                     'pt-BR': 'Portuguese (Brazil)',
                                     'pt-PT': 'Portuguese (Brazil)',
@@ -4644,7 +4665,8 @@
                                     'de': 'German (Germany)',
                                     'de-DE': 'German (Germany)',
                                     'fr-CA': 'French (Canada)',
-                                    'nl': 'Dutch',
+                                    'nl': 'Dutch (Netherlands)',
+                                    'nl-NL': 'Dutch (Netherlands)',
                                     'de-CH': 'German (Switzerland)',
                                     'pt-BR': 'Portuguese (Brazil)',
                                     'pt-PT': 'Portuguese (Brazil)',
@@ -5915,6 +5937,7 @@
                     'de-CH': 'de-CH',
                     'fr-CA': 'fr-CA',
                     'nl': 'nl',
+                    'nl-NL': 'nl',
                     'en': 'en',
                     'en-US': 'en'
                 };
