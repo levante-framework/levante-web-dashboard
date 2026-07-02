@@ -4083,6 +4083,9 @@
                 const normalized = this.normalizeLangCode(langCode).toLowerCase();
                 // Dutch audio and translations live under nl-NL; treat bare nl as that region.
                 if (normalized === 'nl' || normalized === 'nl-nl') return 'nl-NL';
+                // German audio and translations live under de-DE; treat bare de as that region
+                // so a stale "de" in remote config can't point the tool at the empty audio/de/ folder.
+                if (normalized === 'de' || normalized === 'de-de') return 'de-DE';
                 return this.normalizeLangCode(langCode);
             }
 
