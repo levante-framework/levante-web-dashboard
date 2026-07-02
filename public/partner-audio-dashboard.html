@@ -4086,6 +4086,8 @@
                 // German audio and translations live under de-DE; treat bare de as that region
                 // so a stale "de" in remote config can't point the tool at the empty audio/de/ folder.
                 if (normalized === 'de' || normalized === 'de-de') return 'de-DE';
+                // English audio and translations live under en-US; treat bare en as that region.
+                if (normalized === 'en' || normalized === 'en-us') return 'en-US';
                 return this.normalizeLangCode(langCode);
             }
 
