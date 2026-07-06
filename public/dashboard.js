@@ -4024,7 +4024,7 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                                 qaScorePct ? `QA score: ${qaScorePct}` : ''].filter(Boolean).join(' | ');
                             backTranslationHtml = `<div class="item-backtranslation item-backtranslation-qa" title="${escapeHtml(qaTitle)}"><span class="bt-source-tag" title="${escapeHtml(qaTitle)}">levante-qa</span> ${escapeHtml(qaBackText)}</div>`;
                         } else {
-                            const displayText = effectiveBackTranslation || 'Back-translation unavailable (click View Results to generate)';
+                            const displayText = effectiveBackTranslation || 'Back-translation not captured for this scored item — Re-validate to generate one.';
                             backTranslationHtml = `<div class="item-backtranslation ${hasBackTranslation ? '' : 'item-backtranslation-missing'}" title="Back-translation">${escapeHtml(displayText)}</div>`;
                         }
                     } else if (requiresRevalidation && canValidateTranslation) {
