@@ -707,6 +707,29 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
             }
 
             /**
+             * Case/separator variants of a SINGLE locale, without regional cross-aliases.
+             * e.g. pt-BR -> [pt-BR, pt-br, pt_BR, pt_br] but never pt-PT.
+             * Used where regional variants must stay distinct (e.g. matching QA issues to
+             * the exact language being viewed) so a pt-PT issue never surfaces on a pt-BR row.
+             */
+            getExactLocaleVariants(langCode) {
+                const raw = String(langCode || '').trim();
+                if (!raw) return [];
+                const hyphen = raw.replace(/_/g, '-');
+                const lower = hyphen.toLowerCase();
+                const regionUpper = lower.replace(/-([a-z0-9]+)$/i, (m, region) => `-${region.toUpperCase()}`);
+                return Array.from(new Set([
+                    raw,
+                    hyphen,
+                    hyphen.replace(/-/g, '_'),
+                    lower,
+                    lower.replace(/-/g, '_'),
+                    regionUpper,
+                    regionUpper.replace(/-/g, '_')
+                ].filter(Boolean)));
+            }
+
+            /**
              * Text for the active language column: tries configured language code plus regional/base aliases
              * so CSV columns like pt-PT still show under the pt-BR tab (Crowdin headers vary by locale).
              */
@@ -1144,11 +1167,11 @@ const CROWDIN_CACHE_SCHEMA_VERSION = '2026-04-16-main-all-files-v1';
                     if (tail) candidates.push(tail, tail.toLowerCase());
                 }
 
-                const aliases = this.getLanguageAliasCodes(langCode);
-                const preferred = this.resolvePreferredLangCode(langCode);
-                const langCandidates = [langCode, preferred, ...aliases]
-                    .map((code) => String(code || '').trim())
-                    .filter(Boolean);
+                // Match QA issues to the EXACT locale being viewed (case/separator variants
+                // only). Regional cross-aliases must not be used here: pt-BR and pt-PT are
+                // distinct translations, so a pt-PT issue must never surface on a pt-BR row
+                // (previously this deep-linked the "Review issue" button to the wrong language).
+                const langCandidates = this.getExactLocaleVariants(langCode);
 
                 for (let i = 0; i < candidates.length; i++) {
                     const byItem = this.qaIssuesByItem?.[candidates[i]];
