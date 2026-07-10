@@ -80,6 +80,14 @@ function normalizePayload(body = {}) {
     ? (normalizedEnhanced.length - normalizedOriginal.length)
     : null;
 
+  // Failure diagnostics (e.g. task_finish_item_failed_move). Previously the
+  // caller-supplied status/message were dropped, making failures hard to debug.
+  const errorStatus = (body.status === undefined || body.status === null || body.status === '')
+    ? null
+    : (Number.isFinite(Number(body.status)) ? Number(body.status) : safeText(body.status, 40));
+  const errorMessage = safeText(body.message || body.error, 500);
+  const attempts = Number.isFinite(Number(body.attempts)) ? Math.max(0, Number(body.attempts)) : null;
+
   return {
     eventType,
     itemId,
@@ -109,6 +117,9 @@ function normalizePayload(body = {}) {
     enhancedTextCharDelta,
     hadPendingGeneratedAudio: body.hadPendingGeneratedAudio === true,
     savedGeneratedAudio: body.savedGeneratedAudio === true,
+    errorStatus,
+    errorMessage,
+    attempts,
     sessionId: safeText(body.sessionId, 120),
     clientTimestamp: safeText(body.clientTimestamp, 64),
     clientVersion: safeText(body.clientVersion, 80)

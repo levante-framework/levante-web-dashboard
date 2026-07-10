@@ -9206,26 +9206,54 @@
                             continue;
                         }
 
-                        const moveResponse = await fetch('/api/move-audio-to-dev', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                bucket: 'levante-assets-draft',
-                                path: audioPath,
-                                task: selectedTask,
-                                langCode: this.currentLangCode,
-                                copyTaskTranslations: !requestedTranslationCopy,
-                                approver: String(this.currentUserEmail || '').trim(),
-                                approvedAt: new Date().toISOString()
-                            })
+                        const moveBody = JSON.stringify({
+                            bucket: 'levante-assets-draft',
+                            path: audioPath,
+                            task: selectedTask,
+                            langCode: this.currentLangCode,
+                            copyTaskTranslations: !requestedTranslationCopy,
+                            approver: String(this.currentUserEmail || '').trim(),
+                            approvedAt: new Date().toISOString()
                         });
-                        const movePayload = await moveResponse.json().catch(() => ({}));
-                        if (!moveResponse.ok || movePayload?.success === false) {
+                        // Retry transient move failures (timeouts / GCS contention / rate
+                        // limits) with backoff before giving up. Failed items stay staged and
+                        // are also retried on the next task-finish, but in-loop retries avoid
+                        // needing a manual re-click for the common transient case.
+                        const MOVE_MAX_ATTEMPTS = 3;
+                        let moveOk = false;
+                        let moveStatus = null;
+                        let moveError = '';
+                        let moveAttempts = 0;
+                        for (let attempt = 1; attempt <= MOVE_MAX_ATTEMPTS; attempt++) {
+                            moveAttempts = attempt;
+                            try {
+                                const moveResponse = await fetch('/api/move-audio-to-dev', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: moveBody
+                                });
+                                const movePayload = await moveResponse.json().catch(() => ({}));
+                                if (moveResponse.ok && movePayload?.success !== false) {
+                                    moveOk = true;
+                                    break;
+                                }
+                                moveStatus = moveResponse.status;
+                                moveError = String(movePayload?.message || movePayload?.error || `HTTP ${moveResponse.status}`);
+                            } catch (err) {
+                                moveStatus = null;
+                                moveError = String(err?.message || err || 'network error');
+                            }
+                            if (attempt < MOVE_MAX_ATTEMPTS) {
+                                await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+                            }
+                        }
+                        if (!moveOk) {
                             result.failed++;
                             await this.logApproverAudioEvent('task_finish_item_failed_move', itemId, {
                                 task: selectedTask,
-                                status: moveResponse.status,
-                                message: String(movePayload?.message || movePayload?.error || `HTTP ${moveResponse.status}`)
+                                status: moveStatus,
+                                message: moveError,
+                                attempts: moveAttempts
                             });
                             continue;
                         }
