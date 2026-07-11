@@ -9322,9 +9322,21 @@
                     this.markTaskFinishedLocal(this.currentLangCode, selectedTask);
                     this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
                     const slackSent = payload?.slack?.sent === true;
+                    // failed is always 0 here (any failure throws above), so the summary
+                    // only needs to explain what moved vs. what was already promoted.
+                    const moved = Number(promotionResult.moved || 0);
+                    const alreadyLive = Number(promotionResult.skipped || 0);
+                    let promotionSummary;
+                    if (moved > 0 && alreadyLive > 0) {
+                        promotionSummary = `Moved ${moved} newly approved file(s) to the approved bucket; ${alreadyLive} were already there.`;
+                    } else if (moved > 0) {
+                        promotionSummary = `Moved ${moved} newly approved file(s) to the approved bucket.`;
+                    } else {
+                        promotionSummary = `All audio was already in the approved bucket — nothing new to move.`;
+                    }
                     this.setStatus(
-                        `Marked "${selectedTask}" finished (${approvedAudio}/${totalAudio} audio approved). Promoted ${promotionResult.moved} staged item(s), ${promotionResult.skipped} already in approved bucket, ${promotionResult.failed} failed${slackSent ? ', and posted to Slack.' : '.'}`,
-                        promotionResult.failed > 0 ? 'warning' : 'success'
+                        `Marked "${selectedTask}" finished — all ${totalAudio} audio files approved. ${promotionSummary}${slackSent ? ' Posted to Slack.' : ''}`,
+                        'success'
                     );
                 } catch (error) {
                     this.setStatus(`Could not mark task finished: ${error?.message || error}`, 'error');
