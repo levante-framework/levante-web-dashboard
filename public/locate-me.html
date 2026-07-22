@@ -999,7 +999,13 @@
                                 <h5>Weather Snapshot</h5>
                                 <p style="margin: 0; color: #0f172a; font-size: 1rem;">
                                     {{ latestWeather.weather.temperature }}°
+                                    <span v-if="latestWeather.weather.heatIndexC != null" style="color: #475569;">(HI {{ latestWeather.weather.heatIndexC }}°)</span>
                                     <span style="color: #475569;">{{ latestWeather.weather.description }}</span>
+                                </p>
+                                <p v-if="latestWeather.weather.humidity != null || latestWeather.weather.cloudCover != null" style="margin: 6px 0 0; color: #0f172a; font-size: 0.9rem;">
+                                    <span v-if="latestWeather.weather.humidity != null">RH {{ Math.round(latestWeather.weather.humidity) }}%</span>
+                                    <span v-if="latestWeather.weather.humidity != null && latestWeather.weather.cloudCover != null"> · </span>
+                                    <span v-if="latestWeather.weather.cloudCover != null">Cloud {{ Math.round(latestWeather.weather.cloudCover) }}%</span>
                                 </p>
                                 <p style="margin: 6px 0 0; color: #71717a; font-size: 0.85rem;">{{ formatDateTime(latestWeather.timestamp) }}</p>
                             </div>
@@ -1031,7 +1037,7 @@
                                     <span v-if="entry.latitude && entry.longitude"><i class="fas fa-location-dot"></i> {{ Number(entry.latitude).toFixed(4) }}, {{ Number(entry.longitude).toFixed(4) }}</span>
                                     <span><i class="fas fa-clock"></i> {{ entry.lookupMs || '—' }} ms</span>
                                     <span><i class="fas fa-layer-group"></i> Results: {{ entry.resultCount }}</span>
-                                    <span v-if="entry.weather"><i class="fas fa-cloud"></i> {{ entry.weather.temperature }}° · {{ entry.weather.description || 'Weather' }}</span>
+                                    <span v-if="entry.weather"><i class="fas fa-cloud"></i> {{ entry.weather.temperature }}°<template v-if="entry.weather.heatIndexC != null"> (HI {{ entry.weather.heatIndexC }}°)</template> · {{ entry.weather.description || 'Weather' }}<template v-if="entry.weather.humidity != null"> · RH {{ Math.round(entry.weather.humidity) }}%</template></span>
                                     <span v-if="entry.airQuality"><i class="fas fa-wind"></i> AQI {{ entry.airQuality.aqi }} · {{ entry.airQuality.category || 'Air quality' }}</span>
                                     <span v-if="entry.airQuality && entry.airQuality.pollutants && entry.airQuality.pollutants.pm25 != null"><i class="fas fa-smog"></i> PM2.5 {{ entry.airQuality.pollutants.pm25 }} µg/m³</span>
                                 </div>

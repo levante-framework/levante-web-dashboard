@@ -799,7 +799,44 @@ createApp({
     weatherCacheKey(country, admin1, roundedLat, roundedLon) {
       const c = (country || '').toString().trim().toUpperCase() || 'XX';
       const a1 = (admin1 || '').toString().trim().toUpperCase() || 'NA';
-      return `wx:v1:${c}:${a1}:${roundedLat.toFixed(2)}:${roundedLon.toFixed(2)}`;
+      // v2: includes humidity / heat index / cloud cover from Open-Meteo `current=`
+      return `wx:v2:${c}:${a1}:${roundedLat.toFixed(2)}:${roundedLon.toFixed(2)}`;
+    },
+    /**
+     * NWS heat index (°C) from dry-bulb °C and relative humidity %.
+     * Uses the Steadman approximation below 80°F, Rothfusz regression above.
+     */
+    computeHeatIndexC(tempC, relativeHumidity) {
+      const T = Number(tempC);
+      const RH = Number(relativeHumidity);
+      if (!Number.isFinite(T) || !Number.isFinite(RH)) return null;
+      if (RH < 0 || RH > 100) return null;
+
+      const Tf = (T * 9) / 5 + 32;
+      let HI = 0.5 * (Tf + 61.0 + (Tf - 68.0) * 1.2 + RH * 0.094);
+      HI = (HI + Tf) / 2;
+
+      if (HI >= 80) {
+        HI =
+          -42.379 +
+          2.04901523 * Tf +
+          10.14333127 * RH -
+          0.22475541 * Tf * RH -
+          0.00683783 * Tf * Tf -
+          0.05481717 * RH * RH +
+          0.00122874 * Tf * Tf * RH +
+          0.00085282 * Tf * RH * RH -
+          0.00000199 * Tf * Tf * RH * RH;
+
+        if (RH < 13 && Tf >= 80 && Tf <= 112) {
+          HI -= ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(Tf - 95)) / 17);
+        } else if (RH > 85 && Tf >= 80 && Tf <= 87) {
+          HI += ((RH - 85) / 10) * ((87 - Tf) / 5);
+        }
+      }
+
+      const hic = ((HI - 32) * 5) / 9;
+      return Math.round(hic * 10) / 10;
     },
     readWeatherCache(key) {
       try {
@@ -836,20 +873,37 @@ createApp({
         return cached.weather;
       }
 
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(qLat)}&longitude=${encodeURIComponent(qLon)}&current_weather=true&timezone=auto`;
+      // `current=` supersedes legacy `current_weather=true` and can include humidity + cloud cover.
+      const currentVars = [
+        'temperature_2m',
+        'relative_humidity_2m',
+        'weather_code',
+        'wind_speed_10m',
+        'cloud_cover'
+      ].join(',');
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(qLat)}&longitude=${encodeURIComponent(qLon)}&current=${encodeURIComponent(currentVars)}&timezone=auto`;
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`weather_fetch_failed_${res.status}`);
       const json = await res.json();
-      const cw = json?.current_weather || null;
+      const cw = json?.current || null;
       if (!cw) return null;
+
+      const temperature = Number(cw.temperature_2m);
+      const humidity = Number(cw.relative_humidity_2m);
+      const weathercode = Number(cw.weather_code);
+      const heatIndexC = this.computeHeatIndexC(temperature, humidity);
+      const cloudCover = Number(cw.cloud_cover);
 
       const weather = {
         source: 'open-meteo',
         // keep shape compatible with the log modal in locate-me.html
-        temperature: Number(cw.temperature),
-        windKph: Number(cw.windspeed),
-        weathercode: Number(cw.weathercode),
-        description: this.weatherCodeDescription(cw.weathercode),
+        temperature,
+        humidity: Number.isFinite(humidity) ? humidity : null,
+        heatIndexC: Number.isFinite(heatIndexC) ? heatIndexC : null,
+        cloudCover: Number.isFinite(cloudCover) ? cloudCover : null,
+        windKph: Number(cw.wind_speed_10m),
+        weathercode,
+        description: this.weatherCodeDescription(weathercode),
         observedAt: cw.time || null,
         coarse: {
           basis: qp.basis,
@@ -1032,9 +1086,17 @@ createApp({
       const localName = this.admPolygon?.local?.properties?.name || 'Local';
       const regionalName = this.admPolygon?.adm2?.properties?.name || 'Regional (ADM2)';
       const wx = this.currentWeather;
-      const wxLine = wx
-        ? `Weather: ${Number.isFinite(wx.temperature) ? Math.round(wx.temperature) + '°C' : '—'} · ${wx.description || '—'}`
-        : (this.weatherStatus ? `Weather: ${this.weatherStatus}` : 'Weather: —');
+      let wxLine = this.weatherStatus ? `Weather: ${this.weatherStatus}` : 'Weather: —';
+      if (wx) {
+        const parts = [
+          Number.isFinite(wx.temperature) ? `${Math.round(wx.temperature)}°C` : null,
+          Number.isFinite(wx.heatIndexC) ? `HI ${Math.round(wx.heatIndexC)}°C` : null,
+          wx.description || null,
+          Number.isFinite(wx.humidity) ? `RH ${Math.round(wx.humidity)}%` : null,
+          Number.isFinite(wx.cloudCover) ? `cloud ${Math.round(wx.cloudCover)}%` : null
+        ].filter(Boolean);
+        wxLine = `Weather: ${parts.join(' · ') || '—'}`;
+      }
       const aq = this.currentAirQuality;
       const aqLine = aq && Number.isFinite(aq.aqi)
         ? `Air quality: <span style="color:${aq.color || '#0f172a'};font-weight:600;">${aq.aqi} ${aq.category || ''}</span>`
