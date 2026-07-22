@@ -780,5 +780,925 @@
         "roundingDeg": 0
       }
     }
+  },
+  "37.7749,-122.4194|0|v2": {
+    "fetchedAt": 1784748690262,
+    "expiresAt": 1784750490262,
+    "weather": {
+      "temperatureC": 20,
+      "humidity": 75,
+      "heatIndexC": 20,
+      "cloudCover": 45,
+      "windKph": 15.2,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-07-22T12:30",
+      "elevationM": 18,
+      "query": {
+        "lat": 37.7749,
+        "lon": -122.4194,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "45.5231,-122.6765|0|v2": {
+    "fetchedAt": 1784748690432,
+    "expiresAt": 1784750490432,
+    "weather": {
+      "temperatureC": 30.2,
+      "humidity": 55,
+      "heatIndexC": 32.2,
+      "cloudCover": 0,
+      "windKph": 3.7,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T12:30",
+      "elevationM": 13,
+      "query": {
+        "lat": 45.5231,
+        "lon": -122.6765,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "25.7617,-80.1918|0|v2": {
+    "fetchedAt": 1784748690614,
+    "expiresAt": 1784750490614,
+    "weather": {
+      "temperatureC": 31.5,
+      "humidity": 64,
+      "heatIndexC": 37.1,
+      "cloudCover": 12,
+      "windKph": 15.6,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T15:30",
+      "elevationM": 5,
+      "query": {
+        "lat": 25.7617,
+        "lon": -80.1918,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "49.2827,-123.1207|0|v2": {
+    "fetchedAt": 1784748690797,
+    "expiresAt": 1784750490797,
+    "weather": {
+      "temperatureC": 26.1,
+      "humidity": 70,
+      "heatIndexC": 26.3,
+      "cloudCover": 5,
+      "windKph": 8.7,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T12:30",
+      "elevationM": 40,
+      "query": {
+        "lat": 49.2827,
+        "lon": -123.1207,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "43.6532,-79.3832|0|v2": {
+    "fetchedAt": 1784748690977,
+    "expiresAt": 1784750490977,
+    "weather": {
+      "temperatureC": 20.5,
+      "humidity": 52,
+      "heatIndexC": 20.2,
+      "cloudCover": 0,
+      "windKph": 16.5,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T15:30",
+      "elevationM": 99,
+      "query": {
+        "lat": 43.6532,
+        "lon": -79.3832,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "4.7110,-74.0721|0|v2": {
+    "fetchedAt": 1784748691156,
+    "expiresAt": 1784750491156,
+    "weather": {
+      "temperatureC": 20.4,
+      "humidity": 52,
+      "heatIndexC": 20.1,
+      "cloudCover": 71,
+      "windKph": 13.6,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 2557,
+      "query": {
+        "lat": 4.711,
+        "lon": -74.0721,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "6.2518,-75.5636|0|v2": {
+    "fetchedAt": 1784748691331,
+    "expiresAt": 1784750491331,
+    "weather": {
+      "temperatureC": 25.9,
+      "humidity": 60,
+      "heatIndexC": 26,
+      "cloudCover": 99,
+      "windKph": 4.3,
+      "weathercode": 80,
+      "description": "Light showers",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 1493,
+      "query": {
+        "lat": 6.2518,
+        "lon": -75.5636,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "10.3910,-75.4794|0|v2": {
+    "fetchedAt": 1784748691507,
+    "expiresAt": 1784750491507,
+    "weather": {
+      "temperatureC": 32.1,
+      "humidity": 63,
+      "heatIndexC": 38.3,
+      "cloudCover": 57,
+      "windKph": 17.1,
+      "weathercode": 51,
+      "description": "Light drizzle",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 13,
+      "query": {
+        "lat": 10.391,
+        "lon": -75.4794,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "52.5200,13.4050|0|v2": {
+    "fetchedAt": 1784748691688,
+    "expiresAt": 1784750491688,
+    "weather": {
+      "temperatureC": 17.8,
+      "humidity": 70,
+      "heatIndexC": 17.6,
+      "cloudCover": 84,
+      "windKph": 12.6,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 37,
+      "query": {
+        "lat": 52.52,
+        "lon": 13.405,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "48.1374,11.5755|0|v2": {
+    "fetchedAt": 1784748691864,
+    "expiresAt": 1784750491864,
+    "weather": {
+      "temperatureC": 21.7,
+      "humidity": 38,
+      "heatIndexC": 21.3,
+      "cloudCover": 98,
+      "windKph": 7.7,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 524,
+      "query": {
+        "lat": 48.1374,
+        "lon": 11.5755,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "50.9375,6.9603|0|v2": {
+    "fetchedAt": 1784748692041,
+    "expiresAt": 1784750492041,
+    "weather": {
+      "temperatureC": 19.2,
+      "humidity": 65,
+      "heatIndexC": 19,
+      "cloudCover": 100,
+      "windKph": 18.4,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 55,
+      "query": {
+        "lat": 50.9375,
+        "lon": 6.9603,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "49.7557,6.6394|0|v2": {
+    "fetchedAt": 1784748692224,
+    "expiresAt": 1784750492224,
+    "weather": {
+      "temperatureC": 21,
+      "humidity": 46,
+      "heatIndexC": 20.7,
+      "cloudCover": 50,
+      "windKph": 12.6,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 144,
+      "query": {
+        "lat": 49.7557,
+        "lon": 6.6394,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "40.7128,-74.0060|0|v2": {
+    "fetchedAt": 1784748692400,
+    "expiresAt": 1784750492400,
+    "weather": {
+      "temperatureC": 31.9,
+      "humidity": 41,
+      "heatIndexC": 32.3,
+      "cloudCover": 32,
+      "windKph": 19.8,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-07-22T15:30",
+      "elevationM": 32,
+      "query": {
+        "lat": 40.7128,
+        "lon": -74.006,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "41.8781,-87.6298|0|v2": {
+    "fetchedAt": 1784748692575,
+    "expiresAt": 1784750492575,
+    "weather": {
+      "temperatureC": 21.1,
+      "humidity": 55,
+      "heatIndexC": 20.9,
+      "cloudCover": 15,
+      "windKph": 19,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 241,
+      "query": {
+        "lat": 41.8781,
+        "lon": -87.6298,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "60.4878,-151.0583|0|v2": {
+    "fetchedAt": 1784748692766,
+    "expiresAt": 1784750492766,
+    "weather": {
+      "temperatureC": 13.2,
+      "humidity": 83,
+      "heatIndexC": 13,
+      "cloudCover": 100,
+      "windKph": 14.2,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T11:30",
+      "elevationM": 37,
+      "query": {
+        "lat": 60.4878,
+        "lon": -151.0583,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "45.7833,-108.5007|0|v2": {
+    "fetchedAt": 1784748692944,
+    "expiresAt": 1784750492944,
+    "weather": {
+      "temperatureC": 30.6,
+      "humidity": 30,
+      "heatIndexC": 29.3,
+      "cloudCover": 8,
+      "windKph": 5.1,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T13:30",
+      "elevationM": 954,
+      "query": {
+        "lat": 45.7833,
+        "lon": -108.5007,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "29.3216,-103.6160|0|v2": {
+    "fetchedAt": 1784748693126,
+    "expiresAt": 1784750493126,
+    "weather": {
+      "temperatureC": 35.7,
+      "humidity": 29,
+      "heatIndexC": 35.5,
+      "cloudCover": 0,
+      "windKph": 4.1,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 884,
+      "query": {
+        "lat": 29.3216,
+        "lon": -103.616,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "30.2672,-97.7431|0|v2": {
+    "fetchedAt": 1784748693311,
+    "expiresAt": 1784750493311,
+    "weather": {
+      "temperatureC": 40.2,
+      "humidity": 30,
+      "heatIndexC": 43.5,
+      "cloudCover": 0,
+      "windKph": 9.2,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 157,
+      "query": {
+        "lat": 30.2672,
+        "lon": -97.7431,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "42.1350,-87.7581|0|v2": {
+    "fetchedAt": 1784748693492,
+    "expiresAt": 1784750493492,
+    "weather": {
+      "temperatureC": 21.2,
+      "humidity": 54,
+      "heatIndexC": 21,
+      "cloudCover": 2,
+      "windKph": 19.2,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 207,
+      "query": {
+        "lat": 42.135,
+        "lon": -87.7581,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "45.4317,-84.9920|0|v2": {
+    "fetchedAt": 1784748693657,
+    "expiresAt": 1784750493657,
+    "weather": {
+      "temperatureC": 20.7,
+      "humidity": 42,
+      "heatIndexC": 20.3,
+      "cloudCover": 11,
+      "windKph": 22.4,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T15:30",
+      "elevationM": 213,
+      "query": {
+        "lat": 45.4317,
+        "lon": -84.992,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "44.9315,-93.2815|0|v2": {
+    "fetchedAt": 1784748693817,
+    "expiresAt": 1784750493817,
+    "weather": {
+      "temperatureC": 23,
+      "humidity": 35,
+      "heatIndexC": 22.6,
+      "cloudCover": 19,
+      "windKph": 8.6,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 267,
+      "query": {
+        "lat": 44.9315,
+        "lon": -93.2815,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "37.4275,-122.1697|0|v2": {
+    "fetchedAt": 1784748693982,
+    "expiresAt": 1784750493982,
+    "weather": {
+      "temperatureC": 26.1,
+      "humidity": 56,
+      "heatIndexC": 26.2,
+      "cloudCover": 9,
+      "windKph": 8.1,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T12:30",
+      "elevationM": 32,
+      "query": {
+        "lat": 37.4275,
+        "lon": -122.1697,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "37.4419,-122.1430|0|v2": {
+    "fetchedAt": 1784748694144,
+    "expiresAt": 1784750494144,
+    "weather": {
+      "temperatureC": 26.2,
+      "humidity": 56,
+      "heatIndexC": 26.3,
+      "cloudCover": 9,
+      "windKph": 8.1,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T12:30",
+      "elevationM": 11,
+      "query": {
+        "lat": 37.4419,
+        "lon": -122.143,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "37.3841,-122.2352|0|v2": {
+    "fetchedAt": 1784748694305,
+    "expiresAt": 1784750494305,
+    "weather": {
+      "temperatureC": 23,
+      "humidity": 65,
+      "heatIndexC": 23,
+      "cloudCover": 2,
+      "windKph": 21.7,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T12:30",
+      "elevationM": 162,
+      "query": {
+        "lat": 37.3841,
+        "lon": -122.2352,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "45.5017,-73.5673|0|v2": {
+    "fetchedAt": 1784748694467,
+    "expiresAt": 1784750494467,
+    "weather": {
+      "temperatureC": 20.2,
+      "humidity": 60,
+      "heatIndexC": 20,
+      "cloudCover": 57,
+      "windKph": 29.8,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T15:30",
+      "elevationM": 76,
+      "query": {
+        "lat": 45.5017,
+        "lon": -73.5673,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "51.0447,-114.0719|0|v2": {
+    "fetchedAt": 1784748694628,
+    "expiresAt": 1784750494628,
+    "weather": {
+      "temperatureC": 29.6,
+      "humidity": 20,
+      "heatIndexC": 27.9,
+      "cloudCover": 0,
+      "windKph": 10.5,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T13:30",
+      "elevationM": 1051,
+      "query": {
+        "lat": 51.0447,
+        "lon": -114.0719,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "3.4516,-76.5320|0|v2": {
+    "fetchedAt": 1784748694789,
+    "expiresAt": 1784750494789,
+    "weather": {
+      "temperatureC": 28.1,
+      "humidity": 58,
+      "heatIndexC": 29.4,
+      "cloudCover": 77,
+      "windKph": 6.4,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T14:30",
+      "elevationM": 1009,
+      "query": {
+        "lat": 3.4516,
+        "lon": -76.532,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "53.5511,9.9937|0|v2": {
+    "fetchedAt": 1784748694951,
+    "expiresAt": 1784750494951,
+    "weather": {
+      "temperatureC": 16.2,
+      "humidity": 78,
+      "heatIndexC": 16.1,
+      "cloudCover": 72,
+      "windKph": 17.7,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 3,
+      "query": {
+        "lat": 53.5511,
+        "lon": 9.9937,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "55.9533,-3.1883|0|v2": {
+    "fetchedAt": 1784748695113,
+    "expiresAt": 1784750495113,
+    "weather": {
+      "temperatureC": 22.1,
+      "humidity": 53,
+      "heatIndexC": 21.9,
+      "cloudCover": 91,
+      "windKph": 13.3,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T20:30",
+      "elevationM": 69,
+      "query": {
+        "lat": 55.9533,
+        "lon": -3.1883,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "55.8642,-4.2518|0|v2": {
+    "fetchedAt": 1784748695282,
+    "expiresAt": 1784750495282,
+    "weather": {
+      "temperatureC": 19.7,
+      "humidity": 65,
+      "heatIndexC": 19.6,
+      "cloudCover": 66,
+      "windKph": 16.9,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T20:30",
+      "elevationM": 34,
+      "query": {
+        "lat": 55.8642,
+        "lon": -4.2518,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "57.1497,-2.0943|0|v2": {
+    "fetchedAt": 1784748695455,
+    "expiresAt": 1784750495455,
+    "weather": {
+      "temperatureC": 17.4,
+      "humidity": 78,
+      "heatIndexC": 17.3,
+      "cloudCover": 99,
+      "windKph": 9.7,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T20:30",
+      "elevationM": 20,
+      "query": {
+        "lat": 57.1497,
+        "lon": -2.0943,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "28.6139,77.2090|0|v2": {
+    "fetchedAt": 1784748695618,
+    "expiresAt": 1784750495618,
+    "weather": {
+      "temperatureC": 27.6,
+      "humidity": 87,
+      "heatIndexC": 32.2,
+      "cloudCover": 64,
+      "windKph": 8.9,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-23T01:00",
+      "elevationM": 214,
+      "query": {
+        "lat": 28.6139,
+        "lon": 77.209,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "19.0760,72.8777|0|v2": {
+    "fetchedAt": 1784748695786,
+    "expiresAt": 1784750495786,
+    "weather": {
+      "temperatureC": 26.6,
+      "humidity": 86,
+      "heatIndexC": 29.3,
+      "cloudCover": 100,
+      "windKph": 29.8,
+      "weathercode": 81,
+      "description": "Showers",
+      "observedAt": "2026-07-23T01:00",
+      "elevationM": 6,
+      "query": {
+        "lat": 19.076,
+        "lon": 72.8777,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "12.9716,77.5946|0|v2": {
+    "fetchedAt": 1784748695958,
+    "expiresAt": 1784750495958,
+    "weather": {
+      "temperatureC": 20.5,
+      "humidity": 90,
+      "heatIndexC": 20.7,
+      "cloudCover": 99,
+      "windKph": 12.6,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-23T01:00",
+      "elevationM": 910,
+      "query": {
+        "lat": 12.9716,
+        "lon": 77.5946,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "-34.6037,-58.3816|0|v2": {
+    "fetchedAt": 1784748696130,
+    "expiresAt": 1784750496130,
+    "weather": {
+      "temperatureC": 13.3,
+      "humidity": 68,
+      "heatIndexC": 12.9,
+      "cloudCover": 100,
+      "windKph": 9.2,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T16:30",
+      "elevationM": 18,
+      "query": {
+        "lat": -34.6037,
+        "lon": -58.3816,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "-31.4201,-64.1888|0|v2": {
+    "fetchedAt": 1784748696293,
+    "expiresAt": 1784750496293,
+    "weather": {
+      "temperatureC": 12.8,
+      "humidity": 58,
+      "heatIndexC": 12.2,
+      "cloudCover": 100,
+      "windKph": 6,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T16:30",
+      "elevationM": 403,
+      "query": {
+        "lat": -31.4201,
+        "lon": -64.1888,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "-32.9587,-60.6939|0|v2": {
+    "fetchedAt": 1784748696466,
+    "expiresAt": 1784750496466,
+    "weather": {
+      "temperatureC": 14.1,
+      "humidity": 72,
+      "heatIndexC": 13.8,
+      "cloudCover": 57,
+      "windKph": 11.8,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T16:30",
+      "elevationM": 27,
+      "query": {
+        "lat": -32.9587,
+        "lon": -60.6939,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "52.3676,4.9041|0|v2": {
+    "fetchedAt": 1784748696634,
+    "expiresAt": 1784750496634,
+    "weather": {
+      "temperatureC": 17.4,
+      "humidity": 68,
+      "heatIndexC": 17.2,
+      "cloudCover": 100,
+      "windKph": 15.5,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 5,
+      "query": {
+        "lat": 52.3676,
+        "lon": 4.9041,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "51.9244,4.4777|0|v2": {
+    "fetchedAt": 1784748696805,
+    "expiresAt": 1784750496805,
+    "weather": {
+      "temperatureC": 17.6,
+      "humidity": 66,
+      "heatIndexC": 17.4,
+      "cloudCover": 97,
+      "windKph": 14,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 2,
+      "query": {
+        "lat": 51.9244,
+        "lon": 4.4777,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "52.0907,5.1214|0|v2": {
+    "fetchedAt": 1784748696971,
+    "expiresAt": 1784750496971,
+    "weather": {
+      "temperatureC": 17.4,
+      "humidity": 69,
+      "heatIndexC": 17.2,
+      "cloudCover": 100,
+      "windKph": 13,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 10,
+      "query": {
+        "lat": 52.0907,
+        "lon": 5.1214,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "5.6037,-0.1870|0|v2": {
+    "fetchedAt": 1784748697134,
+    "expiresAt": 1784750497134,
+    "weather": {
+      "temperatureC": 24.8,
+      "humidity": 85,
+      "heatIndexC": 25.2,
+      "cloudCover": 61,
+      "windKph": 12.2,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T19:30",
+      "elevationM": 56,
+      "query": {
+        "lat": 5.6037,
+        "lon": -0.187,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "6.6920,-1.5710|0|v2": {
+    "fetchedAt": 1784748697301,
+    "expiresAt": 1784750497301,
+    "weather": {
+      "temperatureC": 24.7,
+      "humidity": 87,
+      "heatIndexC": 25.1,
+      "cloudCover": 35,
+      "windKph": 11.9,
+      "weathercode": 1,
+      "description": "Mostly clear",
+      "observedAt": "2026-07-22T19:30",
+      "elevationM": 273,
+      "query": {
+        "lat": 6.692,
+        "lon": -1.571,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "4.8845,-1.7554|0|v2": {
+    "fetchedAt": 1784748697463,
+    "expiresAt": 1784750497463,
+    "weather": {
+      "temperatureC": 24.6,
+      "humidity": 88,
+      "heatIndexC": 25,
+      "cloudCover": 64,
+      "windKph": 12.6,
+      "weathercode": 2,
+      "description": "Partly cloudy",
+      "observedAt": "2026-07-22T19:30",
+      "elevationM": 12,
+      "query": {
+        "lat": 4.8845,
+        "lon": -1.7554,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "47.3769,8.5417|0|v2": {
+    "fetchedAt": 1784748697628,
+    "expiresAt": 1784750497628,
+    "weather": {
+      "temperatureC": 23.2,
+      "humidity": 36,
+      "heatIndexC": 22.9,
+      "cloudCover": 0,
+      "windKph": 5.8,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 409,
+      "query": {
+        "lat": 47.3769,
+        "lon": 8.5417,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "46.2044,6.1432|0|v2": {
+    "fetchedAt": 1784748697804,
+    "expiresAt": 1784750497804,
+    "weather": {
+      "temperatureC": 25.8,
+      "humidity": 27,
+      "heatIndexC": 25.5,
+      "cloudCover": 0,
+      "windKph": 8,
+      "weathercode": 0,
+      "description": "Clear",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 368,
+      "query": {
+        "lat": 46.2044,
+        "lon": 6.1432,
+        "roundingDeg": 0
+      }
+    }
+  },
+  "47.5596,7.5886|0|v2": {
+    "fetchedAt": 1784748697965,
+    "expiresAt": 1784750497965,
+    "weather": {
+      "temperatureC": 24.1,
+      "humidity": 37,
+      "heatIndexC": 23.8,
+      "cloudCover": 56,
+      "windKph": 6.8,
+      "weathercode": 3,
+      "description": "Overcast",
+      "observedAt": "2026-07-22T21:30",
+      "elevationM": 247,
+      "query": {
+        "lat": 47.5596,
+        "lon": 7.5886,
+        "roundingDeg": 0
+      }
+    }
   }
 }

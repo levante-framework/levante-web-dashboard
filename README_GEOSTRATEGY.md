@@ -73,7 +73,14 @@ Example schema (JSON):
   "tileGrid": { "size": 3, "population": 86542, "areaKm2": 9 },
   "adm2": { "name": "San Francisco County", "population": 873965 },
   "adm3": { "name": "San Francisco", "population": 873965 },
-  "weather": { "temperatureC": 16, "description": "Partly cloudy" },
+  "weather": {
+    "temperatureC": 16,
+    "humidity": 72,
+    "heatIndexC": 16.1,
+    "cloudCover": 40,
+    "windKph": 12.5,
+    "description": "Partly cloudy"
+  },
   "altitudeM": 23,
   "populationDensityPerKm2": 7542,
   "nearestSchool": { "name": "Example School", "distanceKm": 1.2 }

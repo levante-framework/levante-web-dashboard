@@ -477,7 +477,25 @@
               <div class="pill"><span class="label">ADM3</span> ${adm3 ? `${adm3.name} (${formatNumber(adm3.population)})` : '<span class="empty">N/A</span>'}</div>
             </div>
             <div class="row">
-              <div class="pill"><span class="label">Weather</span> ${p.weather ? `${Math.round(p.weather.temperatureC)}C - ${p.weather.description}` : 'N/A'}</div>
+              <div class="pill"><span class="label">Weather</span> ${
+                p.weather
+                  ? `${Math.round(p.weather.temperatureC)}°C${
+                      p.weather.heatIndexC != null ? ` (HI ${Math.round(p.weather.heatIndexC)}°)` : ''
+                    } · ${p.weather.description}`
+                  : 'N/A'
+              }</div>
+              <div class="pill"><span class="label">Humidity</span> ${
+                p.weather && p.weather.humidity != null
+                  ? `${Math.round(p.weather.humidity)}%`
+                  : '<span class="empty">N/A</span>'
+              }</div>
+              <div class="pill"><span class="label">Cloud Cover</span> ${
+                p.weather && p.weather.cloudCover != null
+                  ? `${Math.round(p.weather.cloudCover)}%`
+                  : '<span class="empty">N/A</span>'
+              }</div>
+            </div>
+            <div class="row">
               <div class="pill"><span class="label">Altitude</span> ${p.altitudeM !== null ? `${Math.round(p.altitudeM)} m` : 'N/A'}</div>
               <div class="pill"><span class="label">Density</span> ${p.populationDensityPerKm2 !== null ? `${formatNumber(p.populationDensityPerKm2)} / km^2` : 'N/A'}</div>
             </div>

@@ -313,9 +313,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 17.3,
-        "description": "Clear",
-        "observedAt": "2026-06-09T10:00",
+        "temperatureC": 20,
+        "humidity": 75,
+        "heatIndexC": 20,
+        "cloudCover": 45,
+        "windKph": 15.2,
+        "description": "Mostly clear",
+        "observedAt": "2026-07-22T12:30",
         "query": {
           "lat": 37.7749,
           "lon": -122.4194,
@@ -629,9 +633,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 14.9,
-        "description": "Mostly clear",
-        "observedAt": "2026-06-09T10:00",
+        "temperatureC": 30.2,
+        "humidity": 55,
+        "heatIndexC": 32.2,
+        "cloudCover": 0,
+        "windKph": 3.7,
+        "description": "Clear",
+        "observedAt": "2026-07-22T12:30",
         "query": {
           "lat": 45.5231,
           "lon": -122.6765,
@@ -945,9 +953,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 29.7,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T13:00",
+        "temperatureC": 31.5,
+        "humidity": 64,
+        "heatIndexC": 37.1,
+        "cloudCover": 12,
+        "windKph": 15.6,
+        "description": "Clear",
+        "observedAt": "2026-07-22T15:30",
         "query": {
           "lat": 25.7617,
           "lon": -80.1918,
@@ -1265,9 +1277,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 14,
-        "description": "Mostly clear",
-        "observedAt": "2026-06-09T10:00",
+        "temperatureC": 26.1,
+        "humidity": 70,
+        "heatIndexC": 26.3,
+        "cloudCover": 5,
+        "windKph": 8.7,
+        "description": "Clear",
+        "observedAt": "2026-07-22T12:30",
         "query": {
           "lat": 49.2827,
           "lon": -123.1207,
@@ -1585,9 +1601,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 21.5,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T13:00",
+        "temperatureC": 20.5,
+        "humidity": 52,
+        "heatIndexC": 20.2,
+        "cloudCover": 0,
+        "windKph": 16.5,
+        "description": "Clear",
+        "observedAt": "2026-07-22T15:30",
         "query": {
           "lat": 43.6532,
           "lon": -79.3832,
@@ -1901,9 +1921,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 20.2,
+        "temperatureC": 20.4,
+        "humidity": 52,
+        "heatIndexC": 20.1,
+        "cloudCover": 71,
+        "windKph": 13.6,
         "description": "Partly cloudy",
-        "observedAt": "2026-06-09T12:00",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 4.711,
           "lon": -74.0721,
@@ -2217,9 +2241,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 26.2,
-        "description": "Mostly clear",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 25.9,
+        "humidity": 60,
+        "heatIndexC": 26,
+        "cloudCover": 99,
+        "windKph": 4.3,
+        "description": "Light showers",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 6.2518,
           "lon": -75.5636,
@@ -2533,9 +2561,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 29.4,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 32.1,
+        "humidity": 63,
+        "heatIndexC": 38.3,
+        "cloudCover": 57,
+        "windKph": 17.1,
+        "description": "Light drizzle",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 10.391,
           "lon": -75.4794,
@@ -2843,9 +2875,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 18.5,
-        "description": "Mostly clear",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 17.8,
+        "humidity": 70,
+        "heatIndexC": 17.6,
+        "cloudCover": 84,
+        "windKph": 12.6,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 52.52,
           "lon": 13.405,
@@ -3163,9 +3199,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 13.8,
-        "description": "Light rain",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 21.7,
+        "humidity": 38,
+        "heatIndexC": 21.3,
+        "cloudCover": 98,
+        "windKph": 7.7,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 48.1374,
           "lon": 11.5755,
@@ -3483,9 +3523,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 15.4,
-        "description": "Drizzle",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 19.2,
+        "humidity": 65,
+        "heatIndexC": 19,
+        "cloudCover": 100,
+        "windKph": 18.4,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 50.9375,
           "lon": 6.9603,
@@ -3803,9 +3847,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 19.7,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 21,
+        "humidity": 46,
+        "heatIndexC": 20.7,
+        "cloudCover": 50,
+        "windKph": 12.6,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 49.7557,
           "lon": 6.6394,
@@ -4119,9 +4167,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 26,
-        "description": "Clear",
-        "observedAt": "2026-06-09T13:00",
+        "temperatureC": 31.9,
+        "humidity": 41,
+        "heatIndexC": 32.3,
+        "cloudCover": 32,
+        "windKph": 19.8,
+        "description": "Mostly clear",
+        "observedAt": "2026-07-22T15:30",
         "query": {
           "lat": 40.7128,
           "lon": -74.006,
@@ -4435,9 +4487,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 26.3,
-        "description": "Partly cloudy",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 21.1,
+        "humidity": 55,
+        "heatIndexC": 20.9,
+        "cloudCover": 15,
+        "windKph": 19,
+        "description": "Clear",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 41.8781,
           "lon": -87.6298,
@@ -4751,9 +4807,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 11.4,
-        "description": "Light drizzle",
-        "observedAt": "2026-06-09T09:00",
+        "temperatureC": 13.2,
+        "humidity": 83,
+        "heatIndexC": 13,
+        "cloudCover": 100,
+        "windKph": 14.2,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T11:30",
         "query": {
           "lat": 60.4878,
           "lon": -151.0583,
@@ -5067,9 +5127,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 24.3,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T11:00",
+        "temperatureC": 30.6,
+        "humidity": 30,
+        "heatIndexC": 29.3,
+        "cloudCover": 8,
+        "windKph": 5.1,
+        "description": "Clear",
+        "observedAt": "2026-07-22T13:30",
         "query": {
           "lat": 45.7833,
           "lon": -108.5007,
@@ -5379,9 +5443,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 31.7,
+        "temperatureC": 35.7,
+        "humidity": 29,
+        "heatIndexC": 35.5,
+        "cloudCover": 0,
+        "windKph": 4.1,
         "description": "Clear",
-        "observedAt": "2026-06-09T12:00",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 29.3216,
           "lon": -103.616,
@@ -5685,9 +5753,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 29.3,
-        "description": "Mostly clear",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 40.2,
+        "humidity": 30,
+        "heatIndexC": 43.5,
+        "cloudCover": 0,
+        "windKph": 9.2,
+        "description": "Clear",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 30.2672,
           "lon": -97.7431,
@@ -6001,9 +6073,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 25.5,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 21.2,
+        "humidity": 54,
+        "heatIndexC": 21,
+        "cloudCover": 2,
+        "windKph": 19.2,
+        "description": "Clear",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 42.135,
           "lon": -87.7581,
@@ -6318,8 +6394,12 @@
       },
       "weather": {
         "temperatureC": 20.7,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T13:00",
+        "humidity": 42,
+        "heatIndexC": 20.3,
+        "cloudCover": 11,
+        "windKph": 22.4,
+        "description": "Clear",
+        "observedAt": "2026-07-22T15:30",
         "query": {
           "lat": 45.4317,
           "lon": -84.992,
@@ -6623,9 +6703,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 26.4,
-        "description": "Partly cloudy",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 23,
+        "humidity": 35,
+        "heatIndexC": 22.6,
+        "cloudCover": 19,
+        "windKph": 8.6,
+        "description": "Clear",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 44.9315,
           "lon": -93.2815,
@@ -6939,9 +7023,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 18.3,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T10:00",
+        "temperatureC": 26.1,
+        "humidity": 56,
+        "heatIndexC": 26.2,
+        "cloudCover": 9,
+        "windKph": 8.1,
+        "description": "Clear",
+        "observedAt": "2026-07-22T12:30",
         "query": {
           "lat": 37.4275,
           "lon": -122.1697,
@@ -7255,9 +7343,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 18.4,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T10:00",
+        "temperatureC": 26.2,
+        "humidity": 56,
+        "heatIndexC": 26.3,
+        "cloudCover": 9,
+        "windKph": 8.1,
+        "description": "Clear",
+        "observedAt": "2026-07-22T12:30",
         "query": {
           "lat": 37.4419,
           "lon": -122.143,
@@ -7570,8 +7662,21 @@
         "adm3": null,
         "populationThreshold": 20000
       },
-      "weather": null,
-      "altitudeM": null,
+      "weather": {
+        "temperatureC": 23,
+        "humidity": 65,
+        "heatIndexC": 23,
+        "cloudCover": 2,
+        "windKph": 21.7,
+        "description": "Clear",
+        "observedAt": "2026-07-22T12:30",
+        "query": {
+          "lat": 37.3841,
+          "lon": -122.2352,
+          "roundingDeg": 0
+        }
+      },
+      "altitudeM": 162,
       "populationDensityPerKm2": 348,
       "nearestSchool": null,
       "airQuality": {
@@ -7882,9 +7987,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 26.6,
-        "description": "Clear",
-        "observedAt": "2026-06-09T13:00",
+        "temperatureC": 20.2,
+        "humidity": 60,
+        "heatIndexC": 20,
+        "cloudCover": 57,
+        "windKph": 29.8,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T15:30",
         "query": {
           "lat": 45.5017,
           "lon": -73.5673,
@@ -8202,9 +8311,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 15.6,
+        "temperatureC": 29.6,
+        "humidity": 20,
+        "heatIndexC": 27.9,
+        "cloudCover": 0,
+        "windKph": 10.5,
         "description": "Clear",
-        "observedAt": "2026-06-09T11:00",
+        "observedAt": "2026-07-22T13:30",
         "query": {
           "lat": 51.0447,
           "lon": -114.0719,
@@ -8518,9 +8631,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 25.8,
-        "description": "Light drizzle",
-        "observedAt": "2026-06-09T12:00",
+        "temperatureC": 28.1,
+        "humidity": 58,
+        "heatIndexC": 29.4,
+        "cloudCover": 77,
+        "windKph": 6.4,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T14:30",
         "query": {
           "lat": 3.4516,
           "lon": -76.532,
@@ -8828,9 +8945,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 16.9,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 16.2,
+        "humidity": 78,
+        "heatIndexC": 16.1,
+        "cloudCover": 72,
+        "windKph": 17.7,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 53.5511,
           "lon": 9.9937,
@@ -9148,9 +9269,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 12.2,
+        "temperatureC": 22.1,
+        "humidity": 53,
+        "heatIndexC": 21.9,
+        "cloudCover": 91,
+        "windKph": 13.3,
         "description": "Overcast",
-        "observedAt": "2026-06-09T18:00",
+        "observedAt": "2026-07-22T20:30",
         "query": {
           "lat": 55.9533,
           "lon": -3.1883,
@@ -9468,9 +9593,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 12,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T18:00",
+        "temperatureC": 19.7,
+        "humidity": 65,
+        "heatIndexC": 19.6,
+        "cloudCover": 66,
+        "windKph": 16.9,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T20:30",
         "query": {
           "lat": 55.8642,
           "lon": -4.2518,
@@ -9788,9 +9917,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 10.7,
-        "description": "Light drizzle",
-        "observedAt": "2026-06-09T18:00",
+        "temperatureC": 17.4,
+        "humidity": 78,
+        "heatIndexC": 17.3,
+        "cloudCover": 99,
+        "windKph": 9.7,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T20:30",
         "query": {
           "lat": 57.1497,
           "lon": -2.0943,
@@ -10108,9 +10241,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 37.1,
-        "description": "Clear",
-        "observedAt": "2026-06-09T22:30",
+        "temperatureC": 27.6,
+        "humidity": 87,
+        "heatIndexC": 32.2,
+        "cloudCover": 64,
+        "windKph": 8.9,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-23T01:00",
         "query": {
           "lat": 28.6139,
           "lon": 77.209,
@@ -10428,9 +10565,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 30.2,
-        "description": "Light drizzle",
-        "observedAt": "2026-06-09T22:30",
+        "temperatureC": 26.6,
+        "humidity": 86,
+        "heatIndexC": 29.3,
+        "cloudCover": 100,
+        "windKph": 29.8,
+        "description": "Showers",
+        "observedAt": "2026-07-23T01:00",
         "query": {
           "lat": 19.076,
           "lon": 72.8777,
@@ -10748,9 +10889,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 22.4,
+        "temperatureC": 20.5,
+        "humidity": 90,
+        "heatIndexC": 20.7,
+        "cloudCover": 99,
+        "windKph": 12.6,
         "description": "Overcast",
-        "observedAt": "2026-06-09T22:30",
+        "observedAt": "2026-07-23T01:00",
         "query": {
           "lat": 12.9716,
           "lon": 77.5946,
@@ -11064,9 +11209,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 13.4,
+        "temperatureC": 13.3,
+        "humidity": 68,
+        "heatIndexC": 12.9,
+        "cloudCover": 100,
+        "windKph": 9.2,
         "description": "Overcast",
-        "observedAt": "2026-06-09T14:00",
+        "observedAt": "2026-07-22T16:30",
         "query": {
           "lat": -34.6037,
           "lon": -58.3816,
@@ -11380,9 +11529,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 14.6,
-        "description": "Partly cloudy",
-        "observedAt": "2026-06-09T14:00",
+        "temperatureC": 12.8,
+        "humidity": 58,
+        "heatIndexC": 12.2,
+        "cloudCover": 100,
+        "windKph": 6,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T16:30",
         "query": {
           "lat": -31.4201,
           "lon": -64.1888,
@@ -11686,9 +11839,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 14.8,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T14:00",
+        "temperatureC": 14.1,
+        "humidity": 72,
+        "heatIndexC": 13.8,
+        "cloudCover": 57,
+        "windKph": 11.8,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T16:30",
         "query": {
           "lat": -32.9587,
           "lon": -60.6939,
@@ -11992,9 +12149,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 15.6,
+        "temperatureC": 17.4,
+        "humidity": 68,
+        "heatIndexC": 17.2,
+        "cloudCover": 100,
+        "windKph": 15.5,
         "description": "Overcast",
-        "observedAt": "2026-06-09T19:00",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 52.3676,
           "lon": 4.9041,
@@ -12308,9 +12469,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 15.5,
-        "description": "Rain",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 17.6,
+        "humidity": 66,
+        "heatIndexC": 17.4,
+        "cloudCover": 97,
+        "windKph": 14,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 51.9244,
           "lon": 4.4777,
@@ -12624,9 +12789,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 13.4,
-        "description": "Light rain",
-        "observedAt": "2026-06-09T19:00",
+        "temperatureC": 17.4,
+        "humidity": 69,
+        "heatIndexC": 17.2,
+        "cloudCover": 100,
+        "windKph": 13,
+        "description": "Overcast",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 52.0907,
           "lon": 5.1214,
@@ -12940,9 +13109,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 26.3,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T17:00",
+        "temperatureC": 24.8,
+        "humidity": 85,
+        "heatIndexC": 25.2,
+        "cloudCover": 61,
+        "windKph": 12.2,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T19:30",
         "query": {
           "lat": 5.6037,
           "lon": -0.187,
@@ -13256,9 +13429,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 25,
-        "description": "Drizzle",
-        "observedAt": "2026-06-09T17:00",
+        "temperatureC": 24.7,
+        "humidity": 87,
+        "heatIndexC": 25.1,
+        "cloudCover": 35,
+        "windKph": 11.9,
+        "description": "Mostly clear",
+        "observedAt": "2026-07-22T19:30",
         "query": {
           "lat": 6.692,
           "lon": -1.571,
@@ -13572,9 +13749,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 25.1,
-        "description": "Drizzle",
-        "observedAt": "2026-06-09T17:00",
+        "temperatureC": 24.6,
+        "humidity": 88,
+        "heatIndexC": 25,
+        "cloudCover": 64,
+        "windKph": 12.6,
+        "description": "Partly cloudy",
+        "observedAt": "2026-07-22T19:30",
         "query": {
           "lat": 4.8845,
           "lon": -1.7554,
@@ -13892,9 +14073,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 15,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T19:15",
+        "temperatureC": 23.2,
+        "humidity": 36,
+        "heatIndexC": 22.9,
+        "cloudCover": 0,
+        "windKph": 5.8,
+        "description": "Clear",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 47.3769,
           "lon": 8.5417,
@@ -14212,9 +14397,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 19.2,
-        "description": "Overcast",
-        "observedAt": "2026-06-09T19:15",
+        "temperatureC": 25.8,
+        "humidity": 27,
+        "heatIndexC": 25.5,
+        "cloudCover": 0,
+        "windKph": 8,
+        "description": "Clear",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 46.2044,
           "lon": 6.1432,
@@ -14532,9 +14721,13 @@
         "populationThreshold": 20000
       },
       "weather": {
-        "temperatureC": 18.2,
+        "temperatureC": 24.1,
+        "humidity": 37,
+        "heatIndexC": 23.8,
+        "cloudCover": 56,
+        "windKph": 6.8,
         "description": "Overcast",
-        "observedAt": "2026-06-09T19:15",
+        "observedAt": "2026-07-22T21:30",
         "query": {
           "lat": 47.5596,
           "lon": 7.5886,
@@ -14557,5 +14750,6 @@
       }
     }
   ],
-  "airQualityGeneratedAt": "2026-06-10T19:47:06.049Z"
+  "airQualityGeneratedAt": "2026-06-10T19:47:06.049Z",
+  "weatherGeneratedAt": "2026-07-22T19:31:37.965Z"
 }

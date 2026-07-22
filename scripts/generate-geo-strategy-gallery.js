@@ -99,6 +99,8 @@ function parseArgs() {
       out.shiftKm = Number(arg.split('=')[1]);
     } else if (arg === '--augment-air-quality') {
       out.augmentAirQuality = true;
+    } else if (arg === '--augment-weather') {
+      out.augmentWeather = true;
     } else if (arg.startsWith('--files=')) {
       out.files = arg.split('=')[1].split(',').map((s) => s.trim()).filter(Boolean);
     }
@@ -602,6 +604,10 @@ class Location {
       },
       weather: weather ? {
         temperatureC: weather.temperatureC,
+        humidity: weather.humidity ?? null,
+        heatIndexC: weather.heatIndexC ?? null,
+        cloudCover: weather.cloudCover ?? null,
+        windKph: weather.windKph ?? null,
         description: weather.description,
         observedAt: weather.observedAt,
         query: weather.query
@@ -768,6 +774,42 @@ function weatherCodeDescription(code) {
   return map[c] || 'Unknown';
 }
 
+/**
+ * NWS heat index (°C) from dry-bulb °C and relative humidity %.
+ * Steadman approximation below 80°F, Rothfusz regression above.
+ */
+function computeHeatIndexC(tempC, relativeHumidity) {
+  const T = Number(tempC);
+  const RH = Number(relativeHumidity);
+  if (!Number.isFinite(T) || !Number.isFinite(RH)) return null;
+  if (RH < 0 || RH > 100) return null;
+
+  const Tf = (T * 9) / 5 + 32;
+  let HI = 0.5 * (Tf + 61.0 + (Tf - 68.0) * 1.2 + RH * 0.094);
+  HI = (HI + Tf) / 2;
+
+  if (HI >= 80) {
+    HI =
+      -42.379 +
+      2.04901523 * Tf +
+      10.14333127 * RH -
+      0.22475541 * Tf * RH -
+      0.00683783 * Tf * Tf -
+      0.05481717 * RH * RH +
+      0.00122874 * Tf * Tf * RH +
+      0.00085282 * Tf * RH * RH -
+      0.00000199 * Tf * Tf * RH * RH;
+
+    if (RH < 13 && Tf >= 80 && Tf <= 112) {
+      HI -= ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(Tf - 95)) / 17);
+    } else if (RH > 85 && Tf >= 80 && Tf <= 87) {
+      HI += ((RH - 85) / 10) * ((87 - Tf) / 5);
+    }
+  }
+
+  return Math.round((((HI - 32) * 5) / 9) * 10) / 10;
+}
+
 function fetchJsonHttps(url) {
   return new Promise((resolve, reject) => {
     https
@@ -802,7 +844,8 @@ async function getCurrentWeatherForPoint(lat, lon) {
   const step = WEATHER_ROUNDING_DEG;
   const rLat = roundToStep(lat, step);
   const rLon = roundToStep(lon, step);
-  const key = `${rLat.toFixed(4)},${rLon.toFixed(4)}|${step}`;
+  // v2 cache key: humidity / heat index / cloud cover from Open-Meteo `current=`
+  const key = `${rLat.toFixed(4)},${rLon.toFixed(4)}|${step}|v2`;
 
   const cache = loadWeatherCache();
   const cached = cache[key];
@@ -817,16 +860,32 @@ async function getCurrentWeatherForPoint(lat, lon) {
   }
   lastWeatherFetchAt = Date.now();
 
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(rLat)}&longitude=${encodeURIComponent(rLon)}&current_weather=true&timezone=auto`;
+  const currentVars = [
+    'temperature_2m',
+    'relative_humidity_2m',
+    'weather_code',
+    'wind_speed_10m',
+    'cloud_cover'
+  ].join(',');
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(rLat)}&longitude=${encodeURIComponent(rLon)}&current=${encodeURIComponent(currentVars)}&timezone=auto`;
   const json = await fetchJsonHttps(url);
-  const cw = json?.current_weather;
+  const cw = json?.current;
   if (!cw) return null;
 
+  const temperatureC = Number(cw.temperature_2m);
+  const humidity = Number(cw.relative_humidity_2m);
+  const weathercode = Number(cw.weather_code);
+  const cloudCover = Number(cw.cloud_cover);
+  const heatIndexC = computeHeatIndexC(temperatureC, humidity);
+
   const weather = {
-    temperatureC: Number(cw.temperature),
-    windKph: Number(cw.windspeed),
-    weathercode: Number(cw.weathercode),
-    description: weatherCodeDescription(cw.weathercode),
+    temperatureC,
+    humidity: Number.isFinite(humidity) ? humidity : null,
+    heatIndexC: Number.isFinite(heatIndexC) ? heatIndexC : null,
+    cloudCover: Number.isFinite(cloudCover) ? cloudCover : null,
+    windKph: Number(cw.wind_speed_10m),
+    weathercode,
+    description: weatherCodeDescription(weathercode),
     observedAt: cw.time || null,
     elevationM: typeof json?.elevation === 'number' ? json.elevation : null,
     query: { lat: rLat, lon: rLon, roundingDeg: step }
@@ -1092,6 +1151,56 @@ async function augmentAirQualityForFile(file) {
   console.log(`Augmented ${updated}/${points.length} points with air quality in ${file}`);
 }
 
+// Refresh weather (humidity / heat index / cloud cover) on existing gallery files
+// without recomputing H3/ADM/tile population.
+async function augmentWeatherForFile(file) {
+  if (!fs.existsSync(file)) {
+    console.warn(`  skip (missing): ${file}`);
+    return;
+  }
+  const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const points = Array.isArray(data.points) ? data.points : [];
+  let updated = 0;
+  for (const p of points) {
+    const lat = Number(p?.gps?.lat);
+    const lon = Number(p?.gps?.lon);
+    if (![lat, lon].every(Number.isFinite)) {
+      p.weather = p.weather || null;
+      console.log(`  ${p.id}: skipped (missing coords)`);
+      continue;
+    }
+    const weather = await getCurrentWeatherForPoint(lat, lon).catch(() => null);
+    if (weather) {
+      p.weather = {
+        temperatureC: weather.temperatureC,
+        humidity: weather.humidity ?? null,
+        heatIndexC: weather.heatIndexC ?? null,
+        cloudCover: weather.cloudCover ?? null,
+        windKph: weather.windKph ?? null,
+        description: weather.description,
+        observedAt: weather.observedAt,
+        query: weather.query
+      };
+      if (typeof weather.elevationM === 'number' && (p.altitudeM == null || !Number.isFinite(p.altitudeM))) {
+        p.altitudeM = weather.elevationM;
+      }
+      updated += 1;
+      console.log(
+        `  ${p.id}: ${Math.round(weather.temperatureC)}°C` +
+          `${weather.heatIndexC != null ? ` (HI ${weather.heatIndexC}°)` : ''}` +
+          ` · ${weather.description}` +
+          `${weather.humidity != null ? ` · RH ${Math.round(weather.humidity)}%` : ''}` +
+          `${weather.cloudCover != null ? ` · cloud ${Math.round(weather.cloudCover)}%` : ''}`
+      );
+    } else {
+      console.log(`  ${p.id}: N/A`);
+    }
+  }
+  data.weatherGeneratedAt = new Date().toISOString();
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+  console.log(`Augmented ${updated}/${points.length} points with weather in ${file}`);
+}
+
 async function main() {
   const argv = parseArgs();
 
@@ -1105,6 +1214,17 @@ async function main() {
     for (const f of files) {
       console.log(`Augmenting air quality: ${f}`);
       await augmentAirQualityForFile(f);
+    }
+    return;
+  }
+
+  if (argv.augmentWeather) {
+    const files = argv.files && argv.files.length
+      ? argv.files
+      : [DATA_FILE, path.join(OUTPUT_DIR, 'gallery-data-20000.json')];
+    for (const f of files) {
+      console.log(`Augmenting weather: ${f}`);
+      await augmentWeatherForFile(f);
     }
     return;
   }
