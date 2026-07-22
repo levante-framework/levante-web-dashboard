@@ -25,7 +25,8 @@ const SUPERADMIN_EMAILS = [
     "serlee@stanford.edu",
     "sachino@stanford.edu",
     "mcfrank@stanford.edu",
-    "acardinal42@gmail.com"
+    "acardinal42@gmail.com",
+    "twcheng@stanford.edu"
     // Add more superadmin emails here if needed
 ];
 
