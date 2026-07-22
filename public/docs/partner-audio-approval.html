@@ -198,7 +198,8 @@
                 <li>&nbsp;Review the audio and&nbsp;regenerate it as needed</li>
                 <li>Generate audio for items without audio files</li>
                 <li>&nbsp;Modify audio-specific text for better enunciation a  needed</li>
-                <li>When ready, approve audio clips for deployment (immediate approval workflow)</li>
+                <li>Approve audio clips for your language. Approving <strong>stages</strong> an item &mdash; it is not moved to the approved bucket until you mark the task <strong>Finished</strong></li>
+                <li>Mark a task <strong>Finished</strong> to promote all its approved audio from <code>levante-assets-draft</code> to <code>levante-assets-dev</code></li>
                 <li>Search and filter items for efficient review</li>
             </ul>
         </div>
@@ -276,10 +277,10 @@
 
             <h4><strong>Approved Tab</strong></h4>
             <ul>
-                <li>Shows all items you've approved</li>
+                <li>Shows all items you've approved (staged) for the current language</li>
                 <li>Compact view with item ID, translated text, and Unapprove button</li>
-                <li>Items in this tab have been moved to the approved bucket (<code>levante-assets-dev</code>)</li>
-                <li>Unapproving moves items back to the draft bucket</li>
+                <li><strong>Approved items are staged, not yet promoted.</strong> Their audio stays in the draft bucket (<code>levante-assets-draft</code>) and is only moved to the approved bucket (<code>levante-assets-dev</code>) when you click <strong>Finished with this task</strong></li>
+                <li>Unapproving removes the approval and returns the item to the <strong>To Be Approved</strong> tab. If the item was already promoted (task previously finished), its audio is moved back from <code>levante-assets-dev</code> to <code>levante-assets-draft</code></li>
             </ul>
 
             <h4><strong>No Audio Tab</strong></h4>
@@ -327,25 +328,39 @@
             </ol>
 
             <h3>6. Approve Items</h3>
-            <p><strong>Immediate Approval Workflow:</strong></p>
+            <p><strong>Approving stages an item &mdash; it does not deploy it.</strong> The audio only moves to the approved bucket when you mark the whole task <strong>Finished</strong> (see <a href="#finished-task">Finished with this task</a>).</p>
             <ul>
                 <li>Click the <strong>Approve</strong> button on any item</li>
-                <li>The audio file is immediately moved from <code>levante-assets-draft</code> to <code>levante-assets-dev</code></li>
-                <li>The item disappears from the "To Be Approved" tab</li>
-                <li>The item appears in the "Approved" tab</li>
-                <li>Statistics update automatically</li>
-                <li>No batch confirmation needed</li>
+                <li>The item is marked approved (<strong>staged</strong>) and your approval is stamped onto the draft audio. <strong>The file stays in <code>levante-assets-draft</code></strong> for now</li>
+                <li>The item disappears from the "To Be Approved" tab and appears in the "Approved" tab</li>
+                <li>Statistics update automatically &mdash; no batch confirmation needed</li>
+                <li>Promotion from <code>levante-assets-draft</code> to <code>levante-assets-dev</code> happens later, when you click <strong>Finished with this task</strong></li>
             </ul>
 
             <h3>7. Unapprove Items (if needed)</h3>
             <ul>
                 <li>Switch to the <strong>Approved</strong> tab</li>
                 <li>Click <strong>Unapprove</strong> on any item</li>
-                <li>The audio file is immediately moved back from <code>levante-assets-dev</code> to <code>levante-assets-draft</code></li>
-                <li>The item disappears from the "Approved" tab</li>
-                <li>The item appears back in the "To Be Approved" tab</li>
-                <li>Statistics update automatically</li>
+                <li>The approval is removed. If the item was still staged (task not yet finished), it is simply un-staged &mdash; nothing needs to move</li>
+                <li>If the item had already been promoted (task previously finished), its audio is moved back from <code>levante-assets-dev</code> to <code>levante-assets-draft</code></li>
+                <li>The item returns to the "To Be Approved" tab and statistics update automatically</li>
             </ul>
+
+            <h3 id="finished-task">8. Finished with this task (promote approved audio)</h3>
+            <p><strong>This is the step that actually deploys your approved audio.</strong> Nothing is copied to the approved bucket (<code>levante-assets-dev</code>) until you finish the task.</p>
+            <ol>
+                <li>Use the <strong>Task</strong> filter to select a single task (the <strong>Finished with this task</strong> button only appears for a specific task, not for <strong>All tasks</strong>)</li>
+                <li>Approve <strong>every</strong> audio item in the task. The button is disabled until all of the task's audio is approved (approved count must equal total audio)</li>
+                <li>Click <strong>Finished with this task</strong>. The tool then:
+                    <ul>
+                        <li>Moves each approved item's audio from <code>levante-assets-draft</code> to <code>levante-assets-dev</code></li>
+                        <li>Records the task as finished for your language and posts a notification to Slack</li>
+                        <li>Retries transient move failures automatically; any item that still fails stays staged and is retried the next time you click <strong>Finished with this task</strong></li>
+                    </ul>
+                </li>
+                <li>On success the button changes to <strong>Task finished</strong>, and you'll see a summary such as <em>"Marked '&lt;task&gt;' finished &mdash; all N audio files approved. Moved N newly approved file(s) to the approved bucket. Posted to Slack."</em></li>
+            </ol>
+            <p>If you approve or regenerate more audio for a task after finishing it, click <strong>Finished with this task</strong> again to promote the newly approved items.</p>
         </div>
 
         <div class="card">
@@ -387,7 +402,7 @@
             <p>The top of the dashboard shows four statistics:</p>
             <ul>
                 <li><strong>Total Items</strong>: All items with translations for your language</li>
-                <li><strong>Approved</strong>: Items that have been approved and moved to dev bucket</li>
+                <li><strong>Approved</strong>: Items you've approved (staged). Their audio stays in the draft bucket until the task is marked <strong>Finished</strong>, at which point it moves to the dev bucket</li>
                 <li><strong>Pending</strong>: Items still awaiting approval in the draft bucket</li>
                 <li><strong>No Audio</strong>: Items without audio files that need generation</li>
             </ul>
@@ -397,7 +412,8 @@
         <div class="card">
             <h2>Tips</h2>
             <ul>
-                <li><strong>Immediate Feedback</strong>: All approval actions happen immediately - no need to confirm batches</li>
+                <li><strong>Immediate Feedback</strong>: Approval actions update the UI immediately - no need to confirm batches</li>
+                <li><strong>Don't forget to Finish</strong>: Approving only stages items. Your approved audio is not deployed until you select the task and click <strong>Finished with this task</strong></li>
                 <li><strong>Audio Generation</strong>: Use the "No Audio" tab to quickly generate audio for missing items</li>
                 <li><strong>Audio Enhancement</strong>: Use the "Audio-enhanced string" field to customize pronunciation or add pauses</li>
                 <li><strong>Search</strong>: Use search to quickly find specific items you need to review</li>
@@ -453,17 +469,24 @@
 
             <h3>Approval Process</h3>
             <ol>
-                <li>User clicks "Approve" → File immediately moves from draft to dev bucket</li>
+                <li>User clicks "Approve" → item is staged (approval recorded and stamped onto the draft audio). The file stays in the draft bucket</li>
                 <li>UI updates to show item in "Approved" tab</li>
-                <li>Statistics update automatically</li>
-                <li>No batch confirmation needed</li>
+                <li>Statistics update automatically &mdash; no batch confirmation needed</li>
+            </ol>
+
+            <h3>Finish / Promotion Process</h3>
+            <ol>
+                <li>User selects a single task and clicks "Finished with this task" (enabled only when every audio item in the task is approved)</li>
+                <li>Each staged item's audio is moved from the draft bucket (<code>levante-assets-draft</code>) to the dev bucket (<code>levante-assets-dev</code>)</li>
+                <li>The task is recorded as finished for the language and a Slack notification is posted</li>
+                <li>Transient move failures are retried automatically; items that still fail remain staged and are retried on the next finish click</li>
             </ol>
 
             <h3>Unapproval Process</h3>
             <ol>
-                <li>User clicks "Unapprove" → File immediately moves from dev back to draft bucket</li>
-                <li>UI updates to show item in "To Be Approved" tab</li>
-                <li>Statistics update automatically</li>
+                <li>User clicks "Unapprove" → if the item is still staged, its approval is simply removed (nothing moves)</li>
+                <li>If the item was already promoted (task previously finished), its file is moved from the dev bucket back to the draft bucket</li>
+                <li>UI updates to show item in "To Be Approved" tab and statistics update automatically</li>
             </ol>
         </div>
 
