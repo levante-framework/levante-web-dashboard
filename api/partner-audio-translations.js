@@ -125,11 +125,13 @@ function buildCsv(headers, rows) {
   return `${lines.join('\n')}\n`;
 }
 
-async function listAllFiles(bucket) {
+async function listAllFiles(bucket, prefix = '') {
   const out = [];
   let pageToken = undefined;
+  const normalizedPrefix = String(prefix || '').replace(/^\/+/, '');
   do {
     const [files, nextQuery] = await bucket.getFiles({
+      ...(normalizedPrefix ? { prefix: normalizedPrefix } : {}),
       autoPaginate: false,
       pageToken,
       maxResults: 1000,
@@ -384,13 +386,24 @@ function collectJsonTranslationEntries(node, prefix = '') {
 
 async function buildFromDraftTaskJson(storage, bucketName) {
   const bucket = storage.bucket(bucketName);
-  const allFiles = await listAllFiles(bucket);
+  // Prefix scan: draft buckets contain 25k+ objects (mostly audio/logs) and a
+  // full-bucket list hits MAX_SCAN_FILES before reaching translations/itembank/.
+  const allFiles = await listAllFiles(bucket, 'translations/itembank/');
   const jsonFiles = allFiles.filter((f) => {
     const p = normalizePath(f?.name).toLowerCase();
     if (!p.endsWith('.json')) return false;
     return hasItembankSegment(p);
   });
-  if (!jsonFiles.length) return null;
+  if (!jsonFiles.length) {
+    return {
+      csvText: null,
+      source: `gcs://${bucketName}/translations/itembank/**/*.json`,
+      rowCount: 0,
+      fileCount: 0,
+      scannedFileCount: allFiles.length,
+      matchedJsonCount: 0,
+    };
+  }
 
   const byId = new Map();
   const languages = new Set(['en-US']);
@@ -444,16 +457,27 @@ async function buildFromDraftTaskJson(storage, bucketName) {
   }
 
   const rows = Array.from(byId.values());
-  if (!rows.length) return null;
+  if (!rows.length) {
+    return {
+      csvText: null,
+      source: `gcs://${bucketName}/translations/itembank/**/*.json`,
+      rowCount: 0,
+      fileCount: parsedFiles,
+      scannedFileCount: allFiles.length,
+      matchedJsonCount: jsonFiles.length,
+    };
+  }
   rows.sort((a, b) => String(a.item_id || '').localeCompare(String(b.item_id || '')));
   const langHeaders = Array.from(languages).filter((l) => l && l !== 'en-US').sort();
   const headers = ['item_id', 'task', 'en-US', ...langHeaders];
 
   return {
     csvText: buildCsv(headers, rows),
-    source: `gcs://${bucketName}/**/itembank/**/*.json`,
+    source: `gcs://${bucketName}/translations/itembank/**/*.json`,
     rowCount: rows.length,
     fileCount: parsedFiles,
+    scannedFileCount: allFiles.length,
+    matchedJsonCount: jsonFiles.length,
   };
 }
 
@@ -651,7 +675,7 @@ export default async function handler(req, res) {
           return res.status(200).send(draftFolderResult.csvText);
         }
       } else {
-        tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/**/itembank/**/*.json`);
+        tried.push(`gcs://${DEFAULT_DRAFT_BUCKET}/translations/itembank/**/*.json`);
         const taskJsonResult = await buildFromDraftTaskJson(storage, DEFAULT_DRAFT_BUCKET);
         if (taskJsonResult?.csvText) {
           memoryCache = {
@@ -661,7 +685,21 @@ export default async function handler(req, res) {
           };
           res.setHeader('Content-Type', 'text/csv; charset=utf-8');
           res.setHeader('Cache-Control', 'no-store');
+          res.setHeader('X-Partner-Audio-Source', taskJsonResult.source || '');
+          res.setHeader('X-Partner-Audio-Row-Count', String(taskJsonResult.rowCount || 0));
           return res.status(200).send(taskJsonResult.csvText);
+        }
+        if (taskJsonResult) {
+          return res.status(404).json({
+            ok: false,
+            error: 'translations_not_found',
+            sourceMode: sourceModeLabel(),
+            tried,
+            scannedFileCount: taskJsonResult.scannedFileCount || 0,
+            matchedJsonCount: taskJsonResult.matchedJsonCount || 0,
+            parsedFileCount: taskJsonResult.fileCount || 0,
+            hint: 'Expected JSON under translations/itembank/<task>/<lang>/item-bank-translations.json',
+          });
         }
       }
     }

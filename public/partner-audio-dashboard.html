@@ -5781,7 +5781,22 @@
                             const url = `${source}${separator}${cacheBust}`;
                             const csvResponse = await fetch(url, { cache: 'no-store' });
                             if (!csvResponse.ok) {
-                                failures.push(`${source} -> HTTP ${csvResponse.status}`);
+                                let detail = `HTTP ${csvResponse.status}`;
+                                try {
+                                    const errBody = await csvResponse.clone().json();
+                                    if (errBody?.error) {
+                                        detail += ` (${errBody.error}`;
+                                        if (errBody.sourceMode) detail += `, mode=${errBody.sourceMode}`;
+                                        if (typeof errBody.matchedJsonCount === 'number') {
+                                            detail += `, matchedJson=${errBody.matchedJsonCount}`;
+                                        }
+                                        if (errBody.hint) detail += `; ${errBody.hint}`;
+                                        detail += ')';
+                                    }
+                                } catch (_) {
+                                    // Response may be non-JSON for some failures.
+                                }
+                                failures.push(`${source} -> ${detail}`);
                                 continue;
                             }
                             const candidateText = await csvResponse.text();
@@ -5798,7 +5813,7 @@
                     }
 
                     if (!csvText || csvText.trim().length === 0) {
-                        throw new Error(`Failed to load translation CSV from ${apiSource}. Tried: ${failures.join(' | ')}. If this endpoint is 404, deploy the latest dashboard API changes.`);
+                        throw new Error(`Failed to load translation CSV from ${apiSource}. Tried: ${failures.join(' | ')}.`);
                     }
                     const allItems = this.parseCSV(csvText);
                     
