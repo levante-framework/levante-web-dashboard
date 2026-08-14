@@ -16,7 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
-        const DASHBOARD_BUILD_VERSION = '2026-05-11-task-staged-approval-v1';
+        const DASHBOARD_BUILD_VERSION = '2026-08-14-baseline-heal-v1';
 
         // Keep users on the current host (including preview URLs), but strip
         // stale deployment pinning (`?dpl=...`) so links stay stable.
@@ -2273,6 +2273,7 @@
                 this.enhancedTextSyncTimer = null;
                 this.stagedApprovalSyncQueue = new Set();
                 this.stagedApprovalSyncTimer = null;
+                this.pendingUnstageIdsByLang = new Map(); // langCode -> Set(baseId) awaiting server merge removal
                 this.audioComparisonsByKey = new Map();
                 this.playedExistingAudioByKey = new Map();
                 this.missingEnhancedKeyLogs = new Set();
@@ -2529,7 +2530,9 @@
                         }
                     });
                     this.stagedApprovedByLang.set(normalized, taskMap);
-                    this.saveStagedApprovals(langCode);
+                    // Local cache only — do not echo the GET payload back to the server.
+                    // Echoing raced with concurrent approvers and could clobber their tasks.
+                    this.saveStagedApprovals(langCode, { sync: false });
                     // Adopt server-side approval baselines as authoritative.
                     if (payload.baselines && typeof payload.baselines === 'object' && !Array.isArray(payload.baselines)) {
                         const baselineMap = new Map();
@@ -2583,22 +2586,57 @@
                 baselineMap.forEach((ts, baseId) => {
                     if (baseId && Number.isFinite(ts) && ts > 0) baselines[baseId] = ts;
                 });
+                const removedIds = Array.from(this.getPendingUnstageIdSet(langCode));
                 try {
-                    await fetch('/api/partner-audio-staged-approvals', {
+                    const response = await fetch('/api/partner-audio-staged-approvals', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             langCode: normalized,
                             tasks,
-                            baselines
+                            baselines,
+                            removedIds
                         })
                     });
+                    if (!response.ok) return;
+                    const payload = await response.json().catch(() => ({}));
+                    if (!payload?.ok) return;
+                    if (removedIds.length > 0) {
+                        const pending = this.getPendingUnstageIdSet(langCode);
+                        removedIds.forEach((id) => pending.delete(id));
+                    }
+                    // Adopt merged server snapshot so this client keeps concurrent
+                    // approvers' tasks instead of overwriting them on the next sync.
+                    if (payload.tasks && typeof payload.tasks === 'object') {
+                        const taskMap = new Map();
+                        Object.entries(payload.tasks).forEach(([taskName, ids]) => {
+                            if (!taskName || !Array.isArray(ids)) return;
+                            const normalizedIds = ids.map((id) => this.extractBaseId(id)).filter(Boolean);
+                            if (normalizedIds.length > 0) taskMap.set(taskName, new Set(normalizedIds));
+                        });
+                        this.stagedApprovedByLang.set(normalized, taskMap);
+                        this.saveStagedApprovals(langCode, { sync: false });
+                    }
+                    if (payload.baselines && typeof payload.baselines === 'object') {
+                        const baselineMap = new Map();
+                        Object.entries(payload.baselines).forEach(([baseId, ts]) => {
+                            const normalizedId = this.extractBaseId(baseId);
+                            const numericTs = Number(ts);
+                            if (normalizedId && Number.isFinite(numericTs) && numericTs > 0) {
+                                baselineMap.set(normalizedId, numericTs);
+                            }
+                        });
+                        this.approvalBaselineByLang.set(normalized, baselineMap);
+                        this.saveApprovalBaselines(langCode, { sync: false });
+                    }
+                    this.recomputeApprovedItems();
                 } catch (_) {
                     // Ignore sync failures; local state remains intact.
                 }
             }
 
-            saveStagedApprovals(langCode = this.currentLangCode) {
+            saveStagedApprovals(langCode = this.currentLangCode, options = {}) {
+                const sync = options.sync !== false;
                 const taskMap = this.getStagedApprovalTaskMap(langCode);
                 const payload = {};
                 taskMap.forEach((idSet, taskName) => {
@@ -2610,13 +2648,15 @@
                 try {
                     if (Object.keys(payload).length === 0) {
                         localStorage.removeItem(storageKey);
-                        return;
+                    } else {
+                        localStorage.setItem(storageKey, JSON.stringify(payload));
                     }
-                    localStorage.setItem(storageKey, JSON.stringify(payload));
                 } catch (_) {
                     // Ignore storage write failures.
                 }
-                this.queueStagedApprovalsSync(langCode);
+                if (sync) {
+                    this.queueStagedApprovalsSync(langCode);
+                }
             }
 
             getAllStagedApprovedIds(langCode = this.currentLangCode) {
@@ -2648,6 +2688,15 @@
                 return this.extractTaskName(match || { item_id: normalizedBaseId });
             }
 
+            getPendingUnstageIdSet(langCode = this.currentLangCode) {
+                const key = this.normalizeEnhancedLangCode(langCode);
+                if (!key) return new Set();
+                if (!this.pendingUnstageIdsByLang.has(key)) {
+                    this.pendingUnstageIdsByLang.set(key, new Set());
+                }
+                return this.pendingUnstageIdsByLang.get(key);
+            }
+
             stageApprovedItem(baseId, taskName = '', langCode = this.currentLangCode) {
                 const normalizedBaseId = this.extractBaseId(baseId);
                 if (!normalizedBaseId) return false;
@@ -2655,6 +2704,8 @@
                 const taskMap = this.getStagedApprovalTaskMap(langCode);
                 if (!taskMap.has(resolvedTask)) taskMap.set(resolvedTask, new Set());
                 const taskSet = taskMap.get(resolvedTask);
+                // Re-staging cancels any pending server-side removal for this id.
+                this.getPendingUnstageIdSet(langCode).delete(normalizedBaseId);
                 if (taskSet.has(normalizedBaseId)) return false;
                 taskSet.add(normalizedBaseId);
                 this.saveStagedApprovals(langCode);
@@ -2676,6 +2727,9 @@
                     }
                 });
                 if (removed) {
+                    // Server merge is union-based; explicit removals are required so
+                    // unapprove/reopen can delete ids without clobbering other tasks.
+                    this.getPendingUnstageIdSet(langCode).add(normalizedBaseId);
                     this.saveStagedApprovals(langCode);
                 }
                 // Drop any approval baseline; it only applies while the item is staged.
@@ -5651,34 +5705,68 @@
                     });
 
                     // Reopen staged items whose draft audio was regenerated AFTER they were
-                    // approved. We compare the current draft timestamp against an approval
-                    // baseline captured when the item was staged — NOT against the -dev copy.
-                    // Comparing against -dev wrongly bounced approved items back to "To Be
-                    // Approved" whenever a stale, older copy still sat in -dev (the common
-                    // case for items re-approved with freshly generated audio that has not
-                    // yet been promoted). The first time we see a staged item without a
-                    // baseline we adopt its current draft timestamp, so it stays approved;
-                    // only a later regeneration (draft newer than the baseline) reopens it.
+                    // approved. We compare the current draft timestamp (latest of unversioned
+                    // + *_vNNN) against an approval baseline captured when the item was
+                    // staged — NOT against the -dev copy.
+                    //
+                    // Stale baselines (e.g. restores pinned to an older unversioned object
+                    // while a newer *_v001 exists) must NOT wipe approvals via removedIds.
+                    // If the draft still carries an ID3 approved_at that covers the current
+                    // draft mtime, heal the baseline instead of unstaging.
                     let reopenedCount = 0;
-                    const stagedIds = this.getAllStagedApprovedIds(this.currentLangCode);
-                    stagedIds.forEach(baseId => {
-                        const draftUpdated = draftInfo.updatedById?.get(baseId) || 0;
+                    let healedCount = 0;
+                    const stagedIds = Array.from(this.getAllStagedApprovedIds(this.currentLangCode));
+                    const APPROVAL_TAG_SKEW_MS = 15_000;
+                    await Promise.all(stagedIds.map(async (baseId) => {
+                        const draftUpdated = Number(draftInfo.updatedById?.get(baseId) || 0);
                         if (draftUpdated <= 0) return;
                         let baseline = this.getApprovalBaseline(baseId, this.currentLangCode);
                         if (!baseline) {
                             this.setApprovalBaseline(baseId, draftUpdated, this.currentLangCode);
-                            baseline = draftUpdated;
+                            return;
                         }
-                        if (draftUpdated > baseline) {
-                            if (this.unstageApprovedItem(baseId, this.currentLangCode)) {
-                                reopenedCount++;
-                            }
+                        if (draftUpdated <= baseline) return;
+
+                        // Draft listing is newer than baseline — confirm this is a real
+                        // regeneration before persisting an unstage/removal.
+                        let approvedAtMs = 0;
+                        try {
+                            const draftPath = draftInfo.paths?.get(baseId) || null;
+                            const detail = draftPath
+                                ? await this.readApprovalTagsByPath(this.audioBuckets.draft, draftPath)
+                                : await this.readApprovalTagsFromBucket(
+                                    this.audioBuckets.draft,
+                                    baseId,
+                                    this.currentLangCode
+                                );
+                            approvedAtMs = detail?.approvedAt ? Date.parse(detail.approvedAt) : 0;
+                            if (!Number.isFinite(approvedAtMs)) approvedAtMs = 0;
+                        } catch (_) {
+                            approvedAtMs = 0;
                         }
-                    });
+
+                        if (approvedAtMs > 0 && draftUpdated <= (approvedAtMs + APPROVAL_TAG_SKEW_MS)) {
+                            // Same approved object (or approval tag rewrite) — heal baseline.
+                            this.setApprovalBaseline(baseId, Math.max(baseline, draftUpdated), this.currentLangCode);
+                            healedCount++;
+                            return;
+                        }
+
+                        if (this.unstageApprovedItem(baseId, this.currentLangCode)) {
+                            reopenedCount++;
+                        }
+                    }));
 
                     this.recomputeApprovedItems();
+                    if (healedCount > 0) {
+                        console.log(`🩹 Healed ${healedCount} stale approval baseline(s) without unstaging.`);
+                    }
                     if (reopenedCount > 0) {
-                        console.log(`♻️ Reopened ${reopenedCount} item(s) for re-approval: draft audio is newer than the approved dev copy.`);
+                        console.log(`♻️ Reopened ${reopenedCount} item(s) for re-approval: draft audio is newer than the approval baseline.`);
+                        this.setStatus(
+                            `${reopenedCount} item(s) need re-approval because their draft audio was regenerated after the previous approval.`,
+                            'warning'
+                        );
                     }
                     console.log(`Loaded approval status with timestamp rule: ${approvedCount} approved items (dev newest).`);
                 } catch (error) {
@@ -8763,18 +8851,26 @@
                         return;
                     }
                     
-                    // Check if already approved
-                    if (this.approvedItems.has(baseId)) {
-                        this.setStatus(`${itemId} is already approved`, 'info');
-                        return;
-                    }
-                    
                     this.setStatus(`Approving ${itemId}...`, 'loading');
                     
                     // Resolve a real draft path only (no fabricated fallback).
                     const audioPath = await this.findAudioPath(this.audioBuckets.draft, this.currentLangCode, baseId, { forceRefresh: true });
                     if (!audioPath) {
                         throw new Error(`No draft audio file found for ${itemId}`);
+                    }
+
+                    // If this item was already staged but draft audio is newer than the
+                    // approval baseline (common after regenerate + save), refresh the
+                    // staged approval + baseline instead of no-oping. Otherwise a later
+                    // page refresh reopens the item and looks like lost progress.
+                    const draftInfo = await this.fetchAudioFileIds(this.audioBuckets.draft, this.currentLangCode, { forceRefresh: true });
+                    const draftUpdated = Number(draftInfo.updatedById?.get(baseId) || 0);
+                    const baseline = Number(this.getApprovalBaseline(baseId, this.currentLangCode) || 0);
+                    const alreadyStaged = this.getAllStagedApprovedIds(this.currentLangCode).has(baseId);
+                    const needsRestage = alreadyStaged && draftUpdated > 0 && baseline > 0 && draftUpdated > baseline;
+                    if (this.approvedItems.has(baseId) && !needsRestage) {
+                        this.setStatus(`${itemId} is already approved`, 'info');
+                        return;
                     }
 
                     this.stageApprovedItem(baseId, this.findTaskNameForBaseId(baseId), this.currentLangCode);
@@ -8786,16 +8882,27 @@
                     const approvedAt = new Date().toISOString();
                     const approver = String(this.currentUserEmail || '').trim();
                     const approvalTagsWritten = await this.writeApprovalTagsToDraft(baseId, audioPath, approver, approvedAt);
+                    // Always pin baseline to at least the latest draft listing timestamp
+                    // (includes *_vNNN). writeApprovalTagsToDraft may also bump it to the
+                    // post-stamp object mtime when the API returns updatedAt.
+                    if (draftUpdated > 0) {
+                        const currentBaseline = Number(this.getApprovalBaseline(baseId, this.currentLangCode) || 0);
+                        if (draftUpdated > currentBaseline) {
+                            this.setApprovalBaseline(baseId, draftUpdated, this.currentLangCode);
+                        }
+                    }
                     this.invalidateApprovalDetailForItem(baseId, this.currentLangCode);
 
-                    await this.logApproverAudioEvent('approve_single_staged', itemId, {
+                    await this.logApproverAudioEvent(needsRestage ? 'approve_single_restaged' : 'approve_single_staged', itemId, {
                         saveBucket: this.audioBuckets.draft,
                         savePath: audioPath,
                         approver,
                         approvedAt,
                         approvalTagsWritten,
                         hadPendingGeneratedAudio: false,
-                        savedGeneratedAudio: false
+                        savedGeneratedAudio: false,
+                        draftUpdated,
+                        previousBaseline: baseline || null
                     });
                     
                     // Update state
@@ -8810,7 +8917,12 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Approved ${itemId}. It is marked approved for this task and will be promoted when the task is finished.`, 'success');
+                    this.setStatus(
+                        needsRestage
+                            ? `Re-approved ${itemId} against the newest draft audio. It stays staged for task completion.`
+                            : `Approved ${itemId}. It is marked approved for this task and will be promoted when the task is finished.`,
+                        'success'
+                    );
                 } catch (error) {
                     console.error('Approve audio error:', error);
                     await this.logApproverAudioEvent('approve_single_failed', itemId, {
@@ -8975,6 +9087,14 @@
                     this.latestGeneratedAudio = null;
                     this.clearCompareSlotsForItem(itemId);
                     this.invalidateAudioCache(this.audioBuckets.draft, this.currentLangCode, baseId);
+
+                    // A new draft version invalidates any prior staged approval for this
+                    // item. Unstage immediately so the UI matches reopen-on-refresh behavior
+                    // instead of looking like approvals "disappeared" after a reload.
+                    const wasStaged = this.unstageApprovedItem(baseId, this.currentLangCode);
+                    if (wasStaged) {
+                        this.recomputeApprovedItems();
+                    }
                     
                     // Update UI
                     this.updateSaveButtonStates();
@@ -8986,7 +9106,12 @@
                         this.applySearchFilter(this.currentSearchQuery);
                     }
                     
-                    this.setStatus(`Audio saved to draft for ${itemId}. Click Approve to stage it for task completion.`, 'success');
+                    this.setStatus(
+                        wasStaged
+                            ? `Audio saved to draft for ${itemId}. Previous approval was cleared because the audio changed — click Approve (or Save & Approve) again.`
+                            : `Audio saved to draft for ${itemId}. Click Approve to stage it for task completion.`,
+                        wasStaged ? 'warning' : 'success'
+                    );
                 } catch (error) {
                     console.error('Save audio error:', error);
                     this.setStatus(`Error saving audio: ${error.message}`, 'error');

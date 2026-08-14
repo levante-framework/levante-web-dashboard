@@ -67,13 +67,69 @@ function normalizeBaselines(baselines) {
   return normalized;
 }
 
+function normalizeRemovedIds(removedIds) {
+  if (!Array.isArray(removedIds)) return [];
+  return Array.from(new Set(
+    removedIds
+      .map((id) => String(id || '').trim().toLowerCase())
+      .filter(Boolean)
+  ));
+}
+
+// Union-merge task maps so concurrent approvers on the same language cannot
+// clobber each other's staged tasks. Explicit removals are applied after the
+// union so unapprove/reopen still works.
+function mergeTasks(existingTasks, incomingTasks, removedIds = []) {
+  const removed = new Set(normalizeRemovedIds(removedIds));
+  const merged = {};
+
+  const addAll = (source) => {
+    Object.entries(source || {}).forEach(([taskName, ids]) => {
+      if (!merged[taskName]) merged[taskName] = new Set();
+      (ids || []).forEach((id) => {
+        const cleanId = String(id || '').trim().toLowerCase();
+        if (cleanId && !removed.has(cleanId)) merged[taskName].add(cleanId);
+      });
+    });
+  };
+
+  addAll(existingTasks);
+  addAll(incomingTasks);
+
+  const normalized = {};
+  Object.entries(merged).forEach(([taskName, idSet]) => {
+    const ids = Array.from(idSet);
+    if (ids.length > 0) normalized[taskName] = ids;
+  });
+  return normalized;
+}
+
+function mergeBaselines(existingBaselines, incomingBaselines, removedIds = []) {
+  const removed = new Set(normalizeRemovedIds(removedIds));
+  const merged = { ...(existingBaselines || {}) };
+
+  Object.entries(incomingBaselines || {}).forEach(([baseId, ts]) => {
+    const cleanId = String(baseId || '').trim().toLowerCase();
+    const numericTs = Number(ts);
+    if (!cleanId || !Number.isFinite(numericTs) || numericTs <= 0 || removed.has(cleanId)) return;
+    const prev = Number(merged[cleanId] || 0);
+    // Keep the newest baseline timestamp when both sides have one.
+    merged[cleanId] = Math.max(prev, numericTs);
+  });
+
+  removed.forEach((id) => {
+    delete merged[id];
+  });
+  return normalizeBaselines(merged);
+}
+
 async function readLangPayload(storage, langCode) {
   const objectPath = objectPathForLang(langCode);
-  if (!objectPath) return { tasks: {}, objectPath: '' };
+  if (!objectPath) return { tasks: {}, baselines: {}, objectPath: '' };
   const bucket = storage.bucket(BUCKET_NAME);
   const file = bucket.file(objectPath);
   const [exists] = await file.exists();
-  if (!exists) return { tasks: {}, objectPath };
+  if (!exists) return { tasks: {}, baselines: {}, objectPath };
   const [buf] = await file.download();
   let parsed = {};
   try {
@@ -86,27 +142,36 @@ async function readLangPayload(storage, langCode) {
   return { tasks, baselines, objectPath, metadata: parsed?.metadata || {} };
 }
 
-async function writeLangPayload(storage, langCode, tasks, baselines) {
+async function writeLangPayload(storage, langCode, tasks, baselines, removedIds = []) {
   const objectPath = objectPathForLang(langCode);
   if (!objectPath) throw new Error('Invalid langCode');
   const bucket = storage.bucket(BUCKET_NAME);
   const file = bucket.file(objectPath);
-  const normalizedTasks = normalizeTasks(tasks);
-  // When the caller omits baselines, preserve whatever is already stored so a
-  // tasks-only writer doesn't wipe baselines written by another client.
+  const existing = await readLangPayload(storage, langCode);
+  const incomingTasks = normalizeTasks(tasks);
+
+  // Always merge with the current server payload. A full replace allowed one
+  // client's in-memory snapshot to erase another concurrent approver's tasks.
+  const normalizedTasks = mergeTasks(existing.tasks || {}, incomingTasks, removedIds);
+
   let normalizedBaselines;
   if (baselines === undefined) {
-    const existing = await readLangPayload(storage, langCode);
-    normalizedBaselines = existing.baselines || {};
+    normalizedBaselines = mergeBaselines(existing.baselines || {}, {}, removedIds);
   } else {
-    normalizedBaselines = normalizeBaselines(baselines);
+    normalizedBaselines = mergeBaselines(
+      existing.baselines || {},
+      normalizeBaselines(baselines),
+      removedIds
+    );
   }
+
   const payload = {
     metadata: {
       langCode: sanitizeLangCode(langCode),
       updatedAt: new Date().toISOString(),
       taskCount: Object.keys(normalizedTasks).length,
-      baselineCount: Object.keys(normalizedBaselines).length
+      baselineCount: Object.keys(normalizedBaselines).length,
+      mergeMode: 'union-with-removals'
     },
     tasks: normalizedTasks,
     baselines: normalizedBaselines
@@ -115,7 +180,11 @@ async function writeLangPayload(storage, langCode, tasks, baselines) {
     contentType: 'application/json',
     resumable: false
   });
-  return objectPath;
+  return {
+    objectPath,
+    tasks: normalizedTasks,
+    baselines: normalizedBaselines
+  };
 }
 
 export default async function handler(req, res) {
@@ -153,20 +222,25 @@ export default async function handler(req, res) {
       const langCode = String(req.body?.langCode || '').trim();
       const tasks = normalizeTasks(req.body?.tasks || {});
       // Only treat baselines as authoritative when the field is present; otherwise
-      // leave the stored baselines untouched (preserved by writeLangPayload).
+      // leave the stored baselines untouched (aside from explicit removals).
       const hasBaselines = Object.prototype.hasOwnProperty.call(req.body || {}, 'baselines');
       const baselines = hasBaselines ? normalizeBaselines(req.body?.baselines || {}) : undefined;
+      const removedIds = normalizeRemovedIds(req.body?.removedIds || req.body?.unstageIds || []);
       if (!langCode) {
         return res.status(400).json({ ok: false, error: 'Missing required field: langCode' });
       }
-      const objectPath = await writeLangPayload(storage, langCode, tasks, baselines);
+      const written = await writeLangPayload(storage, langCode, tasks, baselines, removedIds);
       return res.status(200).json({
         ok: true,
         langCode: sanitizeLangCode(langCode),
-        taskCount: Object.keys(tasks).length,
-        baselineCount: baselines ? Object.keys(baselines).length : undefined,
+        taskCount: Object.keys(written.tasks || {}).length,
+        baselineCount: Object.keys(written.baselines || {}).length,
+        removedCount: removedIds.length,
         bucket: BUCKET_NAME,
-        objectPath
+        objectPath: written.objectPath,
+        mergeMode: 'union-with-removals',
+        tasks: written.tasks,
+        baselines: written.baselines
       });
     }
 
