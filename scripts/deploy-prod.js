@@ -70,10 +70,26 @@ function pushHead() {
   run('git push origin HEAD');
 }
 
+function sanitizeDeploymentUrl(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^[<"']+|[>"',\s]+$/g, '');
+}
+
 function parseDeploymentUrl(output) {
   if (!output) return '';
-  const match = output.match(/https?:\/\/[^\s]+\.vercel\.app[^\s]*/g);
-  return match && match.length ? match[match.length - 1].trim() : '';
+  try {
+    const parsed = JSON.parse(output);
+    const fromJson = parsed?.deployment?.url || parsed?.url;
+    if (fromJson) {
+      const url = String(fromJson).startsWith('http') ? fromJson : `https://${fromJson}`;
+      return sanitizeDeploymentUrl(url);
+    }
+  } catch {
+    // Vercel sometimes prints JSON plus logs; fall through to regex.
+  }
+  const match = String(output).match(/https?:\/\/[^\s"'<>]+\.vercel\.app/g);
+  return match && match.length ? sanitizeDeploymentUrl(match[match.length - 1]) : '';
 }
 
 function createPreviewDeployment() {
@@ -94,7 +110,7 @@ function writePreviewUrl(url) {
 
 function readPreviewUrl() {
   try {
-    return fs.readFileSync(PREVIEW_FILE, 'utf8').trim();
+    return sanitizeDeploymentUrl(fs.readFileSync(PREVIEW_FILE, 'utf8'));
   } catch (_) {
     return '';
   }
