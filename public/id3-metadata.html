@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID3 Metadata - Levante Cockpit</title>
+  <link rel="icon" type="image/svg+xml" href="./images/checkered-flags.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <link rel="stylesheet" href="./css/theme.css">
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      font-size: var(--fs-base);
+      line-height: var(--lh-normal);
+      color: var(--text-primary);
+      background: var(--color-bg);
+      background-image:
+        radial-gradient(circle at 0% 0%, rgba(12, 126, 155, 0.08), transparent 42%),
+        radial-gradient(circle at 100% 100%, rgba(181, 120, 26, 0.06), transparent 42%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: var(--space-5);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--text-secondary);
+      text-decoration: none;
+      margin-bottom: var(--space-4);
+      font-weight: var(--fw-medium);
+    }
+
+    .back-link:hover { color: var(--accent); }
+
+    header {
+      margin-bottom: var(--space-5);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--accent-border);
+    }
+
+    h1 {
+      margin: 0 0 var(--space-2);
+      color: var(--accent);
+      font-size: var(--fs-2xl);
+      font-weight: var(--fw-semibold);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--text-secondary);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: var(--space-4);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .control-group.actions {
+      justify-content: flex-end;
+    }
+
+    label {
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-semibold);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    select, input[type="search"] {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      background: var(--surface-3);
+      color: var(--text-primary);
+      font-size: var(--fs-base);
+    }
+
+    button {
+      min-height: 44px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      color: var(--accent-contrast);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-semibold);
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--accent-strong); }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      color: var(--text-secondary);
+    }
+
+    .status-row.error { color: var(--color-danger); }
+    .count-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: var(--fs-sm);
+      font-weight: var(--fw-semibold);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 280px);
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: var(--fs-sm);
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      font-size: var(--fs-xs);
+      font-weight: var(--fw-semibold);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    tbody tr:hover td { background: var(--accent-soft); }
+
+    td {
+      color: var(--text-primary);
+      max-width: 280px;
+      overflow-wrap: anywhere;
+    }
+
+    td.empty { color: var(--text-muted); }
+
+    .col-file { min-width: 140px; font-weight: var(--fw-medium); }
+    .col-text { min-width: 180px; }
+    .col-levante {
+      width: 72px;
+      max-width: 88px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty-state {
+      padding: var(--space-8) var(--space-5);
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back-link" href="./index.html">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      Back to Cockpit
+    </a>
+
+    <header>
+      <h1><i class="fas fa-tags" aria-hidden="true"></i> ID3 Metadata</h1>
+      <p class="subtitle">Inspect embedded audio tags for a bucket, task, and locale.</p>
+    </header>
+
+    <form class="controls" id="filters" action="#" method="get">
+      <div class="control-group">
+        <label for="bucketSelect">Bucket</label>
+        <select id="bucketSelect">
+          <option value="draft">levante-assets-draft</option>
+          <option value="dev" selected>levante-assets-dev</option>
+          <option value="prod">levante-assets-prod</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="taskSelect">Task</label>
+        <select id="taskSelect" disabled>
+          <option value="">Select a bucket first</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="localeSelect">Locale</label>
+        <select id="localeSelect" disabled>
+          <option value="">Select a task first</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="filterInput">Filter rows</label>
+        <input id="filterInput" type="search" placeholder="Filter by file or tag text" disabled>
+      </div>
+      <div class="control-group actions">
+        <label class="sr-only" for="loadBtn">Load metadata</label>
+        <button id="loadBtn" type="submit" disabled>Load metadata</button>
+      </div>
+    </form>
+
+    <div class="status-row" id="statusRow" role="status">
+      Choose a bucket, task, and locale to load ID3 tags.
+    </div>
+
+    <div class="table-wrap" id="tableWrap" hidden>
+      <table>
+        <thead>
+          <tr>
+            <th class="col-file">File</th>
+            <th>Title</th>
+            <th>Artist</th>
+            <th>Album</th>
+            <th>Genre</th>
+            <th>Year</th>
+            <th>Voice</th>
+            <th>Voice ID</th>
+            <th>Model</th>
+            <th>Service</th>
+            <th>Lang</th>
+            <th>Created</th>
+            <th>Approved by</th>
+            <th>Approved at</th>
+            <th>Source</th>
+            <th class="col-text">Text</th>
+            <th class="col-text">Enhanced text</th>
+            <th>Used enhanced</th>
+            <th class="col-text">Original translation</th>
+            <th class="col-text">Comment</th>
+            <th class="col-text">Copyright</th>
+            <th class="col-levante">LEVANTE</th>
+            <th>Other</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const COLUMNS = [
+      { key: 'file', className: 'col-file' },
+      { key: 'title' },
+      { key: 'artist' },
+      { key: 'album' },
+      { key: 'genre' },
+      { key: 'year' },
+      { key: 'voice' },
+      { key: 'voice_id' },
+      { key: 'model_id' },
+      { key: 'service' },
+      { key: 'lang_code' },
+      { key: 'created' },
+      { key: 'approved_by' },
+      { key: 'approved_at' },
+      { key: 'source' },
+      { key: 'text', className: 'col-text' },
+      { key: 'audio_enhanced_text', className: 'col-text' },
+      { key: 'used_audio_enhanced_text' },
+      { key: 'original_translation_text', className: 'col-text' },
+      { key: 'comment', className: 'col-text' },
+      { key: 'copyright', className: 'col-text' },
+      { key: 'levante', className: 'col-levante' },
+      { key: 'other' },
+    ];
+
+    const state = {
+      files: [],
+      tagsByPath: {},
+    };
+
+    const els = {
+      form: document.getElementById('filters'),
+      bucket: document.getElementById('bucketSelect'),
+      task: document.getElementById('taskSelect'),
+      locale: document.getElementById('localeSelect'),
+      filter: document.getElementById('filterInput'),
+      loadBtn: document.getElementById('loadBtn'),
+      status: document.getElementById('statusRow'),
+      tableWrap: document.getElementById('tableWrap'),
+      tableBody: document.getElementById('tableBody'),
+    };
+
+    function setStatus(message, isError) {
+      els.status.textContent = message;
+      els.status.classList.toggle('error', Boolean(isError));
+    }
+
+    function setSelectOptions(select, items, placeholder) {
+      select.innerHTML = '';
+      const first = document.createElement('option');
+      first.value = '';
+      first.textContent = placeholder;
+      select.appendChild(first);
+      items.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.textContent = item;
+        select.appendChild(option);
+      });
+      select.disabled = items.length === 0;
+    }
+
+    async function fetchJson(url, options) {
+      const response = await fetch(url, options);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || data.error || `Request failed (${response.status})`);
+      }
+      return data;
+    }
+
+    function apiUrl(params) {
+      const search = new URLSearchParams(params);
+      return `/api/id3-metadata?${search.toString()}`;
+    }
+
+    function extraText(tags) {
+      if (!tags || !tags.extra || typeof tags.extra !== 'object') return '';
+      const entries = Object.entries(tags.extra).filter(([, value]) => value);
+      if (!entries.length) return '';
+      return entries.map(([key, value]) => `${key}: ${value}`).join(' · ');
+    }
+
+    function cellValue(file, key) {
+      if (key === 'file') return file.itemId || file.fileName || file.path;
+      const tags = state.tagsByPath[file.path];
+      if (!tags) return file.pending ? 'Loading…' : (file.error || '');
+      if (key === 'other') return extraText(tags);
+      if (key === 'levante') return tags.levante || '';
+      return tags[key] || '';
+    }
+
+    function renderTable() {
+      const query = els.filter.value.trim().toLowerCase();
+      const rows = state.files.filter((file) => {
+        if (!query) return true;
+        const haystack = COLUMNS.map((col) => cellValue(file, col.key)).join(' ').toLowerCase();
+        return haystack.includes(query);
+      });
+
+      els.tableBody.innerHTML = '';
+      if (!rows.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = COLUMNS.length;
+        td.className = 'empty-state';
+        td.textContent = state.files.length ? 'No rows match the filter.' : 'No audio files found for this selection.';
+        tr.appendChild(td);
+        els.tableBody.appendChild(tr);
+        els.tableWrap.hidden = false;
+        return;
+      }
+
+      rows.forEach((file) => {
+        const tr = document.createElement('tr');
+        COLUMNS.forEach((col) => {
+          const td = document.createElement('td');
+          if (col.className) td.className = col.className;
+          const value = cellValue(file, col.key);
+          td.textContent = value || '—';
+          if (!value) td.classList.add('empty');
+          if (value) td.title = value;
+          tr.appendChild(td);
+        });
+        els.tableBody.appendChild(tr);
+      });
+      els.tableWrap.hidden = false;
+    }
+
+    async function loadTasks() {
+      const bucket = els.bucket.value;
+      els.task.disabled = true;
+      els.locale.disabled = true;
+      els.loadBtn.disabled = true;
+      els.filter.disabled = true;
+      setSelectOptions(els.task, [], 'Loading tasks…');
+      setSelectOptions(els.locale, [], 'Select a task first');
+      setStatus('Loading tasks…');
+      try {
+        const data = await fetchJson(apiUrl({ action: 'tasks', bucket }));
+        setSelectOptions(els.task, data.tasks || [], data.tasks?.length ? 'Select a task' : 'No tasks found');
+        const warning = data.warning ? ` ${data.warning}.` : '';
+        setStatus(`${data.tasks.length} task${data.tasks.length === 1 ? '' : 's'} in ${data.bucket}.${warning}`);
+      } catch (error) {
+        setSelectOptions(els.task, [], 'Could not load tasks');
+        setStatus(error.message, true);
+      }
+    }
+
+    async function loadLocales() {
+      const task = els.task.value;
+      els.locale.disabled = true;
+      els.loadBtn.disabled = true;
+      if (!task) {
+        setSelectOptions(els.locale, [], 'Select a task first');
+        return;
+      }
+      setSelectOptions(els.locale, [], 'Looking up locales…');
+      setStatus(`Finding locales with audio for ${task}…`);
+      try {
+        const data = await fetchJson(apiUrl({
+          action: 'locales',
+          bucket: els.bucket.value,
+          task,
+        }));
+        setSelectOptions(els.locale, data.locales || [], data.locales?.length ? 'Select a locale' : 'No locales found');
+        setStatus(
+          data.locales.length
+            ? `${data.locales.length} locale${data.locales.length === 1 ? '' : 's'} have audio for ${data.task} in ${data.bucket}.`
+            : `No locales with audio found for ${data.task} in ${data.bucket}.`
+        );
+      } catch (error) {
+        setSelectOptions(els.locale, [], 'Could not load locales');
+        setStatus(error.message, true);
+      }
+    }
+
+    function chunk(items, size) {
+      const out = [];
+      for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+      return out;
+    }
+
+    async function loadTags(files) {
+      const batches = chunk(files.map((file) => file.path), 12);
+      let loaded = 0;
+      for (const paths of batches) {
+        const data = await fetchJson('/api/id3-metadata', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'tags',
+            bucket: els.bucket.value,
+            paths,
+          }),
+        });
+        (data.results || []).forEach((result) => {
+          loaded += 1;
+          if (result.error) {
+            const file = state.files.find((row) => row.path === result.path);
+            if (file) file.error = result.error;
+            return;
+          }
+          state.tagsByPath[result.path] = result.tags || {};
+        });
+        setStatus(`Read ID3 tags for ${loaded} of ${files.length} files…`);
+        renderTable();
+      }
+    }
+
+    async function loadMetadata(event) {
+      if (event) event.preventDefault();
+      const task = els.task.value;
+      const locale = els.locale.value;
+      if (!task || !locale) return;
+      els.loadBtn.disabled = true;
+      els.filter.disabled = true;
+      state.files = [];
+      state.tagsByPath = {};
+      setStatus(`Listing audio files for ${task} / ${locale}…`);
+      try {
+        const data = await fetchJson(apiUrl({
+          action: 'files',
+          bucket: els.bucket.value,
+          task,
+          locale,
+        }));
+        state.files = (data.files || []).map((file) => ({ ...file, pending: true }));
+        els.filter.disabled = false;
+        els.filter.value = '';
+        renderTable();
+        if (!state.files.length) {
+          setStatus(`No audio files found for ${task} / ${locale} in ${data.bucket}.`);
+          return;
+        }
+        setStatus(`Loading ID3 tags for ${state.files.length} files…`);
+        await loadTags(state.files);
+        const missing = state.files.filter((file) => file.error).length;
+        const suffix = missing ? ` ${missing} file${missing === 1 ? '' : 's'} could not be read.` : '';
+        setStatus(`Showing ${state.files.length} file${state.files.length === 1 ? '' : 's'} for ${task} / ${locale}.${suffix}`);
+      } catch (error) {
+        setStatus(error.message, true);
+      } finally {
+        els.loadBtn.disabled = !els.locale.value;
+      }
+    }
+
+    function persistQuery() {
+      const params = new URLSearchParams();
+      if (els.bucket.value) params.set('bucket', els.bucket.value);
+      if (els.task.value) params.set('task', els.task.value);
+      if (els.locale.value) params.set('locale', els.locale.value);
+      const next = `${location.pathname}${params.toString() ? `?${params}` : ''}`;
+      history.replaceState(null, '', next);
+    }
+
+    els.bucket.addEventListener('change', async () => {
+      persistQuery();
+      await loadTasks();
+    });
+
+    els.task.addEventListener('change', async () => {
+      persistQuery();
+      await loadLocales();
+    });
+
+    els.locale.addEventListener('change', () => {
+      els.loadBtn.disabled = !els.locale.value;
+      persistQuery();
+    });
+
+    els.filter.addEventListener('input', renderTable);
+    els.form.addEventListener('submit', loadMetadata);
+
+    (async function init() {
+      const params = new URLSearchParams(location.search);
+      const bucket = params.get('bucket');
+      if (bucket && ['draft', 'dev', 'prod'].includes(bucket)) {
+        els.bucket.value = bucket;
+      }
+      await loadTasks();
+      const task = params.get('task');
+      if (task && [...els.task.options].some((opt) => opt.value === task)) {
+        els.task.value = task;
+        await loadLocales();
+      }
+      const locale = params.get('locale');
+      if (locale && [...els.locale.options].some((opt) => opt.value === locale)) {
+        els.locale.value = locale;
+        els.loadBtn.disabled = false;
+        await loadMetadata();
+      }
+    })();
+  </script>
+</body>
+</html>
