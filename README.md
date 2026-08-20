@@ -6,6 +6,7 @@ Web dashboard application for managing Levante audio content, translations, and 
 
 - **Audio Approval Dashboard** – Review and approve audio content
 - **Partner Audio Dashboard** – Partner-facing audio management interface
+- **Audio ID3 tags** – Info modal and APIs read embedded MP3 metadata (voice, model, source text, approvals). Schema and ROAR notes live in the sibling `levante_translations` repo: `README_ID3_TAGS.md`.
 - **Cockpit** – Real-time monitoring and analytics
   - **Audio Validation (ASR)** – Quantitative metrics per language (pass rates, needs review counts)
   - **Audio Validation by Language** – Detailed breakdown table showing validation status by language
@@ -123,6 +124,10 @@ Full documentation is available at `/docs/locate-me-doc.html` or via the Documen
   - `audio-validation-summary.js` – Stores/loads aggregated audio validation summaries (GCS-backed)
   - `list-validation-files.js` – Lists available validation result files (GCS-backed)
   - `get-validation-file.js` – Retrieves a specific validation result file (GCS-backed)
+  - `read-tags.js` – Reads ID3 tags (and GCS metadata fallback) from an MP3
+  - `save-audio.js` – Writes regenerated MP3s with ID3 TXXX fields
+  - `apply-approval-tags.js` – Stamps `approved_by` / `approved_at` without dropping other tags
+  - `audio-metadata.js` – Extracts voice / voice_id / model_id from ID3
 - `scripts/` – Build and deployment scripts
   - `apply-version.js` – Updates version numbers before deployment
   - `deploy-and-alias.js` – Orchestrates deployment and domain aliasing
@@ -212,6 +217,18 @@ Key dependencies:
 - `sharp` – Image processing
 
 ## API Endpoints
+
+### Audio ID3 tags
+
+MP3s from `levante_translations` already contain ID3v2 tags. This dashboard
+reads them for the Info modal, writes them on re-save, and stamps approval
+fields. Full schema (including a ROAR-oriented reuse guide) is
+`README_ID3_TAGS.md` in the sibling `levante_translations` repo.
+
+- `GET/POST /api/read-tags` – parse ID3 from a GCS object or URL
+- `POST /api/save-audio` – persist regenerated audio + TXXX fields
+- `POST /api/apply-approval-tags` – merge `approved_by` / `approved_at`
+- `GET /api/audio-metadata` – voice / model extraction
 
 ### `/api/partner-audio-translations`
 Returns the partner audio approval catalog as CSV.
