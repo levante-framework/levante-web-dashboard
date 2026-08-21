@@ -58,7 +58,8 @@
     "validation:cleanup-artifacts": "python3 scripts/cleanup_validation_artifacts.py",
     "validation:cleanup-artifacts:apply": "python3 scripts/cleanup_validation_artifacts.py --apply",
     "report:backfill-rollups": "node scripts/backfill-approver-audio-rollups.js",
-    "audio:backfill-approval-id3": "node scripts/backfill-dev-approval-id3-tags.js"
+    "audio:backfill-approval-id3": "node scripts/backfill-dev-approval-id3-tags.js",
+    "audio:backfill-copyright": "node scripts/backfill-audio-copyright.js"
   },
   "keywords": [
     "audio",

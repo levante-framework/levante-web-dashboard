@@ -1,6 +1,8 @@
 import { Storage } from '@google-cloud/storage';
 import NodeID3 from 'node-id3';
 
+const DEFAULT_AUDIO_COPYRIGHT = 'This file was created for the LEVANTE project and is released under a Creative Commons BY-NC-SA 4.0 license';
+
 let storageClient = null;
 function getStorage() {
 	if (storageClient) return storageClient;
@@ -118,9 +120,7 @@ export default async function handler(req, res) {
 		if (commentValue) {
 			id3.comment = { language: 'eng', text: commentValue };
 		}
-		if (tags?.copyright) {
-			id3.copyright = tags.copyright;
-		}
+		id3.copyright = String(tags?.copyright || DEFAULT_AUDIO_COPYRIGHT).trim() || DEFAULT_AUDIO_COPYRIGHT;
 		if (userDefinedText.length) {
 			id3.userDefinedText = userDefinedText;
 		}
