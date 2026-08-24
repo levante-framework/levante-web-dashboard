@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cockpit Bug Log</title>
+  <link href="./styles.css" rel="stylesheet"/>
+  <link href="./images/checkered-flags.svg" rel="icon" type="image/svg+xml"/>
+  <link crossorigin="anonymous" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-C4+8J1mCiSkDGpiKFFitvolG/GpNZgbf+5Q5e0siJmq9hw3rroWAtxEvsC0BpvyEuk+qS0bkkCm1cWtiYpg+1w==" referrerpolicy="no-referrer" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: var(--color-bg);
+      --panel: var(--surface-1);
+      --muted: var(--text-muted);
+      --text: var(--text-primary);
+      --ok: var(--color-success);
+      --warn: var(--color-warning);
+      --bad: var(--color-danger);
+    }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: var(--color-bg);
+      background-image: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-deep) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 16px 64px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .back-to-cockpit {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-3);
+      border: 1px solid var(--accent-border);
+      color: var(--text-primary);
+      padding: 8px 14px;
+      border-radius: var(--radius-pill);
+      text-decoration: none;
+      font-weight: 600;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+      margin-bottom: 12px;
+    }
+    .back-to-cockpit:hover {
+      background: var(--accent);
+      color: var(--accent-contrast);
+      transform: translateY(-1px);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: var(--fs-2xl);
+      font-weight: var(--fw-semibold);
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sub {
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      font-size: var(--fs-sm);
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    select, .pill, button, input {
+      background: var(--surface-3);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      font-size: var(--fs-sm);
+    }
+    input::placeholder { color: var(--text-muted); }
+    input[type="search"] { min-width: 260px; flex: 1 1 240px; }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--accent-contrast);
+      border-color: var(--accent-border);
+      font-weight: 600;
+    }
+    button:hover { background: var(--accent-strong); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card {
+      background: var(--surface-2);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+    }
+    .card .label {
+      color: var(--muted);
+      font-size: var(--fs-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 8px;
+    }
+    .card .value { font-size: 26px; font-weight: 700; }
+    .value.sm { font-size: 18px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      cursor: pointer;
+      border-radius: var(--radius-pill);
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--surface-3);
+      border: 1px solid var(--border-default);
+      color: var(--text-secondary);
+    }
+    .chip.active {
+      background: var(--accent);
+      border-color: var(--accent-border);
+      color: var(--accent-contrast);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .panel {
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      box-shadow: var(--shadow-md);
+      min-width: 0;
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: var(--fs-lg);
+      color: var(--text-primary);
+    }
+    .table-wrap { overflow: auto; max-height: calc(100vh - 280px); }
+    table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+    th, td {
+      padding: 8px 6px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: var(--text-secondary);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: var(--fs-xs);
+      background: var(--surface-2);
+      position: sticky;
+      top: 0;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    th .sort-ind { margin-left: 4px; color: var(--accent); }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: var(--surface-2); }
+    tbody tr.selected { background: var(--accent-soft); outline: 1px solid var(--accent-border); }
+    .badge {
+      display: inline-block;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .badge-real { color: var(--bad); background: rgba(239, 71, 111, 0.12); }
+    .badge-mixed { color: var(--warn); background: rgba(255, 179, 71, 0.12); }
+    .badge-test { color: var(--muted); background: rgba(148, 163, 184, 0.12); }
+    .badge-inconclusive { color: var(--text-secondary); background: var(--surface-3); }
+    .small { font-size: 12px; color: var(--muted); }
+    .hidden { display: none; }
+    .error-panel {
+      margin-top: 24px;
+      background: rgba(35, 18, 31, 0.92);
+      border: 1px solid #73344f;
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .error-panel h2 { margin-top: 0; color: #ff8fab; }
+    .detail-empty {
+      color: var(--muted);
+      padding: 24px 8px;
+      text-align: center;
+    }
+    .detail-meta {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .detail-meta dt {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0;
+    }
+    .detail-meta dd { margin: 2px 0 8px; }
+    .detail-section { margin: 0 0 16px; }
+    .detail-section h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+    }
+    .detail-section p, .detail-section li { margin: 0 0 8px; line-height: 1.45; }
+    .detail-section ul { margin: 0 0 8px; padding-left: 18px; }
+    .detail-section code, td code {
+      font-size: 12px;
+      background: var(--surface-3);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .detail-links { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .detail-links a {
+      color: var(--text-primary);
+      text-decoration: none;
+      border: 1px solid var(--accent-border);
+      background: var(--surface-3);
+      border-radius: var(--radius-pill);
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .detail-links a:hover { background: var(--accent); color: var(--accent-contrast); }
+    .one-liner { color: var(--text-secondary); }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+      .table-wrap { max-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <a class="back-to-cockpit" href="./index.html"><i class="fas fa-arrow-left"></i> Back to Cockpit</a>
+        <h1><i class="fas fa-bug"></i> Bug Log</h1>
+        <div id="meta" class="sub">Loading analysis history...</div>
+      </div>
+    </div>
+
+    <div id="dashboardRoot" class="hidden">
+      <div class="grid">
+        <div class="card"><div class="label">Issues</div><div id="statTotal" class="value">-</div></div>
+        <div class="card"><div class="label">Visible</div><div id="statVisible" class="value sm">-</div></div>
+        <div class="card"><div class="label">Needs a fix</div><div id="statReal" class="value sm">-</div></div>
+        <div class="card"><div class="label">Open-ish</div><div id="statOpen" class="value sm">-</div></div>
+      </div>
+
+      <div class="toolbar">
+        <input id="searchInput" type="search" placeholder="Search id, summary, error, status..." />
+        <div id="assessmentChips" class="chips"></div>
+      </div>
+
+      <div class="layout">
+        <div class="panel">
+          <h2>Logged issues</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-sort="lastUpdated">Updated <span class="sort-ind"></span></th>
+                  <th data-sort="id">ID <span class="sort-ind"></span></th>
+                  <th data-sort="assessment">Assessment <span class="sort-ind"></span></th>
+                  <th data-sort="oneLiner">Summary</th>
+                  <th data-sort="status">Status <span class="sort-ind"></span></th>
+                </tr>
+              </thead>
+              <tbody id="issueTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel" id="detailPanel">
+          <h2>Details</h2>
+          <div id="detailEmpty" class="detail-empty">Select an issue to see the full analysis.</div>
+          <div id="detailBody" class="hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="errorRoot" class="error-panel hidden">
+      <h2>Unable to load the bug log</h2>
+      <p id="errorText"></p>
+      <p id="errorHint" class="small hidden"></p>
+      <button id="actionButton" class="hidden" type="button">Open access help</button>
+      <button id="loginButton" class="hidden" type="button">Sign in with GitHub</button>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      issues: [],
+      source: { bucket: '-', object: '-' },
+      search: '',
+      assessment: '',
+      sortKey: 'lastUpdated',
+      sortDir: 'desc',
+      selectedId: '',
+    };
+
+    function text(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderInline(value) {
+      return escapeHtml(value)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    }
+
+    function renderBlock(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '<p class="small">—</p>';
+      return raw.split(/\n\n+/).map((para) => {
+        const lines = para.split('\n').map((line) => {
+          const bullet = line.match(/^- (.+)$/);
+          return bullet ? `<li>${renderInline(bullet[1])}</li>` : renderInline(line);
+        });
+        if (lines.length && lines.every((line) => line.startsWith('<li>'))) return `<ul>${lines.join('')}</ul>`;
+        return `<p>${lines.join('<br>')}</p>`;
+      }).join('');
+    }
+
+    const ASSESSMENT_LABELS = {
+      'real regression': 'Needs a fix',
+      'needs a fix': 'Needs a fix',
+      'likely test artifact': 'Safe to ignore',
+      'safe to ignore': 'Safe to ignore',
+      'mixed (real + test artifact)': 'Needs a fix (also noisy)',
+      'mixed / noisy': 'Needs a fix (also noisy)',
+      'needs a fix (also noisy)': 'Needs a fix (also noisy)',
+      inconclusive: 'Needs more info',
+      'needs more info': 'Needs more info',
+    };
+    const ASSESSMENT_ORDER = ['Needs a fix', 'Needs a fix (also noisy)', 'Safe to ignore', 'Needs more info'];
+
+    function displayAssessment(assessment) {
+      const key = String(assessment || '').trim().toLowerCase();
+      return ASSESSMENT_LABELS[key] || String(assessment || '').trim() || '—';
+    }
+
+    function assessmentClass(assessment) {
+      const label = displayAssessment(assessment).toLowerCase();
+      if (label === 'needs a fix') return 'badge-real';
+      if (label.includes('also noisy') || label.includes('mixed')) return 'badge-mixed';
+      if (label === 'safe to ignore') return 'badge-test';
+      return 'badge-inconclusive';
+    }
+
+    function getRequestedId() {
+      const params = new URLSearchParams(window.location.search);
+      const fromQuery = String(params.get('id') || '').trim();
+      if (fromQuery) return fromQuery;
+      return String(window.location.hash || '').replace(/^#/, '').trim();
+    }
+
+    function getReturnToPath() {
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
+      ['auth', 'authError', 'authSsoUrl', 'authHelpUrl', 'authActionLabel'].forEach((key) => params.delete(key));
+      const query = params.toString();
+      return query ? `${url.pathname}?${query}` : url.pathname;
+    }
+
+    function getLoginUrl() {
+      return '/api/auth-github-start?returnTo=' + encodeURIComponent(getReturnToPath());
+    }
+
+    function readAuthStateFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return {
+        auth: params.get('auth'),
+        authError: params.get('authError'),
+        authSsoUrl: params.get('authSsoUrl'),
+        authHelpUrl: params.get('authHelpUrl'),
+        authActionLabel: params.get('authActionLabel'),
+      };
+    }
+
+    function cleanupAuthParamsFromUrl() {
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
+      ['auth', 'authError', 'authSsoUrl', 'authHelpUrl', 'authActionLabel'].forEach((key) => params.delete(key));
+      const query = params.toString();
+      const nextUrl = query ? `${url.pathname}?${query}` : url.pathname;
+      window.history.replaceState({}, '', nextUrl + (url.hash || ''));
+    }
+
+    function persistSelection(issue) {
+      const url = new URL(window.location.href);
+      ['auth', 'authError', 'authSsoUrl', 'authHelpUrl', 'authActionLabel'].forEach((key) => url.searchParams.delete(key));
+      if (issue?.id) url.searchParams.set('id', issue.id);
+      else url.searchParams.delete('id');
+      const query = url.searchParams.toString();
+      window.history.replaceState({}, '', query ? `${url.pathname}?${query}` : url.pathname);
+    }
+
+    function findIssue(idOrSlug) {
+      const needle = String(idOrSlug || '').trim().toLowerCase();
+      if (!needle) return null;
+      return state.issues.find((issue) => {
+        return String(issue.id || '').toLowerCase() === needle
+          || String(issue.slug || '').toLowerCase() === needle;
+      }) || null;
+    }
+
+    function filteredIssues() {
+      const search = state.search.trim().toLowerCase();
+      const assessment = state.assessment.trim().toLowerCase();
+      const rows = state.issues.filter((issue) => {
+        if (assessment && displayAssessment(issue.assessment).toLowerCase() !== assessment.toLowerCase()) return false;
+        if (!search) return true;
+        const haystack = [
+          issue.id,
+          issue.oneLiner,
+          issue.error,
+          issue.status,
+          issue.where,
+          issue.environment,
+        ].join(' ').toLowerCase();
+        return haystack.includes(search);
+      });
+      const dir = state.sortDir === 'asc' ? 1 : -1;
+      const key = state.sortKey;
+      rows.sort((a, b) => {
+        const left = String(a[key] || '').toLowerCase();
+        const right = String(b[key] || '').toLowerCase();
+        if (left < right) return -1 * dir;
+        if (left > right) return 1 * dir;
+        return String(a.id || '').localeCompare(String(b.id || ''));
+      });
+      return rows;
+    }
+
+    function renderChips() {
+      const unique = Array.from(new Set(state.issues.map((issue) => displayAssessment(issue.assessment)).filter((label) => label && label !== '—')))
+        .sort((a, b) => {
+          const left = ASSESSMENT_ORDER.indexOf(a);
+          const right = ASSESSMENT_ORDER.indexOf(b);
+          if (left === -1 && right === -1) return a.localeCompare(b);
+          if (left === -1) return 1;
+          if (right === -1) return -1;
+          return left - right;
+        });
+      const root = document.getElementById('assessmentChips');
+      root.innerHTML = '';
+      const all = document.createElement('button');
+      all.type = 'button';
+      all.className = 'chip' + (state.assessment === '' ? ' active' : '');
+      all.textContent = 'All assessments';
+      all.onclick = () => {
+        state.assessment = '';
+        render();
+      };
+      root.appendChild(all);
+      unique.forEach((label) => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'chip' + (state.assessment === label ? ' active' : '');
+        chip.textContent = label;
+        chip.onclick = () => {
+          state.assessment = label;
+          render();
+        };
+        root.appendChild(chip);
+      });
+    }
+
+    function renderDetail(issue) {
+      const empty = document.getElementById('detailEmpty');
+      const body = document.getElementById('detailBody');
+      if (!issue) {
+        empty.classList.remove('hidden');
+        body.classList.add('hidden');
+        body.innerHTML = '';
+        return;
+      }
+      empty.classList.add('hidden');
+      body.classList.remove('hidden');
+      const links = [];
+      if (issue.sentryUrl) {
+        links.push(`<a href="${escapeHtml(issue.sentryUrl)}" target="_blank" rel="noopener"><i class="fas fa-circle-exclamation"></i> Sentry</a>`);
+      }
+      const githubUrl = String(issue.github || '').match(/\((https?:\/\/[^)]+)\)/);
+      if (githubUrl) {
+        links.push(`<a href="${escapeHtml(githubUrl[1])}" target="_blank" rel="noopener"><i class="fas fa-code-branch"></i> GitHub</a>`);
+      }
+      const followUps = Array.isArray(issue.followUps) ? issue.followUps : [];
+      body.innerHTML = `
+        <div class="detail-links">${links.join('')}</div>
+        <dl class="detail-meta">
+          <dt>ID</dt><dd><code>${escapeHtml(issue.id)}</code></dd>
+          <dt>Assessment</dt><dd><span class="badge ${assessmentClass(issue.assessment)}">${escapeHtml(displayAssessment(issue.assessment))}</span></dd>
+          <dt>Last updated</dt><dd>${escapeHtml(issue.lastUpdated || '—')}</dd>
+          <dt>Analyzed</dt><dd>${escapeHtml(issue.analyzed || '—')}</dd>
+          <dt>Environment</dt><dd>${escapeHtml(issue.environment || '—')}</dd>
+          <dt>Error</dt><dd>${renderInline(issue.error || '—')}</dd>
+          <dt>Where</dt><dd>${renderInline(issue.where || '—')}</dd>
+          <dt>GitHub</dt><dd>${renderInline(issue.github || '—')}</dd>
+          <dt>Status</dt><dd>${renderInline(issue.status || issue.statusDetail || '—')}</dd>
+        </dl>
+        <div class="detail-section"><h3>Root cause</h3>${renderBlock(issue.rootCause)}</div>
+        <div class="detail-section"><h3>Impact / data</h3>${renderBlock(issue.impact)}</div>
+        <div class="detail-section"><h3>Actions taken</h3>${renderBlock(issue.actions)}</div>
+        ${followUps.map((item) => `<div class="detail-section"><h3>${escapeHtml(item.title || 'Follow-up')}</h3>${renderBlock(item.body)}</div>`).join('')}
+      `;
+    }
+
+    function renderTable(rows) {
+      const body = document.getElementById('issueTableBody');
+      body.innerHTML = '';
+      if (rows.length === 0) {
+        body.innerHTML = '<tr><td colspan="5" class="small">No issues match the current filters.</td></tr>';
+        return;
+      }
+      for (const issue of rows) {
+        const tr = document.createElement('tr');
+        if (state.selectedId && String(issue.id).toUpperCase() === state.selectedId.toUpperCase()) {
+          tr.classList.add('selected');
+        }
+        tr.innerHTML = `
+          <td>${escapeHtml(issue.lastUpdated || '—')}</td>
+          <td><code>${escapeHtml(issue.id)}</code></td>
+          <td><span class="badge ${assessmentClass(issue.assessment)}">${escapeHtml(displayAssessment(issue.assessment))}</span></td>
+          <td class="one-liner">${renderInline(issue.oneLiner || '—')}</td>
+          <td>${renderInline(issue.status || '—')}</td>
+        `;
+        tr.addEventListener('click', () => selectIssue(issue, true));
+        body.appendChild(tr);
+      }
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll('th[data-sort]').forEach((th) => {
+        const ind = th.querySelector('.sort-ind');
+        if (!ind) return;
+        if (th.dataset.sort === state.sortKey) {
+          ind.textContent = state.sortDir === 'asc' ? '▲' : '▼';
+        } else {
+          ind.textContent = '';
+        }
+      });
+    }
+
+    function selectIssue(issue, persist) {
+      state.selectedId = issue?.id || '';
+      if (persist) persistSelection(issue);
+      renderDetail(issue);
+      renderTable(filteredIssues());
+      const selected = document.querySelector('tbody tr.selected');
+      if (selected) selected.scrollIntoView({ block: 'nearest' });
+    }
+
+    function render() {
+      const rows = filteredIssues();
+      text('statTotal', String(state.issues.length));
+      text('statVisible', String(rows.length));
+      text('statReal', String(state.issues.filter((issue) => displayAssessment(issue.assessment) === 'Needs a fix').length));
+      text('statOpen', String(state.issues.filter((issue) => /^open/i.test(String(issue.status || '').trim())).length));
+      updateSortIndicators();
+      renderChips();
+      renderTable(rows);
+      renderDetail(findIssue(state.selectedId));
+    }
+
+    function showError(message, loginUrl, options = {}) {
+      document.getElementById('dashboardRoot').classList.add('hidden');
+      const errorRoot = document.getElementById('errorRoot');
+      errorRoot.classList.remove('hidden');
+      text('meta', 'Bug log unavailable');
+      text('errorText', message || 'Unknown error');
+
+      const errorHint = document.getElementById('errorHint');
+      if (options.hint) {
+        errorHint.classList.remove('hidden');
+        errorHint.textContent = options.hint;
+      } else {
+        errorHint.classList.add('hidden');
+        errorHint.textContent = '';
+      }
+
+      const actionButton = document.getElementById('actionButton');
+      if (options.actionUrl) {
+        actionButton.classList.remove('hidden');
+        actionButton.textContent = options.actionLabel || 'Open access help';
+        actionButton.onclick = () => window.location.assign(options.actionUrl);
+      } else {
+        actionButton.classList.add('hidden');
+      }
+
+      const loginButton = document.getElementById('loginButton');
+      if (options.showLogin !== false) {
+        loginButton.classList.remove('hidden');
+        loginButton.onclick = () => window.location.assign(loginUrl || getLoginUrl());
+      } else {
+        loginButton.classList.add('hidden');
+      }
+    }
+
+    async function loadBugLog() {
+      const response = await fetch('/api/bug-log-data', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const err = new Error(payload?.message || 'Failed to load bug log.');
+        err.status = response.status;
+        err.code = payload?.error || '';
+        err.loginUrl = payload?.loginUrl || null;
+        err.requiredOrgs = Array.isArray(payload?.requiredOrgs) ? payload.requiredOrgs : [];
+        throw err;
+      }
+      return payload;
+    }
+
+    document.getElementById('searchInput').addEventListener('input', (event) => {
+      state.search = event.target.value || '';
+      render();
+    });
+
+    document.querySelectorAll('th[data-sort]').forEach((th) => {
+      th.addEventListener('click', () => {
+        const key = th.dataset.sort;
+        if (state.sortKey === key) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+        else {
+          state.sortKey = key;
+          state.sortDir = key === 'lastUpdated' ? 'desc' : 'asc';
+        }
+        render();
+      });
+    });
+
+    (async () => {
+      const authState = readAuthStateFromUrl();
+      if (authState.authError) {
+        showError(authState.authError, getLoginUrl(), {
+          hint: 'If this keeps repeating, your org may require GitHub SSO authorization for this OAuth app.',
+          actionUrl: authState.authSsoUrl || authState.authHelpUrl || '',
+          actionLabel: authState.authActionLabel || 'Open access help',
+        });
+        cleanupAuthParamsFromUrl();
+        return;
+      }
+      try {
+        const payload = await loadBugLog();
+        state.issues = Array.isArray(payload?.issues) ? payload.issues : [];
+        state.source = payload?.source || { bucket: '-', object: '-' };
+        const viewerLogin = String(payload?.viewer?.login || '').trim();
+        document.getElementById('errorRoot').classList.add('hidden');
+        document.getElementById('dashboardRoot').classList.remove('hidden');
+        const updated = state.source.updated ? `Updated ${state.source.updated}` : 'Latest snapshot';
+        const viewer = viewerLogin ? `Access verified for @${viewerLogin} | ` : '';
+        text('meta', `${viewer}${updated} | gs://${state.source.bucket}/${state.source.object}`);
+        cleanupAuthParamsFromUrl();
+        const requested = findIssue(getRequestedId());
+        if (requested) {
+          state.selectedId = requested.id;
+          persistSelection(requested);
+        }
+        render();
+        if (requested) {
+          const selected = document.querySelector('tbody tr.selected');
+          if (selected) selected.scrollIntoView({ block: 'nearest' });
+        }
+      } catch (error) {
+        const requiredOrgHint = error.status === 403 && error.requiredOrgs?.length > 0
+          ? `This page requires membership in: ${error.requiredOrgs.join(', ')}.`
+          : '';
+        const cookieHint = authState.auth === 'success' && error.status === 401
+          ? 'Sign-in completed but no session cookie was found. Use the same Cockpit domain for login and dashboard, then try again.'
+          : '';
+        showError(
+          error.message,
+          getLoginUrl() || error.loginUrl,
+          { hint: requiredOrgHint || cookieHint },
+        );
+      }
+    })();
+  </script>
+</body>
+</html>

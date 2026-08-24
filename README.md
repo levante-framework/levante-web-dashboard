@@ -17,6 +17,7 @@ Web dashboard application for managing Levante audio content, translations, and 
     - Text filtering and exclude patterns
     - Automatically filters out 0-byte files and empty folders
   - **Firestore Audit Dashboard** – View restricted audit/diff snapshots sourced from private GCS via `/api/audit-dashboard-data`
+  - **Bug Log** – Browse, sort, and open full write-ups from `gs://levante-tools/support/bug-analysis-history.md` via `/api/bug-log-data`
 - **Locate Me** – Dual-path location discovery:
   - `Locate Me (GPS)` for browser geolocation flow
   - `Locate Me (Choose)` for country-first manual lookup (locality/postal autocomplete without GPS consent)
@@ -200,6 +201,8 @@ Required/optional keys used by current translation and AI features:
 - `AUDIT_DASHBOARD_DOWNLOAD_PREFIX` – optional prefix for JSON download listing (defaults to `pitwall/audit-mini-dashboard/`)
 - `AUDIT_DASHBOARD_REQUIRE_AUTH` – optional auth toggle (`true` by default)
 - `AUDIT_DASHBOARD_ALLOWED_ORGS` – comma-separated GitHub org allowlist for audit data access (defaults to `levante-framework`)
+- `BUG_LOG_BUCKET` – optional bucket override for the bug log API (defaults to `levante-tools`)
+- `BUG_LOG_OBJECT` – optional object path override (defaults to `support/bug-analysis-history.md`)
 
 ### Version Management
 
@@ -343,6 +346,23 @@ Loads private Firestore audit dashboard JSON from GCS for the Cockpit page `publ
 **Example:**
 ```bash
 curl "https://levante-cockpit.vercel.app/api/audit-dashboard-data"
+```
+
+### `/api/bug-log-data`
+Loads the shared bug-analysis history markdown from GCS, parses it into structured issues, and serves the Cockpit page `public/bug-log.html`.
+
+**Auth behavior (default):**
+- Same GitHub session + org gate as `/api/audit-dashboard-data` (`AUDIT_DASHBOARD_REQUIRE_AUTH`, `AUDIT_DASHBOARD_ALLOWED_ORGS`)
+
+**Configuration:**
+- `BUG_LOG_BUCKET` (default `levante-tools`)
+- `BUG_LOG_OBJECT` (default `support/bug-analysis-history.md`)
+
+Deep link a specific issue: `https://levante-cockpit.vercel.app/bug-log.html?id=DASHBOARD-BQ`
+
+**Example:**
+```bash
+curl "https://levante-cockpit.vercel.app/api/bug-log-data"
 ```
 
 ### `/api/audit-dashboard-files`
