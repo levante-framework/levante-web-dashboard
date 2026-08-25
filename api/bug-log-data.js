@@ -6,6 +6,7 @@ import {
   SESSION_COOKIE_NAME,
 } from '../lib/server/github-auth.js';
 import { checkGithubOrgMembershipByLogin } from '../lib/server/github-org-check.js';
+import { applyFixAssessments } from '../lib/server/bug-log-fix-status.js';
 
 let storageClient = null;
 
@@ -361,7 +362,8 @@ export default async function handler(req, res) {
       file.getMetadata().then(([info]) => info).catch(() => null),
     ]);
 
-    const issues = parseBugLogMarkdown(String(buffer || ''));
+    const parsed = parseBugLogMarkdown(String(buffer || ''));
+    const issues = await applyFixAssessments(parsed);
     return res.status(200).json({
       success: true,
       viewer: session

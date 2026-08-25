@@ -190,6 +190,8 @@
     }
     .badge-real { color: var(--bad); background: rgba(239, 71, 111, 0.12); }
     .badge-mixed { color: var(--warn); background: rgba(255, 179, 71, 0.12); }
+    .badge-fix-pr { color: var(--warn); background: rgba(255, 179, 71, 0.16); }
+    .badge-fix-merged { color: #3b82f6; background: rgba(59, 130, 246, 0.16); }
     .badge-test { color: var(--muted); background: rgba(148, 163, 184, 0.12); }
     .badge-inconclusive { color: var(--text-secondary); background: var(--surface-3); }
     .small { font-size: 12px; color: var(--muted); }
@@ -270,6 +272,8 @@
         <div class="card"><div class="label">Issues</div><div id="statTotal" class="value">-</div></div>
         <div class="card"><div class="label">Visible</div><div id="statVisible" class="value sm">-</div></div>
         <div class="card"><div class="label">Needs a fix</div><div id="statReal" class="value sm">-</div></div>
+        <div class="card"><div class="label">Open PR</div><div id="statFixPr" class="value sm">-</div></div>
+        <div class="card"><div class="label">Fix Merged</div><div id="statFixMerged" class="value sm">-</div></div>
         <div class="card"><div class="label">Open-ish</div><div id="statOpen" class="value sm">-</div></div>
       </div>
 
@@ -358,6 +362,9 @@
     const ASSESSMENT_LABELS = {
       'real regression': 'Needs a fix',
       'needs a fix': 'Needs a fix',
+      'fix in pr': 'Open PR',
+      'open pr': 'Open PR',
+      'fix merged': 'Fix Merged',
       'likely test artifact': 'Safe to ignore',
       'safe to ignore': 'Safe to ignore',
       'mixed (real + test artifact)': 'Needs a fix (also noisy)',
@@ -366,16 +373,30 @@
       inconclusive: 'Needs more info',
       'needs more info': 'Needs more info',
     };
-    const ASSESSMENT_ORDER = ['Needs a fix', 'Needs a fix (also noisy)', 'Safe to ignore', 'Needs more info'];
+    const ASSESSMENT_ORDER = [
+      'Needs a fix',
+      'Open PR',
+      'Fix Merged',
+      'Needs a fix (also noisy)',
+      'Safe to ignore',
+      'Needs more info',
+    ];
 
-    function displayAssessment(assessment) {
-      const key = String(assessment || '').trim().toLowerCase();
-      return ASSESSMENT_LABELS[key] || String(assessment || '').trim() || '—';
+    function displayAssessment(issueOrLabel) {
+      if (issueOrLabel && typeof issueOrLabel === 'object') {
+        const overlay = String(issueOrLabel.viewerAssessment || '').trim();
+        if (overlay) return overlay;
+        issueOrLabel = issueOrLabel.assessment;
+      }
+      const key = String(issueOrLabel || '').trim().toLowerCase();
+      return ASSESSMENT_LABELS[key] || String(issueOrLabel || '').trim() || '—';
     }
 
-    function assessmentClass(assessment) {
-      const label = displayAssessment(assessment).toLowerCase();
+    function assessmentClass(issueOrLabel) {
+      const label = displayAssessment(issueOrLabel).toLowerCase();
       if (label === 'needs a fix') return 'badge-real';
+      if (label === 'open pr' || label === 'fix in pr') return 'badge-fix-pr';
+      if (label === 'fix merged') return 'badge-fix-merged';
       if (label.includes('also noisy') || label.includes('mixed')) return 'badge-mixed';
       if (label === 'safe to ignore') return 'badge-test';
       return 'badge-inconclusive';
@@ -442,7 +463,7 @@
       const search = state.search.trim().toLowerCase();
       const assessment = state.assessment.trim().toLowerCase();
       const rows = state.issues.filter((issue) => {
-        if (assessment && displayAssessment(issue.assessment).toLowerCase() !== assessment.toLowerCase()) return false;
+        if (assessment && displayAssessment(issue).toLowerCase() !== assessment.toLowerCase()) return false;
         if (!search) return true;
         const haystack = [
           issue.id,
@@ -451,14 +472,16 @@
           issue.status,
           issue.where,
           issue.environment,
+          issue.github,
+          displayAssessment(issue),
         ].join(' ').toLowerCase();
         return haystack.includes(search);
       });
       const dir = state.sortDir === 'asc' ? 1 : -1;
       const key = state.sortKey;
       rows.sort((a, b) => {
-        const left = String(a[key] || '').toLowerCase();
-        const right = String(b[key] || '').toLowerCase();
+        const left = String(key === 'assessment' ? displayAssessment(a) : a[key] || '').toLowerCase();
+        const right = String(key === 'assessment' ? displayAssessment(b) : b[key] || '').toLowerCase();
         if (left < right) return -1 * dir;
         if (left > right) return 1 * dir;
         return String(a.id || '').localeCompare(String(b.id || ''));
@@ -467,15 +490,16 @@
     }
 
     function renderChips() {
-      const unique = Array.from(new Set(state.issues.map((issue) => displayAssessment(issue.assessment)).filter((label) => label && label !== '—')))
-        .sort((a, b) => {
-          const left = ASSESSMENT_ORDER.indexOf(a);
-          const right = ASSESSMENT_ORDER.indexOf(b);
-          if (left === -1 && right === -1) return a.localeCompare(b);
-          if (left === -1) return 1;
-          if (right === -1) return -1;
-          return left - right;
-        });
+      const counts = new Map();
+      for (const issue of state.issues) {
+        const label = displayAssessment(issue);
+        if (!label || label === '—') continue;
+        counts.set(label, (counts.get(label) || 0) + 1);
+      }
+      const extra = Array.from(counts.keys())
+        .filter((label) => !ASSESSMENT_ORDER.includes(label))
+        .sort((a, b) => a.localeCompare(b));
+      const labels = [...ASSESSMENT_ORDER, ...extra];
       const root = document.getElementById('assessmentChips');
       root.innerHTML = '';
       const all = document.createElement('button');
@@ -487,11 +511,11 @@
         render();
       };
       root.appendChild(all);
-      unique.forEach((label) => {
+      labels.forEach((label) => {
         const chip = document.createElement('button');
         chip.type = 'button';
         chip.className = 'chip' + (state.assessment === label ? ' active' : '');
-        chip.textContent = label;
+        chip.textContent = `${label} (${counts.get(label) || 0})`;
         chip.onclick = () => {
           state.assessment = label;
           render();
@@ -524,13 +548,16 @@
         <div class="detail-links">${links.join('')}</div>
         <dl class="detail-meta">
           <dt>ID</dt><dd><code>${escapeHtml(issue.id)}</code></dd>
-          <dt>Assessment</dt><dd><span class="badge ${assessmentClass(issue.assessment)}">${escapeHtml(displayAssessment(issue.assessment))}</span></dd>
+          <dt>Assessment</dt><dd><span class="badge ${assessmentClass(issue)}">${escapeHtml(displayAssessment(issue))}</span></dd>
           <dt>Last updated</dt><dd>${escapeHtml(issue.lastUpdated || '—')}</dd>
           <dt>Analyzed</dt><dd>${escapeHtml(issue.analyzed || '—')}</dd>
           <dt>Environment</dt><dd>${escapeHtml(issue.environment || '—')}</dd>
           <dt>Error</dt><dd>${renderInline(issue.error || '—')}</dd>
           <dt>Where</dt><dd>${renderInline(issue.where || '—')}</dd>
           <dt>GitHub</dt><dd>${renderInline(issue.github || '—')}</dd>
+          <dt>Fix PR</dt><dd>${issue.fixPr?.url
+            ? `<a href="${escapeHtml(issue.fixPr.url)}" target="_blank" rel="noopener">${escapeHtml(issue.fixPr.repo)}#${escapeHtml(String(issue.fixPr.number))}${issue.fixPr.merged ? ' (merged)' : issue.fixPr.state === 'open' ? ' (open)' : ''}</a>`
+            : '—'}</dd>
           <dt>Status</dt><dd>${renderInline(issue.status || issue.statusDetail || '—')}</dd>
         </dl>
         <div class="detail-section"><h3>Root cause</h3>${renderBlock(issue.rootCause)}</div>
@@ -555,7 +582,7 @@
         tr.innerHTML = `
           <td>${escapeHtml(issue.lastUpdated || '—')}</td>
           <td><code>${escapeHtml(issue.id)}</code></td>
-          <td><span class="badge ${assessmentClass(issue.assessment)}">${escapeHtml(displayAssessment(issue.assessment))}</span></td>
+          <td><span class="badge ${assessmentClass(issue)}">${escapeHtml(displayAssessment(issue))}</span></td>
           <td class="one-liner">${renderInline(issue.oneLiner || '—')}</td>
           <td>${renderInline(issue.status || '—')}</td>
         `;
@@ -589,7 +616,9 @@
       const rows = filteredIssues();
       text('statTotal', String(state.issues.length));
       text('statVisible', String(rows.length));
-      text('statReal', String(state.issues.filter((issue) => displayAssessment(issue.assessment) === 'Needs a fix').length));
+      text('statReal', String(state.issues.filter((issue) => displayAssessment(issue) === 'Needs a fix').length));
+      text('statFixPr', String(state.issues.filter((issue) => displayAssessment(issue) === 'Open PR').length));
+      text('statFixMerged', String(state.issues.filter((issue) => displayAssessment(issue) === 'Fix Merged').length));
       text('statOpen', String(state.issues.filter((issue) => /^open/i.test(String(issue.status || '').trim())).length));
       updateSortIndicators();
       renderChips();
