@@ -254,7 +254,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'method_not_allowed' });
   }
 
-  const requiresAuth = parseBoolean(process.env.AUDIT_DASHBOARD_REQUIRE_AUTH, true);
+  const requiresAuth = parseBoolean(process.env.BUG_LOG_REQUIRE_AUTH, false);
   const allowedOrgs = String(process.env.AUDIT_DASHBOARD_ALLOWED_ORGS || 'levante-framework')
     .split(',')
     .map((value) => value.trim().toLowerCase())
