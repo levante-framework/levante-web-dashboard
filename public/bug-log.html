@@ -149,14 +149,15 @@
       padding: 14px;
       box-shadow: var(--shadow-md);
       min-width: 0;
+      font-size: var(--fs-sm);
     }
     .panel h2 {
       margin: 0 0 10px;
-      font-size: var(--fs-lg);
+      font-size: var(--fs-base);
       color: var(--text-primary);
     }
-    .table-wrap { overflow: auto; max-height: calc(100vh - 280px); }
-    table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+    .table-wrap { overflow: auto; max-height: calc((100vh - 280px) * 1.5); }
+    table { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
     th, td {
       padding: 8px 6px;
       border-bottom: 1px solid var(--border-subtle);
@@ -168,7 +169,7 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      font-size: var(--fs-xs);
+      font-size: 12px;
       background: var(--surface-2);
       position: sticky;
       top: 0;
@@ -184,7 +185,7 @@
       display: inline-block;
       border-radius: 6px;
       padding: 2px 6px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       letter-spacing: 0.02em;
     }
@@ -215,7 +216,7 @@
       margin-bottom: 14px;
     }
     .detail-meta dt {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--muted);
@@ -225,7 +226,7 @@
     .detail-section { margin: 0 0 16px; }
     .detail-section h3 {
       margin: 0 0 6px;
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-secondary);
@@ -233,7 +234,7 @@
     .detail-section p, .detail-section li { margin: 0 0 8px; line-height: 1.45; }
     .detail-section ul { margin: 0 0 8px; padding-left: 18px; }
     .detail-section code, td code {
-      font-size: 12px;
+      font-size: 11px;
       background: var(--surface-3);
       padding: 1px 5px;
       border-radius: 4px;
@@ -246,14 +247,14 @@
       background: var(--surface-3);
       border-radius: var(--radius-pill);
       padding: 6px 10px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
     }
     .detail-links a:hover { background: var(--accent); color: var(--accent-contrast); }
     .one-liner { color: var(--text-secondary); }
     @media (max-width: 960px) {
       .layout { grid-template-columns: 1fr; }
-      .table-wrap { max-height: 50vh; }
+      .table-wrap { max-height: 75vh; }
     }
   </style>
 </head>
