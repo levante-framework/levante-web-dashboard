@@ -558,3 +558,36 @@
     </div>
 </div>
 
+<!-- Review Reason Modal -->
+<div id="reviewReasonModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-flag"></i> Review Reason</h2>
+            <span class="close" onclick="closeReviewReasonModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="translation-data-wrapper">
+                <div class="translation-data">
+                    <small class="translation-data-label">Translation</small>
+                    <small class="translation-data-content" id="reviewReasonModalTranslation">-</small>
+                </div>
+                <div class="translation-data">
+                    <small class="translation-data-label">English</small>
+                    <small class="translation-data-content" id="reviewReasonModalEnglish">-</small>
+                </div>
+                <div class="translation-data">
+                    <small class="translation-data-label">Back translation</small>
+                    <small class="translation-data-content" id="reviewReasonModalBackTranslation">-</small>
+                </div>
+            </div>
+            
+            <div class="review-reason">
+                <p class="review-reason-label">Explain why this translation needs review:</p>
+                <input type="text" class="reason-input" data-item-id="" data-lang-code="" value="" placeholder="Reason...">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeReviewReasonModal()"><i class="fas fa-save"></i> Save</button>
+        </div>
+    </div>
+</div>

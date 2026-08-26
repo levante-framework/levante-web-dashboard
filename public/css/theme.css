@@ -45,11 +45,11 @@
   --color-success-soft:   rgba(31, 157, 99, 0.14);
   --color-success-border: rgba(31, 157, 99, 0.38);
 
-  --color-warning:        #b5781a; /* amber, darkened for AA on light */
+  --color-warning:        #f59e0b; /* amber, darkened for AA on light */
   --color-warning-soft:   rgba(181, 120, 26, 0.14);
   --color-warning-border: rgba(181, 120, 26, 0.38);
 
-  --color-danger:         #c5453f; /* restrained red */
+  --color-danger:         #dc2626; /* restrained red */
   --color-danger-soft:    rgba(197, 69, 63, 0.12);
   --color-danger-border:  rgba(197, 69, 63, 0.38);
 

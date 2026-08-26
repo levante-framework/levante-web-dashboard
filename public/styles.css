@@ -305,8 +305,8 @@ body { font-family: var(--font-sans); background: var(--color-bg); background-im
 .validation-header { background: var(--surface-2); color: var(--text-primary); padding: 10px 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
 .validation-content { padding: 15px; display: none; }
 .validation-content.expanded { display: block; }
-.collapse-icon { transition: transform 0.3s; }
-.collapsed .collapse-icon { transform: rotate(-90deg); }
+.collapse-icon { transition: transform 0.3s; user-select: none; }
+.collapsed .collapse-icon { transform: rotate(-180deg); }
 
 /* Validation result styles */
 .back-translation { background: var(--surface-2); border: 1px solid var(--border-subtle); margin-top: 8px; padding: 16px 18px; border-radius: var(--radius-lg); font-size: 0.95rem; color: var(--text-primary); }
