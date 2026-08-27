@@ -4,8 +4,12 @@
  * Original PNG files are preserved (not deleted).
  */
 
+import { createRequire } from 'module';
 import { Storage } from '@google-cloud/storage';
 import sharp from 'sharp';
+
+const require = createRequire(import.meta.url);
+const { stampWebpLicense } = require('../scripts/stamp-webp-license.cjs');
 
 function getStorageClient() {
   const serviceAccountJson = process.env.GCP_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
@@ -41,7 +45,8 @@ async function convertPngToWebp(storage, bucketName, pngPath, quality = 80) {
   const webpFile = bucket.file(webpPath);
   const [buf] = await pngFile.download();
   const webpBuf = await sharp(buf).webp({ quality }).toBuffer();
-  await webpFile.save(webpBuf, { contentType: 'image/webp', resumable: false });
+  const stamped = stampWebpLicense(webpBuf, { created: new Date().toISOString() });
+  await webpFile.save(stamped, { contentType: 'image/webp', resumable: false });
   return webpPath;
 }
 
