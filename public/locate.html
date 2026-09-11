@@ -453,6 +453,14 @@
             overflow: hidden;
             border: 1px solid var(--border-subtle);
         }
+        .leaflet-control-attribution {
+            font-size: 12px;
+            background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+            color: var(--text-muted);
+        }
+        .leaflet-control-attribution a {
+            color: var(--accent);
+        }
         .map-error {
             border: 1px solid var(--color-danger-border);
             background: var(--color-danger-soft);
@@ -795,7 +803,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="./vendor/vue/vue.global.prod.js?v=2.1.2"></script>
     <script src="./vendor/leaflet/leaflet.js?v=2.1.2"></script>
-    <script src="./js/locate-me-v2.js?v=2.1.2"></script>
+    <script src="./js/locate-me-v2.js?v=2.1.5&rev=20260910a"></script>
     <footer style="text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 0.8rem;">
         Levante Locate Me · v2.1.2
     </footer>

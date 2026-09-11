@@ -554,6 +554,15 @@
             cursor: default;
         }
 
+        .task-finish-btn.promote {
+            background: #2e7d32;
+            cursor: pointer;
+        }
+
+        .task-finish-btn.promote:hover {
+            background: #256b29;
+        }
+
         .task-approve-btn {
             margin-left: 6px;
             padding: 7px 12px;
@@ -3931,24 +3940,32 @@
                 const approvedAudio = Number(stats.approvedAudio || 0);
                 this.currentTaskCompletionStats = { totalAudio, approvedAudio };
                 const alreadyFinished = this.isTaskMarkedFinished(this.currentLangCode, selectedTask);
-
-                const shouldShow = (
+                const stagedCount = this.getStagedApprovedIdsForTask(selectedTask, this.currentLangCode).size;
+                const allApproved = (
                     selectedTask !== '__all__'
                     && approvedAudio > 1
                     && totalAudio > 0
                     && totalAudio === approvedAudio
                 );
+                const canPromoteMore = selectedTask !== '__all__' && alreadyFinished && stagedCount > 0;
+                const shouldShow = allApproved || canPromoteMore;
 
                 button.style.display = shouldShow ? 'inline-flex' : 'none';
-                button.classList.toggle('finished', shouldShow && alreadyFinished);
-                button.innerHTML = shouldShow && alreadyFinished
-                    ? '<i class="fas fa-check-double"></i> Task finished'
-                    : '<i class="fas fa-check-circle"></i> Finished with this task';
-                button.title = shouldShow
-                    ? (alreadyFinished
-                        ? `Task "${selectedTask}" was already marked finished.`
-                        : `All audio is approved for "${selectedTask}" (${approvedAudio}/${totalAudio}).`)
-                    : 'Select a completed task to mark review finished.';
+                button.classList.toggle('finished', shouldShow && alreadyFinished && !canPromoteMore);
+                button.classList.toggle('promote', canPromoteMore);
+                if (canPromoteMore) {
+                    const noun = stagedCount === 1 ? 'approval' : 'approvals';
+                    button.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> Promote ${stagedCount} new ${noun}`;
+                    button.title = `Move ${stagedCount} newly approved file(s) for "${selectedTask}" to the approved bucket. You do not need to undo the finished mark.`;
+                } else if (shouldShow && alreadyFinished) {
+                    button.innerHTML = '<i class="fas fa-check-double"></i> Task finished';
+                    button.title = `Task "${selectedTask}" was already marked finished.`;
+                } else {
+                    button.innerHTML = '<i class="fas fa-check-circle"></i> Finished with this task';
+                    button.title = shouldShow
+                        ? `All audio is approved for "${selectedTask}" (${approvedAudio}/${totalAudio}).`
+                        : 'Select a completed task to mark review finished.';
+                }
             }
 
             normalizeFinishedTaskKey(taskName) {
@@ -9427,17 +9444,51 @@
                 return result;
             }
 
+            summarizePromotionResult(promotionResult = {}) {
+                const moved = Number(promotionResult.moved || 0);
+                const alreadyLive = Number(promotionResult.skipped || 0);
+                if (moved > 0 && alreadyLive > 0) {
+                    return `Moved ${moved} newly approved file(s) to the approved bucket; ${alreadyLive} were already there.`;
+                }
+                if (moved > 0) {
+                    return `Moved ${moved} newly approved file(s) to the approved bucket.`;
+                }
+                return `All audio was already in the approved bucket — nothing new to move.`;
+            }
+
             async handleFinishedTaskClick() {
                 const selectedTask = this.getSelectedTaskFilter();
                 if (selectedTask === '__all__') return;
                 const totalAudio = Number(this.currentTaskCompletionStats?.totalAudio || 0);
                 const approvedAudio = Number(this.currentTaskCompletionStats?.approvedAudio || 0);
-                if (totalAudio <= 0 || approvedAudio < totalAudio) {
-                    this.setStatus(`Approve all task audio before marking "${selectedTask}" finished.`, 'warning');
+                const alreadyFinished = this.isTaskMarkedFinished(this.currentLangCode, selectedTask);
+                const stagedCount = this.getStagedApprovedIdsForTask(selectedTask, this.currentLangCode).size;
+                if (alreadyFinished) {
+                    if (stagedCount === 0) {
+                        this.setStatus(`"${selectedTask}" is already marked finished. There are no new approvals waiting to promote.`, 'info');
+                        return;
+                    }
+                    try {
+                        const promotionResult = await this.promoteStagedApprovalsForTask(selectedTask);
+                        if (promotionResult.failed > 0) {
+                            throw new Error(`Failed to promote ${promotionResult.failed} staged item(s). Resolve those and try again.`);
+                        }
+                        this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
+                        this.setStatus(`Promoted new approvals for "${selectedTask}". ${this.summarizePromotionResult(promotionResult)}`, 'success');
+                    } catch (error) {
+                        this.setStatus(`Could not promote new approvals: ${error?.message || error}`, 'error');
+                        return;
+                    }
+                    await this.logApproverAudioEvent('task_review_finished', '__task__', {
+                        task: selectedTask,
+                        totalAudio,
+                        approvedAudio,
+                        incremental: true
+                    });
                     return;
                 }
-                if (this.isTaskMarkedFinished(this.currentLangCode, selectedTask)) {
-                    this.setStatus(`"${selectedTask}" is already marked finished.`, 'info');
+                if (totalAudio <= 0 || approvedAudio < totalAudio) {
+                    this.setStatus(`Approve all task audio before marking "${selectedTask}" finished.`, 'warning');
                     return;
                 }
                 try {
@@ -9464,20 +9515,8 @@
                     this.markTaskFinishedLocal(this.currentLangCode, selectedTask);
                     this.updateFinishedTaskButtonVisibility(this.currentTaskCompletionStats);
                     const slackSent = payload?.slack?.sent === true;
-                    // failed is always 0 here (any failure throws above), so the summary
-                    // only needs to explain what moved vs. what was already promoted.
-                    const moved = Number(promotionResult.moved || 0);
-                    const alreadyLive = Number(promotionResult.skipped || 0);
-                    let promotionSummary;
-                    if (moved > 0 && alreadyLive > 0) {
-                        promotionSummary = `Moved ${moved} newly approved file(s) to the approved bucket; ${alreadyLive} were already there.`;
-                    } else if (moved > 0) {
-                        promotionSummary = `Moved ${moved} newly approved file(s) to the approved bucket.`;
-                    } else {
-                        promotionSummary = `All audio was already in the approved bucket — nothing new to move.`;
-                    }
                     this.setStatus(
-                        `Marked "${selectedTask}" finished — all ${totalAudio} audio files approved. ${promotionSummary}${slackSent ? ' Posted to Slack.' : ''}`,
+                        `Marked "${selectedTask}" finished — all ${totalAudio} audio files approved. ${this.summarizePromotionResult(promotionResult)}${slackSent ? ' Posted to Slack.' : ''}`,
                         'success'
                     );
                 } catch (error) {

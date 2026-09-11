@@ -88,7 +88,7 @@ Credit in AQI UI / about copy, for example:
 
 ### Key terms
 - OSM geodata is under **ODbL**; use for any purpose is allowed, but **attribution is required**.
-- Locate Me renders tiles from CARTO’s basemap CDN (`basemaps.cartocdn.com`), which also carries OSM-derived content; follow **CARTO Basemaps ToS** in addition to OSM attribution rules.
+- Locate Me renders tiles from CARTO’s basemap CDN (`basemaps.cartocdn.com`) with a per-project `key` query param, which also carries OSM-derived content; follow **CARTO Basemaps ToS** in addition to OSM attribution rules.
 - Current in-app attribution string:
 
 ```text

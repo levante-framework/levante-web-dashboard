@@ -23,7 +23,7 @@ This document defines the current geo-strategy used by the gallery generator to 
 ### 3) H3 hex cell selection (primary de-identified area)
 - Compute a **base H3 cell** at `H3_BASE_RES` around the faux location.
 - Evaluate finer cells up to `H3_EFFECTIVE_MAX_RES`.
-- Select the **highest resolution (smallest) H3 cell** whose estimated population is at least `POP_THRESHOLD` (default **50,000**).
+- Select the **highest resolution (smallest) H3 cell** whose estimated population is at least `POP_THRESHOLD` (default **20,000**).
 - Store:
   - base cell id/resolution/population
   - effective cell id/resolution/population
@@ -89,11 +89,11 @@ Example schema (JSON):
 
 ## Tunable Flags
 
-- `POP_THRESHOLD` (default **50,000**): minimum population for effective H3 selection and ADM filtering.
+- `POP_THRESHOLD` (default **20,000**): minimum population for effective H3 selection and ADM filtering.
 - `SHIFT_KM` (default **1**): distance for faux location shift.
 - `WEATHER_ROUNDING_DEG`: optional rounding for any remote weather queries.
 - `GEO_H3_BASE_RES` (default **5**): base H3 resolution.
-- `GEO_H3_EFFECTIVE_MAX_RES` (default **9**): max H3 resolution checked for effective cell selection.
+- `GEO_H3_EFFECTIVE_MAX_RES` (default **7**): max H3 resolution checked for effective cell selection.
 - `GEO_H3_POPULATION_SOURCE` (default **kontur**): H3 population estimate source.
 
 ## Implementation Notes

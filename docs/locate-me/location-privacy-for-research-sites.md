@@ -121,7 +121,7 @@ Map tiles shown on screen are ordinary basemap imagery; they do not require uplo
 |---|---|
 | Minimize collection of precise location | Raw GPS is ephemeral and on-device only |
 | Process locally first | City + admin boundary matching on device |
-| De-identify before share/store | H3 cell with ~50k population threshold; cell center, not GPS |
+| De-identify before share/store | H3 cell with ~20k population threshold; cell center, not GPS |
 | Mask remote queries | 1 km faux shift; weather rounding; AQI area box around faux center |
 | Prefer area over point | Hex cells and admin regions instead of street-level pins |
 | Repeatable algorithm | Documented thresholds (shift distance, population floor, H3 resolutions) |
@@ -130,7 +130,7 @@ Map tiles shown on screen are ordinary basemap imagery; they do not require uplo
 
 ## Plain-language analogy
 
-Think of GPS as a street address written on a sticky note that **never leaves the room**. The device uses that note to look things up in a **local atlas** (cities and boundaries). When it must phone an outside weather or air-quality service, it only describes a **wide neighborhood** (shifted and rounded)—not the sticky note. What research keeps is closer to “this hex-shaped district of ~50,000+ people,” not “this doorstep.”
+Think of GPS as a street address written on a sticky note that **never leaves the room**. The device uses that note to look things up in a **local atlas** (cities and boundaries). When it must phone an outside weather or air-quality service, it only describes a **wide neighborhood** (shifted and rounded)—not the sticky note. What research keeps is closer to “this hex-shaped district of ~20,000+ people,” not “this doorstep.”
 
 ---
 

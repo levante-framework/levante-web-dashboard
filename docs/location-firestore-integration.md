@@ -22,7 +22,7 @@ const location = {
     scheme: 'h3_v1',
     baseline: { cellId: '85283083fffffff', resolution: 5 },
     effective: { cellId: '87283082bffffff', resolution: 7 },
-    populationThreshold: 50000,
+    populationThreshold: 20000,
   },
   latLon: {
     lat: 37.7793,
@@ -66,7 +66,7 @@ curl -X POST "https://<your-host>/api/location-upsert" \
         "scheme": "h3_v1",
         "baseline": { "cellId": "85283083fffffff", "resolution": 5 },
         "effective": { "cellId": "87283082bffffff", "resolution": 7 },
-        "populationThreshold": 50000
+        "populationThreshold": 20000
       },
       "latLon": {
         "lat": 37.7793,
@@ -81,7 +81,7 @@ curl -X POST "https://<your-host>/api/location-upsert" \
 ### GET example
 
 ```bash
-curl "https://<your-host>/api/location-upsert?projectId=hs-levante-admin-prod&collection=locations&docId=h3:87283082bffffff:t:50000:v1"
+curl "https://<your-host>/api/location-upsert?projectId=hs-levante-admin-prod&collection=locations&docId=h3:87283082bffffff:t:20000:v1"
 ```
 
 ## Notes
@@ -102,9 +102,9 @@ Example:
 
 ```js
 const result = await window.buildObfuscatedLocationFromLatLon(rawLat, rawLon, {
-  populationThreshold: 50000,
+  populationThreshold: 20000,
   baselineResolution: 5,
-  maxResolution: 9,
+  maxResolution: 7,
   // Either provide populationByResolution OR estimatePopulationForCell callback
   populationByResolution: {
     "9": 12000,
@@ -143,9 +143,9 @@ const result = await window.buildObfuscatedLocationFromLatLonWithPopulationSourc
   rawLon,
   konturSource,
   {
-    populationThreshold: 50000,
+    populationThreshold: 20000,
     baselineResolution: 5,
-    maxResolution: 9,
+    maxResolution: 7,
     latLonSource: "h3_center"
   }
 );
@@ -163,9 +163,9 @@ const comparison = await window.compareKonturAndWorldpopLocationBuild(
   konturSource,
   worldpopSource,
   {
-    populationThreshold: 50000,
+    populationThreshold: 20000,
     baselineResolution: 5,
-    maxResolution: 9,
+    maxResolution: 7,
     latLonSource: "h3_center"
   }
 );

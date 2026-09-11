@@ -23,7 +23,7 @@
  * Network dependencies:
  * - Backend APIs under /api/* (geocoder metadata, reverse geocode, location log, ADM packs, ISP lookup).
  * - Open-Meteo for current weather.
- * - Leaflet + OSM tiles for map rendering.
+ * - Leaflet + CARTO basemap tiles (OSM-derived) for map rendering.
  */
 const { createApp, nextTick } = Vue;
 const LEAFLET_SOURCES = [
@@ -31,6 +31,19 @@ const LEAFLET_SOURCES = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
 ];
+
+// Public CARTO basemap key (per-project; required on tile URLs).
+const CARTO_API_KEY = 'cb1_33v4_1_24d09c5f5fcfbae0067f72e7';
+const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(CARTO_API_KEY)}`;
+const CARTO_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
+
+function addCartoBasemap(map) {
+  return L.tileLayer(CARTO_TILE_URL, {
+    subdomains: 'abcd',
+    maxZoom: 18,
+    attribution: CARTO_ATTRIBUTION
+  }).addTo(map);
+}
 
 // When running static on localhost, use the deployed API; otherwise use relative.
 const API_BASE = (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost')
@@ -1257,9 +1270,9 @@ createApp({
         }
         // Raw coordinates are used only transiently for H3 computation on-device.
         const built = await builder(rawLat, rawLon, {
-          populationThreshold: 50000,
+          populationThreshold: 20000,
           baselineResolution: 5,
-          maxResolution: 9,
+          maxResolution: 7,
           latLonSource: 'h3_center'
         });
         const location = built?.location || null;
@@ -1419,14 +1432,10 @@ createApp({
       }
       this.whereMapPickerInstance = L.map(mapElement, {
         zoomControl: true,
-        attributionControl: false
+        attributionControl: true
       });
       this.whereMapPickerInstance.zoomControl?.setPosition('topright');
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        subdomains: 'abcd',
-        maxZoom: 18,
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-      }).addTo(this.whereMapPickerInstance);
+      addCartoBasemap(this.whereMapPickerInstance);
 
       await this.loadCountriesDataset().catch(() => null);
       const countryFeature = this.getCountryFeatureByIso2(this.selectedCountry);
@@ -2441,13 +2450,10 @@ createApp({
         }
         this.inlineMapInstance = L.map(mapElement, {
           zoomControl: true,
-          attributionControl: false
+          attributionControl: true
         });
         this.inlineMapInstance.zoomControl?.setPosition('topright');
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 18,
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(this.inlineMapInstance);
+        addCartoBasemap(this.inlineMapInstance);
 
         // Inline legend (top-left)
         if (this.inlineLegendControl) {
@@ -2647,10 +2653,7 @@ createApp({
         this.mapInstance.remove();
       }
       this.mapInstance = L.map('logMap');
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).addTo(this.mapInstance);
+      addCartoBasemap(this.mapInstance);
 
       const coords = [];
       this.logEntries.forEach((entry) => {

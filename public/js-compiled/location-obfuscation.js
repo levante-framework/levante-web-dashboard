@@ -1,7 +1,7 @@
 "use strict";
-const DEFAULT_POP_THRESHOLD = 50000;
+const DEFAULT_POP_THRESHOLD = 20000;
 const DEFAULT_BASELINE_RESOLUTION = 5;
-const DEFAULT_MAX_RESOLUTION = 9;
+const DEFAULT_MAX_RESOLUTION = 7;
 function getH3Api() {
     const h3 = window?.h3;
     if (!h3 || typeof h3.latLngToCell !== 'function' || typeof h3.cellToLatLng !== 'function') {

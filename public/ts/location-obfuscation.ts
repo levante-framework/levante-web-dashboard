@@ -30,6 +30,7 @@ interface PopulationSourceComparisonResult {
 interface LocationBuildOptions {
     populationThreshold?: number;
     baselineResolution?: number;
+    /** Finest H3 resolution to consider. Default 7 (privacy cap). */
     maxResolution?: number;
     populationByResolution?: Record<string, number | null | undefined>;
     estimatePopulationForCell?: (cellId: string, resolution: number) => Promise<number | null>;
@@ -74,9 +75,9 @@ interface LocationBuildResult {
     };
 }
 
-const DEFAULT_POP_THRESHOLD = 50000;
+const DEFAULT_POP_THRESHOLD = 20000;
 const DEFAULT_BASELINE_RESOLUTION = 5;
-const DEFAULT_MAX_RESOLUTION = 9;
+const DEFAULT_MAX_RESOLUTION = 7;
 
 function getH3Api(): any {
     const h3 = (window as any)?.h3;

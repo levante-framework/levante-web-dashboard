@@ -69,9 +69,9 @@ interface LocationBuildResult {
         }>;
     };
 }
-declare const DEFAULT_POP_THRESHOLD = 50000;
+declare const DEFAULT_POP_THRESHOLD = 20000;
 declare const DEFAULT_BASELINE_RESOLUTION = 5;
-declare const DEFAULT_MAX_RESOLUTION = 9;
+declare const DEFAULT_MAX_RESOLUTION = 7;
 declare function getH3Api(): any;
 declare function createKonturPopulationSource(cacheByResolution: Record<string, Record<string, number | null | undefined>>): H3PopulationSource;
 declare function createWorldpopPopulationSource(cacheByResolution: Record<string, Record<string, number | null | undefined>>): H3PopulationSource;

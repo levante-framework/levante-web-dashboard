@@ -334,7 +334,7 @@
         const effFeature = point?.h3?.effective?.outline || null;
         const overlayPoint = point?.__overlay || null;
         const overlayEffFeature = overlayPoint?.h3?.effective?.outline || null;
-        const baseThreshold = Number(compare?.baseThreshold || point?.adm?.populationThreshold || 50000);
+        const baseThreshold = Number(compare?.baseThreshold || point?.adm?.populationThreshold || 20000);
         const overlayThreshold = Number(compare?.overlayThreshold || 0);
         const baseRing = getRingFromFeature(baseFeature);
         const effRing = getRingFromFeature(effFeature);
