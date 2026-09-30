@@ -112,16 +112,27 @@ async function loadRemoteLanguagesIntoConfig(): Promise<void> {
             const winAny = window as any;
             if (winAny.dashboard && previousSignature !== nextSignature) {
                 winAny.dashboard.languages = winAny.CONFIG.languages;
-                if (document.getElementById('tabButtons')) {
-                    (document.getElementById('tabButtons') as HTMLElement).innerHTML = '';
+                if (typeof winAny.dashboard.populateLanguageDropdown === 'function') {
+                    winAny.dashboard.populateLanguageDropdown();
+                    if (winAny.dashboard.currentLanguage) {
+                        winAny.dashboard.populateDataTable();
+                    }
+                } else {
+                    if (document.getElementById('tabButtons')) {
+                        (document.getElementById('tabButtons') as HTMLElement).innerHTML = '';
+                    }
+                    if (document.getElementById('tabContent')) {
+                        (document.getElementById('tabContent') as HTMLElement).innerHTML = '';
+                    }
+                    if (typeof winAny.dashboard.createTabs === 'function') {
+                        winAny.dashboard.createTabs();
+                    }
+                    if (typeof winAny.dashboard.populateVoices === 'function') {
+                        winAny.dashboard.populateVoices();
+                    }
                 }
-                if (document.getElementById('tabContent')) {
-                    (document.getElementById('tabContent') as HTMLElement).innerHTML = '';
-                }
-                winAny.dashboard.createTabs();
-                winAny.dashboard.populateVoices();
             } else if (winAny.dashboard) {
-                console.log('Remote language config matches current tabs; skipping tab rebuild');
+                console.log('Remote language config matches current language UI; skipping refresh');
             }
         } else {
             console.log('Invalid language config format; using local config.js');
