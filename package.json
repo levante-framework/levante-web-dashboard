@@ -32,6 +32,8 @@
     "geocoder:index:autocomplete": "node scripts/geocoder/build-country-autocomplete-index.js",
     "geocoder:index:autocomplete:10": "node scripts/geocoder/build-country-autocomplete-index.js --countries=US,DE,GB,NL,CA,CO,IN,AR,GH,CH",
     "adm:build": "node scripts/adm/build-packs.js",
+    "country:refresh": "node scripts/update-country-and-postal.js",
+    "country:refresh:all": "node scripts/update-country-and-postal.js --all",
     "adm:build:co": "node scripts/adm/build-packs.js --countries=CO",
     "adm:build:de": "node scripts/adm/build-packs.js --countries=DE",
     "adm:build:us": "node scripts/adm/build-packs.js --countries=US",

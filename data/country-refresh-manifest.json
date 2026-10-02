@@ -1,0 +1,2569 @@
+{
+  "updatedAt": "2026-10-01T01:08:17.670Z",
+  "source": "manifest",
+  "countries": [
+    "AD",
+    "AE",
+    "AF",
+    "AG",
+    "AI",
+    "AL",
+    "AM",
+    "AO",
+    "AQ",
+    "AR",
+    "AS",
+    "AT",
+    "AU",
+    "AW",
+    "AX",
+    "AZ",
+    "BA",
+    "BB",
+    "BD",
+    "BE",
+    "BF",
+    "BG",
+    "BH",
+    "BI",
+    "BJ",
+    "BL",
+    "BM",
+    "BN",
+    "BO",
+    "BQ",
+    "BR",
+    "BS",
+    "BT",
+    "BW",
+    "BY",
+    "BZ",
+    "CA",
+    "CC",
+    "CD",
+    "CF",
+    "CG",
+    "CH",
+    "CI",
+    "CK",
+    "CL",
+    "CM",
+    "CN",
+    "CO",
+    "CR",
+    "CU",
+    "CV",
+    "CW",
+    "CX",
+    "CY",
+    "CZ",
+    "DE",
+    "DJ",
+    "DK",
+    "DM",
+    "DO",
+    "DZ",
+    "EC",
+    "EE",
+    "EG",
+    "ER",
+    "ES",
+    "ET",
+    "FI",
+    "FJ",
+    "FK",
+    "FM",
+    "FO",
+    "FR",
+    "GA",
+    "GB",
+    "GD",
+    "GE",
+    "GF",
+    "GG",
+    "GH",
+    "GI",
+    "GL",
+    "GM",
+    "GN",
+    "GP",
+    "GQ",
+    "GR",
+    "GS",
+    "GT",
+    "GU",
+    "GW",
+    "GY",
+    "HK",
+    "HM",
+    "HN",
+    "HR",
+    "HT",
+    "HU",
+    "ID",
+    "IE",
+    "IL",
+    "IM",
+    "IN",
+    "IO",
+    "IQ",
+    "IR",
+    "IS",
+    "IT",
+    "JE",
+    "JM",
+    "JO",
+    "JP",
+    "KE",
+    "KG",
+    "KH",
+    "KI",
+    "KM",
+    "KN",
+    "KP",
+    "KR",
+    "KW",
+    "KY",
+    "KZ",
+    "LA",
+    "LB",
+    "LC",
+    "LI",
+    "LK",
+    "LR",
+    "LS",
+    "LT",
+    "LU",
+    "LV",
+    "LY",
+    "MA",
+    "MC",
+    "MD",
+    "ME",
+    "MG",
+    "MH",
+    "MK",
+    "ML",
+    "MM",
+    "MN",
+    "MO",
+    "MP",
+    "MQ",
+    "MR",
+    "MS",
+    "MT",
+    "MU",
+    "MV",
+    "MW",
+    "MX",
+    "MY",
+    "MZ",
+    "NA",
+    "NC",
+    "NE",
+    "NF",
+    "NG",
+    "NI",
+    "NL",
+    "NO",
+    "NP",
+    "NR",
+    "NU",
+    "NZ",
+    "OM",
+    "PA",
+    "PE",
+    "PF",
+    "PG",
+    "PH",
+    "PK",
+    "PL",
+    "PM",
+    "PN",
+    "PR",
+    "PS",
+    "PT",
+    "PW",
+    "PY",
+    "QA",
+    "RE",
+    "RO",
+    "RS",
+    "RU",
+    "RW",
+    "SA",
+    "SB",
+    "SC",
+    "SD",
+    "SE",
+    "SG",
+    "SH",
+    "SI",
+    "SJ",
+    "SK",
+    "SL",
+    "SM",
+    "SN",
+    "SO",
+    "SR",
+    "SS",
+    "ST",
+    "SV",
+    "SY",
+    "SZ",
+    "TC",
+    "TD",
+    "TG",
+    "TH",
+    "TJ",
+    "TK",
+    "TL",
+    "TM",
+    "TN",
+    "TO",
+    "TR",
+    "TT",
+    "TV",
+    "TW",
+    "TZ",
+    "UA",
+    "UG",
+    "US",
+    "UY",
+    "UZ",
+    "VA",
+    "VC",
+    "VE",
+    "VG",
+    "VI",
+    "VN",
+    "VU",
+    "WF",
+    "WS",
+    "XK",
+    "YE",
+    "YT",
+    "ZA",
+    "ZM",
+    "ZW"
+  ],
+  "postal": {
+    "AD": {
+      "status": "ok",
+      "bytes": 396,
+      "file": "data/geonames/postal/AD.txt"
+    },
+    "AE": {
+      "status": "ok",
+      "bytes": 13762136,
+      "file": "data/geonames/postal/AE.txt"
+    },
+    "AF": {
+      "status": "missing"
+    },
+    "AG": {
+      "status": "missing"
+    },
+    "AI": {
+      "status": "ok",
+      "bytes": 43,
+      "file": "data/geonames/postal/AI.txt"
+    },
+    "AL": {
+      "status": "ok",
+      "bytes": 39523,
+      "file": "data/geonames/postal/AL.txt"
+    },
+    "AM": {
+      "status": "missing"
+    },
+    "AO": {
+      "status": "missing"
+    },
+    "AQ": {
+      "status": "missing"
+    },
+    "AR": {
+      "status": "ok",
+      "bytes": 1248766,
+      "file": "data/geonames/postal/AR.txt"
+    },
+    "AS": {
+      "status": "ok",
+      "bytes": 48,
+      "file": "data/geonames/postal/AS.txt"
+    },
+    "AT": {
+      "status": "ok",
+      "bytes": 2077669,
+      "file": "data/geonames/postal/AT.txt"
+    },
+    "AU": {
+      "status": "ok",
+      "bytes": 1388181,
+      "file": "data/geonames/postal/AU.txt"
+    },
+    "AW": {
+      "status": "missing"
+    },
+    "AX": {
+      "status": "ok",
+      "bytes": 2653,
+      "file": "data/geonames/postal/AX.txt"
+    },
+    "AZ": {
+      "status": "ok",
+      "bytes": 63580,
+      "file": "data/geonames/postal/AZ.txt"
+    },
+    "BA": {
+      "status": "missing"
+    },
+    "BB": {
+      "status": "missing"
+    },
+    "BD": {
+      "status": "ok",
+      "bytes": 112294,
+      "file": "data/geonames/postal/BD.txt"
+    },
+    "BE": {
+      "status": "ok",
+      "bytes": 210571,
+      "file": "data/geonames/postal/BE.txt"
+    },
+    "BF": {
+      "status": "missing"
+    },
+    "BG": {
+      "status": "ok",
+      "bytes": 757578,
+      "file": "data/geonames/postal/BG.txt"
+    },
+    "BH": {
+      "status": "missing"
+    },
+    "BI": {
+      "status": "missing"
+    },
+    "BJ": {
+      "status": "missing"
+    },
+    "BL": {
+      "status": "missing"
+    },
+    "BM": {
+      "status": "ok",
+      "bytes": 6833,
+      "file": "data/geonames/postal/BM.txt"
+    },
+    "BN": {
+      "status": "missing"
+    },
+    "BO": {
+      "status": "missing"
+    },
+    "BQ": {
+      "status": "missing"
+    },
+    "BR": {
+      "status": "ok",
+      "bytes": 455636,
+      "file": "data/geonames/postal/BR.txt"
+    },
+    "BS": {
+      "status": "missing"
+    },
+    "BT": {
+      "status": "missing"
+    },
+    "BW": {
+      "status": "missing"
+    },
+    "BY": {
+      "status": "ok",
+      "bytes": 228000,
+      "file": "data/geonames/postal/BY.txt"
+    },
+    "BZ": {
+      "status": "missing"
+    },
+    "CA": {
+      "status": "ok",
+      "bytes": 125925,
+      "file": "data/geonames/postal/CA.txt"
+    },
+    "CC": {
+      "status": "ok",
+      "bytes": 70,
+      "file": "data/geonames/postal/CC.txt"
+    },
+    "CD": {
+      "status": "missing"
+    },
+    "CF": {
+      "status": "missing"
+    },
+    "CG": {
+      "status": "missing"
+    },
+    "CH": {
+      "status": "ok",
+      "bytes": 412558,
+      "file": "data/geonames/postal/CH.txt"
+    },
+    "CI": {
+      "status": "missing"
+    },
+    "CK": {
+      "status": "missing"
+    },
+    "CL": {
+      "status": "ok",
+      "bytes": 38062,
+      "file": "data/geonames/postal/CL.txt"
+    },
+    "CM": {
+      "status": "missing"
+    },
+    "CN": {
+      "status": "ok",
+      "bytes": 210156,
+      "file": "data/geonames/postal/CN.txt"
+    },
+    "CO": {
+      "status": "ok",
+      "bytes": 250866,
+      "file": "data/geonames/postal/CO.txt"
+    },
+    "CR": {
+      "status": "ok",
+      "bytes": 44088,
+      "file": "data/geonames/postal/CR.txt"
+    },
+    "CU": {
+      "status": "missing"
+    },
+    "CV": {
+      "status": "missing"
+    },
+    "CW": {
+      "status": "missing"
+    },
+    "CX": {
+      "status": "ok",
+      "bytes": 61,
+      "file": "data/geonames/postal/CX.txt"
+    },
+    "CY": {
+      "status": "ok",
+      "bytes": 59524,
+      "file": "data/geonames/postal/CY.txt"
+    },
+    "CZ": {
+      "status": "ok",
+      "bytes": 1208064,
+      "file": "data/geonames/postal/CZ.txt"
+    },
+    "DE": {
+      "status": "ok",
+      "bytes": 2297289,
+      "file": "data/geonames/postal/DE.txt"
+    },
+    "DJ": {
+      "status": "missing"
+    },
+    "DK": {
+      "status": "ok",
+      "bytes": 87887,
+      "file": "data/geonames/postal/DK.txt"
+    },
+    "DM": {
+      "status": "missing"
+    },
+    "DO": {
+      "status": "ok",
+      "bytes": 25190,
+      "file": "data/geonames/postal/DO.txt"
+    },
+    "DZ": {
+      "status": "ok",
+      "bytes": 853165,
+      "file": "data/geonames/postal/DZ.txt"
+    },
+    "EC": {
+      "status": "ok",
+      "bytes": 100420,
+      "file": "data/geonames/postal/EC.txt"
+    },
+    "EE": {
+      "status": "ok",
+      "bytes": 487830,
+      "file": "data/geonames/postal/EE.txt"
+    },
+    "EG": {
+      "status": "missing"
+    },
+    "ER": {
+      "status": "missing"
+    },
+    "ES": {
+      "status": "ok",
+      "bytes": 3237922,
+      "file": "data/geonames/postal/ES.txt"
+    },
+    "ET": {
+      "status": "missing"
+    },
+    "FI": {
+      "status": "ok",
+      "bytes": 288590,
+      "file": "data/geonames/postal/FI.txt"
+    },
+    "FJ": {
+      "status": "missing"
+    },
+    "FK": {
+      "status": "ok",
+      "bytes": 53,
+      "file": "data/geonames/postal/FK.txt"
+    },
+    "FM": {
+      "status": "ok",
+      "bytes": 222,
+      "file": "data/geonames/postal/FM.txt"
+    },
+    "FO": {
+      "status": "ok",
+      "bytes": 5095,
+      "file": "data/geonames/postal/FO.txt"
+    },
+    "FR": {
+      "status": "ok",
+      "bytes": 4443977,
+      "file": "data/geonames/postal/FR.txt"
+    },
+    "GA": {
+      "status": "missing"
+    },
+    "GB": {
+      "status": "ok",
+      "bytes": 1894096,
+      "file": "data/geonames/postal/GB.txt"
+    },
+    "GD": {
+      "status": "missing"
+    },
+    "GE": {
+      "status": "missing"
+    },
+    "GF": {
+      "status": "ok",
+      "bytes": 7227,
+      "file": "data/geonames/postal/GF.txt"
+    },
+    "GG": {
+      "status": "ok",
+      "bytes": 843,
+      "file": "data/geonames/postal/GG.txt"
+    },
+    "GH": {
+      "status": "missing"
+    },
+    "GI": {
+      "status": "ok",
+      "bytes": 44,
+      "file": "data/geonames/postal/GI.txt"
+    },
+    "GL": {
+      "status": "ok",
+      "bytes": 1407,
+      "file": "data/geonames/postal/GL.txt"
+    },
+    "GM": {
+      "status": "missing"
+    },
+    "GN": {
+      "status": "missing"
+    },
+    "GP": {
+      "status": "ok",
+      "bytes": 11764,
+      "file": "data/geonames/postal/GP.txt"
+    },
+    "GQ": {
+      "status": "missing"
+    },
+    "GR": {
+      "status": "missing"
+    },
+    "GS": {
+      "status": "ok",
+      "bytes": 73,
+      "file": "data/geonames/postal/GS.txt"
+    },
+    "GT": {
+      "status": "ok",
+      "bytes": 39195,
+      "file": "data/geonames/postal/GT.txt"
+    },
+    "GU": {
+      "status": "ok",
+      "bytes": 1102,
+      "file": "data/geonames/postal/GU.txt"
+    },
+    "GW": {
+      "status": "missing"
+    },
+    "GY": {
+      "status": "missing"
+    },
+    "HK": {
+      "status": "ok",
+      "bytes": 73,
+      "file": "data/geonames/postal/HK.txt"
+    },
+    "HM": {
+      "status": "ok",
+      "bytes": 80,
+      "file": "data/geonames/postal/HM.txt"
+    },
+    "HN": {
+      "status": "ok",
+      "bytes": 2161,
+      "file": "data/geonames/postal/HN.txt"
+    },
+    "HR": {
+      "status": "ok",
+      "bytes": 474449,
+      "file": "data/geonames/postal/HR.txt"
+    },
+    "HT": {
+      "status": "ok",
+      "bytes": 13144,
+      "file": "data/geonames/postal/HT.txt"
+    },
+    "HU": {
+      "status": "ok",
+      "bytes": 194739,
+      "file": "data/geonames/postal/HU.txt"
+    },
+    "ID": {
+      "status": "ok",
+      "bytes": 4072073,
+      "file": "data/geonames/postal/ID.txt"
+    },
+    "IE": {
+      "status": "ok",
+      "bytes": 6722,
+      "file": "data/geonames/postal/IE.txt"
+    },
+    "IL": {
+      "status": "missing"
+    },
+    "IM": {
+      "status": "ok",
+      "bytes": 4663,
+      "file": "data/geonames/postal/IM.txt"
+    },
+    "IN": {
+      "status": "ok",
+      "bytes": 11698683,
+      "file": "data/geonames/postal/IN.txt"
+    },
+    "IO": {
+      "status": "ok",
+      "bytes": 57,
+      "file": "data/geonames/postal/IO.txt"
+    },
+    "IQ": {
+      "status": "missing"
+    },
+    "IR": {
+      "status": "missing"
+    },
+    "IS": {
+      "status": "ok",
+      "bytes": 8604,
+      "file": "data/geonames/postal/IS.txt"
+    },
+    "IT": {
+      "status": "ok",
+      "bytes": 1200831,
+      "file": "data/geonames/postal/IT.txt"
+    },
+    "JE": {
+      "status": "ok",
+      "bytes": 295,
+      "file": "data/geonames/postal/JE.txt"
+    },
+    "JM": {
+      "status": "missing"
+    },
+    "JO": {
+      "status": "missing"
+    },
+    "JP": {
+      "status": "ok",
+      "bytes": 12412721,
+      "file": "data/geonames/postal/JP.txt"
+    },
+    "KE": {
+      "status": "ok",
+      "bytes": 44571,
+      "file": "data/geonames/postal/KE.txt"
+    },
+    "KG": {
+      "status": "missing"
+    },
+    "KH": {
+      "status": "missing"
+    },
+    "KI": {
+      "status": "missing"
+    },
+    "KM": {
+      "status": "missing"
+    },
+    "KN": {
+      "status": "missing"
+    },
+    "KP": {
+      "status": "missing"
+    },
+    "KR": {
+      "status": "ok",
+      "bytes": 2823936,
+      "file": "data/geonames/postal/KR.txt"
+    },
+    "KW": {
+      "status": "missing"
+    },
+    "KY": {
+      "status": "missing"
+    },
+    "KZ": {
+      "status": "missing"
+    },
+    "LA": {
+      "status": "missing"
+    },
+    "LB": {
+      "status": "missing"
+    },
+    "LC": {
+      "status": "missing"
+    },
+    "LI": {
+      "status": "ok",
+      "bytes": 666,
+      "file": "data/geonames/postal/LI.txt"
+    },
+    "LK": {
+      "status": "ok",
+      "bytes": 134734,
+      "file": "data/geonames/postal/LK.txt"
+    },
+    "LR": {
+      "status": "missing"
+    },
+    "LS": {
+      "status": "missing"
+    },
+    "LT": {
+      "status": "ok",
+      "bytes": 1781781,
+      "file": "data/geonames/postal/LT.txt"
+    },
+    "LU": {
+      "status": "ok",
+      "bytes": 317104,
+      "file": "data/geonames/postal/LU.txt"
+    },
+    "LV": {
+      "status": "ok",
+      "bytes": 479801,
+      "file": "data/geonames/postal/LV.txt"
+    },
+    "LY": {
+      "status": "missing"
+    },
+    "MA": {
+      "status": "ok",
+      "bytes": 99061,
+      "file": "data/geonames/postal/MA.txt"
+    },
+    "MC": {
+      "status": "ok",
+      "bytes": 2133,
+      "file": "data/geonames/postal/MC.txt"
+    },
+    "MD": {
+      "status": "ok",
+      "bytes": 95171,
+      "file": "data/geonames/postal/MD.txt"
+    },
+    "ME": {
+      "status": "missing"
+    },
+    "MG": {
+      "status": "missing"
+    },
+    "MH": {
+      "status": "ok",
+      "bytes": 143,
+      "file": "data/geonames/postal/MH.txt"
+    },
+    "MK": {
+      "status": "ok",
+      "bytes": 9039,
+      "file": "data/geonames/postal/MK.txt"
+    },
+    "ML": {
+      "status": "missing"
+    },
+    "MM": {
+      "status": "missing"
+    },
+    "MN": {
+      "status": "missing"
+    },
+    "MO": {
+      "status": "ok",
+      "bytes": 71,
+      "file": "data/geonames/postal/MO.txt"
+    },
+    "MP": {
+      "status": "ok",
+      "bytes": 142,
+      "file": "data/geonames/postal/MP.txt"
+    },
+    "MQ": {
+      "status": "ok",
+      "bytes": 11065,
+      "file": "data/geonames/postal/MQ.txt"
+    },
+    "MR": {
+      "status": "missing"
+    },
+    "MS": {
+      "status": "missing"
+    },
+    "MT": {
+      "status": "ok",
+      "bytes": 3701,
+      "file": "data/geonames/postal/MT.txt"
+    },
+    "MU": {
+      "status": "missing"
+    },
+    "MV": {
+      "status": "missing"
+    },
+    "MW": {
+      "status": "ok",
+      "bytes": 34808,
+      "file": "data/geonames/postal/MW.txt"
+    },
+    "MX": {
+      "status": "ok",
+      "bytes": 12083028,
+      "file": "data/geonames/postal/MX.txt"
+    },
+    "MY": {
+      "status": "ok",
+      "bytes": 151915,
+      "file": "data/geonames/postal/MY.txt"
+    },
+    "MZ": {
+      "status": "missing"
+    },
+    "NA": {
+      "status": "missing"
+    },
+    "NC": {
+      "status": "ok",
+      "bytes": 3644,
+      "file": "data/geonames/postal/NC.txt"
+    },
+    "NE": {
+      "status": "missing"
+    },
+    "NF": {
+      "status": "ok",
+      "bytes": 60,
+      "file": "data/geonames/postal/NF.txt"
+    },
+    "NG": {
+      "status": "missing"
+    },
+    "NI": {
+      "status": "missing"
+    },
+    "NL": {
+      "status": "ok",
+      "bytes": 329707,
+      "file": "data/geonames/postal/NL.txt"
+    },
+    "NO": {
+      "status": "ok",
+      "bytes": 316254,
+      "file": "data/geonames/postal/NO.txt"
+    },
+    "NP": {
+      "status": "missing"
+    },
+    "NR": {
+      "status": "ok",
+      "bytes": 38,
+      "file": "data/geonames/postal/NR.txt"
+    },
+    "NU": {
+      "status": "ok",
+      "bytes": 40,
+      "file": "data/geonames/postal/NU.txt"
+    },
+    "NZ": {
+      "status": "ok",
+      "bytes": 93295,
+      "file": "data/geonames/postal/NZ.txt"
+    },
+    "OM": {
+      "status": "missing"
+    },
+    "PA": {
+      "status": "ok",
+      "bytes": 48043,
+      "file": "data/geonames/postal/PA.txt"
+    },
+    "PE": {
+      "status": "ok",
+      "bytes": 7995224,
+      "file": "data/geonames/postal/PE.txt"
+    },
+    "PF": {
+      "status": "ok",
+      "bytes": 15415,
+      "file": "data/geonames/postal/PF.txt"
+    },
+    "PG": {
+      "status": "missing"
+    },
+    "PH": {
+      "status": "ok",
+      "bytes": 193104,
+      "file": "data/geonames/postal/PH.txt"
+    },
+    "PK": {
+      "status": "ok",
+      "bytes": 145156,
+      "file": "data/geonames/postal/PK.txt"
+    },
+    "PL": {
+      "status": "ok",
+      "bytes": 6844188,
+      "file": "data/geonames/postal/PL.txt"
+    },
+    "PM": {
+      "status": "ok",
+      "bytes": 150,
+      "file": "data/geonames/postal/PM.txt"
+    },
+    "PN": {
+      "status": "ok",
+      "bytes": 80,
+      "file": "data/geonames/postal/PN.txt"
+    },
+    "PR": {
+      "status": "ok",
+      "bytes": 9447,
+      "file": "data/geonames/postal/PR.txt"
+    },
+    "PS": {
+      "status": "missing"
+    },
+    "PT": {
+      "status": "ok",
+      "bytes": 17222177,
+      "file": "data/geonames/postal/PT.txt"
+    },
+    "PW": {
+      "status": "ok",
+      "bytes": 39,
+      "file": "data/geonames/postal/PW.txt"
+    },
+    "PY": {
+      "status": "missing"
+    },
+    "QA": {
+      "status": "missing"
+    },
+    "RE": {
+      "status": "ok",
+      "bytes": 15689,
+      "file": "data/geonames/postal/RE.txt"
+    },
+    "RO": {
+      "status": "ok",
+      "bytes": 2456498,
+      "file": "data/geonames/postal/RO.txt"
+    },
+    "RS": {
+      "status": "ok",
+      "bytes": 49139,
+      "file": "data/geonames/postal/RS.txt"
+    },
+    "RU": {
+      "status": "ok",
+      "bytes": 5005164,
+      "file": "data/geonames/postal/RU.txt"
+    },
+    "RW": {
+      "status": "missing"
+    },
+    "SA": {
+      "status": "missing"
+    },
+    "SB": {
+      "status": "missing"
+    },
+    "SC": {
+      "status": "missing"
+    },
+    "SD": {
+      "status": "missing"
+    },
+    "SE": {
+      "status": "ok",
+      "bytes": 1221745,
+      "file": "data/geonames/postal/SE.txt"
+    },
+    "SG": {
+      "status": "ok",
+      "bytes": 5860890,
+      "file": "data/geonames/postal/SG.txt"
+    },
+    "SH": {
+      "status": "missing"
+    },
+    "SI": {
+      "status": "ok",
+      "bytes": 24038,
+      "file": "data/geonames/postal/SI.txt"
+    },
+    "SJ": {
+      "status": "ok",
+      "bytes": 517,
+      "file": "data/geonames/postal/SJ.txt"
+    },
+    "SK": {
+      "status": "ok",
+      "bytes": 352411,
+      "file": "data/geonames/postal/SK.txt"
+    },
+    "SL": {
+      "status": "missing"
+    },
+    "SM": {
+      "status": "ok",
+      "bytes": 1089,
+      "file": "data/geonames/postal/SM.txt"
+    },
+    "SN": {
+      "status": "missing"
+    },
+    "SO": {
+      "status": "missing"
+    },
+    "SR": {
+      "status": "missing"
+    },
+    "SS": {
+      "status": "missing"
+    },
+    "ST": {
+      "status": "missing"
+    },
+    "SV": {
+      "status": "missing"
+    },
+    "SY": {
+      "status": "missing"
+    },
+    "SZ": {
+      "status": "missing"
+    },
+    "TC": {
+      "status": "ok",
+      "bytes": 62,
+      "file": "data/geonames/postal/TC.txt"
+    },
+    "TD": {
+      "status": "missing"
+    },
+    "TG": {
+      "status": "missing"
+    },
+    "TH": {
+      "status": "ok",
+      "bytes": 49654,
+      "file": "data/geonames/postal/TH.txt"
+    },
+    "TJ": {
+      "status": "missing"
+    },
+    "TK": {
+      "status": "missing"
+    },
+    "TL": {
+      "status": "missing"
+    },
+    "TM": {
+      "status": "missing"
+    },
+    "TN": {
+      "status": "missing"
+    },
+    "TO": {
+      "status": "missing"
+    },
+    "TR": {
+      "status": "ok",
+      "bytes": 2315822,
+      "file": "data/geonames/postal/TR.txt"
+    },
+    "TT": {
+      "status": "missing"
+    },
+    "TV": {
+      "status": "missing"
+    },
+    "TW": {
+      "status": "missing"
+    },
+    "TZ": {
+      "status": "missing"
+    },
+    "UA": {
+      "status": "ok",
+      "bytes": 2449134,
+      "file": "data/geonames/postal/UA.txt"
+    },
+    "UG": {
+      "status": "missing"
+    },
+    "US": {
+      "status": "ok",
+      "bytes": 2668859,
+      "file": "data/geonames/postal/US.txt"
+    },
+    "UY": {
+      "status": "ok",
+      "bytes": 116455,
+      "file": "data/geonames/postal/UY.txt"
+    },
+    "UZ": {
+      "status": "missing"
+    },
+    "VA": {
+      "status": "ok",
+      "bytes": 53,
+      "file": "data/geonames/postal/VA.txt"
+    },
+    "VC": {
+      "status": "missing"
+    },
+    "VE": {
+      "status": "missing"
+    },
+    "VG": {
+      "status": "missing"
+    },
+    "VI": {
+      "status": "ok",
+      "bytes": 978,
+      "file": "data/geonames/postal/VI.txt"
+    },
+    "VN": {
+      "status": "missing"
+    },
+    "VU": {
+      "status": "missing"
+    },
+    "WF": {
+      "status": "ok",
+      "bytes": 209,
+      "file": "data/geonames/postal/WF.txt"
+    },
+    "WS": {
+      "status": "ok",
+      "bytes": 63,
+      "file": "data/geonames/postal/WS.txt"
+    },
+    "XK": {
+      "status": "missing"
+    },
+    "YE": {
+      "status": "missing"
+    },
+    "YT": {
+      "status": "ok",
+      "bytes": 1193,
+      "file": "data/geonames/postal/YT.txt"
+    },
+    "ZA": {
+      "status": "ok",
+      "bytes": 162990,
+      "file": "data/geonames/postal/ZA.txt"
+    },
+    "ZM": {
+      "status": "missing"
+    },
+    "ZW": {
+      "status": "missing"
+    }
+  },
+  "packs": {
+    "AD": {
+      "status": "ok",
+      "bytes": 1269,
+      "file": "public/adm-packs/ad/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:31.385Z"
+    },
+    "AE": {
+      "status": "ok",
+      "bytes": 18647,
+      "file": "public/adm-packs/ae/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:33.044Z"
+    },
+    "AF": {
+      "status": "ok",
+      "bytes": 16244,
+      "file": "public/adm-packs/af/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:33.792Z"
+    },
+    "AG": {
+      "status": "ok",
+      "bytes": 2242,
+      "file": "public/adm-packs/ag/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:36.041Z"
+    },
+    "AI": {
+      "status": "missing"
+    },
+    "AL": {
+      "status": "ok",
+      "bytes": 5531,
+      "file": "public/adm-packs/al/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:36.909Z"
+    },
+    "AM": {
+      "status": "ok",
+      "bytes": 7555,
+      "file": "public/adm-packs/am/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:39.412Z"
+    },
+    "AO": {
+      "status": "ok",
+      "bytes": 28219,
+      "file": "public/adm-packs/ao/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:40.957Z"
+    },
+    "AQ": {
+      "status": "missing"
+    },
+    "AR": {
+      "status": "ok",
+      "bytes": 20218,
+      "file": "public/adm-packs/ar/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:44.503Z"
+    },
+    "AS": {
+      "status": "missing"
+    },
+    "AT": {
+      "status": "ok",
+      "bytes": 13663,
+      "file": "public/adm-packs/at/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:47.052Z"
+    },
+    "AU": {
+      "status": "ok",
+      "bytes": 162019,
+      "file": "public/adm-packs/au/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:53.388Z"
+    },
+    "AW": {
+      "status": "missing"
+    },
+    "AX": {
+      "status": "missing"
+    },
+    "AZ": {
+      "status": "ok",
+      "bytes": 3144,
+      "file": "public/adm-packs/az/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:57.454Z"
+    },
+    "BA": {
+      "status": "ok",
+      "bytes": 5218,
+      "file": "public/adm-packs/ba/adm1.json.gz",
+      "mtime": "2026-10-01T00:51:58.988Z"
+    },
+    "BB": {
+      "status": "ok",
+      "bytes": 1130,
+      "file": "public/adm-packs/bb/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:01.619Z"
+    },
+    "BD": {
+      "status": "ok",
+      "bytes": 9495,
+      "file": "public/adm-packs/bd/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:02.260Z"
+    },
+    "BE": {
+      "status": "ok",
+      "bytes": 863,
+      "file": "public/adm-packs/be/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:08.880Z"
+    },
+    "BF": {
+      "status": "ok",
+      "bytes": 18424,
+      "file": "public/adm-packs/bf/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:12.008Z"
+    },
+    "BG": {
+      "status": "ok",
+      "bytes": 24535,
+      "file": "public/adm-packs/bg/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:14.646Z"
+    },
+    "BH": {
+      "status": "ok",
+      "bytes": 4688,
+      "file": "public/adm-packs/bh/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:16.256Z"
+    },
+    "BI": {
+      "status": "ok",
+      "bytes": 11745,
+      "file": "public/adm-packs/bi/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:17.028Z"
+    },
+    "BJ": {
+      "status": "ok",
+      "bytes": 5651,
+      "file": "public/adm-packs/bj/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:19.438Z"
+    },
+    "BL": {
+      "status": "missing"
+    },
+    "BM": {
+      "status": "missing"
+    },
+    "BN": {
+      "status": "ok",
+      "bytes": 3249,
+      "file": "public/adm-packs/bn/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:21.858Z"
+    },
+    "BO": {
+      "status": "ok",
+      "bytes": 18885,
+      "file": "public/adm-packs/bo/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:23.519Z"
+    },
+    "BQ": {
+      "status": "missing"
+    },
+    "BR": {
+      "status": "ok",
+      "bytes": 41331,
+      "file": "public/adm-packs/br/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:27.257Z"
+    },
+    "BS": {
+      "status": "ok",
+      "bytes": 67302,
+      "file": "public/adm-packs/bs/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:36.747Z"
+    },
+    "BT": {
+      "status": "ok",
+      "bytes": 8921,
+      "file": "public/adm-packs/bt/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:38.434Z"
+    },
+    "BW": {
+      "status": "ok",
+      "bytes": 11029,
+      "file": "public/adm-packs/bw/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:40.994Z"
+    },
+    "BY": {
+      "status": "ok",
+      "bytes": 9236,
+      "file": "public/adm-packs/by/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:42.495Z"
+    },
+    "BZ": {
+      "status": "ok",
+      "bytes": 4817,
+      "file": "public/adm-packs/bz/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:44.340Z"
+    },
+    "CA": {
+      "status": "ok",
+      "bytes": 1438720,
+      "file": "public/adm-packs/ca/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:49.591Z"
+    },
+    "CC": {
+      "status": "missing"
+    },
+    "CD": {
+      "status": "ok",
+      "bytes": 36773,
+      "file": "public/adm-packs/cd/adm1.json.gz",
+      "mtime": "2026-10-01T00:52:59.929Z"
+    },
+    "CF": {
+      "status": "ok",
+      "bytes": 11634,
+      "file": "public/adm-packs/cf/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:03.221Z"
+    },
+    "CG": {
+      "status": "ok",
+      "bytes": 17902,
+      "file": "public/adm-packs/cg/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:05.613Z"
+    },
+    "CH": {
+      "status": "ok",
+      "bytes": 32319,
+      "file": "public/adm-packs/ch/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:07.110Z"
+    },
+    "CI": {
+      "status": "ok",
+      "bytes": 17206,
+      "file": "public/adm-packs/ci/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:09.919Z"
+    },
+    "CK": {
+      "status": "missing"
+    },
+    "CL": {
+      "status": "ok",
+      "bytes": 377543,
+      "file": "public/adm-packs/cl/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:15.281Z"
+    },
+    "CM": {
+      "status": "ok",
+      "bytes": 15210,
+      "file": "public/adm-packs/cm/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:20.732Z"
+    },
+    "CN": {
+      "status": "ok",
+      "bytes": 27543,
+      "file": "public/adm-packs/cn/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:23.257Z"
+    },
+    "CO": {
+      "status": "ok",
+      "bytes": 46217,
+      "file": "public/adm-packs/co/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:33.233Z"
+    },
+    "CR": {
+      "status": "ok",
+      "bytes": 11384,
+      "file": "public/adm-packs/cr/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:36.305Z"
+    },
+    "CU": {
+      "status": "ok",
+      "bytes": 42409,
+      "file": "public/adm-packs/cu/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:40.115Z"
+    },
+    "CV": {
+      "status": "ok",
+      "bytes": 8869,
+      "file": "public/adm-packs/cv/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:41.791Z"
+    },
+    "CW": {
+      "status": "missing"
+    },
+    "CX": {
+      "status": "missing"
+    },
+    "CY": {
+      "status": "ok",
+      "bytes": 7573,
+      "file": "public/adm-packs/cy/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:43.399Z"
+    },
+    "CZ": {
+      "status": "ok",
+      "bytes": 18296,
+      "file": "public/adm-packs/cz/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:46.152Z"
+    },
+    "DE": {
+      "status": "ok",
+      "bytes": 28897,
+      "file": "public/adm-packs/de/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:54.027Z"
+    },
+    "DJ": {
+      "status": "ok",
+      "bytes": 1549,
+      "file": "public/adm-packs/dj/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:57.391Z"
+    },
+    "DK": {
+      "status": "ok",
+      "bytes": 20551,
+      "file": "public/adm-packs/dk/adm1.json.gz",
+      "mtime": "2026-10-01T00:53:58.833Z"
+    },
+    "DM": {
+      "status": "ok",
+      "bytes": 1972,
+      "file": "public/adm-packs/dm/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:00.304Z"
+    },
+    "DO": {
+      "status": "ok",
+      "bytes": 8008,
+      "file": "public/adm-packs/do/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:01.698Z"
+    },
+    "DZ": {
+      "status": "ok",
+      "bytes": 71899,
+      "file": "public/adm-packs/dz/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:03.410Z"
+    },
+    "EC": {
+      "status": "ok",
+      "bytes": 34624,
+      "file": "public/adm-packs/ec/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:06.179Z"
+    },
+    "EE": {
+      "status": "ok",
+      "bytes": 24487,
+      "file": "public/adm-packs/ee/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:08.179Z"
+    },
+    "EG": {
+      "status": "ok",
+      "bytes": 18395,
+      "file": "public/adm-packs/eg/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:11.592Z"
+    },
+    "ER": {
+      "status": "ok",
+      "bytes": 16600,
+      "file": "public/adm-packs/er/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:13.334Z"
+    },
+    "ES": {
+      "status": "ok",
+      "bytes": 42118,
+      "file": "public/adm-packs/es/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:15.455Z"
+    },
+    "ET": {
+      "status": "ok",
+      "bytes": 16161,
+      "file": "public/adm-packs/et/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:22.519Z"
+    },
+    "FI": {
+      "status": "ok",
+      "bytes": 94056,
+      "file": "public/adm-packs/fi/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:25.510Z"
+    },
+    "FJ": {
+      "status": "ok",
+      "bytes": 3842,
+      "file": "public/adm-packs/fj/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:28.240Z"
+    },
+    "FK": {
+      "status": "missing"
+    },
+    "FM": {
+      "status": "ok",
+      "bytes": 6508,
+      "file": "public/adm-packs/fm/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:31.498Z"
+    },
+    "FO": {
+      "status": "missing"
+    },
+    "FR": {
+      "status": "ok",
+      "bytes": 28384,
+      "file": "public/adm-packs/fr/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:33.328Z"
+    },
+    "GA": {
+      "status": "ok",
+      "bytes": 8884,
+      "file": "public/adm-packs/ga/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:40.363Z"
+    },
+    "GB": {
+      "status": "ok",
+      "bytes": 16958,
+      "file": "public/adm-packs/gb/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:41.848Z"
+    },
+    "GD": {
+      "status": "ok",
+      "bytes": 1976,
+      "file": "public/adm-packs/gd/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:44.345Z"
+    },
+    "GE": {
+      "status": "ok",
+      "bytes": 14130,
+      "file": "public/adm-packs/ge/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:45.152Z"
+    },
+    "GF": {
+      "status": "missing"
+    },
+    "GG": {
+      "status": "missing"
+    },
+    "GH": {
+      "status": "ok",
+      "bytes": 20531,
+      "file": "public/adm-packs/gh/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:47.331Z"
+    },
+    "GI": {
+      "status": "missing"
+    },
+    "GL": {
+      "status": "ok",
+      "bytes": 11382,
+      "file": "public/adm-packs/gl/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:49.568Z"
+    },
+    "GM": {
+      "status": "ok",
+      "bytes": 7198,
+      "file": "public/adm-packs/gm/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:50.271Z"
+    },
+    "GN": {
+      "status": "ok",
+      "bytes": 12681,
+      "file": "public/adm-packs/gn/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:53.548Z"
+    },
+    "GP": {
+      "status": "missing"
+    },
+    "GQ": {
+      "status": "ok",
+      "bytes": 6019,
+      "file": "public/adm-packs/gq/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:55.768Z"
+    },
+    "GR": {
+      "status": "ok",
+      "bytes": 37267,
+      "file": "public/adm-packs/gr/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:57.332Z"
+    },
+    "GS": {
+      "status": "missing"
+    },
+    "GT": {
+      "status": "ok",
+      "bytes": 24161,
+      "file": "public/adm-packs/gt/adm1.json.gz",
+      "mtime": "2026-10-01T00:54:59.761Z"
+    },
+    "GU": {
+      "status": "missing"
+    },
+    "GW": {
+      "status": "ok",
+      "bytes": 19518,
+      "file": "public/adm-packs/gw/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:01.646Z"
+    },
+    "GY": {
+      "status": "ok",
+      "bytes": 12465,
+      "file": "public/adm-packs/gy/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:03.186Z"
+    },
+    "HK": {
+      "status": "missing"
+    },
+    "HM": {
+      "status": "missing"
+    },
+    "HN": {
+      "status": "ok",
+      "bytes": 25755,
+      "file": "public/adm-packs/hn/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:04.841Z"
+    },
+    "HR": {
+      "status": "ok",
+      "bytes": 50978,
+      "file": "public/adm-packs/hr/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:06.659Z"
+    },
+    "HT": {
+      "status": "ok",
+      "bytes": 16061,
+      "file": "public/adm-packs/ht/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:08.583Z"
+    },
+    "HU": {
+      "status": "ok",
+      "bytes": 18786,
+      "file": "public/adm-packs/hu/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:11.166Z"
+    },
+    "ID": {
+      "status": "ok",
+      "bytes": 261799,
+      "file": "public/adm-packs/id/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:14.607Z"
+    },
+    "IE": {
+      "status": "ok",
+      "bytes": 21210,
+      "file": "public/adm-packs/ie/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:18.201Z"
+    },
+    "IL": {
+      "status": "ok",
+      "bytes": 4163,
+      "file": "public/adm-packs/il/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:25.652Z"
+    },
+    "IM": {
+      "status": "missing"
+    },
+    "IN": {
+      "status": "ok",
+      "bytes": 82248,
+      "file": "public/adm-packs/in/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:27.735Z"
+    },
+    "IO": {
+      "status": "missing"
+    },
+    "IQ": {
+      "status": "ok",
+      "bytes": 14042,
+      "file": "public/adm-packs/iq/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:46.098Z"
+    },
+    "IR": {
+      "status": "ok",
+      "bytes": 53895,
+      "file": "public/adm-packs/ir/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:47.899Z"
+    },
+    "IS": {
+      "status": "ok",
+      "bytes": 15754,
+      "file": "public/adm-packs/is/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:52.802Z"
+    },
+    "IT": {
+      "status": "ok",
+      "bytes": 18733,
+      "file": "public/adm-packs/it/adm1.json.gz",
+      "mtime": "2026-10-01T00:55:54.574Z"
+    },
+    "JE": {
+      "status": "missing"
+    },
+    "JM": {
+      "status": "ok",
+      "bytes": 6951,
+      "file": "public/adm-packs/jm/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:01.954Z"
+    },
+    "JO": {
+      "status": "ok",
+      "bytes": 4929,
+      "file": "public/adm-packs/jo/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:04.674Z"
+    },
+    "JP": {
+      "status": "ok",
+      "bytes": 133051,
+      "file": "public/adm-packs/jp/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:06.646Z"
+    },
+    "KE": {
+      "status": "ok",
+      "bytes": 57571,
+      "file": "public/adm-packs/ke/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:09.542Z"
+    },
+    "KG": {
+      "status": "ok",
+      "bytes": 11429,
+      "file": "public/adm-packs/kg/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:12.380Z"
+    },
+    "KH": {
+      "status": "ok",
+      "bytes": 35690,
+      "file": "public/adm-packs/kh/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:14.059Z"
+    },
+    "KI": {
+      "status": "ok",
+      "bytes": 7133,
+      "file": "public/adm-packs/ki/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:17.401Z"
+    },
+    "KM": {
+      "status": "ok",
+      "bytes": 2762,
+      "file": "public/adm-packs/km/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:18.794Z"
+    },
+    "KN": {
+      "status": "ok",
+      "bytes": 1878,
+      "file": "public/adm-packs/kn/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:20.706Z"
+    },
+    "KP": {
+      "status": "ok",
+      "bytes": 18467,
+      "file": "public/adm-packs/kp/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:21.476Z"
+    },
+    "KR": {
+      "status": "ok",
+      "bytes": 17489,
+      "file": "public/adm-packs/kr/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:23.070Z"
+    },
+    "KW": {
+      "status": "ok",
+      "bytes": 6087,
+      "file": "public/adm-packs/kw/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:26.839Z"
+    },
+    "KY": {
+      "status": "missing"
+    },
+    "KZ": {
+      "status": "ok",
+      "bytes": 27061,
+      "file": "public/adm-packs/kz/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:28.520Z"
+    },
+    "LA": {
+      "status": "ok",
+      "bytes": 26171,
+      "file": "public/adm-packs/la/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:30.720Z"
+    },
+    "LB": {
+      "status": "ok",
+      "bytes": 7334,
+      "file": "public/adm-packs/lb/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:33.523Z"
+    },
+    "LC": {
+      "status": "ok",
+      "bytes": 3237,
+      "file": "public/adm-packs/lc/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:35.041Z"
+    },
+    "LI": {
+      "status": "ok",
+      "bytes": 2103,
+      "file": "public/adm-packs/li/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:36.663Z"
+    },
+    "LK": {
+      "status": "ok",
+      "bytes": 13387,
+      "file": "public/adm-packs/lk/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:37.411Z"
+    },
+    "LR": {
+      "status": "ok",
+      "bytes": 21264,
+      "file": "public/adm-packs/lr/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:43.133Z"
+    },
+    "LS": {
+      "status": "ok",
+      "bytes": 14574,
+      "file": "public/adm-packs/ls/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:44.627Z"
+    },
+    "LT": {
+      "status": "ok",
+      "bytes": 14576,
+      "file": "public/adm-packs/lt/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:46.227Z"
+    },
+    "LU": {
+      "status": "ok",
+      "bytes": 7531,
+      "file": "public/adm-packs/lu/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:48.651Z"
+    },
+    "LV": {
+      "status": "ok",
+      "bytes": 46982,
+      "file": "public/adm-packs/lv/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:51.018Z"
+    },
+    "LY": {
+      "status": "ok",
+      "bytes": 7915,
+      "file": "public/adm-packs/ly/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:52.753Z"
+    },
+    "MA": {
+      "status": "ok",
+      "bytes": 20186,
+      "file": "public/adm-packs/ma/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:53.558Z"
+    },
+    "MC": {
+      "status": "ok",
+      "bytes": 257,
+      "file": "public/adm-packs/mc/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:54.997Z"
+    },
+    "MD": {
+      "status": "ok",
+      "bytes": 26360,
+      "file": "public/adm-packs/md/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:56.478Z"
+    },
+    "ME": {
+      "status": "ok",
+      "bytes": 9897,
+      "file": "public/adm-packs/me/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:57.335Z"
+    },
+    "MG": {
+      "status": "ok",
+      "bytes": 36769,
+      "file": "public/adm-packs/mg/adm1.json.gz",
+      "mtime": "2026-10-01T00:56:58.231Z"
+    },
+    "MH": {
+      "status": "ok",
+      "bytes": 5923,
+      "file": "public/adm-packs/mh/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:06.824Z"
+    },
+    "MK": {
+      "status": "ok",
+      "bytes": 9827,
+      "file": "public/adm-packs/mk/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:07.593Z"
+    },
+    "ML": {
+      "status": "ok",
+      "bytes": 12203,
+      "file": "public/adm-packs/ml/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:09.206Z"
+    },
+    "MM": {
+      "status": "ok",
+      "bytes": 57682,
+      "file": "public/adm-packs/mm/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:11.955Z"
+    },
+    "MN": {
+      "status": "ok",
+      "bytes": 30680,
+      "file": "public/adm-packs/mn/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:15.674Z"
+    },
+    "MO": {
+      "status": "missing"
+    },
+    "MP": {
+      "status": "missing"
+    },
+    "MQ": {
+      "status": "missing"
+    },
+    "MR": {
+      "status": "ok",
+      "bytes": 16018,
+      "file": "public/adm-packs/mr/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:17.840Z"
+    },
+    "MS": {
+      "status": "missing"
+    },
+    "MT": {
+      "status": "ok",
+      "bytes": 5198,
+      "file": "public/adm-packs/mt/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:19.537Z"
+    },
+    "MU": {
+      "status": "ok",
+      "bytes": 4840,
+      "file": "public/adm-packs/mu/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:20.238Z"
+    },
+    "MV": {
+      "status": "ok",
+      "bytes": 2786,
+      "file": "public/adm-packs/mv/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:20.930Z"
+    },
+    "MW": {
+      "status": "ok",
+      "bytes": 4460,
+      "file": "public/adm-packs/mw/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:22.362Z"
+    },
+    "MX": {
+      "status": "ok",
+      "bytes": 97747,
+      "file": "public/adm-packs/mx/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:25.532Z"
+    },
+    "MY": {
+      "status": "ok",
+      "bytes": 29311,
+      "file": "public/adm-packs/my/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:30.345Z"
+    },
+    "MZ": {
+      "status": "ok",
+      "bytes": 17527,
+      "file": "public/adm-packs/mz/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:33.974Z"
+    },
+    "NA": {
+      "status": "ok",
+      "bytes": 14059,
+      "file": "public/adm-packs/na/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:37.426Z"
+    },
+    "NC": {
+      "status": "missing"
+    },
+    "NE": {
+      "status": "ok",
+      "bytes": 6132,
+      "file": "public/adm-packs/ne/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:40.043Z"
+    },
+    "NF": {
+      "status": "missing"
+    },
+    "NG": {
+      "status": "ok",
+      "bytes": 51718,
+      "file": "public/adm-packs/ng/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:42.438Z"
+    },
+    "NI": {
+      "status": "ok",
+      "bytes": 21554,
+      "file": "public/adm-packs/ni/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:44.780Z"
+    },
+    "NL": {
+      "status": "ok",
+      "bytes": 12407,
+      "file": "public/adm-packs/nl/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:46.516Z"
+    },
+    "NO": {
+      "status": "ok",
+      "bytes": 161713,
+      "file": "public/adm-packs/no/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:48.662Z"
+    },
+    "NP": {
+      "status": "ok",
+      "bytes": 8974,
+      "file": "public/adm-packs/np/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:51.112Z"
+    },
+    "NR": {
+      "status": "ok",
+      "bytes": 1124,
+      "file": "public/adm-packs/nr/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:54.216Z"
+    },
+    "NU": {
+      "status": "ok",
+      "bytes": 1216,
+      "file": "public/adm-packs/nu/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:54.873Z"
+    },
+    "NZ": {
+      "status": "ok",
+      "bytes": 45542,
+      "file": "public/adm-packs/nz/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:55.848Z"
+    },
+    "OM": {
+      "status": "ok",
+      "bytes": 12576,
+      "file": "public/adm-packs/om/adm1.json.gz",
+      "mtime": "2026-10-01T00:57:58.804Z"
+    },
+    "PA": {
+      "status": "ok",
+      "bytes": 26968,
+      "file": "public/adm-packs/pa/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:00.291Z"
+    },
+    "PE": {
+      "status": "ok",
+      "bytes": 29145,
+      "file": "public/adm-packs/pe/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:03.726Z"
+    },
+    "PF": {
+      "status": "missing"
+    },
+    "PG": {
+      "status": "ok",
+      "bytes": 91664,
+      "file": "public/adm-packs/pg/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:06.140Z"
+    },
+    "PH": {
+      "status": "ok",
+      "bytes": 148293,
+      "file": "public/adm-packs/ph/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:09.498Z"
+    },
+    "PK": {
+      "status": "ok",
+      "bytes": 9926,
+      "file": "public/adm-packs/pk/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:14.494Z"
+    },
+    "PL": {
+      "status": "ok",
+      "bytes": 21756,
+      "file": "public/adm-packs/pl/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:17.349Z"
+    },
+    "PM": {
+      "status": "missing"
+    },
+    "PN": {
+      "status": "missing"
+    },
+    "PR": {
+      "status": "missing"
+    },
+    "PS": {
+      "status": "ok",
+      "bytes": 1881,
+      "file": "public/adm-packs/ps/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:21.811Z"
+    },
+    "PT": {
+      "status": "ok",
+      "bytes": 33673,
+      "file": "public/adm-packs/pt/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:23.531Z"
+    },
+    "PW": {
+      "status": "ok",
+      "bytes": 4766,
+      "file": "public/adm-packs/pw/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:26.656Z"
+    },
+    "PY": {
+      "status": "ok",
+      "bytes": 23204,
+      "file": "public/adm-packs/py/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:28.460Z"
+    },
+    "QA": {
+      "status": "ok",
+      "bytes": 7704,
+      "file": "public/adm-packs/qa/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:30.484Z"
+    },
+    "RE": {
+      "status": "missing"
+    },
+    "RO": {
+      "status": "ok",
+      "bytes": 61175,
+      "file": "public/adm-packs/ro/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:32.355Z"
+    },
+    "RS": {
+      "status": "ok",
+      "bytes": 31646,
+      "file": "public/adm-packs/rs/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:36.984Z"
+    },
+    "RU": {
+      "status": "ok",
+      "bytes": 364581,
+      "file": "public/adm-packs/ru/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:39.938Z"
+    },
+    "RW": {
+      "status": "ok",
+      "bytes": 6595,
+      "file": "public/adm-packs/rw/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:47.086Z"
+    },
+    "SA": {
+      "status": "ok",
+      "bytes": 26329,
+      "file": "public/adm-packs/sa/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:50.597Z"
+    },
+    "SB": {
+      "status": "ok",
+      "bytes": 9924,
+      "file": "public/adm-packs/sb/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:52.289Z"
+    },
+    "SC": {
+      "status": "ok",
+      "bytes": 6686,
+      "file": "public/adm-packs/sc/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:56.444Z"
+    },
+    "SD": {
+      "status": "ok",
+      "bytes": 22265,
+      "file": "public/adm-packs/sd/adm1.json.gz",
+      "mtime": "2026-10-01T00:58:58.586Z"
+    },
+    "SE": {
+      "status": "ok",
+      "bytes": 58676,
+      "file": "public/adm-packs/se/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:00.334Z"
+    },
+    "SG": {
+      "status": "ok",
+      "bytes": 3282,
+      "file": "public/adm-packs/sg/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:03.791Z"
+    },
+    "SH": {
+      "status": "missing"
+    },
+    "SI": {
+      "status": "ok",
+      "bytes": 593,
+      "file": "public/adm-packs/si/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:05.315Z"
+    },
+    "SJ": {
+      "status": "missing"
+    },
+    "SK": {
+      "status": "ok",
+      "bytes": 11107,
+      "file": "public/adm-packs/sk/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:07.074Z"
+    },
+    "SL": {
+      "status": "ok",
+      "bytes": 8086,
+      "file": "public/adm-packs/sl/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:11.425Z"
+    },
+    "SM": {
+      "status": "ok",
+      "bytes": 1006,
+      "file": "public/adm-packs/sm/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:14.553Z"
+    },
+    "SN": {
+      "status": "ok",
+      "bytes": 15284,
+      "file": "public/adm-packs/sn/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:15.323Z"
+    },
+    "SO": {
+      "status": "ok",
+      "bytes": 12399,
+      "file": "public/adm-packs/so/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:19.026Z"
+    },
+    "SR": {
+      "status": "ok",
+      "bytes": 7711,
+      "file": "public/adm-packs/sr/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:20.608Z"
+    },
+    "SS": {
+      "status": "ok",
+      "bytes": 11096,
+      "file": "public/adm-packs/ss/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:22.201Z"
+    },
+    "ST": {
+      "status": "ok",
+      "bytes": 1992,
+      "file": "public/adm-packs/st/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:23.969Z"
+    },
+    "SV": {
+      "status": "ok",
+      "bytes": 15262,
+      "file": "public/adm-packs/sv/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:25.404Z"
+    },
+    "SY": {
+      "status": "ok",
+      "bytes": 14480,
+      "file": "public/adm-packs/sy/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:27.116Z"
+    },
+    "SZ": {
+      "status": "ok",
+      "bytes": 2976,
+      "file": "public/adm-packs/sz/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:29.336Z"
+    },
+    "TC": {
+      "status": "missing"
+    },
+    "TD": {
+      "status": "ok",
+      "bytes": 17748,
+      "file": "public/adm-packs/td/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:31.030Z"
+    },
+    "TG": {
+      "status": "ok",
+      "bytes": 6612,
+      "file": "public/adm-packs/tg/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:32.526Z"
+    },
+    "TH": {
+      "status": "ok",
+      "bytes": 115276,
+      "file": "public/adm-packs/th/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:34.262Z"
+    },
+    "TJ": {
+      "status": "ok",
+      "bytes": 6765,
+      "file": "public/adm-packs/tj/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:37.314Z"
+    },
+    "TK": {
+      "status": "missing"
+    },
+    "TL": {
+      "status": "ok",
+      "bytes": 6935,
+      "file": "public/adm-packs/tl/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:38.801Z"
+    },
+    "TM": {
+      "status": "ok",
+      "bytes": 5594,
+      "file": "public/adm-packs/tm/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:40.469Z"
+    },
+    "TN": {
+      "status": "ok",
+      "bytes": 35346,
+      "file": "public/adm-packs/tn/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:41.979Z"
+    },
+    "TO": {
+      "status": "ok",
+      "bytes": 4172,
+      "file": "public/adm-packs/to/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:44.699Z"
+    },
+    "TR": {
+      "status": "ok",
+      "bytes": 128404,
+      "file": "public/adm-packs/tr/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:46.522Z"
+    },
+    "TT": {
+      "status": "ok",
+      "bytes": 5768,
+      "file": "public/adm-packs/tt/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:48.741Z"
+    },
+    "TV": {
+      "status": "ok",
+      "bytes": 943,
+      "file": "public/adm-packs/tv/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:49.431Z"
+    },
+    "TW": {
+      "status": "ok",
+      "bytes": 28223,
+      "file": "public/adm-packs/tw/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:52.709Z"
+    },
+    "TZ": {
+      "status": "ok",
+      "bytes": 39682,
+      "file": "public/adm-packs/tz/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:54.428Z"
+    },
+    "UA": {
+      "status": "ok",
+      "bytes": 39958,
+      "file": "public/adm-packs/ua/adm1.json.gz",
+      "mtime": "2026-10-01T00:59:58.470Z"
+    },
+    "UG": {
+      "status": "ok",
+      "bytes": 13000,
+      "file": "public/adm-packs/ug/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:03.877Z"
+    },
+    "US": {
+      "status": "ok",
+      "bytes": 208215,
+      "file": "public/adm-packs/us/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:08.548Z"
+    },
+    "UY": {
+      "status": "ok",
+      "bytes": 27495,
+      "file": "public/adm-packs/uy/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:11.394Z"
+    },
+    "UZ": {
+      "status": "ok",
+      "bytes": 21678,
+      "file": "public/adm-packs/uz/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:14.703Z"
+    },
+    "VA": {
+      "status": "missing"
+    },
+    "VC": {
+      "status": "ok",
+      "bytes": 2475,
+      "file": "public/adm-packs/vc/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:16.405Z"
+    },
+    "VE": {
+      "status": "ok",
+      "bytes": 41857,
+      "file": "public/adm-packs/ve/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:17.304Z"
+    },
+    "VG": {
+      "status": "missing"
+    },
+    "VI": {
+      "status": "missing"
+    },
+    "VN": {
+      "status": "ok",
+      "bytes": 56201,
+      "file": "public/adm-packs/vn/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:19.906Z"
+    },
+    "VU": {
+      "status": "ok",
+      "bytes": 15018,
+      "file": "public/adm-packs/vu/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:22.410Z"
+    },
+    "WF": {
+      "status": "missing"
+    },
+    "WS": {
+      "status": "ok",
+      "bytes": 4056,
+      "file": "public/adm-packs/ws/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:25.637Z"
+    },
+    "XK": {
+      "status": "ok",
+      "bytes": 9462,
+      "file": "public/adm-packs/xk/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:27.220Z"
+    },
+    "YE": {
+      "status": "ok",
+      "bytes": 29731,
+      "file": "public/adm-packs/ye/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:28.890Z"
+    },
+    "YT": {
+      "status": "missing"
+    },
+    "ZA": {
+      "status": "ok",
+      "bytes": 13385,
+      "file": "public/adm-packs/za/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:31.056Z"
+    },
+    "ZM": {
+      "status": "ok",
+      "bytes": 13566,
+      "file": "public/adm-packs/zm/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:36.274Z"
+    },
+    "ZW": {
+      "status": "ok",
+      "bytes": 12239,
+      "file": "public/adm-packs/zw/adm1.json.gz",
+      "mtime": "2026-10-01T01:00:38.246Z"
+    }
+  },
+  "index": {
+    "status": "ok",
+    "countries": [
+      "AR",
+      "CA",
+      "CH",
+      "CO",
+      "DE",
+      "GB",
+      "GH",
+      "IN",
+      "NL",
+      "US"
+    ]
+  }
+}

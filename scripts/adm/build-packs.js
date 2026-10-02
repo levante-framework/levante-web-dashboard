@@ -45,10 +45,30 @@ const ISO3_MAP = {
 };
 
 const DEST_DIR = path.join(process.cwd(), 'public', 'adm-packs');
+const COUNTRY_INFO_PATH = path.join(process.cwd(), 'data', 'geonames', 'countryInfo.txt');
+
+function loadCountryInfoIso3() {
+  if (!fs.existsSync(COUNTRY_INFO_PATH)) return {};
+  const map = {};
+  for (const line of fs.readFileSync(COUNTRY_INFO_PATH, 'utf8').split('\n')) {
+    if (!line || line.startsWith('#')) continue;
+    const [iso2, iso3] = line.split('\t');
+    if (iso2 && iso3 && iso2.length === 2 && iso3.length === 3) {
+      map[iso2.toUpperCase()] = iso3.toUpperCase();
+    }
+  }
+  return map;
+}
+
+const COUNTRY_INFO_ISO3 = loadCountryInfoIso3();
+
+function iso3For(iso2) {
+  const code = String(iso2 || '').toUpperCase();
+  return ISO3_MAP[code] || COUNTRY_INFO_ISO3[code] || code;
+}
 
 function metaUrl(iso2, level) {
-  const iso3 = ISO3_MAP[iso2.toUpperCase()] || iso2.toUpperCase();
-  return `https://www.geoboundaries.org/api/current/gbOpen/${iso3}/${level}`;
+  return `https://www.geoboundaries.org/api/current/gbOpen/${iso3For(iso2)}/${level}`;
 }
 
 function sleep(ms) {

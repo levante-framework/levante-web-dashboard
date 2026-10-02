@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghana H3 res-5 population · Levante</title>
+  <link rel="icon" type="image/svg+xml" href="/images/location-pin.svg">
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      font-size: var(--fs-base);
+      background: var(--color-bg);
+      color: var(--text-primary);
+    }
+    .page {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
+    }
+    header {
+      padding: 20px 24px 16px;
+      background: var(--surface-1);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    header h1 {
+      margin: 0 0 6px;
+      font-size: var(--fs-xl);
+      font-weight: var(--fw-semibold);
+    }
+    header p {
+      margin: 0;
+      color: var(--text-secondary);
+      max-width: 52rem;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .back {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: var(--fw-medium);
+    }
+    .back:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 320px) 1fr;
+      min-height: 0;
+    }
+    aside {
+      padding: 20px 24px;
+      background: var(--surface-2);
+      border-right: 1px solid var(--border-subtle);
+      overflow: auto;
+    }
+    #map {
+      min-height: 70vh;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 16px 0 20px;
+    }
+    .stat {
+      background: var(--surface-1);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .stat b {
+      display: block;
+      font-size: var(--fs-lg);
+    }
+    .stat span {
+      color: var(--text-muted);
+      font-size: var(--fs-sm);
+    }
+    .legend {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .legend li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 8px;
+    }
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 1px solid var(--border-default);
+      flex: 0 0 18px;
+    }
+    .note {
+      margin-top: 18px;
+      color: var(--text-muted);
+      font-size: var(--fs-sm);
+    }
+    .leaflet-tooltip {
+      font-family: var(--font-sans);
+      font-size: 14px;
+    }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--border-subtle); }
+      #map { min-height: 60vh; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="header-row">
+        <div>
+          <h1>Ghana H3 resolution 5</h1>
+          <p>WorldPop 2020 100 m UN-adjusted counts, summed inside every res-5 hex whose center falls in Ghana. Amber bins are below the 20,000 privacy floor.</p>
+        </div>
+        <nav>
+          <a class="back" href="/gallery/ghana-h3-r4/">Res 4</a>
+          ·
+          <a class="back" href="./ghana-h3-r5.svg">Static SVG</a>
+        </nav>
+      </div>
+    </header>
+    <div class="layout">
+      <aside>
+        <div class="stats" id="stats"></div>
+        <h2 style="font-size:1rem;margin:0 0 10px;">Population range</h2>
+        <ul class="legend" id="legend"></ul>
+        <p class="note" id="meta"></p>
+      </aside>
+      <div id="map" role="region" aria-label="Ghana H3 resolution 5 population map"></div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const RANGES = [
+      { max: 5000, label: 'Under 5,000', color: '#c5453f' },
+      { max: 20000, label: '5,000–19,999', color: '#b5781a' },
+      { max: 50000, label: '20,000–49,999', color: '#7aa8b8' },
+      { max: 100000, label: '50,000–99,999', color: '#2a93ad' },
+      { max: 250000, label: '100,000–249,999', color: '#0c7e9b' },
+      { max: Infinity, label: '250,000+', color: '#0a6a82' }
+    ];
+
+    function formatNumber(value) {
+      if (value == null || !Number.isFinite(value)) return 'n/a';
+      return Math.round(value).toLocaleString();
+    }
+
+    function rangeFor(population) {
+      if (population == null) return { label: 'No estimate', color: '#9aa4b2' };
+      return RANGES.find((range) => population < range.max) || RANGES[RANGES.length - 1];
+    }
+
+    function townLine(properties) {
+      const towns = properties.towns || [];
+      if (!towns.length) return 'No cities5000 town in hex';
+      return towns.map((town) => town.name + ' (' + formatNumber(town.population) + ')').join(', ');
+    }
+
+    async function main() {
+      const payload = await fetch('./cells.json', { cache: 'no-store' }).then((res) => {
+        if (!res.ok) throw new Error('Could not load cells.json');
+        return res.json();
+      });
+      const stats = payload.stats || {};
+      document.getElementById('stats').innerHTML = [
+        ['Hexes', formatNumber(payload.cellCount)],
+        ['Under 20k', formatNumber(stats.under20k)],
+        ['Median', formatNumber(stats.p50)],
+        ['Max', formatNumber(stats.max)]
+      ].map(([label, value]) => (
+        '<div class="stat"><b>' + value + '</b><span>' + label + '</span></div>'
+      )).join('');
+      document.getElementById('legend').innerHTML = RANGES.map((range) => (
+        '<li><span class="swatch" style="background:' + range.color + '"></span>' + range.label + '</li>'
+      )).join('');
+      document.getElementById('meta').textContent =
+        'Source: WorldPop ' + (payload.populationYear || '') + ' ' +
+        (payload.rasterResolution || '') + ' raster (' + (payload.rasterFile || 'worldpop') +
+        '), summed inside each hex. Generated ' +
+        String(payload.generatedAt || '').replace('T', ' ').replace(/\..+$/, ' UTC') + '.';
+
+      const map = L.map('map', { scrollWheelZoom: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+        maxZoom: 12
+      }).addTo(map);
+
+      const layer = L.geoJSON({ type: 'FeatureCollection', features: payload.features || [] }, {
+        style(feature) {
+          const range = rangeFor(feature.properties.population);
+          return {
+            color: '#51607a',
+            weight: 0.6,
+            fillColor: range.color,
+            fillOpacity: 0.72
+          };
+        },
+        onEachFeature(feature, leafletLayer) {
+          const props = feature.properties || {};
+          leafletLayer.bindTooltip(
+            '<strong>' + formatNumber(props.population) + '</strong> people<br>' +
+            props.cellId + '<br>' + townLine(props),
+            { sticky: true }
+          );
+        }
+      }).addTo(map);
+      if (layer.getBounds().isValid()) map.fitBounds(layer.getBounds(), { padding: [16, 16] });
+    }
+
+    main().catch((error) => {
+      document.getElementById('meta').textContent = error.message || String(error);
+    });
+  </script>
+</body>
+</html>
