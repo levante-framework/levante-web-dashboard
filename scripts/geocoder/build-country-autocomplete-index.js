@@ -11,6 +11,7 @@
  * Usage:
  *   node scripts/geocoder/build-country-autocomplete-index.js
  *   node scripts/geocoder/build-country-autocomplete-index.js --countries=US,DE,GB
+ *   node scripts/geocoder/build-country-autocomplete-index.js --all
  *   node scripts/geocoder/build-country-autocomplete-index.js --version=2026-01-27
  */
 
@@ -19,7 +20,7 @@ const path = require('path');
 const zlib = require('zlib');
 const crypto = require('crypto');
 
-const DEFAULT_COUNTRIES = ['US', 'DE', 'GB', 'NL', 'CA', 'CO', 'IN', 'AR', 'GH', 'CH'];
+const DEFAULT_COUNTRIES = ['US', 'DE', 'GB', 'NL', 'CA', 'CO', 'IN', 'AR', 'GH', 'CH', 'PE', 'IL', 'PT', 'BR'];
 const PREFIX_MIN = 2;
 const PREFIX_MAX = 5;
 const MAX_IDS_PER_PREFIX = 180;
@@ -240,6 +241,15 @@ function buildForCountry(countryCode, rows, version) {
     });
 
   const fullEntries = countryRows.map(toEntryTuple);
+  if (!fullEntries.length) {
+    return {
+      country: countryCode,
+      totalEntries: 0,
+      liteEntries: 0,
+      postalEntries: postalRows.length,
+      files: null
+    };
+  }
   const liteEntries = fullEntries.slice(0, Math.min(LITE_LIMIT, fullEntries.length));
 
   const full = {
@@ -282,23 +292,37 @@ function buildForCountry(countryCode, rows, version) {
   };
 }
 
+function availableCountryCodes(cityRows) {
+  const codes = new Set();
+  for (const row of cityRows) {
+    const cc = String(row.country || '').trim().toUpperCase();
+    if (/^[A-Z]{2}$/.test(cc)) codes.add(cc);
+  }
+  if (fs.existsSync(POSTAL_DIR)) {
+    for (const name of fs.readdirSync(POSTAL_DIR)) {
+      const match = String(name).match(/^([A-Z]{2})\.txt$/);
+      if (match) codes.add(match[1]);
+    }
+  }
+  return Array.from(codes).sort();
+}
+
 function main() {
   const args = parseArgs(process.argv);
   const version = String(args.version || new Date().toISOString().slice(0, 10));
-  const countries = String(args.countries || DEFAULT_COUNTRIES.join(','))
-    .split(',')
-    .map((c) => c.trim().toUpperCase())
-    .filter(Boolean);
-
-  const supported = new Set(DEFAULT_COUNTRIES);
-  const invalid = countries.filter((c) => !supported.has(c));
-  if (invalid.length) {
-    throw new Error(`Unsupported country codes: ${invalid.join(', ')}. Supported: ${DEFAULT_COUNTRIES.join(', ')}`);
-  }
-
   const rows = readCitiesDataset();
   if (!Array.isArray(rows) || rows.length === 0) {
     throw new Error('Cities dataset is empty or invalid.');
+  }
+
+  const countries = args.all
+    ? availableCountryCodes(rows)
+    : String(args.countries || DEFAULT_COUNTRIES.join(','))
+        .split(',')
+        .map((c) => c.trim().toUpperCase())
+        .filter((c) => /^[A-Z]{2}$/.test(c));
+  if (!countries.length) {
+    throw new Error('No country codes to build.');
   }
 
   if (!fs.existsSync(OUTPUT_DIR)) {
@@ -314,21 +338,49 @@ function main() {
   }
 
   const generatedAt = new Date().toISOString();
-  const countryMeta = {};
+  let existing = {};
+  if (fs.existsSync(META_PATH)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(META_PATH, 'utf8'));
+    } catch (err) {
+      console.warn(`Could not read existing meta: ${err.message}`);
+    }
+  }
+  const countryMeta = { ...(existing.countries || {}) };
+  let built = 0;
+  let withPostal = 0;
+  let skipped = 0;
   for (const cc of countries) {
     const group = perCountryRows.get(cc) || [];
-    if (!group.length) {
-      console.warn(`⚠️ No rows found for ${cc}; skipping`);
+    const postalPath = path.join(POSTAL_DIR, `${cc}.txt`);
+    if (!group.length && !fs.existsSync(postalPath)) {
+      skipped += 1;
       continue;
     }
-    console.log(`➡️ Building autocomplete index for ${cc} (${group.length.toLocaleString()} rows)...`);
-    countryMeta[cc] = buildForCountry(cc, group, version);
+    const result = buildForCountry(cc, group, version);
+    if (!result.totalEntries) {
+      console.warn(`⚠️ ${cc} rebuild was empty; keeping the previous index`);
+      skipped += 1;
+      continue;
+    }
+    countryMeta[cc] = result;
+    built += 1;
+    if (result.postalEntries > 0) withPostal += 1;
+    if (built % 25 === 0) console.log(`built ${built} indexes`);
+  }
+  console.log(
+    `Built ${built} country indexes (${withPostal} with postal codes, ${built - withPostal} cities only, ${skipped} skipped).`,
+  );
+
+  const supportedCountries = Array.isArray(existing.supportedCountries) ? existing.supportedCountries.slice() : [];
+  for (const cc of Object.keys(countryMeta)) {
+    if (!supportedCountries.includes(cc)) supportedCountries.push(cc);
   }
 
   const meta = {
     version,
     generatedAt,
-    supportedCountries: countries,
+    supportedCountries,
     source: 'data/geocoder/cities.min.json(.gz)',
     notes: [
       'Postal prefixes are included when source rows contain a postal field.',
